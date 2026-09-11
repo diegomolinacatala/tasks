@@ -29,10 +29,8 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # Requiere Settings → Pages → Source: "GitHub Actions" (una sola vez).
       - uses: actions/configure-pages@v5
-        with:
-          # Activa Pages en modo workflow sin tener que tocar los ajustes del repo.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

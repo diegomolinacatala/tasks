@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { relativeLabel } from './lib/date'
+import { relativeLabel, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
 import { useDispatch } from './state/StoreProvider'
-import type { ViewId } from './types'
+import type { IsoDate, ViewId } from './types'
 import { Composer } from './components/compose/Composer'
 import { SectionSheet } from './components/section/SectionSheet'
 import { SettingsSheet } from './components/settings/SettingsSheet'
@@ -28,6 +28,13 @@ export function App() {
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  // Al cambiar de semana, el día al que apunta el compositor se mueve con ella.
+  const changeWeek = (day: IsoDate) => {
+    setWeekAnchor(day)
+    const days = weekDays(day)
+    setSelectedDay(days.includes(today) ? today : (days[0] ?? day))
+  }
+
   const target = view === 'today' ? today : view === 'week' ? selectedDay : null
   const placeholder =
     view === 'backlog' ? 'Añadir sin fecha' : `Añadir a ${relativeLabel(target ?? today, today).toLowerCase()}`
@@ -44,7 +51,7 @@ export function App() {
           <WeekView
             anchor={weekAnchor}
             selectedDay={selectedDay}
-            onAnchorChange={setWeekAnchor}
+            onAnchorChange={changeWeek}
             onSelectDay={setSelectedDay}
             onOpenTask={setTaskId}
           />
