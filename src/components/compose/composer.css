@@ -1,0 +1,37 @@
+.composer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--composer-h);
+  padding: 0 18px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.composer__mark {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: var(--r-full);
+  color: var(--text-3);
+  border: 1.5px dashed var(--line-2);
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+
+.composer__mark.is-ready {
+  color: var(--accent);
+  border-color: rgba(110, 139, 255, 0.5);
+  border-style: solid;
+}
+
+.composer__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  color: var(--text);
+}
+
+.composer__input::placeholder {
+  color: var(--text-3);
+}

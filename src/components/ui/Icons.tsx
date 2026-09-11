@@ -1,0 +1,104 @@
+import type { SVGProps } from 'react'
+
+type IconProps = SVGProps<SVGSVGElement> & { size?: number }
+
+const Icon = ({ size = 20, children, ...props }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.75}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    focusable="false"
+    {...props}
+  >
+    {children}
+  </svg>
+)
+
+export const IconCheck = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4.5 12.5 9.5 17.5 19.5 6.5" />
+  </Icon>
+)
+
+export const IconPlus = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+)
+
+export const IconToday = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 7h16M4 12h10M4 17h6" />
+  </Icon>
+)
+
+export const IconWeek = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.5" y="5" width="17" height="15" rx="3" />
+    <path d="M3.5 10h17M8 3.5v3M16 3.5v3" />
+  </Icon>
+)
+
+export const IconInbox = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 13.5 6 5.5h12l2 8" />
+    <path d="M4 13.5h4l1.2 2.5h5.6l1.2-2.5h4v3.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+  </Icon>
+)
+
+export const IconMore = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  </Icon>
+)
+
+export const IconTrash = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4.5 6.5h15M9.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v1.5" />
+    <path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5" />
+  </Icon>
+)
+
+export const IconChevronDown = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6.5 9.5 12 15l5.5-5.5" />
+  </Icon>
+)
+
+export const IconChevronLeft = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14.5 5.5 8 12l6.5 6.5" />
+  </Icon>
+)
+
+export const IconChevronRight = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9.5 5.5 16 12l-6.5 6.5" />
+  </Icon>
+)
+
+export const IconClose = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Icon>
+)
+
+export const IconDownload = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14" />
+  </Icon>
+)
+
+export const IconUpload = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14" />
+  </Icon>
+)

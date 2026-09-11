@@ -1,0 +1,58 @@
+:root {
+  color-scheme: dark;
+
+  /* Superficies: negro puro de base, elevación por luz, nunca por color */
+  --bg: #000000;
+  --bg-elev: #0b0b0d;
+  --bg-elev-2: #141417;
+  --bg-press: #1c1c20;
+
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.13);
+
+  --text: #ededf0;
+  --text-2: #98989f;
+  --text-3: #5c5c64;
+
+  --accent: #6e8bff;
+  --accent-dim: rgba(110, 139, 255, 0.16);
+  --danger: #ff5a52;
+  --danger-dim: rgba(255, 90, 82, 0.16);
+
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-full: 999px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --fs-micro: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-display: clamp(30px, 9vw, 38px);
+
+  --dur-1: 110ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --shadow-lift: 0 14px 34px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--line-2);
+  --shadow-sheet: 0 -18px 50px rgba(0, 0, 0, 0.75);
+
+  --nav-h: 56px;
+  --composer-h: 52px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', system-ui, sans-serif;
+}
