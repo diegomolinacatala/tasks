@@ -1,6 +1,6 @@
 .section {
   position: relative;
-  padding-top: var(--sp-2);
+  padding-top: var(--sp-1);
   touch-action: pan-y;
 }
 
@@ -15,17 +15,26 @@
   padding: var(--sp-2) 0;
   -webkit-user-select: none;
   user-select: none;
-  -webkit-touch-callout: none;
+}
+
+.section__toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 4px 0;
+  text-align: left;
 }
 
 .section__chevron {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   margin-left: -4px;
   color: var(--text-3);
-  transition: transform var(--dur-2) var(--ease), color var(--dur-1) var(--ease);
+  transition: transform var(--dur-2) var(--ease);
 }
 
 .is-collapsed .section__chevron {
@@ -38,6 +47,14 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.is-danger .section__name,
+.is-danger .section__count {
+  color: var(--danger);
 }
 
 .section__count {
@@ -46,18 +63,30 @@
   font-variant-numeric: tabular-nums;
 }
 
-.section__more {
-  margin-left: auto;
+.section__icon {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   color: var(--text-3);
   border-radius: var(--r-xs);
 }
 
-.section__more:active {
+.section__icon:active {
   background: var(--bg-press);
+  color: var(--text-2);
+}
+
+.section__grip {
+  opacity: 0.5;
+  touch-action: none;
+  cursor: grab;
+}
+
+.section__grip:active {
+  opacity: 1;
+  cursor: grabbing;
 }
 
 .column {
@@ -67,23 +96,19 @@
   transition: background var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
 }
 
-.column > .task + .task .row {
-  border-top: 1px solid var(--line);
-}
-
 .column.is-over {
-  background: rgba(110, 139, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.28);
+  background: rgba(110, 139, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.3);
 }
 
 .column__empty {
-  padding: 14px 2px;
+  padding: 13px 2px;
   font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
 .section-overlay {
-  padding: 0 12px;
+  padding: 10px 14px;
   border-radius: var(--r-sm);
   background: var(--bg-elev-2);
   box-shadow: var(--shadow-lift);

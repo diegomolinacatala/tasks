@@ -1,11 +1,16 @@
 import { createId } from '../lib/id'
 import { applyOrder, moveTask, nextOrder, scopeKey } from '../lib/order'
-import type { AppState, Section, Task } from '../types'
+import type { AppState, IsoDate, Section, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
-export const emptyState = (): AppState => ({ schemaVersion: SCHEMA_VERSION, tasks: [], sections: [] })
+export const emptyState = (): AppState => ({
+  schemaVersion: SCHEMA_VERSION,
+  tasks: [],
+  sections: [],
+  collapsed: { overdue: false, backlog: false },
+})
 
 const MAX_TITLE = 500
 
@@ -63,9 +68,11 @@ export function reducer(state: AppState, action: Action): AppState {
       }
 
     case 'board/commit': {
-      const placement = new Map<string, { sectionId: string | null; order: number }>()
+      const placement = new Map<string, { date: IsoDate | null; sectionId: string | null; order: number }>()
       for (const column of action.columns) {
-        column.ids.forEach((id, order) => placement.set(id, { sectionId: column.sectionId, order }))
+        column.ids.forEach((id, order) =>
+          placement.set(id, { date: column.date, sectionId: column.sectionId, order }),
+        )
       }
       return {
         ...state,
@@ -73,8 +80,8 @@ export function reducer(state: AppState, action: Action): AppState {
           const next = placement.get(task.id)
           if (!next) return task
           const unchanged =
-            task.date === action.date && task.sectionId === next.sectionId && task.order === next.order
-          return unchanged ? task : { ...task, date: action.date, sectionId: next.sectionId, order: next.order }
+            task.date === next.date && task.sectionId === next.sectionId && task.order === next.order
+          return unchanged ? task : { ...task, ...next }
         }),
       }
     }
@@ -133,6 +140,12 @@ export function reducer(state: AppState, action: Action): AppState {
         }),
       }
     }
+
+    case 'block/toggle':
+      return {
+        ...state,
+        collapsed: { ...state.collapsed, [action.block]: !state.collapsed[action.block] },
+      }
 
     case 'state/replace':
       return action.state

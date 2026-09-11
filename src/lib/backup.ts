@@ -52,7 +52,15 @@ export function normalizeState(raw: unknown): AppState | null {
     .filter((task): task is Task => task !== null)
     .map((task) => (task.sectionId && !known.has(task.sectionId) ? { ...task, sectionId: null } : task))
 
-  return { schemaVersion: num(candidate.schemaVersion, SCHEMA_VERSION), tasks, sections }
+  const collapsed = isObject(candidate.collapsed) ? candidate.collapsed : {}
+
+  // Normalizar es migrar: lo que sale de aquí cumple ya el esquema actual.
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    tasks,
+    sections,
+    collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true },
+  }
 }
 
 export function serializeBackup(state: AppState, now: Date = new Date()): string {

@@ -91,6 +91,17 @@ export const IconClose = (props: IconProps) => (
   </Icon>
 )
 
+export const IconGrip = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="9" cy="6" r="1.35" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="6" r="1.35" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="12" r="1.35" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="12" r="1.35" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="18" r="1.35" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="18" r="1.35" fill="currentColor" stroke="none" />
+  </Icon>
+)
+
 export const IconDownload = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14" />

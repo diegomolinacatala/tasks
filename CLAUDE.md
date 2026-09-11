@@ -64,25 +64,45 @@ Un único `useReducer` con `AppState` inmutable en `src/state/reducer.ts`, expue
 Por eso `tasksOn()` solo garantiza que lo pendiente va antes que lo completado: el orden
 entre secciones distintas no es comparable. Cada vista ordena lo que muestra.
 
+### Pantallas
+
+Dos vistas (`ViewId`): `home` y `week`.
+
+**`home`** es la pantalla principal y tiene tres bloques fijos, de arriba abajo:
+
+1. `Atrasadas` — pendientes de días anteriores, en rojo. Se puede sacar de aquí pero no
+   soltar dentro: sus tareas conservan la fecha hasta que se mueven a otro bloque.
+2. `Hoy` — lista raíz más las secciones del usuario.
+3. `Sin fecha` — lo que no tiene día. Es donde caen las tareas nuevas por defecto.
+
+`Atrasadas` y `Sin fecha` se pliegan y ese estado se guarda en `AppState.collapsed`.
+
 ### Drag & drop
 
-- **Hoy**: `useTodayBoard` mantiene una copia (`preview`) del tablero durante el gesto y
+- **El arrastre solo se activa desde el asa** (`task__grip`, `section__grip`), con
+  `touch-action: none` y un umbral de 4 px. El resto de la fila queda libre para el scroll
+  vertical y el deslizamiento horizontal, así que los tres gestos no compiten.
+- **`home`**: `useHomeBoard` mantiene una copia (`preview`) del tablero durante el gesto y
   confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
   ref: al soltar hay que leer el estado real del gesto, no el del último render.
-- **Semana**: cada día es un `useDroppable`; soltar cambia la fecha y conserva la sección.
+  Cada columna del commit lleva su propio destino: `root` y las secciones van a hoy,
+  `backlog` va a `null`, y `overdue` se excluye del commit.
+- **`week`**: cada día es un `useDroppable`; soltar cambia la fecha y conserva la sección.
   No se reordena dentro del día (el orden es por sección y quedaría ambiguo).
-- **Backlog**: lista `sortable` plana.
 - Ids con prefijo para no colisionar: `col:<clave>` (columna), `sec:<id>` (sección),
   el id pelado de la tarea para las tareas. Ver `src/components/dnd/ids.ts`.
-- Activación por pulsación mantenida (200 ms, tolerancia 6 px) para no bloquear ni el
-  scroll vertical ni el deslizamiento horizontal.
 
 ### Gestos de fila (`useSwipe`)
 
 Deslizar a la derecha completa, a la izquierda borra (con deshacer en un toast). El gesto
-se bloquea en un eje según el primer movimiento y convive con dnd-kit porque un movimiento
-horizontal cancela la activación del arrastre. El desplazamiento se guarda en un ref
+se bloquea en un eje según el primer movimiento. El desplazamiento se guarda en un ref
 además de en el estado: al soltar hay que leer el valor real, no el del render anterior.
+El asa detiene la propagación del `pointerdown` para no disparar también el deslizamiento.
+
+### Alta de tareas
+
+El compositor crea **sin fecha** por defecto (Enter o el `+`). Cuando hay texto aparece un
+atajo de un toque que la manda a hoy —o al día seleccionado en la vista semana—.
 
 ## Estilo visual
 
@@ -90,6 +110,7 @@ Negro puro, siempre oscuro. Tipografía del sistema, jerarquía por tamaño y pe
 acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 
 - Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.**
+- `--danger` significa una sola cosa: atrasado. No se usa de adorno.
 - CSS por componente, junto al componente. Clases en kebab-case estilo BEM ligero.
 - Animar solo `transform` y `opacity`.
 - Respetar `prefers-reduced-motion` y las safe areas (`--safe-t`, `--safe-b`, `--kb`).
@@ -111,6 +132,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - **Sin subtareas, notas, recurrencias ni recordatorios** en el MVP.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
+- Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
+- Lo atrasado y completado no se muestra: es historia, no deuda.
 
 ## Despliegue
 

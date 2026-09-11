@@ -1,4 +1,4 @@
-import { byDisplay, scopeOf } from '../lib/order'
+import { byDisplay, byOrder, scopeOf } from '../lib/order'
 import type { AppState, IsoDate, Section, Task } from '../types'
 
 export interface Group {
@@ -15,6 +15,16 @@ export const tasksOn = (state: AppState, date: IsoDate): Task[] =>
 
 export const backlogTasks = (state: AppState): Task[] =>
   state.tasks.filter((task) => task.date === null).sort(byDisplay)
+
+/** Pendiente de un día ya pasado. Las completadas no arrastran: son historia. */
+export const isOverdue = (task: Task, today: IsoDate): boolean =>
+  !task.done && task.date !== null && task.date < today
+
+/** Atrasadas, de la más antigua a la más reciente. */
+export const overdueTasks = (state: AppState, today: IsoDate): Task[] =>
+  state.tasks
+    .filter((task) => isOverdue(task, today))
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || byOrder(a, b))
 
 export function groupsFor(state: AppState, date: IsoDate): Group[] {
   const inDay = tasksOn(state, date)

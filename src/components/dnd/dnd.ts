@@ -1,27 +1,21 @@
-import {
-  KeyboardSensor,
-  PointerSensor,
-  closestCorners,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
+import { KeyboardSensor, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { Announcements, CollisionDetection } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
-/** Pulsación mantenida: deja libres el scroll vertical y el swipe horizontal. */
-const HOLD_MS = 200
-const HOLD_TOLERANCE_PX = 6
+/**
+ * El arrastre solo se activa desde el asa, así que no compite con el scroll ni con
+ * el deslizamiento: basta un umbral corto de movimiento.
+ */
+const START_DISTANCE_PX = 4
 
 export function useDragSensors() {
   return useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { delay: HOLD_MS, tolerance: HOLD_TOLERANCE_PX },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: START_DISTANCE_PX } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 }
 
-/** Una sección solo puede soltarse entre secciones; una tarea, nunca sobre una sección. */
+/** Una sección solo se suelta entre secciones; una tarea, nunca sobre una sección. */
 export const scopedCollision: CollisionDetection = (args) => {
   const dragging = args.active.data.current?.type
   const droppableContainers = args.droppableContainers.filter((container) => {
@@ -37,3 +31,5 @@ export const announcements: Announcements = {
   onDragEnd: () => 'Elemento soltado.',
   onDragCancel: () => 'Movimiento cancelado.',
 }
+
+export const buzz = () => navigator.vibrate?.(10)

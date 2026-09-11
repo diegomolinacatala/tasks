@@ -1,4 +1,4 @@
-/** Fecha local en formato YYYY-MM-DD. `null` = sin fecha (backlog). */
+/** Fecha local en formato YYYY-MM-DD. `null` = sin fecha. */
 export type IsoDate = string
 
 export interface Task {
@@ -21,10 +21,14 @@ export interface Section {
   collapsed: boolean
 }
 
+/** Bloques fijos de la pantalla principal que se pueden plegar. */
+export type BlockId = 'overdue' | 'backlog'
+
 export interface AppState {
   schemaVersion: number
   tasks: Task[]
   sections: Section[]
+  collapsed: Record<BlockId, boolean>
 }
 
-export type ViewId = 'today' | 'week' | 'backlog'
+export type ViewId = 'home' | 'week'

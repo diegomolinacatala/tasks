@@ -105,6 +105,7 @@ export function WeekView({ anchor, selectedDay, onAnchorChange, onSelectDay, onO
             day={day}
             tasks={tasksByDay.get(day) ?? []}
             isToday={day === today}
+            isPast={day < today}
             isSelected={day === selectedDay}
             onSelect={() => onSelectDay(day)}
             onToggle={toggle}
@@ -129,6 +130,7 @@ interface DayBlockProps {
   day: IsoDate
   tasks: Task[]
   isToday: boolean
+  isPast: boolean
   isSelected: boolean
   onSelect: () => void
   onToggle: (id: string) => void
@@ -136,14 +138,17 @@ interface DayBlockProps {
   onOpen: (id: string) => void
 }
 
-function DayBlock({ day, tasks, isToday, isSelected, onSelect, onToggle, onDelete, onOpen }: DayBlockProps) {
+function DayBlock({ day, tasks, isToday, isPast, isSelected, onSelect, onToggle, onDelete, onOpen }: DayBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: dayDropId(day), data: { type: 'container' } })
   const pending = tasks.filter((task) => !task.done).length
+  const overdue = isPast && pending > 0
 
   return (
     <section
       ref={setNodeRef}
-      className={`day ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''} ${isOver ? 'is-over' : ''}`}
+      className={`day ${isToday ? 'is-today' : ''} ${overdue ? 'is-overdue' : ''} ${
+        isSelected ? 'is-selected' : ''
+      } ${isOver ? 'is-over' : ''}`}
     >
       <button type="button" className="day__head" onClick={onSelect}>
         <span className="day__name">{dayNameShort(day)}</span>
@@ -155,6 +160,7 @@ function DayBlock({ day, tasks, isToday, isSelected, onSelect, onToggle, onDelet
           <DraggableTask
             key={task.id}
             task={task}
+            overdue={isPast && !task.done}
             onToggle={() => onToggle(task.id)}
             onDelete={() => onDelete(task.id)}
             onOpen={() => onOpen(task.id)}

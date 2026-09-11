@@ -1,45 +1,59 @@
 import { useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
+import type { IsoDate } from '../../types'
 import { IconPlus } from '../ui/Icons'
 import './composer.css'
 
 interface ComposerProps {
-  placeholder: string
-  onSubmit: (title: string) => void
+  /** Atajo de un toque: añade con fecha en vez de dejarla en blanco. */
+  quickLabel: string
+  quickDate: IsoDate
+  onSubmit: (title: string, date: IsoDate | null) => void
 }
 
-export function Composer({ placeholder, onSubmit }: ComposerProps) {
+/** Por defecto la tarea nace sin fecha; el atajo la manda al día que toque. */
+export function Composer({ quickLabel, quickDate, onSubmit }: ComposerProps) {
   const [value, setValue] = useState('')
+  const ready = value.trim().length > 0
 
-  const submit = (event?: FormEvent) => {
+  const submit = (date: IsoDate | null, event?: FormEvent) => {
     event?.preventDefault()
-    if (!value.trim()) return
-    onSubmit(value)
+    if (!ready) return
+    onSubmit(value, date)
     setValue('')
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return
     event.preventDefault()
-    submit()
+    submit(null)
   }
 
   return (
-    <form className="composer" onSubmit={submit}>
-      <button type="submit" className={`composer__mark ${value ? 'is-ready' : ''}`} aria-label="Añadir tarea">
+    <form className="composer" onSubmit={(event) => submit(null, event)}>
+      <button type="submit" className={`composer__mark ${ready ? 'is-ready' : ''}`} aria-label="Añadir sin fecha">
         <IconPlus size={15} />
       </button>
       <input
         className="composer__input"
         value={value}
-        placeholder={placeholder}
-        aria-label={placeholder}
+        placeholder="Añadir tarea"
+        aria-label="Añadir tarea"
         enterKeyHint="done"
         autoComplete="off"
-        autoCorrect="on"
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={onKeyDown}
       />
+      {ready && (
+        <button
+          type="button"
+          className="composer__quick"
+          onClick={() => submit(quickDate)}
+          aria-label={`Añadir a ${quickLabel}`}
+        >
+          {quickLabel}
+        </button>
+      )}
     </form>
   )
 }

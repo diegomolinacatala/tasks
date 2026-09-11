@@ -1,11 +1,10 @@
 import type { ViewId } from '../../types'
-import { IconInbox, IconToday, IconWeek } from '../ui/Icons'
+import { IconToday, IconWeek } from '../ui/Icons'
 import './shell.css'
 
 const TABS: { id: ViewId; label: string; Icon: typeof IconToday }[] = [
-  { id: 'today', label: 'Hoy', Icon: IconToday },
+  { id: 'home', label: 'Tareas', Icon: IconToday },
   { id: 'week', label: 'Semana', Icon: IconWeek },
-  { id: 'backlog', label: 'Backlog', Icon: IconInbox },
 ]
 
 interface BottomNavProps {

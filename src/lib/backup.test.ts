@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import type { AppState } from '../types'
+import { SCHEMA_VERSION } from '../state/reducer'
 import { backupFilename, normalizeState, parseBackup, serializeBackup } from './backup'
 
 const state: AppState = {
-  schemaVersion: 1,
+  schemaVersion: SCHEMA_VERSION,
   tasks: [
     {
       id: 't1',
@@ -17,6 +18,7 @@ const state: AppState = {
     },
   ],
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
+  collapsed: { overdue: false, backlog: true },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -61,6 +63,15 @@ describe('normalizeState', () => {
   test('acepta un AppState suelto además del fichero envuelto', () => {
     expect(normalizeState(state)).toEqual(state)
     expect(normalizeState({ state })).toEqual(state)
+  })
+
+  test('rellena los bloques plegados que falten en copias antiguas', () => {
+    const result = normalizeState({ tasks: [], sections: [] })
+    expect(result!.collapsed).toEqual({ overdue: false, backlog: false })
+  })
+
+  test('sella la versión de esquema actual al normalizar', () => {
+    expect(normalizeState({ schemaVersion: 1, tasks: [], sections: [] })!.schemaVersion).toBe(SCHEMA_VERSION)
   })
 
   test('devuelve null si faltan las colecciones', () => {

@@ -73,10 +73,9 @@ describe('board/commit', () => {
     const [a, b, c] = state.tasks as [Task, Task, Task]
     const next = reducer(state, {
       type: 'board/commit',
-      date: TODAY,
       columns: [
-        { sectionId: null, ids: [c.id] },
-        { sectionId: 'work', ids: [b.id, a.id] },
+        { date: TODAY, sectionId: null, ids: [c.id] },
+        { date: TODAY, sectionId: 'work', ids: [b.id, a.id] },
       ],
     })
 
@@ -87,8 +86,41 @@ describe('board/commit', () => {
   test('las tareas fuera del tablero no se tocan', () => {
     const state = run(withTasks('hoy'), { type: 'task/add', title: 'suelta', date: null, sectionId: null })
     const loose = state.tasks.find((t) => t.title === 'suelta')!
-    const next = reducer(state, { type: 'board/commit', date: TODAY, columns: [{ sectionId: null, ids: [] }] })
+    const next = reducer(state, {
+      type: 'board/commit',
+      columns: [{ date: TODAY, sectionId: null, ids: [] }],
+    })
     expect(next.tasks.find((t) => t.id === loose.id)).toEqual(loose)
+  })
+})
+
+describe('board/commit entre bloques', () => {
+  test('una columna sin fecha manda la tarea al backlog', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    const next = reducer(state, {
+      type: 'board/commit',
+      columns: [
+        { date: TODAY, sectionId: null, ids: [] },
+        { date: null, sectionId: null, ids: [id] },
+      ],
+    })
+    expect(next.tasks[0]!.date).toBeNull()
+    expect(next.tasks[0]!.order).toBe(0)
+  })
+
+  test('una tarea atrasada conserva su fecha si no entra en ninguna columna', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'vieja', date: '2026-09-01', sectionId: null })
+    const next = reducer(state, { type: 'board/commit', columns: [{ date: TODAY, sectionId: null, ids: [] }] })
+    expect(next.tasks[0]!.date).toBe('2026-09-01')
+  })
+})
+
+describe('block/toggle', () => {
+  test('pliega y despliega cada bloque por separado', () => {
+    const plegado = reducer(emptyState(), { type: 'block/toggle', block: 'backlog' })
+    expect(plegado.collapsed).toEqual({ overdue: false, backlog: true })
+    expect(reducer(plegado, { type: 'block/toggle', block: 'backlog' }).collapsed.backlog).toBe(false)
   })
 })
 

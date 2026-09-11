@@ -2,8 +2,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ReactNode } from 'react'
 import type { Section } from '../../types'
-import { IconChevronDown, IconMore } from '../ui/Icons'
 import { columnId, sectionDragId } from '../dnd/ids'
+import { IconChevronDown, IconGrip, IconMore } from '../ui/Icons'
 import { TaskColumn } from './TaskColumn'
 import './section.css'
 
@@ -22,35 +22,37 @@ export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, chil
     data: { type: 'section' },
   })
 
-  const stop = (event: { stopPropagation: () => void }) => event.stopPropagation()
-
   return (
     <section
       ref={setNodeRef}
       className={`section ${isDragging ? 'is-dragging' : ''} ${section.collapsed ? 'is-collapsed' : ''}`}
       style={{ transform: CSS.Translate.toString(transform), transition }}
     >
-      <header className="section__head" {...attributes} {...listeners}>
+      <header className="section__head">
         <button
           type="button"
-          className="section__chevron"
+          className="section__toggle"
           aria-expanded={!section.collapsed}
-          aria-label={section.collapsed ? `Abrir ${section.name}` : `Cerrar ${section.name}`}
-          onPointerDown={stop}
           onClick={onToggle}
         >
-          <IconChevronDown size={16} />
+          <span className="section__chevron" aria-hidden="true">
+            <IconChevronDown size={16} />
+          </span>
+          <span className="section__name">{section.name}</span>
+          {pending > 0 && <span className="section__count">{pending}</span>}
         </button>
-        <h2 className="section__name">{section.name}</h2>
-        {pending > 0 && <span className="section__count">{pending}</span>}
+
+        <button type="button" className="section__icon" aria-label={`Opciones de ${section.name}`} onClick={onOpen}>
+          <IconMore size={16} />
+        </button>
         <button
           type="button"
-          className="section__more"
-          aria-label={`Opciones de ${section.name}`}
-          onPointerDown={stop}
-          onClick={onOpen}
+          className="section__icon section__grip"
+          aria-label={`Mover sección ${section.name}`}
+          {...attributes}
+          {...listeners}
         >
-          <IconMore size={16} />
+          <IconGrip size={16} />
         </button>
       </header>
 

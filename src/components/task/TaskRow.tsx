@@ -4,13 +4,14 @@ import { IconCheck } from '../ui/Icons'
 interface TaskRowProps {
   task: Task
   meta?: string | null
+  overdue?: boolean
   onToggle?: () => void
   onOpen?: () => void
 }
 
-export function TaskRow({ task, meta, onToggle, onOpen }: TaskRowProps) {
+export function TaskRow({ task, meta, overdue = false, onToggle, onOpen }: TaskRowProps) {
   return (
-    <div className={`row ${task.done ? 'is-done' : ''}`}>
+    <div className={`row ${task.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}`}>
       <button
         type="button"
         className="row__check"

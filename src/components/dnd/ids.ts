@@ -1,4 +1,7 @@
+/** Claves de las columnas fijas de la pantalla principal. */
+export const OVERDUE = 'overdue'
 export const ROOT = 'root'
+export const BACKLOG = 'backlog'
 
 export const columnId = (key: string) => `col:${key}`
 export const sectionDragId = (id: string) => `sec:${id}`

@@ -1,7 +1,7 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react'
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 import type { Task } from '../../types'
-import { IconCheck, IconTrash } from '../ui/Icons'
+import { IconCheck, IconGrip, IconTrash } from '../ui/Icons'
 import { TaskRow } from './TaskRow'
 import { SWIPE_TRIGGER_PX, useSwipe } from './useSwipe'
 import './task.css'
@@ -9,6 +9,7 @@ import './task.css'
 interface TaskShellProps {
   task: Task
   meta?: string | null
+  overdue?: boolean
   isDragging: boolean
   setNodeRef: Ref<HTMLLIElement>
   style?: CSSProperties
@@ -19,10 +20,14 @@ interface TaskShellProps {
   onDelete: () => void
 }
 
-/** Fila con gesto: pulsación mantenida para arrastrar, deslizar para completar o borrar. */
+/**
+ * Fila con gestos. El arrastre vive solo en el asa (`task__grip`): así el resto de la
+ * fila queda libre para el scroll vertical y para deslizar en horizontal.
+ */
 export function TaskShell({
   task,
   meta,
+  overdue,
   isDragging,
   setNodeRef,
   style,
@@ -35,9 +40,10 @@ export function TaskShell({
   const swipe = useSwipe({ onLeft: onDelete, onRight: onToggle, disabled: isDragging })
   const progress = Math.min(1, Math.abs(swipe.offset) / SWIPE_TRIGGER_PX)
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const onGripDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    // El asa no debe iniciar también el deslizamiento de la fila.
+    event.stopPropagation()
     listeners?.onPointerDown?.(event)
-    swipe.handlers.onPointerDown(event)
   }
 
   return (
@@ -57,15 +63,23 @@ export function TaskShell({
           transform: `translate3d(${swipe.offset}px,0,0)`,
           transition: swipe.settling ? 'transform var(--dur-2) var(--ease)' : 'none',
         }}
-        onContextMenu={(event) => event.preventDefault()}
-        {...attributes}
-        {...listeners}
-        onPointerDown={onPointerDown}
+        onPointerDown={swipe.handlers.onPointerDown}
         onPointerMove={swipe.handlers.onPointerMove}
         onPointerUp={swipe.handlers.onPointerUp}
         onPointerCancel={swipe.handlers.onPointerCancel}
       >
-        <TaskRow task={task} meta={meta} onToggle={onToggle} onOpen={onOpen} />
+        <TaskRow task={task} meta={meta} overdue={overdue} onToggle={onToggle} onOpen={onOpen} />
+        <button
+          type="button"
+          className="task__grip"
+          aria-label={`Mover «${task.title}»`}
+          onContextMenu={(event) => event.preventDefault()}
+          {...attributes}
+          {...listeners}
+          onPointerDown={onGripDown}
+        >
+          <IconGrip size={16} />
+        </button>
       </div>
     </li>
   )

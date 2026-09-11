@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { relativeLabel, weekDays } from './lib/date'
+import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
 import { useDispatch } from './state/StoreProvider'
@@ -11,8 +11,7 @@ import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { TaskSheet } from './components/task/TaskSheet'
 import { IconMore } from './components/ui/Icons'
-import { BacklogView } from './components/views/BacklogView'
-import { TodayView } from './components/views/TodayView'
+import { HomeView } from './components/views/HomeView'
 import { WeekView } from './components/views/WeekView'
 import './components/shell/shell.css'
 
@@ -21,23 +20,23 @@ export function App() {
   const today = useToday()
   const typing = useKeyboardInset()
 
-  const [view, setView] = useState<ViewId>('today')
+  const [view, setView] = useState<ViewId>('home')
   const [weekAnchor, setWeekAnchor] = useState(today)
   const [selectedDay, setSelectedDay] = useState(today)
   const [taskId, setTaskId] = useState<string | null>(null)
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  // Al cambiar de semana, el día al que apunta el compositor se mueve con ella.
+  // Al cambiar de semana, el día al que apunta el atajo se mueve con ella.
   const changeWeek = (day: IsoDate) => {
     setWeekAnchor(day)
     const days = weekDays(day)
     setSelectedDay(days.includes(today) ? today : (days[0] ?? day))
   }
 
-  const target = view === 'today' ? today : view === 'week' ? selectedDay : null
-  const placeholder =
-    view === 'backlog' ? 'Añadir sin fecha' : `Añadir a ${relativeLabel(target ?? today, today).toLowerCase()}`
+  const inWeek = view === 'week' && selectedDay !== today
+  const quickDate = view === 'week' ? selectedDay : today
+  const quickLabel = inWeek ? `${dayNameShort(selectedDay)} ${dayNumber(selectedDay)}` : 'Hoy'
 
   return (
     <div className={`app ${typing ? 'is-typing' : ''}`}>
@@ -46,7 +45,7 @@ export function App() {
       </button>
 
       <main className="app__scroll">
-        {view === 'today' && <TodayView date={today} onOpenTask={setTaskId} onOpenSection={setSectionId} />}
+        {view === 'home' && <HomeView today={today} onOpenTask={setTaskId} onOpenSection={setSectionId} />}
         {view === 'week' && (
           <WeekView
             anchor={weekAnchor}
@@ -56,13 +55,13 @@ export function App() {
             onOpenTask={setTaskId}
           />
         )}
-        {view === 'backlog' && <BacklogView onOpenTask={setTaskId} />}
       </main>
 
       <div className="app__bar">
         <Composer
-          placeholder={placeholder}
-          onSubmit={(title) => dispatch({ type: 'task/add', title, date: target, sectionId: null })}
+          quickLabel={quickLabel}
+          quickDate={quickDate}
+          onSubmit={(title, date) => dispatch({ type: 'task/add', title, date, sectionId: null })}
         />
         <BottomNav view={view} onChange={(next) => withTransition(() => setView(next))} />
       </div>

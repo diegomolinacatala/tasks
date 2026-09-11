@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'vitest'
 import type { AppState, Section, Task } from '../types'
-import { backlogTasks, findSection, findTask, groupsFor, progressOf, sortedSections, tasksOn } from './selectors'
+import {
+  backlogTasks,
+  findSection,
+  findTask,
+  groupsFor,
+  isOverdue,
+  overdueTasks,
+  progressOf,
+  sortedSections,
+  tasksOn,
+} from './selectors'
 
 const TODAY = '2026-09-11'
 
@@ -28,6 +38,7 @@ const state: AppState = {
     task({ id: 'suelta', date: null }),
   ],
   sections: [section('s2', 1), section('s1', 0)],
+  collapsed: { overdue: false, backlog: false },
 }
 
 describe('sortedSections', () => {
@@ -61,6 +72,36 @@ describe('groupsFor', () => {
     expect(groups[0]!.tasks.map((t) => t.id)).toEqual(['a', 'b', 'done'])
     expect(groups[1]!.tasks.map((t) => t.id)).toEqual(['work'])
     expect(groups[2]!.tasks).toEqual([])
+  })
+})
+
+describe('isOverdue', () => {
+  test('solo lo pendiente de un día anterior', () => {
+    expect(isOverdue(task({ id: 'a', date: '2026-09-10' }), TODAY)).toBe(true)
+    expect(isOverdue(task({ id: 'b', date: '2026-09-10', done: true }), TODAY)).toBe(false)
+    expect(isOverdue(task({ id: 'c', date: TODAY }), TODAY)).toBe(false)
+    expect(isOverdue(task({ id: 'd', date: '2026-09-12' }), TODAY)).toBe(false)
+    expect(isOverdue(task({ id: 'e', date: null }), TODAY)).toBe(false)
+  })
+})
+
+describe('overdueTasks', () => {
+  const atrasadas: AppState = {
+    ...state,
+    tasks: [
+      task({ id: 'ayer', date: '2026-09-10' }),
+      task({ id: 'antesdeayer', date: '2026-09-09' }),
+      task({ id: 'hecha', date: '2026-09-09', done: true }),
+      task({ id: 'hoy', date: TODAY }),
+    ],
+  }
+
+  test('de la más antigua a la más reciente, sin las completadas', () => {
+    expect(overdueTasks(atrasadas, TODAY).map((t) => t.id)).toEqual(['antesdeayer', 'ayer'])
+  })
+
+  test('sin atrasos devuelve lista vacía', () => {
+    expect(overdueTasks({ ...state, tasks: [task({ id: 'hoy' })] }, TODAY)).toEqual([])
   })
 })
 

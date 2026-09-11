@@ -62,6 +62,14 @@
   transition: transform var(--dur-3) var(--ease);
 }
 
+.block {
+  margin-top: var(--sp-4);
+}
+
+.block:first-of-type {
+  margin-top: var(--sp-2);
+}
+
 .view__add-section {
   display: flex;
   align-items: center;
@@ -148,6 +156,12 @@
 
 .is-today .day__num {
   color: var(--text);
+}
+
+.is-overdue .day__name,
+.is-overdue .day__num,
+.is-overdue .day__count {
+  color: var(--danger);
 }
 
 .is-selected .day__num {

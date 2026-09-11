@@ -9,7 +9,7 @@ export function seedState(): AppState {
   const titles = [
     'Desliza a la derecha para completar',
     'Desliza a la izquierda para borrar',
-    'Mantén pulsado y arrastra para reordenar',
+    'Arrastra por el asa de la derecha para mover',
   ]
 
   const tasks: Task[] = titles.map((title, order) => ({
@@ -23,5 +23,5 @@ export function seedState(): AppState {
     completedAt: null,
   }))
 
-  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [] }
+  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [], collapsed: { overdue: false, backlog: false } }
 }

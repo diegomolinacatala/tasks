@@ -9,8 +9,14 @@
   -webkit-touch-callout: none;
 }
 
+/* Hueco que deja la tarea mientras viaja */
 .task.is-dragging {
-  opacity: 0.25;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.task.is-dragging .task__surface {
+  opacity: 0;
 }
 
 .task__affordance {
@@ -39,16 +45,44 @@
 
 .task__surface {
   position: relative;
+  display: flex;
+  align-items: stretch;
   background: var(--bg);
   will-change: transform;
 }
 
+.column > .task + .task .task__surface {
+  border-top: 1px solid var(--line);
+}
+
+.task__grip {
+  flex: none;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  opacity: 0.5;
+  border-radius: var(--r-xs);
+  /* El asa no hace scroll: en cuanto la tocas, manda el arrastre */
+  touch-action: none;
+  cursor: grab;
+  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.task__grip:active {
+  opacity: 1;
+  background: var(--bg-elev-2);
+  cursor: grabbing;
+}
+
 .row {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: var(--sp-3);
   min-height: 46px;
-  padding: 11px 2px 11px 0;
+  padding: 11px 0;
 }
 
 .row__check {
@@ -74,6 +108,10 @@
   color: var(--accent);
 }
 
+.is-overdue .row__check {
+  border-color: rgba(255, 90, 82, 0.5);
+}
+
 .row__main {
   flex: 1;
   min-width: 0;
@@ -94,6 +132,10 @@
   transition: color var(--dur-2) var(--ease);
 }
 
+.is-overdue .row__title {
+  color: var(--danger);
+}
+
 .is-done .row__title {
   color: var(--text-3);
   text-decoration: line-through;
@@ -107,6 +149,11 @@
   letter-spacing: 0.01em;
 }
 
+.is-overdue .row__meta {
+  color: var(--danger);
+  opacity: 0.75;
+}
+
 /* Copia que sigue al dedo mientras se arrastra */
 .task-overlay {
   border-radius: var(--r-sm);
@@ -114,5 +161,5 @@
   box-shadow: var(--shadow-lift);
   padding: 0 14px;
   cursor: grabbing;
-  transform: scale(1.015);
+  transform: scale(1.02) rotate(-0.5deg);
 }

@@ -7,11 +7,12 @@ solo en tu dispositivo.
 
 ## Qué hace
 
-- **Hoy**: lista del día con secciones colapsables que se reordenan arrastrando.
+- **Tareas**: una sola pantalla con lo atrasado (en rojo), lo de hoy con sus secciones, y
+  lo que no tiene fecha.
 - **Semana**: los siete días a la vista; arrastra una tarea de un día a otro.
-- **Backlog**: lo que no tiene fecha.
+- Escribe y pulsa Enter: la tarea nace **sin fecha**. El botón *Hoy* la manda al día de hoy.
 - Deslizar a la derecha completa, a la izquierda borra (con deshacer).
-- Mantener pulsado y arrastrar para reordenar.
+- Arrastrar por el asa de la derecha para reordenar o cambiar de bloque.
 - Exportar e importar una copia en JSON desde Ajustes.
 
 ## Instalar en el móvil

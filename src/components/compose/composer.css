@@ -35,3 +35,30 @@
 .composer__input::placeholder {
   color: var(--text-3);
 }
+
+.composer__quick {
+  flex: none;
+  padding: 7px 13px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  animation: quick-in var(--dur-2) var(--ease);
+}
+
+.composer__quick:active {
+  background: rgba(110, 139, 255, 0.28);
+}
+
+@keyframes quick-in {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
