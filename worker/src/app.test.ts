@@ -176,6 +176,18 @@ describe('rutas autenticadas', () => {
     expect(memory.items().map((i) => [i.deviceId, i.id])).toEqual([[deviceId, 'c']])
   })
 
+  test('PUT /v1/schedule arma la alarma con el aviso más próximo', async () => {
+    const { deps, armed, now } = testDeps()
+    const { token } = await register(deps)
+    const items = [
+      { id: 'b', at: now() + 120_000, payload: 'eA' },
+      { id: 'a', at: now() + 60_000, payload: 'eA' },
+    ]
+    await handle(request('PUT', '/v1/schedule', { token, body: { items } }), deps)
+    await handle(request('PUT', '/v1/schedule', { token, body: { items: [] } }), deps)
+    expect(armed).toEqual([now() + 60_000])
+  })
+
   test('PUT /v1/schedule valida los avisos', async () => {
     const { deps } = testDeps()
     const { token } = await register(deps)

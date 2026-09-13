@@ -130,6 +130,11 @@ export function d1Store(db: D1Database): Store {
       if (keys.length) await db.batch(keyConditions(db, 'UPDATE schedule SET attempts = attempts + 1', keys))
     },
 
+    async nextDueAt() {
+      const row = await db.prepare('SELECT MIN(at) AS next FROM schedule').first<{ next: number | null }>()
+      return row?.next ?? null
+    },
+
     async deleteStaleDevices(seenBefore) {
       await db.batch([
         db.prepare('DELETE FROM schedule WHERE device_id IN (SELECT id FROM devices WHERE seen_at < ?)').bind(seenBefore),

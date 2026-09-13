@@ -3,14 +3,16 @@ import type { Deps, DueItem, ItemKey } from './types'
 
 /**
  * El plan gratuito permite 50 subpeticiones por invocación: 30 envíos más un puñado de
- * consultas a D1 dejan margen. Lo que no quepa sale al minuto siguiente.
+ * consultas a D1 dejan margen. Lo que no quepa sale en la siguiente alarma, un segundo después.
  */
 export const MAX_PER_RUN = 30
 export const MAX_ATTEMPTS = 3
 /** Un aviso que llega con más de una hora de retraso ya no ayuda: se descarta. */
 export const LATE_MS = 60 * 60 * 1000
-/** El cron corre al segundo 0: adelanta lo que vence dentro de ese minuto. */
-export const LOOKAHEAD_MS = 30 * 1000
+/** La alarma salta a la hora exacta; este margen solo absorbe desfases de reloj. */
+export const LOOKAHEAD_MS = 1000
+/** Espera antes de reintentar envíos fallidos. */
+export const RETRY_DELAY_MS = 30 * 1000
 export const STALE_DEVICE_MS = 180 * 24 * 60 * 60 * 1000
 
 export interface RunSummary {
@@ -56,4 +58,14 @@ export async function runDue(deps: Deps): Promise<RunSummary> {
     gone: goneDevices.size,
     unauthorized: results.filter(({ result }) => result === 'unauthorized').length,
   }
+}
+
+/**
+ * Cuándo debe volver a sonar la alarma tras una ejecución. `null` = no queda nada.
+ * Si aún hay avisos vencidos (se superó el tope por ejecución o hay reintentos), vuelve pronto.
+ */
+export function planNext(pending: number | null, now: number, summary: RunSummary): number | null {
+  if (pending === null) return null
+  if (pending > now) return pending
+  return now + (summary.retried > 0 ? RETRY_DELAY_MS : LOOKAHEAD_MS)
 }

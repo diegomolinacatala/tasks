@@ -54,6 +54,9 @@ export function memoryStore() {
         keys.some((k) => k.deviceId === i.deviceId && k.id === i.id) ? { ...i, attempts: i.attempts + 1 } : i,
       )
     },
+    async nextDueAt() {
+      return items.length ? Math.min(...items.map((i) => i.at)) : null
+    },
     async deleteStaleDevices(seenBefore) {
       for (const [id, device] of devices) if (device.seenAt < seenBefore) await store.deleteDevice(id)
     },
@@ -101,13 +104,15 @@ export function testDeps(overrides: Partial<Deps> = {}) {
   const memory = memoryStore()
   const push = fakeSender()
   let clock = Date.UTC(2026, 8, 11, 8, 0, 0)
+  const armed: number[] = []
   const deps: Deps = {
     store: memory.store,
     sender: push.sender,
+    scheduler: { arm: async (at) => void armed.push(at) },
     limits: { ip: countingLimiter().limiter, device: countingLimiter().limiter, test: countingLimiter().limiter },
     config: { allowedOrigins: ['https://diegomolinacatala.github.io'], vapidPublicKey: 'PUBLIC', ipSalt: 'salt' },
     now: () => clock,
     ...overrides,
   }
-  return { deps, memory, push, setNow: (ms: number) => (clock = ms), now: () => clock }
+  return { deps, memory, push, armed, setNow: (ms: number) => (clock = ms), now: () => clock }
 }

@@ -22,8 +22,10 @@ node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a w
 
 cd worker
 npm test                        # tests del Worker
-npm run dev                     # wrangler dev en :8787 con D1 local; /__scheduled dispara el cron
+npm run dev                     # wrangler dev en :8787 con D1 local (las alarmas también funcionan)
 npm run db:init:local           # crea las tablas en la D1 local
+npm run db:init:query           # crea las tablas en remoto si --file falla por red ("fetch failed")
+npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {...}", "push no enviado"
 ```
 
 Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs` más
@@ -38,7 +40,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Drag & drop | dnd-kit (core + sortable) | sensores táctiles resueltos: pulsación mantenida, auto-scroll, teclado |
 | Persistencia | IndexedDB vía `idb-keyval`, con `localStorage` de reserva | offline real, sin servidor |
 | PWA | `vite-plugin-pwa` con `injectManifest` (`src/sw.ts`) | instalable, offline y receptor de push |
-| Avisos | Cloudflare Worker + D1 + cron, `@block65/webcrypto-web-push` | iOS solo despierta una PWA cerrada con Web Push desde un servidor |
+| Avisos | Cloudflare Worker + D1 + alarma de Durable Object, `@block65/webcrypto-web-push` | iOS solo despierta una PWA cerrada con Web Push desde un servidor |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
@@ -146,12 +148,14 @@ tarea.
 
 ```
 móvil: estado → upcomingSchedule() → cifra {taskId,title,body,badge} (AES-GCM) → PUT /v1/schedule
-worker: cron cada minuto → avisos vencidos → Web Push (payload = texto cifrado) → borra
+worker: PUT arma la alarma del DO al aviso más próximo → alarm() envía los vencidos por Web Push
+        (payload = texto cifrado), borra y rearma para el siguiente
 sw.ts: push → descifra con la clave local → showNotification → tocar abre /tasks/?task=<id>
 ```
 
 - **El móvil es la fuente de verdad.** `useScheduleSync` sube la agenda completa (debounce
-  2 s, huella para no repetir, reintento en `online` y al volver a primer plano). Reemplazar
+  600 ms, huella para no repetir, reintento en `online` y al volver a primer plano). Al pasar
+  a segundo plano sube al instante con `keepalive`: iOS congela la página en cuanto sales. Reemplazar
   entera hace que editar, completar, borrar o importar se resuelva solo.
 - **El servidor no lee nada.** La clave AES es `CryptoKey` no exportable en IndexedDB,
   compartida con el service worker. Si no se puede descifrar, se muestra "Recordatorio":
@@ -164,6 +168,9 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   leer el stream, sin fiarse de `content-length`.
 - **Códigos del servicio push**: 404/410 borra el dispositivo; 400/413 descarta ese aviso;
   401/403 es VAPID mal configurado y **nunca** borra nada; el resto se reintenta 3 veces.
+- **Por qué alarma y no cron**: los cron triggers de Cloudflare no llegaron a dispararse en
+  producción. La alarma del DO `Scheduler` salta a la hora exacta y nunca se solapa consigo
+  misma (sin envíos duplicados). El cron queda cada 5 min solo para rearmarla; no envía.
 - `VAPID_SUBJECT` tiene que ser `mailto:` o `https://` con dominio real: Apple responde
   403 `BadJwtToken` a `localhost`.
 - iOS: push solo con la app instalada en pantalla de inicio (iOS 16.4+) y el permiso se

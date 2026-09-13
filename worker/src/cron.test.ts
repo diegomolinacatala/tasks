@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'vitest'
-import { LATE_MS, LOOKAHEAD_MS, MAX_ATTEMPTS, MAX_PER_RUN, STALE_DEVICE_MS, runDue } from './cron'
+import {
+  LATE_MS,
+  LOOKAHEAD_MS,
+  MAX_ATTEMPTS,
+  MAX_PER_RUN,
+  RETRY_DELAY_MS,
+  STALE_DEVICE_MS,
+  planNext,
+  runDue,
+} from './cron'
 import { fakeSender, subscription, testDeps } from './testing'
 import type { PushResult } from './types'
 
@@ -109,5 +118,39 @@ describe('runDue', () => {
     setNow(now() + STALE_DEVICE_MS + 1)
     await runDue(deps)
     expect(memory.devices.has('viejo')).toBe(false)
+  })
+})
+
+describe('planNext', () => {
+  const NOW = 1_000_000
+  const idle = { sent: 0, late: 0, retried: 0, dropped: 0, gone: 0, unauthorized: 0 }
+
+  test('sin pendientes no programa nada', () => {
+    expect(planNext(null, NOW, idle)).toBeNull()
+  })
+
+  test('el próximo aviso futuro fija la alarma a su hora exacta', () => {
+    expect(planNext(NOW + 90_000, NOW, idle)).toBe(NOW + 90_000)
+  })
+
+  test('si quedan vencidos por el tope, vuelve enseguida', () => {
+    expect(planNext(NOW - 5, NOW, { ...idle, sent: MAX_PER_RUN })).toBe(NOW + LOOKAHEAD_MS)
+  })
+
+  test('si hubo reintentos, espera antes de volver', () => {
+    expect(planNext(NOW - 5, NOW, { ...idle, retried: 1 })).toBe(NOW + RETRY_DELAY_MS)
+  })
+})
+
+describe('nextDueAt (store en memoria)', () => {
+  test('devuelve el mínimo o null', async () => {
+    const { deps, addDevice, now } = setup()
+    expect(await deps.store.nextDueAt()).toBeNull()
+    await addDevice('d1')
+    await deps.store.replaceSchedule('d1', [
+      { id: 'a', at: now() + 50, payload: 'eA' },
+      { id: 'b', at: now() + 10, payload: 'eA' },
+    ])
+    expect(await deps.store.nextDueAt()).toBe(now() + 10)
   })
 })

@@ -110,6 +110,8 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       const now = deps.now()
       const items = unwrap(parseSchedule(await readJson(request), now))
       await deps.store.replaceSchedule(device.id, items)
+      const earliest = items.reduce<number | null>((min, item) => (min === null || item.at < min ? item.at : min), null)
+      if (earliest !== null) await deps.scheduler.arm(earliest)
       await deps.store.touchDevice(device.id, now)
       return empty(headers)
     },

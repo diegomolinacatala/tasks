@@ -48,6 +48,8 @@ export interface Store {
   deleteItems(keys: readonly ItemKey[]): Promise<void>
   bumpAttempts(keys: readonly ItemKey[]): Promise<void>
   deleteStaleDevices(seenBefore: number): Promise<void>
+  /** Instante del aviso pendiente más próximo de cualquier dispositivo. */
+  nextDueAt(): Promise<number | null>
 }
 
 /**
@@ -84,10 +86,16 @@ export interface Limits {
   test: Limiter
 }
 
+/** Despierta el envío a una hora concreta. En producción, la alarma de un Durable Object. */
+export interface Scheduler {
+  arm(at: number): Promise<void>
+}
+
 export interface Deps {
   store: Store
   sender: Sender
   config: Config
   limits: Limits
+  scheduler: Scheduler
   now: () => number
 }
