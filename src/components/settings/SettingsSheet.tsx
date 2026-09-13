@@ -4,6 +4,7 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
+import { NotificationsBlock } from './NotificationsBlock'
 
 interface SettingsSheetProps {
   open: boolean
@@ -52,6 +53,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
   return (
     <Sheet open={open} onClose={onClose} title="Ajustes">
+      <NotificationsBlock />
+
       <p className="sheet__title">Datos</p>
       <p className="sheet__note">
         {state.tasks.length} tareas · {pending} pendientes · {state.sections.length} secciones
@@ -84,7 +87,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       </button>
 
       <p className="sheet__note">
-        Todo se guarda solo en este dispositivo. Importar sustituye lo que haya ahora.
+        Las tareas se guardan solo en este dispositivo. Importar sustituye lo que haya ahora.
       </p>
     </Sheet>
   )

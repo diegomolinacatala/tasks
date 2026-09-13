@@ -223,3 +223,87 @@ describe('state/replace', () => {
     expect(reducer(emptyState(), { type: 'state/replace', state: imported })).toEqual(imported)
   })
 })
+
+describe('task/add con hora y recordatorios', () => {
+  test('guarda la hora válida y asigna id a cada recordatorio', () => {
+    const state = run(emptyState(), {
+      type: 'task/add',
+      title: 'llamar',
+      date: TODAY,
+      sectionId: null,
+      time: '17:00',
+      reminders: [
+        { kind: 'before', minutes: 0 },
+        { kind: 'before', minutes: 0 },
+        { kind: 'at', at: 1 },
+      ],
+    })
+    const task = state.tasks[0]!
+    expect(task.time).toBe('17:00')
+    expect(task.reminders.map((r) => r.kind)).toEqual(['before', 'at'])
+    expect(new Set(task.reminders.map((r) => r.id)).size).toBe(2)
+  })
+
+  test('descarta horas inválidas y arranca sin recordatorios por defecto', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'x', date: TODAY, sectionId: null, time: '25:00' })
+    expect(state.tasks[0]!.time).toBeNull()
+    expect(state.tasks[0]!.reminders).toEqual([])
+  })
+})
+
+describe('task/setTime', () => {
+  test('pone y quita la hora', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    const timed = reducer(state, { type: 'task/setTime', id, time: '09:30' })
+    expect(timed.tasks[0]!.time).toBe('09:30')
+    expect(reducer(timed, { type: 'task/setTime', id, time: null }).tasks[0]!.time).toBeNull()
+  })
+
+  test('ignora horas inválidas y cambios nulos sin crear estado nuevo', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/setTime', id, time: '9:30' })).toBe(state)
+    expect(reducer(state, { type: 'task/setTime', id, time: null })).toBe(state)
+  })
+})
+
+describe('recordatorios', () => {
+  test('añadir y quitar sin mutar', () => {
+    const state = withTasks('uno')
+    const taskId = state.tasks[0]!.id
+    const added = reducer(state, { type: 'reminder/add', taskId, reminder: { kind: 'at', at: 5 } })
+    expect(state.tasks[0]!.reminders).toEqual([])
+    const reminderId = added.tasks[0]!.reminders[0]!.id
+    const removed = reducer(added, { type: 'reminder/remove', taskId, reminderId })
+    expect(removed.tasks[0]!.reminders).toEqual([])
+  })
+
+  test('quitar uno inexistente devuelve el mismo estado', () => {
+    const state = withTasks('uno')
+    expect(reducer(state, { type: 'reminder/remove', taskId: state.tasks[0]!.id, reminderId: 'x' })).toBe(state)
+    expect(reducer(state, { type: 'reminder/add', taskId: 'nadie', reminder: { kind: 'at', at: 5 } })).toBe(state)
+  })
+
+  test('posponer sustituye los avisos ya sonados', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    const next = run(
+      state,
+      { type: 'reminder/add', taskId: id, reminder: { kind: 'at', at: 100 } },
+      { type: 'task/snooze', id, at: 900, now: 500 },
+    )
+    expect(next.tasks[0]!.reminders.map((r) => (r.kind === 'at' ? r.at : null))).toEqual([900])
+  })
+
+  test('mandar a sin fecha conserva los recordatorios', () => {
+    const state = run(withTasks('uno'), { type: 'task/setTime', id: withTasks('uno').tasks[0]!.id, time: '10:00' })
+    const id = state.tasks[0]!.id
+    const next = run(
+      state,
+      { type: 'reminder/add', taskId: id, reminder: { kind: 'before', minutes: 0 } },
+      { type: 'task/move', id, date: null, sectionId: null },
+    )
+    expect(next.tasks[0]!.reminders).toHaveLength(1)
+  })
+})

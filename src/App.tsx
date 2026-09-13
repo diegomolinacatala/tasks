@@ -5,6 +5,7 @@ import { useToday } from './hooks/useToday'
 import { useDispatch } from './state/StoreProvider'
 import type { IsoDate, ViewId } from './types'
 import { Composer } from './components/compose/Composer'
+import { useNotificationOpen } from './components/push/useNotificationOpen'
 import { SectionSheet } from './components/section/SectionSheet'
 import { SettingsSheet } from './components/settings/SettingsSheet'
 import { BottomNav } from './components/shell/BottomNav'
@@ -24,6 +25,7 @@ export function App() {
   const [weekAnchor, setWeekAnchor] = useState(today)
   const [selectedDay, setSelectedDay] = useState(today)
   const [taskId, setTaskId] = useState<string | null>(null)
+  const [fromNotification, setFromNotification] = useState(false)
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -33,6 +35,16 @@ export function App() {
     const days = weekDays(day)
     setSelectedDay(days.includes(today) ? today : (days[0] ?? day))
   }
+
+  const openTask = (id: string | null) => {
+    setFromNotification(false)
+    setTaskId(id)
+  }
+
+  useNotificationOpen((id) => {
+    setFromNotification(true)
+    setTaskId(id)
+  })
 
   const inWeek = view === 'week' && selectedDay !== today
   const quickDate = view === 'week' ? selectedDay : today
@@ -45,14 +57,14 @@ export function App() {
       </button>
 
       <main className="app__scroll">
-        {view === 'home' && <HomeView today={today} onOpenTask={setTaskId} onOpenSection={setSectionId} />}
+        {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
         {view === 'week' && (
           <WeekView
             anchor={weekAnchor}
             selectedDay={selectedDay}
             onAnchorChange={changeWeek}
             onSelectDay={setSelectedDay}
-            onOpenTask={setTaskId}
+            onOpenTask={openTask}
           />
         )}
       </main>
@@ -61,12 +73,12 @@ export function App() {
         <Composer
           quickLabel={quickLabel}
           quickDate={quickDate}
-          onSubmit={(title, date) => dispatch({ type: 'task/add', title, date, sectionId: null })}
+          onSubmit={(draft) => dispatch({ type: 'task/add', ...draft, sectionId: null })}
         />
         <BottomNav view={view} onChange={(next) => withTransition(() => setView(next))} />
       </div>
 
-      <TaskSheet taskId={taskId} onClose={() => setTaskId(null)} />
+      <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} />
       <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

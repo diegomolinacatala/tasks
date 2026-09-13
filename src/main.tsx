@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
+import { PushProvider } from './components/push/PushProvider'
 import { ToastProvider } from './components/ui/Toast'
 import { StoreProvider } from './state/StoreProvider'
 import './styles/base.css'
@@ -15,7 +16,9 @@ createRoot(container).render(
   <StrictMode>
     <StoreProvider>
       <ToastProvider>
-        <App />
+        <PushProvider>
+          <App />
+        </PushProvider>
       </ToastProvider>
     </StoreProvider>
   </StrictMode>,

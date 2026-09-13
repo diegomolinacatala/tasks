@@ -2,6 +2,12 @@ import { describe, expect, test } from 'vitest'
 import {
   addDays,
   diffDays,
+  formatTime,
+  isValidTime,
+  isoOfInstant,
+  shortTime,
+  timeOfInstant,
+  toInstant,
   fromIso,
   monthShort,
   rangeLabel,
@@ -85,5 +91,28 @@ describe('rangeLabel', () => {
   test('muestra ambos meses cuando la semana los cruza', () => {
     const expected = `28 ${monthShort('2026-09-28')} – 4 ${monthShort('2026-10-04')}`
     expect(rangeLabel('2026-09-28', '2026-10-04')).toBe(expected)
+  })
+})
+
+describe('horas', () => {
+  test('isValidTime exige HH:MM de 24 h', () => {
+    expect(isValidTime('09:30')).toBe(true)
+    expect(isValidTime('23:59')).toBe(true)
+    expect(isValidTime('9:30')).toBe(false)
+    expect(isValidTime('24:00')).toBe(false)
+    expect(isValidTime(930)).toBe(false)
+  })
+
+  test('toInstant e isoOfInstant/timeOfInstant son inversas en hora local', () => {
+    const ms = toInstant('2026-09-11', '17:05')
+    expect(new Date(ms).getHours()).toBe(17)
+    expect(isoOfInstant(ms)).toBe('2026-09-11')
+    expect(timeOfInstant(ms)).toBe('17:05')
+  })
+
+  test('formatTime rellena y shortTime quita el cero inicial', () => {
+    expect(formatTime(9, 5)).toBe('09:05')
+    expect(shortTime('09:05')).toBe('9:05')
+    expect(shortTime('17:00')).toBe('17:00')
   })
 })

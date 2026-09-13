@@ -6,6 +6,8 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: '2026-09-11',
+  time: null,
+  reminders: [],
   sectionId: null,
   order: 0,
   createdAt: 0,

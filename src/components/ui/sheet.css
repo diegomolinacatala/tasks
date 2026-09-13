@@ -137,3 +137,50 @@
   color: var(--text-3);
   margin: var(--sp-3) 0 0;
 }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Opciones para añadir: se distinguen de lo ya elegido por el borde discontinuo */
+.chip--option {
+  background: transparent;
+  border: 1px dashed var(--line-2);
+  color: var(--text-2);
+}
+
+.chip--reminder {
+  color: var(--text);
+  background: var(--accent-dim);
+  border-color: rgba(110, 139, 255, 0.3);
+}
+
+.chip--reminder svg:first-child {
+  color: var(--accent);
+}
+
+.chip__remove {
+  color: var(--text-3);
+  margin-right: -4px;
+}
+
+/* Un `before` sin fecha u hora, o un aviso que ya sonó */
+.chip.is-muted {
+  opacity: 0.45;
+}
+
+.sheet__row:disabled,
+.sheet__hint:disabled {
+  opacity: 0.5;
+}
+
+.sheet__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--accent);
+}

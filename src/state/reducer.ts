@@ -1,9 +1,11 @@
+import { isValidTime } from '../lib/date'
 import { createId } from '../lib/id'
 import { applyOrder, moveTask, nextOrder, scopeKey } from '../lib/order'
+import { snoozed, withReminder } from '../lib/reminders'
 import type { AppState, IsoDate, Section, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
@@ -16,23 +18,56 @@ const MAX_TITLE = 500
 
 const clean = (value: string) => value.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE)
 
+/** Aplica `update` a una tarea; si devuelve la misma referencia, el estado no cambia. */
+function updateTask(state: AppState, id: string, update: (task: Task) => Task): AppState {
+  let changed = false
+  const tasks = state.tasks.map((task) => {
+    if (task.id !== id) return task
+    const next = update(task)
+    changed = changed || next !== task
+    return next
+  })
+  return changed ? { ...state, tasks } : state
+}
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'task/add': {
       const title = clean(action.title)
       if (!title) return state
-      const task: Task = {
+      const base: Task = {
         id: createId(),
         title,
         done: false,
         date: action.date,
+        time: isValidTime(action.time) ? action.time : null,
+        reminders: [],
         sectionId: action.sectionId,
         order: nextOrder(state.tasks, scopeKey(action.date, action.sectionId)),
         createdAt: Date.now(),
         completedAt: null,
       }
+      const task = (action.reminders ?? []).reduce((acc, draft) => withReminder(acc, draft, createId()), base)
       return { ...state, tasks: [...state.tasks, task] }
     }
+
+    case 'task/setTime': {
+      if (action.time !== null && !isValidTime(action.time)) return state
+      return updateTask(state, action.id, (task) => (task.time === action.time ? task : { ...task, time: action.time }))
+    }
+
+    case 'reminder/add':
+      return updateTask(state, action.taskId, (task) => withReminder(task, action.reminder, createId()))
+
+    case 'reminder/remove':
+      return updateTask(state, action.taskId, (task) =>
+        task.reminders.some((reminder) => reminder.id === action.reminderId)
+          ? { ...task, reminders: task.reminders.filter((reminder) => reminder.id !== action.reminderId) }
+          : task,
+      )
+
+    case 'task/snooze':
+      return updateTask(state, action.id, (task) => snoozed(task, action.at, action.now, createId()))
 
     case 'task/toggle':
       return {

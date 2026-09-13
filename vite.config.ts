@@ -10,6 +10,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // SW propio: además de precachear, recibe los push y abre la tarea al tocar el aviso.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icons/favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
@@ -29,10 +33,8 @@ export default defineConfig({
           { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallback: `${BASE}index.html`,
-        cleanupOutdatedCaches: true,
       },
     }),
   ],
@@ -47,7 +49,14 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/lib/**', 'src/state/**'],
       // Pegamento de navegador/React: se valida en el propio dispositivo, no en Node.
-      exclude: ['src/state/actions.ts', 'src/state/StoreProvider.tsx', 'src/lib/persistence.ts', 'src/lib/transition.ts'],
+      exclude: [
+        'src/state/actions.ts',
+        'src/state/StoreProvider.tsx',
+        'src/lib/persistence.ts',
+        'src/lib/transition.ts',
+        'src/lib/push/client.ts',
+        'src/lib/push/keystore.ts',
+      ],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
     },
   },

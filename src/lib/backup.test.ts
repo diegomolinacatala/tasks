@@ -11,6 +11,8 @@ const state: AppState = {
       title: 'Comprar pan',
       done: false,
       date: '2026-09-11',
+      time: null,
+      reminders: [],
       sectionId: 's1',
       order: 0,
       createdAt: 1,
@@ -83,5 +85,39 @@ describe('normalizeState', () => {
 describe('backupFilename', () => {
   test('incluye la fecha local con ceros', () => {
     expect(backupFilename(new Date(2026, 0, 5))).toBe('tasks-2026-01-05.json')
+  })
+})
+
+describe('migración v2 → v3', () => {
+  test('una tarea antigua recibe hora nula y lista de recordatorios vacía', () => {
+    const result = normalizeState({ schemaVersion: 2, tasks: [{ id: 'a', title: 'x' }], sections: [] })
+    expect(result!.tasks[0]).toMatchObject({ time: null, reminders: [] })
+  })
+
+  test('sanea hora y recordatorios, sin ids repetidos', () => {
+    const result = normalizeState({
+      tasks: [
+        {
+          id: 'a',
+          title: 'x',
+          time: '7:00',
+          reminders: [
+            { id: 'r1', kind: 'at', at: 10 },
+            { id: 'r1', kind: 'at', at: 20 },
+            { id: 'r2', kind: 'before', minutes: -5 },
+            { id: 'r3', kind: 'before', minutes: 15 },
+          ],
+        },
+      ],
+      sections: [],
+    })
+    expect(result!.tasks[0]!.time).toBeNull()
+    expect(result!.tasks[0]!.reminders.map((r) => r.id)).toEqual(['r1', 'r3'])
+  })
+
+  test('limita los recordatorios por tarea', () => {
+    const reminders = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, kind: 'at', at: i + 1 }))
+    const result = normalizeState({ tasks: [{ id: 'a', title: 'x', reminders }], sections: [] })
+    expect(result!.tasks[0]!.reminders).toHaveLength(20)
   })
 })

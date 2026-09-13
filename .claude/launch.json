@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "tasks-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--", "--port", "4173", "--strictPort"],
+      "port": 4173
+    },
+    {
+      "name": "push-worker",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "worker", "run", "dev", "--", "--port", "8787"],
+      "port": 8787
     }
   ]
 }

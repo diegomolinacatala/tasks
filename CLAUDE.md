@@ -1,7 +1,8 @@
 # Tasks
 
-To-do diaria para móvil. PWA instalable, sin backend y sin cuentas: los datos viven en
-el propio dispositivo. Se publica en GitHub Pages desde este repo público.
+To-do diaria para móvil. PWA instalable y sin cuentas: las tareas viven en el propio
+dispositivo. Se publica en GitHub Pages desde este repo público. Un Worker mínimo de
+Cloudflare envía los avisos push y solo ve horas y contenido cifrado.
 
 - Producción: https://diegomolinacatala.github.io/tasks/
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
@@ -10,13 +11,24 @@ el propio dispositivo. Se publica en GitHub Pages desde este repo público.
 ## Comandos
 
 ```bash
-npm run dev        # servidor local en http://localhost:5173/tasks/
+npm run dev        # servidor local en http://localhost:5173/tasks/ (sin service worker)
 npm test           # tests unitarios (vitest, entorno node)
 npm run coverage   # cobertura de src/lib y src/state
-npm run typecheck  # tsc --noEmit
+npm run typecheck  # tsc de la app y del service worker (tsconfig.sw.json)
 npm run build      # typecheck + build de producción a dist/
 npm run icons      # regenera public/icons/* (solo si cambia la marca)
+
+node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
+
+cd worker
+npm test                        # tests del Worker
+npm run dev                     # wrangler dev en :8787 con D1 local; /__scheduled dispara el cron
+npm run db:init:local           # crea las tablas en la D1 local
 ```
+
+Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs` más
+`VAPID_SUBJECT` (ignorado por git), `.env.local` con `VITE_PUSH_API=http://localhost:8787`, y `npm run build && npm run preview`
+(el service worker solo existe en el build).
 
 ## Stack
 
@@ -25,25 +37,31 @@ npm run icons      # regenera public/icons/* (solo si cambia la marca)
 | UI | React 19 + TypeScript + Vite | estándar, estático, build simple |
 | Drag & drop | dnd-kit (core + sortable) | sensores táctiles resueltos: pulsación mantenida, auto-scroll, teclado |
 | Persistencia | IndexedDB vía `idb-keyval`, con `localStorage` de reserva | offline real, sin servidor |
-| PWA | `vite-plugin-pwa` (`registerType: autoUpdate`) | instalable y offline |
+| PWA | `vite-plugin-pwa` con `injectManifest` (`src/sw.ts`) | instalable, offline y receptor de push |
+| Avisos | Cloudflare Worker + D1 + cron, `@block65/webcrypto-web-push` | iOS solo despierta una PWA cerrada con Web Push desde un servidor |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
-Sin router (una sola pantalla con tres vistas), sin librería de estado, sin framework CSS,
+Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
 sin fuentes externas. El bundle debe seguir por debajo de ~120 kB gzip.
 
 ## Arquitectura
 
 ```
 src/
-├── types.ts              # Task, Section, AppState
+├── types.ts              # Task, Reminder, Section, AppState
+├── sw.ts                 # precache + push + notificationclick
 ├── lib/                  # lógica pura + adaptadores de navegador
-│   ├── date.ts           # ISO local YYYY-MM-DD, semana que empieza en lunes
+│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
 │   ├── order.ts          # scopes y reordenación
-│   ├── backup.ts         # exportar/importar y saneado de datos externos
+│   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
+│   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
+│   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback
-│   └── transition.ts     # View Transitions API con degradación
+│   ├── transition.ts     # View Transitions API con degradación
+│   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
-└── components/           # por dominio: shell, views, task, section, compose, ui, dnd
+└── components/           # por dominio: shell, views, task, section, compose, push, settings, ui, dnd
+worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ```
 
 ### Estado
@@ -53,6 +71,11 @@ Un único `useReducer` con `AppState` inmutable en `src/state/reducer.ts`, expue
 `pagehide` y `visibilitychange` (el sistema puede matar la pestaña sin avisar).
 
 **Nunca mutar**: todas las operaciones devuelven objetos nuevos. Los tests lo comprueban.
+Las acciones que dependen de la hora (`task/snooze`) llevan `now` dentro para que el
+reducer siga siendo puro.
+
+Cambiar el esquema = subir `SCHEMA_VERSION` y rellenar los campos nuevos en
+`normalizeState` (`src/lib/backup.ts`), que se aplica tanto al cargar como al importar.
 
 ### Orden de las tareas (`src/lib/order.ts`)
 
@@ -101,8 +124,53 @@ El asa detiene la propagación del `pointerdown` para no disparar también el de
 
 ### Alta de tareas
 
-El compositor crea **sin fecha** por defecto (Enter o el `+`). Cuando hay texto aparece un
-atajo de un toque que la manda a hoy —o al día seleccionado en la vista semana—.
+El compositor crea **sin fecha** por defecto (Enter o el `+`). `parseTask` reconoce día,
+hora y plazos en español ("mañana a las 5", "el lunes", "15/10", "en 30 min"): si detecta
+algo lo aplica y enseña una píldora; tocarla deja el texto literal. Con hora → aviso a la
+hora; con "en X min/horas" → aviso absoluto. Un número suelto nunca es una hora
+("comprar 5 manzanas"). Sin nada detectado aparece el atajo de un toque a hoy —o al día
+seleccionado en la vista semana—.
+
+### Recordatorios
+
+`Task.time` es opcional (`HH:MM`, solo cuenta con fecha). `Task.reminders` admite varios:
+
+- `at`: instante absoluto (epoch ms).
+- `before`: minutos antes de fecha + hora de la tarea. Sigue a la tarea si cambia de día;
+  sin fecha u hora queda inactivo (se pinta atenuado y no se envía).
+
+Posponer (`task/snooze`) descarta los `at` que ya sonaron y añade uno nuevo. Máximo 20 por
+tarea.
+
+### Avisos push
+
+```
+móvil: estado → upcomingSchedule() → cifra {taskId,title,body,badge} (AES-GCM) → PUT /v1/schedule
+worker: cron cada minuto → avisos vencidos → Web Push (payload = texto cifrado) → borra
+sw.ts: push → descifra con la clave local → showNotification → tocar abre /tasks/?task=<id>
+```
+
+- **El móvil es la fuente de verdad.** `useScheduleSync` sube la agenda completa (debounce
+  2 s, huella para no repetir, reintento en `online` y al volver a primer plano). Reemplazar
+  entera hace que editar, completar, borrar o importar se resuelva solo.
+- **El servidor no lee nada.** La clave AES es `CryptoKey` no exportable en IndexedDB,
+  compartida con el service worker. Si no se puede descifrar, se muestra "Recordatorio":
+  iOS retira el permiso a las webs que reciben push sin enseñar notificación.
+- **Sin cuentas.** `POST /v1/devices` devuelve un token de 256 bits; el Worker guarda su
+  SHA-256. El Worker solo hace peticiones a hosts de push conocidos (anti-SSRF).
+- **Abuso**: límites nativos de Cloudflare (`[[ratelimits]]` en `wrangler.toml`) por IP
+  anonimizada con `IP_HASH_SALT` en todas las rutas, por dispositivo en las escrituras y
+  3/min para el aviso de prueba; altas máximas por IP y hora en D1; cuerpos cortados al
+  leer el stream, sin fiarse de `content-length`.
+- **Códigos del servicio push**: 404/410 borra el dispositivo; 400/413 descarta ese aviso;
+  401/403 es VAPID mal configurado y **nunca** borra nada; el resto se reintenta 3 veces.
+- `VAPID_SUBJECT` tiene que ser `mailto:` o `https://` con dominio real: Apple responde
+  403 `BadJwtToken` a `localhost`.
+- iOS: push solo con la app instalada en pantalla de inicio (iOS 16.4+) y el permiso se
+  pide dentro de un gesto (`Notification.requestPermission` va lo primero en `enablePush`).
+- Tocar el aviso abre la tarea con **Posponer** (+10 min, +1 h, mañana 9:00, hecha).
+- Número en el icono: pendientes de hoy + atrasadas (`badgeCount`), actualizado por la app
+  y por cada push.
 
 ## Estilo visual
 
@@ -122,14 +190,19 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - Comentarios solo donde el *porqué* no se deduce del código, y en español.
 - Nada de `console.log` en el código final.
 - Los tests cubren `src/lib` y `src/state` (umbral 80%). El pegamento de React y de
-  navegador se prueba en el dispositivo, no en Node.
+  navegador (`push/client.ts`, `push/keystore.ts`, `sw.ts`) se prueba en el dispositivo.
+- En `worker/` el acceso a datos va detrás de la interfaz `Store`: los tests usan
+  `memoryStore()` y un `Sender` falso; `store.ts`, `push.ts` e `index.ts` son adaptadores.
 
 ## Decisiones cerradas
 
-- **Sin backend ni login.** El repo es público: nunca añadir claves ni endpoints propios.
+- **Sin cuentas ni login.** El repo es público: nunca añadir claves privadas. Los secrets
+  del Worker viven en Cloudflare (`wrangler secret put`) y en GitHub Actions.
+- **Backend solo para avisos**, y sin acceso al contenido: nada de guardar tareas en claro
+  en el servidor.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
-- **Sin subtareas, notas, recurrencias ni recordatorios** en el MVP.
+- **Sin subtareas, notas ni recurrencias** por ahora.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
@@ -137,7 +210,11 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 
 ## Despliegue
 
-`.github/workflows/deploy.yml` construye y publica en cada push a `main`
-(typecheck → tests → build → Pages). La `base` de Vite es `/tasks/`: si el repo se
-renombra, hay que cambiarla en `vite.config.ts` (afecta también a `start_url` y `scope`
-del manifiesto).
+- **App**: `.github/workflows/deploy.yml` construye y publica en cada push a `main`
+  (tests → typecheck → build → Pages). Lee la variable de repo `VITE_PUSH_API`; sin ella la
+  app sale igual, sin avisos. La `base` de Vite es `/tasks/`: si el repo se renombra, hay
+  que cambiarla en `vite.config.ts` (afecta también a `start_url` y `scope` del manifiesto)
+  y en `ALLOWED_ORIGINS` de `worker/wrangler.toml`.
+- **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
+  esquema D1 → `wrangler deploy`). Necesita el secret `CLOUDFLARE_API_TOKEN` (y la variable
+  `CLOUDFLARE_ACCOUNT_ID` si la cuenta tiene varias); sin él solo valida.

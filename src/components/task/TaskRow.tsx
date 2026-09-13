@@ -1,5 +1,7 @@
+import { shortTime } from '../../lib/date'
+import { nextReminderAt } from '../../lib/reminders'
 import type { Task } from '../../types'
-import { IconCheck } from '../ui/Icons'
+import { IconBell, IconCheck } from '../ui/Icons'
 
 interface TaskRowProps {
   task: Task
@@ -10,6 +12,10 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, meta, overdue = false, onToggle, onOpen }: TaskRowProps) {
+  const time = task.date && task.time ? shortTime(task.time) : null
+  const text = [meta, time].filter(Boolean).join(' · ')
+  const reminding = nextReminderAt(task, Date.now()) !== null
+
   return (
     <div className={`row ${task.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}`}>
       <button
@@ -24,7 +30,12 @@ export function TaskRow({ task, meta, overdue = false, onToggle, onOpen }: TaskR
       </button>
       <button type="button" className="row__main" onClick={onOpen}>
         <span className="row__title">{task.title}</span>
-        {meta ? <span className="row__meta">{meta}</span> : null}
+        {(text || reminding) && (
+          <span className="row__meta">
+            {reminding && <IconBell size={11} strokeWidth={2} />}
+            {text}
+          </span>
+        )}
       </button>
     </div>
   )

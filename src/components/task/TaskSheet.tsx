@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
-import { addDays, relativeLabel, todayIso } from '../../lib/date'
+import { addDays, relativeLabel, shortTime, todayIso } from '../../lib/date'
 import { createId } from '../../lib/id'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findTask, sortedSections } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
+import { ReminderPicker } from './ReminderPicker'
+import { SnoozeBar } from './SnoozeBar'
 
 interface TaskSheetProps {
   taskId: string | null
+  /** Abierta desde un aviso: se ofrece posponer arriba del todo. */
+  fromNotification?: boolean
   onClose: () => void
 }
 
-export function TaskSheet({ taskId, onClose }: TaskSheetProps) {
+export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const task = findTask(state, taskId)
@@ -67,8 +71,14 @@ export function TaskSheet({ taskId, onClose }: TaskSheetProps) {
     setDraftSection(null)
   }
 
+  const setTime = (time: string | null) => {
+    if (task) dispatch({ type: 'task/setTime', id: task.id, time })
+  }
+
   return (
     <Sheet open={open} onClose={close} title="Editar tarea">
+      {fromNotification && <SnoozeBar task={shown} onDone={close} />}
+
       <textarea
         className="sheet__input"
         rows={2}
@@ -103,6 +113,28 @@ export function TaskSheet({ taskId, onClose }: TaskSheetProps) {
           />
         </label>
       </div>
+
+      {shown.date !== null && (
+        <>
+          <p className="sheet__title">Hora</p>
+          <div className="sheet__chips">
+            <button type="button" className={`chip ${shown.time === null ? 'is-active' : ''}`} onClick={() => setTime(null)}>
+              Sin hora
+            </button>
+            <label className={`chip ${shown.time ? 'is-active' : ''}`}>
+              {shown.time ? shortTime(shown.time) : 'Elegir hora'}
+              <input
+                type="time"
+                className="sr-only"
+                value={shown.time ?? ''}
+                onChange={(event) => setTime(event.target.value || null)}
+              />
+            </label>
+          </div>
+        </>
+      )}
+
+      <ReminderPicker task={shown} />
 
       <p className="sheet__title">Sección</p>
       <div className="sheet__chips">

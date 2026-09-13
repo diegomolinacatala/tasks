@@ -1,0 +1,38 @@
+name = "tasks-push"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+# Cada minuto: envía los avisos vencidos.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+ALLOWED_ORIGINS = "https://diegomolinacatala.github.io,http://localhost:5173,http://localhost:4173"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tasks-push"
+# Se rellena con el id que devuelve `npx wrangler d1 create tasks-push`. No es secreto.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# Límites nativos de Cloudflare (namespace_id: entero libre, único por cuenta).
+[[ratelimits]]
+name = "IP_LIMITER"
+namespace_id = "7301"
+simple = { limit = 60, period = 60 }
+
+[[ratelimits]]
+name = "DEVICE_LIMITER"
+namespace_id = "7302"
+simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "TEST_LIMITER"
+namespace_id = "7303"
+simple = { limit = 3, period = 60 }
+
+[observability]
+enabled = true
+
+# Secrets (nunca en el repo): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, IP_HASH_SALT

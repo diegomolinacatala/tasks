@@ -1,4 +1,4 @@
-import type { AppState, BlockId, IsoDate, Task } from '../types'
+import type { AppState, BlockId, IsoDate, IsoTime, ReminderDraft, Task } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -8,8 +8,20 @@ export interface Column {
 }
 
 export type Action =
-  | { type: 'task/add'; title: string; date: IsoDate | null; sectionId: string | null }
+  | {
+      type: 'task/add'
+      title: string
+      date: IsoDate | null
+      sectionId: string | null
+      time?: IsoTime | null
+      reminders?: ReminderDraft[]
+    }
   | { type: 'task/toggle'; id: string }
+  | { type: 'task/setTime'; id: string; time: IsoTime | null }
+  | { type: 'reminder/add'; taskId: string; reminder: ReminderDraft }
+  | { type: 'reminder/remove'; taskId: string; reminderId: string }
+  /** `now` viaja en la acción para que el reducer siga siendo puro. */
+  | { type: 'task/snooze'; id: string; at: number; now: number }
   | { type: 'task/rename'; id: string; title: string }
   | { type: 'task/remove'; id: string }
   | { type: 'task/restore'; task: Task }

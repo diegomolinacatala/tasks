@@ -108,6 +108,20 @@ export const IconDownload = (props: IconProps) => (
   </Icon>
 )
 
+export const IconBell = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z" />
+    <path d="M10 20.5a2.2 2.2 0 0 0 4 0" />
+  </Icon>
+)
+
+export const IconBellOff = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M8.2 6.3A6 6 0 0 1 18 11v4M6 11v5.5l-1.5 2h12" />
+    <path d="M10 20.5a2.2 2.2 0 0 0 4 0M4 4l16 16" />
+  </Icon>
+)
+
 export const IconUpload = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14" />

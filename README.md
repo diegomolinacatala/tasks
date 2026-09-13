@@ -11,6 +11,12 @@ solo en tu dispositivo.
   lo que no tiene fecha.
 - **Semana**: los siete días a la vista; arrastra una tarea de un día a otro.
 - Escribe y pulsa Enter: la tarea nace **sin fecha**. El botón *Hoy* la manda al día de hoy.
+- Escribe en lenguaje natural: *"llamar a Juan mañana a las 5"*, *"dentista el 15/10"*,
+  *"sacar la ropa en 30 min"*. La fecha, la hora y el aviso se ponen solos.
+- **Recordatorios**: tantos como quieras por tarea (a la hora, 15 min antes, mañana 9:00,
+  otra hora…). Llegan como notificación aunque la app esté cerrada.
+- Tocar el aviso abre la tarea para **posponerla** o marcarla hecha. El icono muestra lo
+  pendiente de hoy.
 - Deslizar a la derecha completa, a la izquierda borra (con deshacer).
 - Arrastrar por el asa de la derecha para reordenar o cambiar de bloque.
 - Exportar e importar una copia en JSON desde Ajustes.
@@ -19,6 +25,8 @@ solo en tu dispositivo.
 
 1. Abre la web en el navegador.
 2. iOS: *Compartir → Añadir a pantalla de inicio*. Android: *⋮ → Instalar aplicación*.
+3. Abre la app desde el icono → *Ajustes (···) → Activar avisos*. En iPhone los avisos solo
+   funcionan con la app instalada (iOS 16.4 o posterior).
 
 ## Desarrollo
 
@@ -34,7 +42,11 @@ npm run dev
 | `npm run coverage` | cobertura |
 | `npm run build` | typecheck + build a `dist/` |
 
-Los datos se guardan en IndexedDB del navegador. No hay servidor, no hay cuentas y nada
-sale del dispositivo. La única copia de seguridad es la exportación manual a JSON.
+Las tareas se guardan en IndexedDB del navegador y no hay cuentas. La única copia de
+seguridad es la exportación manual a JSON.
+
+Para los avisos, un Worker de Cloudflare (`worker/`) guarda solo cuándo avisar y un texto
+cifrado en el propio móvil con una clave que nunca sale de él: el servidor no puede leer
+tus tareas.
 
 Detalles de arquitectura y convenciones: [CLAUDE.md](CLAUDE.md).

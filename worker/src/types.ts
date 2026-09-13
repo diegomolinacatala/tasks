@@ -1,0 +1,93 @@
+export interface Subscription {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}
+
+export interface ScheduleItem {
+  /** Id del recordatorio en el móvil. */
+  id: string
+  at: number
+  /** Contenido cifrado en el móvil (base64url). */
+  payload: string
+}
+
+export interface Device {
+  id: string
+  subscription: Subscription
+}
+
+export interface DueItem extends ScheduleItem {
+  deviceId: string
+  attempts: number
+  subscription: Subscription
+}
+
+export interface ItemKey {
+  deviceId: string
+  id: string
+}
+
+export interface NewDevice {
+  id: string
+  tokenHash: string
+  subscription: Subscription
+  ipHash: string
+  now: number
+}
+
+/** Acceso a datos. La implementación real es D1 (`store.ts`); los tests usan memoria. */
+export interface Store {
+  countDevicesSince(ipHash: string, since: number): Promise<number>
+  createDevice(device: NewDevice): Promise<void>
+  findDevice(tokenHash: string): Promise<Device | null>
+  touchDevice(id: string, now: number, subscription?: Subscription): Promise<void>
+  replaceSchedule(deviceId: string, items: readonly ScheduleItem[]): Promise<void>
+  deleteDevice(id: string): Promise<void>
+  deleteDevices(ids: readonly string[]): Promise<void>
+  dueItems(until: number, limit: number): Promise<DueItem[]>
+  deleteItems(keys: readonly ItemKey[]): Promise<void>
+  bumpAttempts(keys: readonly ItemKey[]): Promise<void>
+  deleteStaleDevices(seenBefore: number): Promise<void>
+}
+
+/**
+ * `gone`: la suscripción ya no existe (borrar dispositivo).
+ * `rejected`: el servicio rechaza este mensaje concreto (descartarlo).
+ * `retry`: fallo transitorio.
+ * `unauthorized`: el servicio rechaza nuestra firma VAPID. Es un fallo de configuración del
+ *   servidor, no del dispositivo: nunca se borra nada por esto.
+ */
+export type PushResult = 'sent' | 'gone' | 'rejected' | 'retry' | 'unauthorized'
+
+export interface Sender {
+  send(subscription: Subscription, data: string, topic?: string): Promise<PushResult>
+}
+
+export interface Config {
+  allowedOrigins: readonly string[]
+  vapidPublicKey: string
+  /** Sal para anonimizar IPs antes de guardarlas o usarlas como clave de límite. */
+  ipSalt: string
+}
+
+/** Límite de frecuencia por clave. En producción, el binding nativo de Cloudflare. */
+export interface Limiter {
+  allow(key: string): Promise<boolean>
+}
+
+export interface Limits {
+  /** Todas las peticiones, por IP anonimizada. */
+  ip: Limiter
+  /** Escrituras de un dispositivo autenticado. */
+  device: Limiter
+  /** Avisos de prueba: evita usar un token filtrado para bombardear notificaciones. */
+  test: Limiter
+}
+
+export interface Deps {
+  store: Store
+  sender: Sender
+  config: Config
+  limits: Limits
+  now: () => number
+}

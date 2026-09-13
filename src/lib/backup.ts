@@ -1,5 +1,7 @@
-import type { AppState, Section, Task } from '../types'
+import type { AppState, Reminder, Section, Task } from '../types'
 import { SCHEMA_VERSION } from '../state/reducer'
+import { isValidTime } from './date'
+import { MAX_REMINDERS, normalizeReminder } from './reminders'
 
 export interface BackupFile {
   app: 'tasks'
@@ -14,6 +16,19 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const str = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
 const num = (value: unknown, fallback = 0) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback)
 
+function normalizeReminders(raw: unknown): Reminder[] {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  return raw
+    .map(normalizeReminder)
+    .filter((reminder): reminder is Reminder => {
+      if (!reminder || seen.has(reminder.id)) return false
+      seen.add(reminder.id)
+      return true
+    })
+    .slice(0, MAX_REMINDERS)
+}
+
 function normalizeTask(raw: unknown): Task | null {
   if (!isObject(raw)) return null
   const id = str(raw.id)
@@ -24,6 +39,8 @@ function normalizeTask(raw: unknown): Task | null {
     title,
     done: raw.done === true,
     date: typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : null,
+    time: isValidTime(raw.time) ? raw.time : null,
+    reminders: normalizeReminders(raw.reminders),
     sectionId: typeof raw.sectionId === 'string' ? raw.sectionId : null,
     order: num(raw.order),
     createdAt: num(raw.createdAt, Date.now()),
