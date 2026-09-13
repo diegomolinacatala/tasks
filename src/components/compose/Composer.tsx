@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { parseTask } from '../../lib/parse'
 import type { IsoDate, IsoTime, ReminderDraft } from '../../types'
-import { IconBell, IconPlus } from '../ui/Icons'
+import { IconBell, IconCheck, IconClose, IconMic, IconPlus } from '../ui/Icons'
+import { VoiceBar } from './VoiceBar'
+import { useVoice } from './useVoice'
 import './composer.css'
 
 export interface TaskDraft {
@@ -17,15 +19,19 @@ interface ComposerProps {
   quickLabel: string
   quickDate: IsoDate
   onSubmit: (draft: TaskDraft) => void
+  /** Texto dictado: quien lo recibe crea la tarea y avisa con opción de deshacer. */
+  onVoice: (text: string) => void
 }
 
 /**
  * Por defecto la tarea nace sin fecha. Si el texto trae día u hora ("mañana a las 5"),
- * se aplican y se enseña una píldora; tocarla deja el texto literal.
+ * se aplican y se enseña una píldora; tocarla deja el texto literal. Con la barra vacía,
+ * el micrófono dicta la tarea entera.
  */
-export function Composer({ quickLabel, quickDate, onSubmit }: ComposerProps) {
+export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerProps) {
   const [value, setValue] = useState('')
   const [literal, setLiteral] = useState(false)
+  const voice = useVoice(onVoice)
   const ready = value.trim().length > 0
   const parsed = useMemo(() => parseTask(value, Date.now()), [value])
   const detected = ready && parsed.label !== null
@@ -58,6 +64,27 @@ export function Composer({ quickLabel, quickDate, onSubmit }: ComposerProps) {
     submit()
   }
 
+  if (voice.phase !== 'idle') {
+    return (
+      <div className="composer composer--voice" role="status" aria-live="polite">
+        <button type="button" className="composer__voice-btn" aria-label="Cancelar dictado" onClick={voice.cancel}>
+          <IconClose size={16} />
+        </button>
+        <VoiceBar phase={voice.phase} level={voice.level} partial={voice.partial} />
+        {voice.phase === 'listening' && (
+          <button
+            type="button"
+            className="composer__voice-btn composer__voice-btn--done"
+            aria-label="Terminar y crear tarea"
+            onClick={voice.stop}
+          >
+            <IconCheck size={16} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <form className="composer" onSubmit={submit}>
       <button type="submit" className={`composer__mark ${ready ? 'is-ready' : ''}`} aria-label="Añadir">
@@ -76,7 +103,12 @@ export function Composer({ quickLabel, quickDate, onSubmit }: ComposerProps) {
         }}
         onKeyDown={onKeyDown}
       />
-      {detected ? (
+      {!ready && (
+        <button type="button" className="composer__mic" aria-label="Dictar tarea" onClick={voice.start}>
+          <IconMic size={19} />
+        </button>
+      )}
+      {detected && (
         <button
           type="button"
           className={`composer__parsed ${literal ? 'is-off' : ''}`}
@@ -87,12 +119,11 @@ export function Composer({ quickLabel, quickDate, onSubmit }: ComposerProps) {
           {parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
           {parsed.label}
         </button>
-      ) : (
-        ready && (
-          <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quickLabel}`}>
-            {quickLabel}
-          </button>
-        )
+      )}
+      {ready && !detected && (
+        <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quickLabel}`}>
+          {quickLabel}
+        </button>
       )}
     </form>
   )

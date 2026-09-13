@@ -105,14 +105,21 @@ export function testDeps(overrides: Partial<Deps> = {}) {
   const push = fakeSender()
   let clock = Date.UTC(2026, 8, 11, 8, 0, 0)
   const armed: number[] = []
+  const transcribed: string[] = []
   const deps: Deps = {
     store: memory.store,
     sender: push.sender,
     scheduler: { arm: async (at) => void armed.push(at) },
-    limits: { ip: countingLimiter().limiter, device: countingLimiter().limiter, test: countingLimiter().limiter },
+    limits: { ip: countingLimiter().limiter, device: countingLimiter().limiter, voice: countingLimiter().limiter },
+    transcriber: {
+      transcribe: async (audio) => {
+        transcribed.push(audio)
+        return 'llamar a miguel'
+      },
+    },
     config: { allowedOrigins: ['https://diegomolinacatala.github.io'], vapidPublicKey: 'PUBLIC', ipSalt: 'salt' },
     now: () => clock,
     ...overrides,
   }
-  return { deps, memory, push, armed, setNow: (ms: number) => (clock = ms), now: () => clock }
+  return { deps, memory, push, armed, transcribed, setNow: (ms: number) => (clock = ms), now: () => clock }
 }

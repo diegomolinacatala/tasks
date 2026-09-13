@@ -1,9 +1,9 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
-import { pushData } from './message'
 import type { Deps, Device } from './types'
-import { parsePayload, parseSchedule, parseSubscription } from './validate'
+import { MAX_AUDIO_CHARS, parseAudio, parseSchedule, parseSubscription } from './validate'
 
 export const MAX_BODY_BYTES = 512_000
+const MAX_AUDIO_BODY_BYTES = MAX_AUDIO_CHARS + 1000
 export const MAX_DEVICES_PER_IP_HOUR = 10
 const HOUR_MS = 60 * 60 * 1000
 
@@ -39,8 +39,8 @@ const json = (status: number, body: unknown, headers: Headers) => {
 const empty = (headers: Headers) => new Response(null, { status: 204, headers })
 
 /** Lee el cuerpo cortando en cuanto supera el máximo: `content-length` puede faltar o mentir. */
-async function readBody(request: Request): Promise<string> {
-  if (Number(request.headers.get('content-length') ?? '0') > MAX_BODY_BYTES) throw tooLarge()
+async function readBody(request: Request, maxBytes: number): Promise<string> {
+  if (Number(request.headers.get('content-length') ?? '0') > maxBytes) throw tooLarge()
   if (!request.body) return ''
   const reader = request.body.getReader()
   const chunks: Uint8Array[] = []
@@ -49,7 +49,7 @@ async function readBody(request: Request): Promise<string> {
     const { done, value } = await reader.read()
     if (done) break
     size += value.byteLength
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel()
       throw tooLarge()
     }
@@ -64,10 +64,10 @@ async function readBody(request: Request): Promise<string> {
   return new TextDecoder().decode(bytes)
 }
 
-async function readJson(request: Request): Promise<Record<string, unknown>> {
+async function readJson(request: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
   let parsed: unknown
   try {
-    parsed = JSON.parse(await readBody(request))
+    parsed = JSON.parse(await readBody(request, maxBytes))
   } catch (error) {
     if (error instanceof HttpError) throw error
     throw new HttpError(400, 'JSON inválido')
@@ -115,20 +115,18 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       await deps.store.touchDevice(device.id, now)
       return empty(headers)
     },
-    'POST /v1/test': async (device) => {
-      if (!(await deps.limits.test.allow(device.id))) throw tooMany()
-      const payload = unwrap(parsePayload((await readJson(request)).payload))
-      const result = await deps.sender.send(device.subscription, pushData(payload))
-      if (result === 'sent') return empty(headers)
-      if (result === 'gone') {
-        await deps.store.deleteDevice(device.id)
-        throw new HttpError(410, 'la suscripción ya no es válida')
+    'POST /v1/transcribe': async (device) => {
+      if (!(await deps.limits.voice.allow(device.id))) throw tooMany()
+      const audio = unwrap(parseAudio((await readJson(request, MAX_AUDIO_BODY_BYTES)).audio))
+      let text: string
+      try {
+        text = await deps.transcriber.transcribe(audio)
+      } catch (error) {
+        // Ni audio ni texto en los registros: solo que falló.
+        console.error('transcripción fallida', error instanceof Error ? error.name : 'desconocido')
+        throw new HttpError(502, 'no se pudo transcribir el audio')
       }
-      if (result === 'unauthorized') {
-        console.error('VAPID rechazado por el servicio push: revisa VAPID_SUBJECT y las claves')
-        throw new HttpError(500, 'servidor de avisos mal configurado')
-      }
-      throw new HttpError(502, 'el servicio push no aceptó el aviso')
+      return json(200, { data: { text } }, headers)
     },
     'DELETE /v1/devices': async (device) => {
       await deps.store.deleteDevice(device.id)

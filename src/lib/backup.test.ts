@@ -21,6 +21,7 @@ const state: AppState = {
   ],
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
   collapsed: { overdue: false, backlog: true },
+  settings: { digest: { enabled: false, time: '08:30' } },
 }
 
 describe('serializeBackup / parseBackup', () => {

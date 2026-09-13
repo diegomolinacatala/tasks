@@ -1,4 +1,4 @@
-import type { ScheduleEntry } from '../reminders'
+import type { ScheduleEntry } from '../schedule'
 import type { EncryptedItem } from './api'
 import { encryptJson } from './crypto'
 import { contentOf } from './message'
@@ -20,7 +20,7 @@ export function encryptSchedule(key: CryptoKey, entries: readonly ScheduleEntry[
       at: entry.at,
       payload: await encryptJson(
         key,
-        contentOf({ taskId: entry.taskId, title: entry.title, body: entry.body, badge: entry.badge }),
+        contentOf({ taskId: entry.taskId, title: entry.title, body: entry.body, badge: entry.badge, at: entry.at }),
       ),
     })),
   )

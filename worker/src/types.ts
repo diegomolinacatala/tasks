@@ -82,13 +82,19 @@ export interface Limits {
   ip: Limiter
   /** Escrituras de un dispositivo autenticado. */
   device: Limiter
-  /** Avisos de prueba: evita usar un token filtrado para bombardear notificaciones. */
-  test: Limiter
+  /** Dictado: cada petición cuesta cómputo de IA. */
+  voice: Limiter
 }
 
 /** Despierta el envío a una hora concreta. En producción, la alarma de un Durable Object. */
 export interface Scheduler {
   arm(at: number): Promise<void>
+}
+
+/** Voz a texto. En producción, Whisper en Workers AI. */
+export interface Transcriber {
+  /** `audio`: WAV en base64 estándar. */
+  transcribe(audio: string): Promise<string>
 }
 
 export interface Deps {
@@ -97,5 +103,6 @@ export interface Deps {
   config: Config
   limits: Limits
   scheduler: Scheduler
+  transcriber: Transcriber
   now: () => number
 }

@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import type { AppState, Task } from '../types'
+import type { Task } from '../types'
 import { toInstant } from './date'
 import {
   MAX_REMINDERS,
-  badgeCount,
   isPending,
   nextReminderAt,
   normalizeReminder,
@@ -13,7 +12,6 @@ import {
   snoozeOptions,
   snoozed,
   taskInstant,
-  upcomingSchedule,
   withReminder,
 } from './reminders'
 
@@ -32,13 +30,6 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   createdAt: 0,
   completedAt: null,
   ...partial,
-})
-
-const stateOf = (...tasks: Task[]): AppState => ({
-  schemaVersion: 3,
-  tasks,
-  sections: [],
-  collapsed: { overdue: false, backlog: false },
 })
 
 describe('resolveAt', () => {
@@ -122,39 +113,6 @@ describe('withReminder / snoozed', () => {
     })
     const next = snoozed(t, NOW + 10 * MINUTE, NOW, 'new')
     expect(next.reminders.map((r) => r.id)).toEqual(['future', 'rel', 'new'])
-  })
-})
-
-describe('upcomingSchedule', () => {
-  test('ordena, excluye completadas, pasadas e inactivas', () => {
-    const state = stateOf(
-      task({ id: 'a', title: 'Llamar', time: '12:00', reminders: [{ id: 'a1', kind: 'before', minutes: 0 }] }),
-      task({ id: 'b', reminders: [{ id: 'b1', kind: 'at', at: NOW + MINUTE }, { id: 'b2', kind: 'at', at: NOW - 1 }] }),
-      task({ id: 'c', done: true, reminders: [{ id: 'c1', kind: 'at', at: NOW + MINUTE }] }),
-      task({ id: 'd', date: null, reminders: [{ id: 'd1', kind: 'before', minutes: 0 }] }),
-    )
-    const schedule = upcomingSchedule(state, NOW)
-    expect(schedule.map((entry) => entry.id)).toEqual(['b1', 'a1'])
-    expect(schedule[1]).toMatchObject({ taskId: 'a', title: 'Llamar', body: 'Hoy 12:00' })
-    expect(schedule[0]!.body).toBe('')
-  })
-
-  test('recorta al máximo indicado', () => {
-    const reminders = Array.from({ length: 5 }, (_, i) => ({ id: `r${i}`, kind: 'at' as const, at: NOW + (i + 1) * MINUTE }))
-    expect(upcomingSchedule(stateOf(task({ id: 'a', reminders })), NOW, 3)).toHaveLength(3)
-  })
-
-  test('el badge cuenta lo pendiente con fecha hasta el día del aviso', () => {
-    const tomorrowAt = toInstant('2026-09-12', '09:00')
-    const state = stateOf(
-      task({ id: 'hoy' }),
-      task({ id: 'atrasada', date: '2026-09-01' }),
-      task({ id: 'manana', date: '2026-09-12', reminders: [{ id: 'm1', kind: 'at', at: tomorrowAt }] }),
-      task({ id: 'sin', date: null }),
-      task({ id: 'hecha', done: true }),
-    )
-    expect(badgeCount(state.tasks, NOW)).toBe(2)
-    expect(upcomingSchedule(state, NOW)[0]!.badge).toBe(3)
   })
 })
 

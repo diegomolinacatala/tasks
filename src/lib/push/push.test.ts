@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import type { ScheduleEntry } from '../reminders'
+import type { ScheduleEntry } from '../schedule'
 import { PushApiError, createPushApi } from './api'
 import { createContentKey, decryptJson, encryptJson, fromBase64Url, toBase64Url } from './crypto'
 import { FALLBACK_CONTENT, contentOf, isOpenTaskMessage, parseContent, parsePushData } from './message'
@@ -56,6 +56,8 @@ describe('message', () => {
       badge: 3,
     })
     expect(parseContent({ title: 'x', badge: -1, taskId: '' })).toEqual({ taskId: null, title: 'x', body: '', badge: null })
+    expect(parseContent({ title: 'x', at: 5 })).toMatchObject({ at: 5 })
+    expect(parseContent({ title: 'x', at: '5' })).not.toHaveProperty('at')
     expect(parseContent({ title: '' })).toBeNull()
     expect(parseContent('x')).toBeNull()
   })
@@ -64,7 +66,7 @@ describe('message', () => {
     const content = contentOf({ ...FALLBACK_CONTENT, title: 'a'.repeat(500), body: 'b'.repeat(500) })
     expect(content.title).toHaveLength(120)
     expect(content.title.endsWith('…')).toBe(true)
-    expect(content.body).toHaveLength(80)
+    expect(content.body).toHaveLength(160)
   })
 
   test('parsePushData solo acepta el sobre v1', () => {
@@ -78,6 +80,8 @@ describe('message', () => {
   test('isOpenTaskMessage', () => {
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a' })).toBe(true)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: null })).toBe(true)
+    expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a', action: 'done' })).toBe(true)
+    expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a', action: 'borrar' })).toBe(false)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 3 })).toBe(false)
     expect(isOpenTaskMessage({ type: 'otro' })).toBe(false)
     expect(isOpenTaskMessage(null)).toBe(false)
@@ -103,6 +107,7 @@ describe('sync', () => {
       title: 'Llamar a Juan',
       body: 'Hoy 17:00',
       badge: 2,
+      at: 1_000,
     })
   })
 
@@ -162,12 +167,12 @@ describe('api', () => {
     const api = createPushApi('https://api.test', fetch.impl)
     await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x' }])
     await api.updateSubscription('tok', subscription)
-    await api.test('tok', 'x')
+    await api.unregister('tok')
     await api.unregister('tok')
     expect(fetch.calls.map((c) => `${c.init!.method} ${c.url}`)).toEqual([
       'PUT https://api.test/v1/schedule',
       'PUT https://api.test/v1/devices/subscription',
-      'POST https://api.test/v1/test',
+      'DELETE https://api.test/v1/devices',
       'DELETE https://api.test/v1/devices',
     ])
     expect((fetch.calls[0]!.init!.headers as Record<string, string>).authorization).toBe('Bearer tok')
@@ -180,6 +185,13 @@ describe('api', () => {
     await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x' }], { keepalive: true })
     await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x'.repeat(70_000) }], { keepalive: true })
     expect(fetch.calls.map((c) => c.init!.keepalive)).toEqual([false, true, false])
+  })
+
+  test('transcribe devuelve el texto y valida la respuesta', async () => {
+    const ok = createPushApi('https://api.test', fakeFetch(() => json(200, { data: { text: 'hola' } })).impl)
+    expect(await ok.transcribe('tok', 'QUJD')).toBe('hola')
+    const bad = createPushApi('https://api.test', fakeFetch(() => json(200, { data: {} })).impl)
+    await expect(bad.transcribe('tok', 'QUJD')).rejects.toThrow(/inesperada/)
   })
 
   test('los errores del servidor llegan con estado y mensaje', async () => {

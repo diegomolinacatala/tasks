@@ -15,8 +15,11 @@ solo en tu dispositivo.
   *"sacar la ropa en 30 min"*. La fecha, la hora y el aviso se ponen solos.
 - **Recordatorios**: tantos como quieras por tarea (a la hora, 15 min antes, mañana 9:00,
   otra hora…). Llegan como notificación aunque la app esté cerrada.
+- **Dicta la tarea**: toca el micrófono y di *"llamar a Miguel hoy a las 17:00 y recuérdamelo
+  10 minutos antes"*. Se crea sola, con su día, hora y aviso.
 - Tocar el aviso abre la tarea para **posponerla** o marcarla hecha. El icono muestra lo
   pendiente de hoy.
+- **Resumen del día** opcional: cada mañana, un aviso con lo que toca.
 - Deslizar a la derecha completa, a la izquierda borra (con deshacer).
 - Arrastrar por el asa de la derecha para reordenar o cambiar de bloque.
 - Exportar e importar una copia en JSON desde Ajustes.
@@ -47,6 +50,7 @@ seguridad es la exportación manual a JSON.
 
 Para los avisos, un Worker de Cloudflare (`worker/`) guarda solo cuándo avisar y un texto
 cifrado en el propio móvil con una clave que nunca sale de él: el servidor no puede leer
-tus tareas.
+tus tareas. El dictado se transcribe con Whisper en ese mismo servidor y el audio no se
+guarda.
 
 Detalles de arquitectura y convenciones: [CLAUDE.md](CLAUDE.md).

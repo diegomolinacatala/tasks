@@ -4,8 +4,7 @@ import { useToday } from '../../hooks/useToday'
 import type { DeviceCredentials } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { currentSupport, disablePush, enablePush, loadDevice, refreshPush } from '../../lib/push/client'
-import { encryptJson } from '../../lib/push/crypto'
-import { clearDevice, ensureContentKey } from '../../lib/push/keystore'
+import { clearDevice } from '../../lib/push/keystore'
 import { useAppState } from '../../state/StoreProvider'
 import { useToast } from '../ui/Toast'
 import { useScheduleSync } from './useScheduleSync'
@@ -20,11 +19,10 @@ interface PushContextValue {
   status: PushStatus
   busy: boolean
   syncFailed: boolean
-  /** Última subida confirmada por el servidor en esta sesión. */
-  syncedAt: number | null
   enable: () => Promise<void>
   disable: () => Promise<void>
-  test: () => Promise<void>
+  /** Voz a texto en el servidor. Requiere los avisos activados: usa el token del dispositivo. */
+  transcribe: (audio: string) => Promise<string>
 }
 
 const PushContext = createContext<PushContextValue | null>(null)
@@ -56,7 +54,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
     setStatus('off')
   }, [])
 
-  const { failed: syncFailed, syncedAt } = useScheduleSync({ api, device, state, today, onForgotten: forget })
+  const { failed: syncFailed } = useScheduleSync({ api, device, state, today, onForgotten: forget })
 
   useEffect(() => {
     if (!api || status !== 'off') return
@@ -114,24 +112,25 @@ export function PushProvider({ children }: { children: ReactNode }) {
     }
   }, [api, toast])
 
-  const test = useCallback(async () => {
-    if (!api || !device) return
-    setBusy(true)
-    try {
-      const key = await ensureContentKey()
-      const payload = await encryptJson(key, { taskId: null, title: 'Tasks', body: 'Avisos activos', badge: null })
-      await api.test(device.token, payload)
-    } catch (error) {
-      if (error instanceof PushApiError && (error.status === 401 || error.status === 410)) forget()
-      toast({ message: messageOf(error, 'No se pudo enviar el aviso de prueba.') })
-    } finally {
-      setBusy(false)
-    }
-  }, [api, device, forget, toast])
+  const transcribe = useCallback(
+    async (audio: string) => {
+      if (!api || !device) throw new Error('Activa los avisos en Ajustes para dictar tareas.')
+      try {
+        return await api.transcribe(device.token, audio)
+      } catch (error) {
+        if (error instanceof PushApiError && error.status === 401) forget()
+        if (error instanceof PushApiError && error.status === 404) {
+          throw new Error('El servidor aún no tiene el dictado: vuelve a desplegar el Worker.')
+        }
+        throw error
+      }
+    },
+    [api, device, forget],
+  )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, syncedAt, enable, disable, test }),
-    [status, busy, syncFailed, syncedAt, enable, disable, test],
+    () => ({ status, busy, syncFailed, enable, disable, transcribe }),
+    [status, busy, syncFailed, enable, disable, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>

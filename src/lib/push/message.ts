@@ -1,14 +1,17 @@
 /** Lo que muestra la notificación. Viaja cifrado; ver `crypto.ts`. */
 export interface NotificationContent {
+  /** `null` = aviso general (resumen diario): abre la app sin tarea concreta. */
   taskId: string | null
   title: string
   body: string
   /** Número para el icono de la app, o `null` para no tocarlo. */
   badge: number | null
+  /** Hora prevista del aviso (epoch ms), para que el sistema muestre esa y no la de llegada. */
+  at?: number
 }
 
 const MAX_TITLE = 120
-const MAX_BODY = 80
+const MAX_BODY = 160
 
 export const FALLBACK_CONTENT: NotificationContent = { taskId: null, title: 'Recordatorio', body: '', badge: null }
 
@@ -29,6 +32,7 @@ export function parseContent(raw: unknown): NotificationContent | null {
     body: typeof value.body === 'string' ? clip(value.body, MAX_BODY) : '',
     badge:
       typeof value.badge === 'number' && Number.isInteger(value.badge) && value.badge >= 0 ? value.badge : null,
+    ...(typeof value.at === 'number' && Number.isFinite(value.at) ? { at: value.at } : {}),
   }
 }
 
@@ -44,14 +48,25 @@ export function parsePushData(text: string): string | null {
   }
 }
 
-/** Mensaje de la página al service worker y viceversa. */
+/** Botones de la notificación. iOS no los muestra; Android y escritorio sí. */
+export type NotificationAction = 'done' | 'snooze'
+
+export const isNotificationAction = (value: unknown): value is NotificationAction =>
+  value === 'done' || value === 'snooze'
+
+/** Mensaje del service worker a la página cuando ya estaba abierta. */
 export interface OpenTaskMessage {
   type: 'open-task'
   taskId: string | null
+  action: NotificationAction | null
 }
 
-export const isOpenTaskMessage = (value: unknown): value is OpenTaskMessage =>
-  typeof value === 'object' &&
-  value !== null &&
-  (value as Record<string, unknown>).type === 'open-task' &&
-  ((value as Record<string, unknown>).taskId === null || typeof (value as Record<string, unknown>).taskId === 'string')
+export function isOpenTaskMessage(value: unknown): value is OpenTaskMessage {
+  if (typeof value !== 'object' || value === null) return false
+  const message = value as Record<string, unknown>
+  return (
+    message.type === 'open-task' &&
+    (message.taskId === null || typeof message.taskId === 'string') &&
+    (message.action === undefined || message.action === null || isNotificationAction(message.action))
+  )
+}

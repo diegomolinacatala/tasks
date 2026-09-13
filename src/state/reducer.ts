@@ -2,16 +2,19 @@ import { isValidTime } from '../lib/date'
 import { createId } from '../lib/id'
 import { applyOrder, moveTask, nextOrder, scopeKey } from '../lib/order'
 import { snoozed, withReminder } from '../lib/reminders'
-import type { AppState, IsoDate, Section, Task } from '../types'
+import type { AppState, IsoDate, Section, Settings, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
+
+export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' } })
 
 export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
   tasks: [],
   sections: [],
   collapsed: { overdue: false, backlog: false },
+  settings: defaultSettings(),
 })
 
 const MAX_TITLE = 500
@@ -36,7 +39,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const title = clean(action.title)
       if (!title) return state
       const base: Task = {
-        id: createId(),
+        id: action.id ?? createId(),
         title,
         done: false,
         date: action.date,
@@ -181,6 +184,14 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         collapsed: { ...state.collapsed, [action.block]: !state.collapsed[action.block] },
       }
+
+    case 'settings/digest': {
+      if (action.time !== undefined && !isValidTime(action.time)) return state
+      const current = state.settings.digest
+      const digest = { enabled: action.enabled ?? current.enabled, time: action.time ?? current.time }
+      if (digest.enabled === current.enabled && digest.time === current.time) return state
+      return { ...state, settings: { ...state.settings, digest } }
+    }
 
     case 'state/replace':
       return action.state

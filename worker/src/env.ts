@@ -1,5 +1,6 @@
 import { webPushSender } from './push'
 import { d1Store } from './store'
+import { workersAiTranscriber } from './transcribe'
 import type { Deps, Limiter } from './types'
 import { isValidVapidSubject } from './validate'
 
@@ -8,7 +9,8 @@ export interface Env {
   SCHEDULER: DurableObjectNamespace<import('./scheduler').Scheduler>
   IP_LIMITER: RateLimit
   DEVICE_LIMITER: RateLimit
-  TEST_LIMITER: RateLimit
+  VOICE_LIMITER: RateLimit
+  AI: Ai
   ALLOWED_ORIGINS: string
   VAPID_PUBLIC_KEY: string
   VAPID_PRIVATE_KEY: string
@@ -43,9 +45,10 @@ export function depsFrom(env: Env): Deps {
     limits: {
       ip: limiterOf(env.IP_LIMITER),
       device: limiterOf(env.DEVICE_LIMITER),
-      test: limiterOf(env.TEST_LIMITER),
+      voice: limiterOf(env.VOICE_LIMITER),
     },
     scheduler: { arm: (at) => schedulerStub(env).arm(at) },
+    transcriber: workersAiTranscriber(env.AI),
     config: {
       allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
       vapidPublicKey: env.VAPID_PUBLIC_KEY,

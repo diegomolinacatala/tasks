@@ -15,6 +15,8 @@ export type Action =
       sectionId: string | null
       time?: IsoTime | null
       reminders?: ReminderDraft[]
+      /** Id fijado por quien crea la tarea, para poder deshacer. */
+      id?: string
     }
   | { type: 'task/toggle'; id: string }
   | { type: 'task/setTime'; id: string; time: IsoTime | null }
@@ -35,5 +37,6 @@ export type Action =
   | { type: 'section/toggle'; id: string }
   | { type: 'sections/reorder'; ids: string[] }
   | { type: 'block/toggle'; block: BlockId }
+  | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'state/replace'; state: AppState }
   | { type: 'state/clear' }

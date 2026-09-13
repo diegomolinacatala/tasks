@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
+import { createId } from './lib/id'
+import { parseSpoken } from './lib/parse'
 import { useDispatch } from './state/StoreProvider'
 import type { IsoDate, ViewId } from './types'
 import { Composer } from './components/compose/Composer'
-import { useNotificationOpen } from './components/push/useNotificationOpen'
+import { useNotificationActions } from './components/push/useNotificationActions'
 import { SectionSheet } from './components/section/SectionSheet'
 import { SettingsSheet } from './components/settings/SettingsSheet'
 import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { TaskSheet } from './components/task/TaskSheet'
 import { IconMore } from './components/ui/Icons'
+import { useToast } from './components/ui/Toast'
 import { HomeView } from './components/views/HomeView'
 import { WeekView } from './components/views/WeekView'
 import './components/shell/shell.css'
@@ -20,6 +23,7 @@ export function App() {
   const dispatch = useDispatch()
   const today = useToday()
   const typing = useKeyboardInset()
+  const toast = useToast()
 
   const [view, setView] = useState<ViewId>('home')
   const [weekAnchor, setWeekAnchor] = useState(today)
@@ -41,10 +45,23 @@ export function App() {
     setTaskId(id)
   }
 
-  useNotificationOpen((id) => {
+  useNotificationActions((id) => {
     setFromNotification(true)
     setTaskId(id)
   })
+
+  // Lo dictado se crea sin pasos intermedios; el toast confirma qué se ha entendido.
+  const addFromVoice = (text: string) => {
+    const parsed = parseSpoken(text, Date.now())
+    if (!parsed.title) return
+    const id = createId()
+    dispatch({ type: 'task/add', id, ...parsed, sectionId: null })
+    toast({
+      message: `${parsed.title} · ${parsed.label ?? 'Sin fecha'}`,
+      actionLabel: 'Deshacer',
+      onAction: () => dispatch({ type: 'task/remove', id }),
+    })
+  }
 
   const inWeek = view === 'week' && selectedDay !== today
   const quickDate = view === 'week' ? selectedDay : today
@@ -74,6 +91,7 @@ export function App() {
           quickLabel={quickLabel}
           quickDate={quickDate}
           onSubmit={(draft) => dispatch({ type: 'task/add', ...draft, sectionId: null })}
+          onVoice={addFromVoice}
         />
         <BottomNav view={view} onChange={(next) => withTransition(() => setView(next))} />
       </div>

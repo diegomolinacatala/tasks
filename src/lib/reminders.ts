@@ -1,4 +1,4 @@
-import type { AppState, Reminder, ReminderDraft, Task } from '../types'
+import type { Reminder, ReminderDraft, Task } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInstant } from './date'
 
 export const MAX_REMINDERS = 20
@@ -57,45 +57,6 @@ export function withReminder(task: Task, draft: ReminderDraft, id: string): Task
 export function snoozed(task: Task, at: number, now: number, id: string): Task {
   const kept = task.reminders.filter((reminder) => reminder.kind !== 'at' || reminder.at > now)
   return withReminder({ ...task, reminders: kept }, { kind: 'at', at }, id)
-}
-
-export interface ScheduleEntry {
-  /** Id del recordatorio: único y estable entre sincronizaciones. */
-  id: string
-  taskId: string
-  at: number
-  title: string
-  body: string
-  /** Lo que marcará el icono cuando llegue el aviso. */
-  badge: number
-}
-
-/** Pendientes con fecha hasta el día indicado: hoy más lo atrasado. */
-export function badgeCount(tasks: readonly Task[], at: number): number {
-  const day = isoOfInstant(at)
-  return tasks.filter((task) => !task.done && task.date !== null && task.date <= day).length
-}
-
-function bodyFor(task: Task, at: number): string {
-  if (!task.date || !task.time) return ''
-  return `${relativeLabel(task.date, isoOfInstant(at))} ${shortTime(task.time)}`
-}
-
-/** Avisos futuros de todas las tareas pendientes, del más cercano al más lejano. */
-export function upcomingSchedule(state: AppState, now: number, max = MAX_SCHEDULE): ScheduleEntry[] {
-  const entries = state.tasks.flatMap((task) =>
-    task.done
-      ? []
-      : task.reminders.flatMap((reminder) => {
-          const at = resolveAt(task, reminder)
-          if (at === null || at <= now) return []
-          return [{ id: reminder.id, taskId: task.id, at, title: task.title, body: bodyFor(task, at), badge: 0 }]
-        }),
-  )
-  return entries
-    .sort((a, b) => a.at - b.at)
-    .slice(0, max)
-    .map((entry) => ({ ...entry, badge: badgeCount(state.tasks, entry.at) }))
 }
 
 function beforeLabel(minutes: number): string {

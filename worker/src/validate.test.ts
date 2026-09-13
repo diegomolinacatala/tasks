@@ -4,6 +4,7 @@ import {
   MAX_ITEMS,
   isAllowedPushEndpoint,
   isValidVapidSubject,
+  parseAudio,
   parsePayload,
   parseSchedule,
   parseSubscription,
@@ -108,5 +109,16 @@ describe('parseSchedule', () => {
     [{ items: [{ ...item('a'), payload: 'no válido!' }] }],
   ])('rechaza %j', (raw) => {
     expect(parseSchedule(raw, NOW).ok).toBe(false)
+  })
+})
+
+describe('parseAudio', () => {
+  test('base64 estándar de tamaño razonable', () => {
+    expect(parseAudio('A'.repeat(1199) + '-').ok).toBe(false)
+    expect(parseAudio('UklGR+/='.padStart(1200, 'A')).ok).toBe(true)
+    expect(parseAudio('A'.repeat(1199) + '=').ok).toBe(true)
+    expect(parseAudio('A'.repeat(10)).ok).toBe(false)
+    expect(parseAudio('A'.repeat(2_000_001)).ok).toBe(false)
+    expect(parseAudio(null).ok).toBe(false)
   })
 })

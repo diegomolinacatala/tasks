@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { isOpenTaskMessage } from '../../lib/push/message'
+import type { NotificationAction } from '../../lib/push/message'
+import { isNotificationAction, isOpenTaskMessage } from '../../lib/push/message'
 
 const PARAM = 'task'
+const ACTION_PARAM = 'action'
 
 /**
  * Tocar un aviso abre la tarea: por URL si la app estaba cerrada, o por mensaje del
  * service worker si ya estaba abierta.
  */
-export function useNotificationOpen(onOpen: (taskId: string) => void) {
+export function useNotificationOpen(onOpen: (taskId: string, action: NotificationAction | null) => void) {
   const callback = useRef(onOpen)
 
   useEffect(() => {
@@ -17,15 +19,17 @@ export function useNotificationOpen(onOpen: (taskId: string) => void) {
   useEffect(() => {
     const url = new URL(window.location.href)
     const taskId = url.searchParams.get(PARAM)
+    const action = url.searchParams.get(ACTION_PARAM)
     if (taskId) {
       url.searchParams.delete(PARAM)
+      url.searchParams.delete(ACTION_PARAM)
       window.history.replaceState(null, '', url.pathname + url.search + url.hash)
-      callback.current(taskId)
+      callback.current(taskId, isNotificationAction(action) ? action : null)
     }
 
     if (!('serviceWorker' in navigator)) return
     const onMessage = (event: MessageEvent) => {
-      if (isOpenTaskMessage(event.data) && event.data.taskId) callback.current(event.data.taskId)
+      if (isOpenTaskMessage(event.data) && event.data.taskId) callback.current(event.data.taskId, event.data.action ?? null)
     }
     navigator.serviceWorker.addEventListener('message', onMessage)
     return () => navigator.serviceWorker.removeEventListener('message', onMessage)

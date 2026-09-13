@@ -1,5 +1,5 @@
-import type { AppState, Reminder, Section, Task } from '../types'
-import { SCHEMA_VERSION } from '../state/reducer'
+import type { AppState, Reminder, Section, Settings, Task } from '../types'
+import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
 import { isValidTime } from './date'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 
@@ -56,6 +56,17 @@ function normalizeSection(raw: unknown): Section | null {
   return { id, name, order: num(raw.order), collapsed: raw.collapsed === true }
 }
 
+function normalizeSettings(raw: unknown): Settings {
+  const defaults = defaultSettings()
+  const digest = isObject(raw) && isObject(raw.digest) ? raw.digest : {}
+  return {
+    digest: {
+      enabled: digest.enabled === true,
+      time: isValidTime(digest.time) ? digest.time : defaults.digest.time,
+    },
+  }
+}
+
 /** Acepta tanto el fichero de backup como un AppState suelto. */
 export function normalizeState(raw: unknown): AppState | null {
   if (!isObject(raw)) return null
@@ -77,6 +88,7 @@ export function normalizeState(raw: unknown): AppState | null {
     tasks,
     sections,
     collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true },
+    settings: normalizeSettings(candidate.settings),
   }
 }
 

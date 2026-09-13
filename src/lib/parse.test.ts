@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { toInstant } from './date'
-import { parseTask } from './parse'
+import { parseSpoken, parseTask } from './parse'
 
 // Viernes 11 de septiembre de 2026, 10:00 hora local.
 const NOW = toInstant('2026-09-11', '10:00')
@@ -188,5 +188,102 @@ describe('limpieza del título', () => {
 
   test('conserva mayúsculas y tildes del texto original', () => {
     expect(parse('Revisión del coche el miércoles').title).toBe('Revisión del coche')
+  })
+})
+
+describe('frases dictadas', () => {
+  test('el ejemplo completo: tarea, día, hora y aviso 10 minutos antes', () => {
+    expect(parse('llamar a miguel hoy a las 17:00 y recordarlo 10 minutos antes')).toEqual({
+      title: 'llamar a miguel',
+      date: '2026-09-11',
+      time: '17:00',
+      reminders: [{ kind: 'before', minutes: 10 }],
+      label: 'Hoy 17:00 · 10 min antes',
+    })
+  })
+
+  test('como lo transcribe un motor de voz: mayúscula, punto final y "horas"', () => {
+    expect(parse('Llamar a Miguel hoy a las 17:00 horas y recuérdamelo 10 minutos antes.')).toMatchObject({
+      title: 'Llamar a Miguel',
+      time: '17:00',
+      reminders: [{ kind: 'before', minutes: 10 }],
+    })
+  })
+
+  test('números escritos en palabras', () => {
+    expect(parse('llamar a miguel hoy a las cinco de la tarde y avísame diez minutos antes')).toMatchObject({
+      title: 'llamar a miguel',
+      time: '17:00',
+      reminders: [{ kind: 'before', minutes: 10 }],
+    })
+    expect(parse('dentista mañana a las once y media')).toMatchObject({ title: 'dentista', time: '11:30' })
+    expect(parse('pagar la luz en veinte minutos').reminders).toEqual([{ kind: 'at', at: NOW + 20 * MINUTE }])
+  })
+
+  test('"una" como artículo no se convierte en hora', () => {
+    expect(parse('comprar una barra de pan')).toEqual(literal('comprar una barra de pan'))
+  })
+
+  test('varios avisos a la vez', () => {
+    expect(
+      parse('reunión el lunes a las 10 y recuérdamelo el día antes y media hora antes').reminders,
+    ).toEqual([
+      { kind: 'before', minutes: 1440 },
+      { kind: 'before', minutes: 30 },
+    ])
+  })
+
+  test('aviso a una hora concreta distinta de la de la tarea', () => {
+    expect(parse('entregar informe mañana a las 12 y avísame a las 9')).toMatchObject({
+      title: 'entregar informe',
+      date: '2026-09-12',
+      time: '12:00',
+      reminders: [{ kind: 'at', at: toInstant('2026-09-12', '09:00') }],
+      label: 'Mañana 12:00 · Mañana 9:00',
+    })
+  })
+
+  test('aviso a una hora sin hora de tarea', () => {
+    expect(parse('sacar la basura y avísame a las 21:30')).toMatchObject({
+      title: 'sacar la basura',
+      date: '2026-09-11',
+      time: null,
+      reminders: [{ kind: 'at', at: toInstant('2026-09-11', '21:30') }],
+    })
+  })
+
+  test('"avísame a la hora" deja un único aviso a la hora', () => {
+    expect(parse('clase de inglés el jueves a las 19 y avísame a la hora').reminders).toEqual([
+      { kind: 'before', minutes: 0 },
+    ])
+  })
+
+  test('quita la muletilla inicial del dictado', () => {
+    expect(parse('Recuérdame llamar a Ana mañana').title).toBe('Llamar a Ana')
+    expect(parse('añade comprar leche hoy').title).toBe('Comprar leche')
+  })
+
+  test('sin nada más detectado, la muletilla se respeta', () => {
+    expect(parse('recordar cumpleaños de Ana').title).toBe('recordar cumpleaños de Ana')
+  })
+
+  test('"estudiar 2 horas" no es una hora', () => {
+    expect(parse('estudiar 2 horas').time).toBeNull()
+  })
+})
+
+function literal(title: string) {
+  return { title, date: null, time: null, reminders: [], label: null }
+}
+
+describe('parseSpoken', () => {
+  test('sin fecha también limpia muletilla y punto final', () => {
+    expect(parseSpoken('Recuérdame comprar leche.', NOW)).toEqual(literal('Comprar leche'))
+    expect(parseSpoken('  Comprar pilas. ', NOW).title).toBe('Comprar pilas')
+  })
+
+  test('con fecha se comporta como parseTask', () => {
+    const text = 'Llamar a Miguel hoy a las 17:00 y recordarlo 10 minutos antes.'
+    expect(parseSpoken(text, NOW)).toEqual(parseTask(text, NOW))
   })
 })

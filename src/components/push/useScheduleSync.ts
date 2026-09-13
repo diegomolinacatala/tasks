@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { badgeCount, upcomingSchedule } from '../../lib/reminders'
+import { badgeCount, upcomingSchedule } from '../../lib/schedule'
 import type { DeviceCredentials, PushApi } from '../../lib/push/api'
 import { PushApiError } from '../../lib/push/api'
 import { ensureContentKey } from '../../lib/push/keystore'
@@ -24,7 +24,6 @@ interface SyncOptions {
  */
 export function useScheduleSync({ api, device, state, today, onForgotten }: SyncOptions) {
   const [failed, setFailed] = useState(false)
-  const [syncedAt, setSyncedAt] = useState<number | null>(null)
   const stateRef = useRef(state)
   const lastFingerprint = useRef<string | null>(null)
   const running = useRef(false)
@@ -60,7 +59,6 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
           lastFingerprint.current = fingerprint
         } while (dirty.current)
         setFailed(false)
-        setSyncedAt(Date.now())
       } catch (error) {
         if (error instanceof PushApiError && error.status === 401) {
           onForgotten()
@@ -80,7 +78,7 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     if (!device) return
     const timer = setTimeout(() => void sync(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, device, sync])
+  }, [state.tasks, state.settings, device, sync])
 
   useEffect(() => {
     const onVisibility = () => {
@@ -107,5 +105,5 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     update.catch(() => undefined)
   }, [state.tasks, today])
 
-  return { failed, syncedAt }
+  return { failed }
 }

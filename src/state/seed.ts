@@ -1,7 +1,7 @@
 import { createId } from '../lib/id'
 import { todayIso } from '../lib/date'
 import type { AppState, Task } from '../types'
-import { SCHEMA_VERSION } from './reducer'
+import { SCHEMA_VERSION, defaultSettings } from './reducer'
 
 /** Primer arranque: tres tareas que enseñan los gestos y se borran solas al usarlas. */
 export function seedState(): AppState {
@@ -25,5 +25,5 @@ export function seedState(): AppState {
     completedAt: null,
   }))
 
-  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [], collapsed: { overdue: false, backlog: false } }
+  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [], collapsed: { overdue: false, backlog: false }, settings: defaultSettings() }
 }

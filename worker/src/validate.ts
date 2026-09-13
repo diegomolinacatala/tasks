@@ -57,6 +57,17 @@ export function parsePayload(raw: unknown): Result<string> {
   return isKey(raw, 1, MAX_PAYLOAD_CHARS) ? ok(raw) : fail('payload inválido')
 }
 
+/** WAV de 16 kHz mono: ~30 s caben en 1 MB, que en base64 son ~1,4 MB. */
+export const MAX_AUDIO_CHARS = 2_000_000
+const MIN_AUDIO_CHARS = 1000
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/
+
+export function parseAudio(raw: unknown): Result<string> {
+  if (typeof raw !== 'string' || raw.length < MIN_AUDIO_CHARS) return fail('audio vacío')
+  if (raw.length > MAX_AUDIO_CHARS) return fail('audio demasiado largo')
+  return BASE64.test(raw) ? ok(raw) : fail('audio inválido')
+}
+
 export function parseSchedule(raw: unknown, now: number): Result<ScheduleItem[]> {
   if (!isObject(raw) || !Array.isArray(raw.items)) return fail('items requeridos')
   if (raw.items.length > MAX_ITEMS) return fail(`máximo ${MAX_ITEMS} avisos`)

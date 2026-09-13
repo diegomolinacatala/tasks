@@ -122,6 +122,13 @@ export const IconBellOff = (props: IconProps) => (
   </Icon>
 )
 
+export const IconMic = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="9" y="3.5" width="6" height="11" rx="3" />
+    <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" />
+  </Icon>
+)
+
 export const IconUpload = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14" />

@@ -4,8 +4,8 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { decryptJson } from './lib/push/crypto'
 import { loadContentKey } from './lib/push/keystore'
-import type { NotificationContent, OpenTaskMessage } from './lib/push/message'
-import { FALLBACK_CONTENT, parseContent, parsePushData } from './lib/push/message'
+import type { NotificationAction, NotificationContent, OpenTaskMessage } from './lib/push/message'
+import { FALLBACK_CONTENT, isNotificationAction, parseContent, parsePushData } from './lib/push/message'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -43,11 +43,15 @@ async function updateBadge(count: number | null): Promise<void> {
 async function showFromPush(text: string): Promise<void> {
   const content = await readContent(text)
   // Primero la notificación: iOS retira el permiso si un push no muestra nada.
-  await self.registration.showNotification(content.title, {
+  // `actions` y `timestamp` no están en los tipos de TS pero sí en los navegadores que los admiten.
+  const options: NotificationOptions & { actions?: { action: NotificationAction; title: string }[]; timestamp?: number } = {
     body: content.body,
     data: { taskId: content.taskId },
     icon: `${BASE}icons/icon-192.png`,
-  })
+    ...(content.at ? { timestamp: content.at } : {}),
+    ...(content.taskId ? { actions: TASK_ACTIONS } : {}),
+  }
+  await self.registration.showNotification(content.title, options)
   await updateBadge(content.badge)
 }
 
@@ -55,17 +59,24 @@ self.addEventListener('push', (event) => {
   event.waitUntil(showFromPush(event.data?.text() ?? ''))
 })
 
-async function openTask(taskId: string | null): Promise<void> {
+const TASK_ACTIONS: { action: NotificationAction; title: string }[] = [
+  { action: 'done', title: 'Hecha' },
+  { action: 'snooze', title: '+10 min' },
+]
+
+/** La app aplica la acción: el estado de las tareas solo vive en la página. */
+async function openTask(taskId: string | null, action: NotificationAction | null): Promise<void> {
   const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
   const client = windows[0]
   if (client) {
     await client.focus()
-    const message: OpenTaskMessage = { type: 'open-task', taskId }
+    const message: OpenTaskMessage = { type: 'open-task', taskId, action }
     client.postMessage(message)
     return
   }
   const url = new URL(BASE, self.location.origin)
   if (taskId) url.searchParams.set('task', taskId)
+  if (taskId && action) url.searchParams.set('action', action)
   await self.clients.openWindow(url.href)
 }
 
@@ -76,5 +87,5 @@ self.addEventListener('notificationclick', (event) => {
     typeof data === 'object' && data !== null && typeof (data as { taskId?: unknown }).taskId === 'string'
       ? (data as { taskId: string }).taskId
       : null
-  event.waitUntil(openTask(taskId))
+  event.waitUntil(openTask(taskId, isNotificationAction(event.action) ? event.action : null))
 })

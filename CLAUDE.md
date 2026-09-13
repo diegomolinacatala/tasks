@@ -57,6 +57,9 @@ src/
 │   ├── order.ts          # scopes y reordenación
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
 │   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
+│   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
+│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, badge
+│   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback
 │   ├── transition.ts     # View Transitions API con degradación
@@ -133,6 +136,24 @@ hora; con "en X min/horas" → aviso absoluto. Un número suelto nunca es una ho
 ("comprar 5 manzanas"). Sin nada detectado aparece el atajo de un toque a hoy —o al día
 seleccionado en la vista semana—.
 
+También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes", "avísame a
+las 9", "el día antes") y números en palabras: `normalize.ts` los pasa a dígitos guardando de
+qué parte del original viene cada carácter, para recortar bien el título. Si la frase pide
+avisos concretos, no se añade el de "a la hora".
+
+### Dictado
+
+Con la barra vacía aparece el micrófono. Al hablar se crea la tarea sola (`parseSpoken`) y un
+toast enseña lo entendido con "Deshacer".
+
+- **Con los avisos activos** graba PCM con un `ScriptProcessor` (`voice/capture.ts`), corta al
+  detectar 1,5 s de silencio, lo pasa a WAV de 16 kHz y lo transcribe el Worker con Whisper
+  (`POST /v1/transcribe`, Workers AI). Es la única vía que funciona en la app instalada de
+  iPhone: allí la Web Speech API existe pero no devuelve nada.
+- **Sin avisos** usa la Web Speech API del navegador si la hay (`voice/speech.ts`).
+- El audio no se guarda ni se registra; el Worker descarta las alucinaciones típicas de
+  Whisper con silencio ("Subtítulos realizados por…").
+
 ### Recordatorios
 
 `Task.time` es opcional (`HH:MM`, solo cuenta con fecha). `Task.reminders` admite varios:
@@ -147,10 +168,10 @@ tarea.
 ### Avisos push
 
 ```
-móvil: estado → upcomingSchedule() → cifra {taskId,title,body,badge} (AES-GCM) → PUT /v1/schedule
+móvil: estado → upcomingSchedule() → cifra {taskId,title,body,badge,at} (AES-GCM) → PUT /v1/schedule
 worker: PUT arma la alarma del DO al aviso más próximo → alarm() envía los vencidos por Web Push
         (payload = texto cifrado), borra y rearma para el siguiente
-sw.ts: push → descifra con la clave local → showNotification → tocar abre /tasks/?task=<id>
+sw.ts: push → descifra con la clave local → showNotification → tocar abre /tasks/?task=<id>[&action=]
 ```
 
 - **El móvil es la fuente de verdad.** `useScheduleSync` sube la agenda completa (debounce
@@ -164,7 +185,7 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   SHA-256. El Worker solo hace peticiones a hosts de push conocidos (anti-SSRF).
 - **Abuso**: límites nativos de Cloudflare (`[[ratelimits]]` en `wrangler.toml`) por IP
   anonimizada con `IP_HASH_SALT` en todas las rutas, por dispositivo en las escrituras y
-  3/min para el aviso de prueba; altas máximas por IP y hora en D1; cuerpos cortados al
+  10/min para el dictado; altas máximas por IP y hora en D1; cuerpos cortados al
   leer el stream, sin fiarse de `content-length`.
 - **Códigos del servicio push**: 404/410 borra el dispositivo; 400/413 descarta ese aviso;
   401/403 es VAPID mal configurado y **nunca** borra nada; el resto se reintenta 3 veces.
@@ -175,7 +196,14 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   403 `BadJwtToken` a `localhost`.
 - iOS: push solo con la app instalada en pantalla de inicio (iOS 16.4+) y el permiso se
   pide dentro de un gesto (`Notification.requestPermission` va lo primero en `enablePush`).
-- Tocar el aviso abre la tarea con **Posponer** (+10 min, +1 h, mañana 9:00, hecha).
+- **Contenido** (`lib/schedule.ts`): título = tarea; cuerpo = cuándo toca visto desde la hora
+  del aviso ("En 10 min · 17:00", "Para hoy", "Pendiente desde ayer") y la sección.
+- **Resumen del día** (opcional, `settings.digest`): un aviso diario a la hora elegida con las
+  tareas de ese día y las que estarán atrasadas. Se programa para los próximos 7 días con ids
+  `digest-AAAAMMDD` y se recalcula en cada sincronización.
+- **Botones** "Hecha" y "+10 min" en la notificación (Android y escritorio; iOS no los
+  muestra). El SW no toca el estado: abre la app con `?action=` y `useNotificationActions`
+  lo aplica con un toast. Tocar el aviso sin botón abre la tarea con **Posponer**.
 - Número en el icono: pendientes de hoy + atrasadas (`badgeCount`), actualizado por la app
   y por cada push.
 
@@ -197,7 +225,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - Comentarios solo donde el *porqué* no se deduce del código, y en español.
 - Nada de `console.log` en el código final.
 - Los tests cubren `src/lib` y `src/state` (umbral 80%). El pegamento de React y de
-  navegador (`push/client.ts`, `push/keystore.ts`, `sw.ts`) se prueba en el dispositivo.
+  navegador (`push/client.ts`, `push/keystore.ts`, `voice/capture.ts`, `voice/speech.ts`,
+  `sw.ts`) se prueba en el dispositivo.
 - En `worker/` el acceso a datos va detrás de la interfaz `Store`: los tests usan
   `memoryStore()` y un `Sender` falso; `store.ts`, `push.ts` e `index.ts` son adaptadores.
 
@@ -205,8 +234,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 
 - **Sin cuentas ni login.** El repo es público: nunca añadir claves privadas. Los secrets
   del Worker viven en Cloudflare (`wrangler secret put`) y en GitHub Actions.
-- **Backend solo para avisos**, y sin acceso al contenido: nada de guardar tareas en claro
-  en el servidor.
+- **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
+  claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
 - **Sin subtareas, notas ni recurrencias** por ahora.

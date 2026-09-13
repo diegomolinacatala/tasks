@@ -38,11 +38,22 @@ export interface Section {
 /** Bloques fijos de la pantalla principal que se pueden plegar. */
 export type BlockId = 'overdue' | 'backlog'
 
+/** Aviso diario con lo que hay para ese día. */
+export interface DigestSettings {
+  enabled: boolean
+  time: IsoTime
+}
+
+export interface Settings {
+  digest: DigestSettings
+}
+
 export interface AppState {
   schemaVersion: number
   tasks: Task[]
   sections: Section[]
   collapsed: Record<BlockId, boolean>
+  settings: Settings
 }
 
 export type ViewId = 'home' | 'week'

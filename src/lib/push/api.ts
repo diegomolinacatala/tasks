@@ -32,13 +32,14 @@ export interface PushApi {
   updateSubscription(token: string, subscription: PushSubscriptionData): Promise<void>
   /** `keepalive`: la petición sobrevive a que iOS congele la página al salir de la app. */
   putSchedule(token: string, items: readonly EncryptedItem[], options?: { keepalive?: boolean }): Promise<void>
-  test(token: string, payload: string): Promise<void>
+  /** WAV en base64 → texto transcrito. */
+  transcribe(token: string, audio: string): Promise<string>
   unregister(token: string): Promise<void>
 }
 
 const KEEPALIVE_MAX_CHARS = 60_000
 
-type Fetch =(input: string, init?: RequestInit) => Promise<Response>
+type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
@@ -96,8 +97,10 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
     async putSchedule(token, items, options = {}) {
       await call('PUT', '/v1/schedule', { token, body: { items }, keepalive: options.keepalive })
     },
-    async test(token, payload) {
-      await call('POST', '/v1/test', { token, body: { payload } })
+    async transcribe(token, audio) {
+      const data = await call('POST', '/v1/transcribe', { token, body: { audio } })
+      if (!isRecord(data) || typeof data.text !== 'string') throw new PushApiError(500, 'Respuesta inesperada.')
+      return data.text
     },
     async unregister(token) {
       await call('DELETE', '/v1/devices', { token })

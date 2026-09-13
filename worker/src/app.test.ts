@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_DEVICES_PER_IP_HOUR, handle } from './app'
 import { sha256Hex } from './auth'
-import { countingLimiter, fakeSender, subscription, testDeps } from './testing'
+import { countingLimiter, subscription, testDeps } from './testing'
 import type { Deps } from './types'
 
 const ORIGIN = 'https://diegomolinacatala.github.io'
 const API = 'https://tasks-push.example.workers.dev'
+const AUDIO = 'UklGR'.padEnd(1200, 'A')
 
 interface RequestOptions {
   body?: unknown
@@ -134,15 +135,14 @@ describe('límites de frecuencia', () => {
     expect((await put()).status).toBe(429)
   })
 
-  test('los avisos de prueba tienen su propio límite', async () => {
-    const test = countingLimiter(1)
-    const { deps, push } = testDeps()
+  test('el dictado tiene su propio límite', async () => {
+    const voice = countingLimiter(1)
+    const { deps } = testDeps()
     const { token } = await register(deps)
-    const limited = { ...deps, limits: { ...deps.limits, test: test.limiter } }
-    const send = () => handle(request('POST', '/v1/test', { token, body: { payload: 'eA' } }), limited)
-    expect((await send()).status).toBe(204)
+    const limited = { ...deps, limits: { ...deps.limits, voice: voice.limiter } }
+    const send = () => handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), limited)
+    expect((await send()).status).toBe(200)
     expect((await send()).status).toBe(429)
-    expect(push.sent).toHaveLength(1)
   })
 })
 
@@ -150,7 +150,7 @@ describe('rutas autenticadas', () => {
   test.each([
     ['PUT', '/v1/schedule'],
     ['PUT', '/v1/devices/subscription'],
-    ['POST', '/v1/test'],
+    ['POST', '/v1/transcribe'],
     ['DELETE', '/v1/devices'],
   ])('%s %s exige token válido', async (method, path) => {
     const { deps } = testDeps()
@@ -204,39 +204,40 @@ describe('rutas autenticadas', () => {
     expect(memory.devices.get(deviceId)!.subscription.endpoint).toBe(next.endpoint)
   })
 
-  test('POST /v1/test envía el payload tal cual, envuelto', async () => {
-    const { deps, push } = testDeps()
+  test('POST /v1/transcribe devuelve el texto', async () => {
+    const { deps, transcribed } = testDeps()
     const { token } = await register(deps)
-    const response = await handle(request('POST', '/v1/test', { token, body: { payload: 'Y2lmcmFkbw' } }), deps)
-    expect(response.status).toBe(204)
-    expect(JSON.parse(push.sent[0]!.data)).toEqual({ v: 1, p: 'Y2lmcmFkbw' })
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), deps)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ data: { text: 'llamar a miguel' } })
+    expect(transcribed).toEqual([AUDIO])
   })
 
-  test('POST /v1/test borra el dispositivo si la suscripción murió', async () => {
-    const { deps, memory } = testDeps()
-    const { token, deviceId } = await register(deps)
-    const withGone = { ...deps, sender: fakeSender(() => 'gone').sender }
-    const response = await handle(request('POST', '/v1/test', { token, body: { payload: 'eA' } }), withGone)
-    expect(response.status).toBe(410)
-    expect(memory.devices.has(deviceId)).toBe(false)
-  })
-
-  test('POST /v1/test informa de fallos transitorios', async () => {
+  test('POST /v1/transcribe valida el audio', async () => {
     const { deps } = testDeps()
     const { token } = await register(deps)
-    const withRetry = { ...deps, sender: fakeSender(() => 'retry').sender }
-    const response = await handle(request('POST', '/v1/test', { token, body: { payload: 'eA' } }), withRetry)
-    expect(response.status).toBe(502)
+    const send = (audio: unknown) => handle(request('POST', '/v1/transcribe', { token, body: { audio } }), deps)
+    expect((await send('corto')).status).toBe(400)
+    expect((await send('!'.repeat(2000))).status).toBe(400)
+    expect((await send(42)).status).toBe(400)
   })
 
-  test('POST /v1/test distingue la configuración VAPID rota y conserva el dispositivo', async () => {
-    const { deps, memory } = testDeps()
-    const { token, deviceId } = await register(deps)
-    const withBadVapid = { ...deps, sender: fakeSender(() => 'unauthorized').sender }
-    const response = await handle(request('POST', '/v1/test', { token, body: { payload: 'eA' } }), withBadVapid)
-    expect(response.status).toBe(500)
-    expect(await response.json()).toEqual({ error: 'servidor de avisos mal configurado' })
-    expect(memory.devices.has(deviceId)).toBe(true)
+  test('POST /v1/transcribe admite audios más grandes que el resto de rutas', async () => {
+    const { deps } = testDeps()
+    const { token } = await register(deps)
+    const long = 'A'.repeat(900_000)
+    expect((await handle(request('POST', '/v1/transcribe', { token, body: { audio: long } }), deps)).status).toBe(200)
+    const tooLong = 'A'.repeat(2_100_000)
+    expect((await handle(request('POST', '/v1/transcribe', { token, body: { audio: tooLong } }), deps)).status).toBe(413)
+  })
+
+  test('POST /v1/transcribe no filtra detalles si falla la IA', async () => {
+    const { deps } = testDeps()
+    const { token } = await register(deps)
+    const broken: Deps = { ...deps, transcriber: { transcribe: () => Promise.reject(new Error('modelo caído')) } }
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), broken)
+    expect(response.status).toBe(502)
+    expect(await response.text()).not.toContain('modelo')
   })
 
   test('DELETE /v1/devices borra dispositivo y agenda', async () => {
