@@ -2,7 +2,7 @@ import { buildPushPayload, type VapidKeys } from '@block65/webcrypto-web-push'
 import type { PushResult, Sender, Subscription } from './types'
 
 const TTL_SECONDS = 60 * 60
-const TOPIC_MAX = 32
+const MAX_REASON_CHARS = 120
 
 export function classify(status: number): PushResult {
   if (status >= 200 && status < 300) return 'sent'
@@ -13,24 +13,38 @@ export function classify(status: number): PushResult {
   return 'retry'
 }
 
-/** Envío real con Web Push (RFC 8291 + VAPID) sobre WebCrypto. */
+/** Host del servicio push, sin el token del dispositivo que va en la ruta. */
+const serviceOf = (endpoint: string) => {
+  try {
+    return new URL(endpoint).hostname
+  } catch {
+    return 'desconocido'
+  }
+}
+
+/**
+ * Envío real con Web Push (RFC 8291 + VAPID) sobre WebCrypto. Mismas cabeceras para el
+ * aviso de prueba y los programados: sin `Topic`, que no aporta y no está verificado en iOS.
+ */
 export function webPushSender(vapid: VapidKeys): Sender {
   return {
-    async send(subscription: Subscription, data: string, topic?: string): Promise<PushResult> {
+    async send(subscription: Subscription, data: string): Promise<PushResult> {
       try {
-        const safeTopic = topic?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, TOPIC_MAX)
         const payload = await buildPushPayload(
-          {
-            data,
-            // `topic` hace que un reintento sustituya al aviso anterior en vez de duplicarlo.
-            options: { ttl: TTL_SECONDS, urgency: 'high', ...(safeTopic ? { topic: safeTopic } : {}) },
-          },
+          { data, options: { ttl: TTL_SECONDS, urgency: 'high' } },
           { ...subscription, expirationTime: null },
           vapid,
         )
         const response = await fetch(subscription.endpoint, payload)
-        return classify(response.status)
-      } catch {
+        const result = classify(response.status)
+        if (result !== 'sent') {
+          // La razón del servicio (p. ej. {"reason":"BadWebPushToken"}) no contiene datos del usuario.
+          const reason = (await response.text().catch(() => '')).slice(0, MAX_REASON_CHARS)
+          console.warn('push no enviado', serviceOf(subscription.endpoint), response.status, reason)
+        }
+        return result
+      } catch (error) {
+        console.warn('push con error de red', serviceOf(subscription.endpoint), error instanceof Error ? error.name : '')
         return 'retry'
       }
     },

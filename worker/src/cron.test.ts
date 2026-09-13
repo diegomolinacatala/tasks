@@ -31,7 +31,7 @@ describe('runDue', () => {
     const summary = await runDue(deps)
 
     expect(summary.sent).toBe(2)
-    expect(push.sent.map((m) => m.topic)).toEqual(['ya', 'casi'])
+    expect(push.sent.map((m) => JSON.parse(m.data).p)).toEqual(['eA', 'eQ'])
     expect(memory.items().map((i) => i.id)).toEqual(['luego'])
   })
 

@@ -60,7 +60,7 @@ export interface Store {
 export type PushResult = 'sent' | 'gone' | 'rejected' | 'retry' | 'unauthorized'
 
 export interface Sender {
-  send(subscription: Subscription, data: string, topic?: string): Promise<PushResult>
+  send(subscription: Subscription, data: string): Promise<PushResult>
 }
 
 export interface Config {

@@ -70,7 +70,9 @@ export default {
       try {
         const summary = await runDue(depsFrom(env))
         if (summary.unauthorized) console.error('cron: VAPID rechazado, revisa la configuración', summary)
-        else if (summary.sent || summary.late || summary.dropped || summary.gone) console.info('cron', summary)
+        else if (summary.sent || summary.late || summary.dropped || summary.gone || summary.retried) {
+          console.info('cron', summary)
+        }
       } catch (error) {
         // Sin esto, un secret roto o un fallo de D1 dejaría de enviar avisos sin rastro.
         console.error('cron fallido:', reason(error))

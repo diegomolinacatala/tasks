@@ -20,6 +20,8 @@ interface PushContextValue {
   status: PushStatus
   busy: boolean
   syncFailed: boolean
+  /** Última subida confirmada por el servidor en esta sesión. */
+  syncedAt: number | null
   enable: () => Promise<void>
   disable: () => Promise<void>
   test: () => Promise<void>
@@ -54,7 +56,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
     setStatus('off')
   }, [])
 
-  const { failed: syncFailed } = useScheduleSync({ api, device, state, today, onForgotten: forget })
+  const { failed: syncFailed, syncedAt } = useScheduleSync({ api, device, state, today, onForgotten: forget })
 
   useEffect(() => {
     if (!api || status !== 'off') return
@@ -128,8 +130,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
   }, [api, device, forget, toast])
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, enable, disable, test }),
-    [status, busy, syncFailed, enable, disable, test],
+    () => ({ status, busy, syncFailed, syncedAt, enable, disable, test }),
+    [status, busy, syncFailed, syncedAt, enable, disable, test],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>

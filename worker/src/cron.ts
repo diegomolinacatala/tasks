@@ -32,7 +32,7 @@ export async function runDue(deps: Deps): Promise<RunSummary> {
   const ready = due.filter((item) => item.at >= now - LATE_MS)
 
   const results = await Promise.all(
-    ready.map(async (item) => ({ item, result: await deps.sender.send(item.subscription, pushData(item.payload), item.id) })),
+    ready.map(async (item) => ({ item, result: await deps.sender.send(item.subscription, pushData(item.payload)) })),
   )
 
   const goneDevices = new Set(results.filter(({ result }) => result === 'gone').map(({ item }) => item.deviceId))

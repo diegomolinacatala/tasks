@@ -65,14 +65,13 @@ export function memoryStore() {
 export interface SentMessage {
   subscription: Subscription
   data: string
-  topic?: string
 }
 
 export function fakeSender(respond: (message: SentMessage) => PushResult = () => 'sent') {
   const sent: SentMessage[] = []
   const sender: Sender = {
-    async send(subscription, data, topic) {
-      const message = { subscription, data, topic }
+    async send(subscription, data) {
+      const message = { subscription, data }
       sent.push(message)
       return respond(message)
     },

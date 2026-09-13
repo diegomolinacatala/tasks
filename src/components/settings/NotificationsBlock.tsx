@@ -1,3 +1,4 @@
+import { shortTime, timeOfInstant } from '../../lib/date'
 import { upcomingSchedule } from '../../lib/reminders'
 import { useAppState } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
@@ -36,7 +37,11 @@ export function NotificationsBlock() {
         <>
           <p className="sheet__note">
             {scheduled === 1 ? '1 aviso programado' : `${scheduled} avisos programados`}
-            {push.syncFailed ? ' · pendiente de sincronizar' : ''}
+            {push.syncFailed
+              ? ' · pendiente de sincronizar'
+              : push.syncedAt
+                ? ` · sincronizado ${shortTime(timeOfInstant(push.syncedAt))}`
+                : ''}
           </p>
           <button type="button" className="sheet__row" disabled={push.busy} onClick={() => void push.test()}>
             <IconBell size={18} />

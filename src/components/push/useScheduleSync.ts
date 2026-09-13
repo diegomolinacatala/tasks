@@ -6,7 +6,8 @@ import { ensureContentKey } from '../../lib/push/keystore'
 import { encryptSchedule, scheduleFingerprint } from '../../lib/push/sync'
 import type { AppState, IsoDate } from '../../types'
 
-const SYNC_DEBOUNCE_MS = 2000
+/** Corto a propósito: iOS congela la página en cuanto sales de la app. */
+const SYNC_DEBOUNCE_MS = 600
 
 interface SyncOptions {
   api: PushApi | null
@@ -23,49 +24,57 @@ interface SyncOptions {
  */
 export function useScheduleSync({ api, device, state, today, onForgotten }: SyncOptions) {
   const [failed, setFailed] = useState(false)
+  const [syncedAt, setSyncedAt] = useState<number | null>(null)
   const stateRef = useRef(state)
   const lastFingerprint = useRef<string | null>(null)
   const running = useRef(false)
   const dirty = useRef(false)
+  const leaving = useRef(false)
 
-  useEffect(() => {
-    stateRef.current = state
-  }, [state])
+  // Se actualiza en render y no en un efecto: al salir de la app hay que subir lo último.
+  stateRef.current = state
 
   useEffect(() => {
     lastFingerprint.current = null
   }, [device])
 
-  const sync = useCallback(async () => {
-    if (!api || !device) return
-    if (running.current) {
-      // Llegó un cambio con otra subida en curso: se repite al terminar.
-      dirty.current = true
-      return
-    }
-    running.current = true
-    try {
-      do {
-        dirty.current = false
-        const entries = upcomingSchedule(stateRef.current, Date.now())
-        const fingerprint = await scheduleFingerprint(device.deviceId, entries)
-        if (fingerprint === lastFingerprint.current) continue
-        const key = await ensureContentKey()
-        await api.putSchedule(device.token, await encryptSchedule(key, entries))
-        lastFingerprint.current = fingerprint
-      } while (dirty.current)
-      setFailed(false)
-    } catch (error) {
-      if (error instanceof PushApiError && error.status === 401) {
-        onForgotten()
+  const sync = useCallback(
+    async (keepalive = false) => {
+      if (!api || !device) return
+      leaving.current = leaving.current || keepalive
+      if (running.current) {
+        // Llegó un cambio con otra subida en curso: se repite al terminar.
+        dirty.current = true
         return
       }
-      // Se reintenta en el próximo cambio, al volver a primer plano o al recuperar conexión.
-      setFailed(true)
-    } finally {
-      running.current = false
-    }
-  }, [api, device, onForgotten])
+      running.current = true
+      try {
+        do {
+          dirty.current = false
+          const entries = upcomingSchedule(stateRef.current, Date.now())
+          const fingerprint = await scheduleFingerprint(device.deviceId, entries)
+          if (fingerprint === lastFingerprint.current) continue
+          const key = await ensureContentKey()
+          const items = await encryptSchedule(key, entries)
+          await api.putSchedule(device.token, items, { keepalive: leaving.current })
+          lastFingerprint.current = fingerprint
+        } while (dirty.current)
+        setFailed(false)
+        setSyncedAt(Date.now())
+      } catch (error) {
+        if (error instanceof PushApiError && error.status === 401) {
+          onForgotten()
+          return
+        }
+        // Se reintenta en el próximo cambio, al volver a primer plano o al recuperar conexión.
+        setFailed(true)
+      } finally {
+        running.current = false
+        leaving.current = false
+      }
+    },
+    [api, device, onForgotten],
+  )
 
   useEffect(() => {
     if (!device) return
@@ -74,14 +83,18 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
   }, [state.tasks, device, sync])
 
   useEffect(() => {
-    const wake = () => {
-      if (document.visibilityState === 'visible') void sync()
+    const onVisibility = () => {
+      // Al salir se sube ya, sin esperar al debounce, con una petición que sobrevive al cierre.
+      void sync(document.visibilityState === 'hidden')
     }
-    document.addEventListener('visibilitychange', wake)
-    window.addEventListener('online', wake)
+    const onOnline = () => void sync()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onVisibility)
+    window.addEventListener('online', onOnline)
     return () => {
-      document.removeEventListener('visibilitychange', wake)
-      window.removeEventListener('online', wake)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onVisibility)
+      window.removeEventListener('online', onOnline)
     }
   }, [sync])
 
@@ -94,5 +107,5 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     update.catch(() => undefined)
   }, [state.tasks, today])
 
-  return { failed }
+  return { failed, syncedAt }
 }

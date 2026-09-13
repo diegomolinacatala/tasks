@@ -31,17 +31,24 @@ async function readContent(text: string): Promise<NotificationContent> {
   }
 }
 
+async function updateBadge(count: number | null): Promise<void> {
+  if (count === null || !('setAppBadge' in self.navigator)) return
+  try {
+    await self.navigator.setAppBadge(count)
+  } catch {
+    // El número del icono es accesorio: nunca debe impedir la notificación.
+  }
+}
+
 async function showFromPush(text: string): Promise<void> {
   const content = await readContent(text)
-  if (content.badge !== null && 'setAppBadge' in self.navigator) {
-    await self.navigator.setAppBadge(content.badge).catch(() => undefined)
-  }
+  // Primero la notificación: iOS retira el permiso si un push no muestra nada.
   await self.registration.showNotification(content.title, {
     body: content.body,
-    tag: content.taskId ?? undefined,
     data: { taskId: content.taskId },
     icon: `${BASE}icons/icon-192.png`,
   })
+  await updateBadge(content.badge)
 }
 
 self.addEventListener('push', (event) => {

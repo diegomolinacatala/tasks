@@ -173,6 +173,15 @@ describe('api', () => {
     expect((fetch.calls[0]!.init!.headers as Record<string, string>).authorization).toBe('Bearer tok')
   })
 
+  test('keepalive solo al salir de la app y con cuerpos pequeños', async () => {
+    const fetch = fakeFetch(() => new Response(null, { status: 204 }))
+    const api = createPushApi('https://api.test', fetch.impl)
+    await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x' }])
+    await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x' }], { keepalive: true })
+    await api.putSchedule('tok', [{ id: 'a', at: 1, payload: 'x'.repeat(70_000) }], { keepalive: true })
+    expect(fetch.calls.map((c) => c.init!.keepalive)).toEqual([false, true, false])
+  })
+
   test('los errores del servidor llegan con estado y mensaje', async () => {
     const api = createPushApi('https://api.test', fakeFetch(() => json(401, { error: 'no autorizado' })).impl)
     const error = await api.putSchedule('tok', []).catch((e: unknown) => e)
