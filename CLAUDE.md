@@ -150,7 +150,14 @@ toast enseña lo entendido con "Deshacer".
   detectar 1,5 s de silencio, lo pasa a WAV de 16 kHz y lo transcribe el Worker con Whisper
   (`POST /v1/transcribe`, Workers AI). Es la única vía que funciona en la app instalada de
   iPhone: allí la Web Speech API existe pero no devuelve nada.
-- **Sin avisos** usa la Web Speech API del navegador si la hay (`voice/speech.ts`).
+- **Interpretación con IA**: junto al audio va la fecha y hora local del móvil. El Worker pasa
+  el texto a Llama 3.3 70B (Workers AI, `worker/src/interpret.ts`) con las reglas de la app, un
+  calendario de 14 días y salida forzada por esquema JSON; puede devolver varias tareas, cada
+  una con varios recordatorios ("1 hora antes y media hora antes"). Se valida en el Worker y
+  otra vez en el móvil (`lib/interpret.ts`, que convierte los avisos absolutos a hora local).
+  Si la IA falla o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
+- **Sin avisos** usa la Web Speech API del navegador si la hay (`voice/speech.ts`), siempre con
+  el analizador local.
 - El audio no se guarda ni se registra; el Worker descarta las alucinaciones típicas de
   Whisper con silencio ("Subtítulos realizados por…").
 

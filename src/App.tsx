@@ -3,6 +3,7 @@ import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
 import { createId } from './lib/id'
+import { draftsFromInterpreted } from './lib/interpret'
 import { parseSpoken } from './lib/parse'
 import { useDispatch } from './state/StoreProvider'
 import type { IsoDate, ViewId } from './types'
@@ -51,15 +52,25 @@ export function App() {
   })
 
   // Lo dictado se crea sin pasos intermedios; el toast confirma qué se ha entendido.
-  const addFromVoice = (text: string) => {
-    const parsed = parseSpoken(text, Date.now())
-    if (!parsed.title) return
-    const id = createId()
-    dispatch({ type: 'task/add', id, ...parsed, sectionId: null })
+  // Lo que entendió la IA del servidor manda; si no hay nada válido, el analizador local.
+  const addFromVoice = (text: string, interpreted: unknown) => {
+    const now = Date.now()
+    const drafts = draftsFromInterpreted(interpreted, now) ?? [parseSpoken(text, now)].filter((draft) => draft.title)
+    if (!drafts.length) return
+
+    const ids = drafts.map(({ title, date, time, reminders }) => {
+      const id = createId()
+      dispatch({ type: 'task/add', id, title, date, time, reminders, sectionId: null })
+      return id
+    })
+    const [first] = drafts
     toast({
-      message: `${parsed.title} · ${parsed.label ?? 'Sin fecha'}`,
+      message:
+        drafts.length === 1 && first
+          ? `${first.title} · ${first.label || 'Sin fecha'}`
+          : `${drafts.length} tareas: ${drafts.map((draft) => draft.title).join(', ')}`,
       actionLabel: 'Deshacer',
-      onAction: () => dispatch({ type: 'task/remove', id }),
+      onAction: () => ids.forEach((id) => dispatch({ type: 'task/remove', id })),
     })
   }
 

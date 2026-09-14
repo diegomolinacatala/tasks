@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useToday } from '../../hooks/useToday'
-import type { DeviceCredentials } from '../../lib/push/api'
+import { timeOfInstant, todayIso } from '../../lib/date'
+import type { DeviceCredentials, Transcription } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { currentSupport, disablePush, enablePush, loadDevice, refreshPush } from '../../lib/push/client'
 import { clearDevice } from '../../lib/push/keystore'
@@ -21,8 +22,8 @@ interface PushContextValue {
   syncFailed: boolean
   enable: () => Promise<void>
   disable: () => Promise<void>
-  /** Voz a texto en el servidor. Requiere los avisos activados: usa el token del dispositivo. */
-  transcribe: (audio: string) => Promise<string>
+  /** Voz a texto (y a tareas) en el servidor. Requiere los avisos activados: usa el token del dispositivo. */
+  transcribe: (audio: string) => Promise<Transcription>
 }
 
 const PushContext = createContext<PushContextValue | null>(null)
@@ -116,7 +117,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
     async (audio: string) => {
       if (!api || !device) throw new Error('Activa los avisos en Ajustes para dictar tareas.')
       try {
-        return await api.transcribe(device.token, audio)
+        const now = Date.now()
+        return await api.transcribe(device.token, audio, { today: todayIso(new Date(now)), now: timeOfInstant(now) })
       } catch (error) {
         if (error instanceof PushApiError && error.status === 401) forget()
         if (error instanceof PushApiError && error.status === 404) {

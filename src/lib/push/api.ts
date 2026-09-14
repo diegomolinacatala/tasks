@@ -16,6 +16,17 @@ export interface DeviceCredentials {
   token: string
 }
 
+/** Fecha y hora locales del móvil, para que la IA resuelva "mañana" o "a las 5". */
+export interface VoiceContext {
+  today: string
+  now: string
+}
+
+export interface Transcription {
+  text: string
+  tasks: unknown
+}
+
 export class PushApiError extends Error {
   constructor(
     readonly status: number,
@@ -32,8 +43,11 @@ export interface PushApi {
   updateSubscription(token: string, subscription: PushSubscriptionData): Promise<void>
   /** `keepalive`: la petición sobrevive a que iOS congele la página al salir de la app. */
   putSchedule(token: string, items: readonly EncryptedItem[], options?: { keepalive?: boolean }): Promise<void>
-  /** WAV en base64 → texto transcrito. */
-  transcribe(token: string, audio: string): Promise<string>
+  /**
+   * WAV en base64 → texto transcrito y, si se manda el contexto, las tareas que la IA entiende.
+   * `tasks` llega sin validar: ver `draftsFromInterpreted`.
+   */
+  transcribe(token: string, audio: string, context?: VoiceContext): Promise<Transcription>
   unregister(token: string): Promise<void>
 }
 
@@ -97,10 +111,10 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
     async putSchedule(token, items, options = {}) {
       await call('PUT', '/v1/schedule', { token, body: { items }, keepalive: options.keepalive })
     },
-    async transcribe(token, audio) {
-      const data = await call('POST', '/v1/transcribe', { token, body: { audio } })
+    async transcribe(token, audio, context) {
+      const data = await call('POST', '/v1/transcribe', { token, body: { audio, context } })
       if (!isRecord(data) || typeof data.text !== 'string') throw new PushApiError(500, 'Respuesta inesperada.')
-      return data.text
+      return { text: data.text, tasks: data.tasks ?? null }
     },
     async unregister(token) {
       await call('DELETE', '/v1/devices', { token })

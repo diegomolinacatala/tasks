@@ -1,4 +1,4 @@
-import type { Deps, Device, DueItem, Limiter, NewDevice, PushResult, ScheduleItem, Sender, Store, Subscription } from './types'
+import type { Deps, Device, DueItem, InterpretContext, Limiter, NewDevice, PushResult, ScheduleItem, Sender, Store, Subscription } from './types'
 
 interface StoredDevice extends NewDevice {
   seenAt: number
@@ -106,11 +106,18 @@ export function testDeps(overrides: Partial<Deps> = {}) {
   let clock = Date.UTC(2026, 8, 11, 8, 0, 0)
   const armed: number[] = []
   const transcribed: string[] = []
+  const interpreted: { text: string; context: InterpretContext }[] = []
   const deps: Deps = {
     store: memory.store,
     sender: push.sender,
     scheduler: { arm: async (at) => void armed.push(at) },
     limits: { ip: countingLimiter().limiter, device: countingLimiter().limiter, voice: countingLimiter().limiter },
+    interpreter: {
+      interpret: async (text, context) => {
+        interpreted.push({ text, context })
+        return [{ title: 'Llamar a Miguel', date: context.today, time: '17:00', reminders: [{ kind: 'before', minutes: 10 }] }]
+      },
+    },
     transcriber: {
       transcribe: async (audio) => {
         transcribed.push(audio)
@@ -121,5 +128,5 @@ export function testDeps(overrides: Partial<Deps> = {}) {
     now: () => clock,
     ...overrides,
   }
-  return { deps, memory, push, armed, transcribed, setNow: (ms: number) => (clock = ms), now: () => clock }
+  return { deps, memory, push, armed, transcribed, interpreted, setNow: (ms: number) => (clock = ms), now: () => clock }
 }

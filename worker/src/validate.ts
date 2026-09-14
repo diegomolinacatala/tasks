@@ -1,4 +1,4 @@
-import type { ScheduleItem, Subscription } from './types'
+import type { InterpretContext, ScheduleItem, Subscription } from './types'
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -66,6 +66,15 @@ export function parseAudio(raw: unknown): Result<string> {
   if (typeof raw !== 'string' || raw.length < MIN_AUDIO_CHARS) return fail('audio vacío')
   if (raw.length > MAX_AUDIO_CHARS) return fail('audio demasiado largo')
   return BASE64.test(raw) ? ok(raw) : fail('audio inválido')
+}
+
+/** Contexto opcional para interpretar el dictado; si no es válido, se ignora. */
+export function parseInterpretContext(raw: unknown): InterpretContext | null {
+  if (!isObject(raw)) return null
+  const { today, now } = raw
+  if (typeof today !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(today))) return null
+  if (typeof now !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(now)) return null
+  return { today, now }
 }
 
 export function parseSchedule(raw: unknown, now: number): Result<ScheduleItem[]> {

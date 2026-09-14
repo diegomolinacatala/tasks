@@ -32,9 +32,9 @@ const PART_OF_DAY: Record<string, IsoTime> = { manana: '09:00', mediodia: '14:00
 
 /** "y recuérdamelo", "avísame", "con un aviso": introduce un recordatorio. */
 const REMIND_VERB =
-  '(?:y |, ?)?(?:que )?(?:me )?(?:lo |la )?' +
-  '(?:recuerdamelo|recuerdamela|recuerdame|recuerdalo|recordarmelo|recordarme|recordarlo|recordarla|recordar' +
-  '|avisamelo|avisame|avisarme|avisarlo|avisa|con (?:un )?(?:aviso|recordatorio))'
+  '(?:y |, ?)?(?:quiero |necesito )?(?:que )?(?:me )?(?:lo |la )?' +
+  '(?:recuerdamelo|recuerdamela|recuerdame|recuerdalo|recuerdes|recordarmelo|recordarme|recordarlo|recordarla|recordar' +
+  '|avisamelo|avisame|avisarme|avisarlo|avises|avisa|con (?:un )?(?:aviso|recordatorio))'
 
 /** Hora con sus matices; los grupos los interpreta `resolveHour`. */
 const TIME_SOURCE =
@@ -58,7 +58,7 @@ const RE_DAY_WORD = word('pasado manana|manana|hoy')
 const RE_WEEKDAY = word(`(?:el |este |el proximo |proximo )?(${WEEKDAYS.join('|')})(?: que viene)?`)
 
 /** Lo que el dictado suele poner delante y no forma parte de la tarea. */
-const RE_PREFIX = /^(?:recu[eé]rdame(?: que)?|recordar(?:me)?(?: que)?|ap[uú]nta(?:me)?(?: que)?|a[ñn]ade|a[ñn]adir|nueva tarea|crea(?:r)? (?:una )?tarea(?: para)?)[:,]?\s+/i
+const RE_PREFIX = /^(?:tengo (?:que|una?)|hay que|recu[eé]rdame(?: que)?|recordar(?:me)?(?: que)?|ap[uú]nta(?:me)?(?: que)?|a[ñn]ade|a[ñn]adir|nueva tarea|crea(?:r)? (?:una )?tarea(?: para)?)[:,]?\s+/i
 
 /** Fecha real (descarta 31/02) y, si no trae año y ya pasó, la del año siguiente. */
 function resolveDay(day: number, month: number, year: number | null, today: IsoDate): IsoDate | null {
@@ -239,7 +239,7 @@ export function parseTask(input: string, now: number): ParsedTask {
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-  return { title, date, time, reminders, label: describe(date, time, reminders, isDefault, now) }
+  return { title, date, time, reminders, label: draftLabel(date, time, reminders, isDefault, now) }
 }
 
 /**
@@ -252,7 +252,8 @@ export function parseSpoken(input: string, now: number): ParsedTask {
   return { ...parsed, title: cleanTitle(parsed.title, []) }
 }
 
-function describe(
+/** `Mañana 17:00 · 1 h antes · 30 min antes`. `isDefault`: el único aviso es el automático "a la hora". */
+export function draftLabel(
   date: IsoDate | null,
   time: IsoTime | null,
   reminders: ReminderDraft[],

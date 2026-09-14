@@ -189,7 +189,14 @@ describe('api', () => {
 
   test('transcribe devuelve el texto y valida la respuesta', async () => {
     const ok = createPushApi('https://api.test', fakeFetch(() => json(200, { data: { text: 'hola' } })).impl)
-    expect(await ok.transcribe('tok', 'QUJD')).toBe('hola')
+    expect(await ok.transcribe('tok', 'QUJD')).toEqual({ text: 'hola', tasks: null })
+    const withTasks = fakeFetch(() => json(200, { data: { text: 'hola', tasks: [{ title: 'x' }] } }))
+    const context = { today: '2026-09-14', now: '10:00' }
+    expect(await createPushApi('https://api.test', withTasks.impl).transcribe('tok', 'QUJD', context)).toEqual({
+      text: 'hola',
+      tasks: [{ title: 'x' }],
+    })
+    expect(JSON.parse(String(withTasks.calls[0]!.init!.body))).toEqual({ audio: 'QUJD', context })
     const bad = createPushApi('https://api.test', fakeFetch(() => json(200, { data: {} })).impl)
     await expect(bad.transcribe('tok', 'QUJD')).rejects.toThrow(/inesperada/)
   })

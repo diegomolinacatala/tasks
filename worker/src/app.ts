@@ -1,6 +1,7 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
 import type { Deps, Device } from './types'
-import { MAX_AUDIO_CHARS, parseAudio, parseSchedule, parseSubscription } from './validate'
+import type { InterpretedTask } from './types'
+import { MAX_AUDIO_CHARS, parseAudio, parseInterpretContext, parseSchedule, parseSubscription } from './validate'
 
 export const MAX_BODY_BYTES = 512_000
 const MAX_AUDIO_BODY_BYTES = MAX_AUDIO_CHARS + 1000
@@ -117,7 +118,9 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
     },
     'POST /v1/transcribe': async (device) => {
       if (!(await deps.limits.voice.allow(device.id))) throw tooMany()
-      const audio = unwrap(parseAudio((await readJson(request, MAX_AUDIO_BODY_BYTES)).audio))
+      const body = await readJson(request, MAX_AUDIO_BODY_BYTES)
+      const audio = unwrap(parseAudio(body.audio))
+      const context = parseInterpretContext(body.context)
       let text: string
       try {
         text = await deps.transcriber.transcribe(audio)
@@ -126,7 +129,16 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
         console.error('transcripción fallida', error instanceof Error ? error.name : 'desconocido')
         throw new HttpError(502, 'no se pudo transcribir el audio')
       }
-      return json(200, { data: { text } }, headers)
+      // Sin contexto o si la IA falla, el móvil interpreta el texto con su analizador local.
+      let tasks: InterpretedTask[] | null = null
+      if (context && text) {
+        try {
+          tasks = await deps.interpreter.interpret(text, context)
+        } catch (error) {
+          console.error('interpretación fallida', error instanceof Error ? error.name : 'desconocido')
+        }
+      }
+      return json(200, { data: { text, tasks } }, headers)
     },
     'DELETE /v1/devices': async (device) => {
       await deps.store.deleteDevice(device.id)

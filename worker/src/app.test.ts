@@ -209,8 +209,32 @@ describe('rutas autenticadas', () => {
     const { token } = await register(deps)
     const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), deps)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ data: { text: 'llamar a miguel' } })
+    expect(await response.json()).toEqual({ data: { text: 'llamar a miguel', tasks: null } })
     expect(transcribed).toEqual([AUDIO])
+  })
+
+  test('POST /v1/transcribe con contexto devuelve también las tareas interpretadas', async () => {
+    const { deps, interpreted } = testDeps()
+    const { token } = await register(deps)
+    const context = { today: '2026-09-14', now: '10:30' }
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, context } }), deps)
+    const { data } = (await response.json()) as { data: { tasks: unknown[] } }
+    expect(data.tasks).toHaveLength(1)
+    expect(interpreted).toEqual([{ text: 'llamar a miguel', context }])
+  })
+
+  test('POST /v1/transcribe ignora un contexto inválido y sobrevive a un fallo de la IA', async () => {
+    const { deps, interpreted } = testDeps()
+    const { token } = await register(deps)
+    const bad = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, context: { today: 'ayer', now: '25:00' } } }), deps)
+    expect(((await bad.json()) as { data: { tasks: unknown } }).data.tasks).toBeNull()
+    expect(interpreted).toEqual([])
+
+    const broken: Deps = { ...deps, interpreter: { interpret: () => Promise.reject(new Error('modelo caído')) } }
+    const context = { today: '2026-09-14', now: '10:30' }
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, context } }), broken)
+    expect(response.status).toBe(200)
+    expect(((await response.json()) as { data: { tasks: unknown } }).data.tasks).toBeNull()
   })
 
   test('POST /v1/transcribe valida el audio', async () => {

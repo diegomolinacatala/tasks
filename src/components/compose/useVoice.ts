@@ -24,7 +24,7 @@ function errorMessage(error: unknown): string {
  * Dictado de tareas. Con los avisos activos graba y transcribe en el servidor (Whisper): es lo
  * único que funciona en la app instalada de iPhone. Si no, usa el dictado del navegador.
  */
-export function useVoice(onText: (text: string) => void) {
+export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const push = usePush()
   const toast = useToast()
   const [phase, setPhase] = useState<VoicePhase>('idle')
@@ -39,10 +39,11 @@ export function useVoice(onText: (text: string) => void) {
     setPartial('')
   }, [])
 
+  /** `interpreted`: tareas que devolvió la IA del servidor, o `null` con el dictado del navegador. */
   const deliver = useCallback(
-    (text: string | null) => {
+    (text: string | null, interpreted: unknown = null) => {
       if (text === null) return
-      if (text.trim()) onText(text)
+      if (text.trim()) onText(text, interpreted)
       else toast({ message: 'No te he entendido.' })
     },
     [onText, toast],
@@ -71,7 +72,8 @@ export function useVoice(onText: (text: string) => void) {
         }
         setPhase('processing')
         const wav = encodeWav(resample(audio.samples, audio.sampleRate), TARGET_RATE)
-        deliver(await push.transcribe(bytesToBase64(wav)))
+        const { text, tasks } = await push.transcribe(bytesToBase64(wav))
+        deliver(text, tasks)
       } catch (error) {
         toast({ message: errorMessage(error) })
       } finally {
@@ -86,7 +88,7 @@ export function useVoice(onText: (text: string) => void) {
       const speech = startSpeech(setPartial)
       session.current = speech
       speech.result
-        .then(deliver)
+        .then((text) => deliver(text))
         .catch((error: unknown) => toast({ message: errorMessage(error) }))
         .finally(reset)
     } catch (error) {

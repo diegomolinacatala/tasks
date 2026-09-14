@@ -20,7 +20,7 @@ interface ComposerProps {
   quickDate: IsoDate
   onSubmit: (draft: TaskDraft) => void
   /** Texto dictado: quien lo recibe crea la tarea y avisa con opción de deshacer. */
-  onVoice: (text: string) => void
+  onVoice: (text: string, interpreted: unknown) => void
 }
 
 /**

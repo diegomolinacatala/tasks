@@ -97,6 +97,26 @@ export interface Transcriber {
   transcribe(audio: string): Promise<string>
 }
 
+/** Fecha y hora locales del móvil: el servidor no conoce la zona horaria del usuario. */
+export interface InterpretContext {
+  today: string
+  now: string
+}
+
+export type InterpretedReminder = { kind: 'before'; minutes: number } | { kind: 'at'; date: string; time: string }
+
+export interface InterpretedTask {
+  title: string
+  date: string | null
+  time: string | null
+  reminders: InterpretedReminder[]
+}
+
+/** Texto dictado → tareas estructuradas. En producción, un LLM de Workers AI. */
+export interface Interpreter {
+  interpret(text: string, context: InterpretContext): Promise<InterpretedTask[]>
+}
+
 export interface Deps {
   store: Store
   sender: Sender
@@ -104,5 +124,6 @@ export interface Deps {
   limits: Limits
   scheduler: Scheduler
   transcriber: Transcriber
+  interpreter: Interpreter
   now: () => number
 }

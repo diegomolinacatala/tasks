@@ -1,5 +1,6 @@
 import { webPushSender } from './push'
 import { d1Store } from './store'
+import { workersAiInterpreter } from './interpret'
 import { workersAiTranscriber } from './transcribe'
 import type { Deps, Limiter } from './types'
 import { isValidVapidSubject } from './validate'
@@ -49,6 +50,7 @@ export function depsFrom(env: Env): Deps {
     },
     scheduler: { arm: (at) => schedulerStub(env).arm(at) },
     transcriber: workersAiTranscriber(env.AI),
+    interpreter: workersAiInterpreter(env.AI),
     config: {
       allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
       vapidPublicKey: env.VAPID_PUBLIC_KEY,
