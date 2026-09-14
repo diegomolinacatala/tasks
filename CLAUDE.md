@@ -26,6 +26,9 @@ npm run dev                     # wrangler dev en :8787 con D1 local (las alarma
 npm run db:init:local           # crea las tablas en la D1 local
 npm run db:init:query           # crea las tablas en remoto si --file falla por red ("fetch failed")
 npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {...}", "push no enviado"
+npm run eval -- --local         # banco de frases dictadas contra el analizador local (gratis)
+npm run eval -- cena vuelo      # esos casos contra Workers AI real (EVAL_MODEL=@cf/... para otro modelo)
+npm run eval -- --all           # todos: ~9.000 neuronas, casi la cuota gratuita del día (ver Dictado)
 ```
 
 Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs` más
@@ -57,6 +60,9 @@ src/
 │   ├── order.ts          # scopes y reordenación
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
 │   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
+│   ├── when.ts           # piezas de parse.ts: horas, plazos y días
+│   ├── title.ts          # título limpio: muletillas, "tengo que acudir a una cena" → "Cena"
+│   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
 │   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, badge
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
@@ -67,6 +73,9 @@ src/
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio: shell, views, task, section, compose, push, settings, ui, dnd
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
+├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
+├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
+└── eval/                 # banco de frases dictadas con la respuesta esperada (`npm run eval`)
 ```
 
 ### Estado
@@ -151,11 +160,30 @@ toast enseña lo entendido con "Deshacer".
   (`POST /v1/transcribe`, Workers AI). Es la única vía que funciona en la app instalada de
   iPhone: allí la Web Speech API existe pero no devuelve nada.
 - **Interpretación con IA**: junto al audio va la fecha y hora local del móvil. El Worker pasa
-  el texto a Llama 3.3 70B (Workers AI, `worker/src/interpret.ts`) con las reglas de la app, un
-  calendario de 14 días y salida forzada por esquema JSON; puede devolver varias tareas, cada
-  una con varios recordatorios ("1 hora antes y media hora antes"). Se valida en el Worker y
-  otra vez en el móvil (`lib/interpret.ts`, que convierte los avisos absolutos a hora local).
-  Si la IA falla o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
+  el texto a Nemotron 3 120B (Workers AI) con salida forzada por esquema JSON. Para cada tarea
+  el modelo copia primero los tres fragmentos de la frase (`tema`, `cuando`, `avisos`) y luego
+  los convierte en título, día, hora y recordatorios: "bueno, hoy tengo que acudir a una cena a
+  las 20:00, me gustaría que me lo recordaras media hora antes" → `Cena`, hoy, 20:00, 30 min antes.
+  - `prompt.ts`: reglas del título (evento sin verbo de ir: "Cena", "Boda de Carlos"; acción en
+    infinitivo: "Llamar a Miguel"), calendario de tres semanas agrupado por semanas y ejemplos
+    resueltos con las fechas del día.
+  - Las cuentas las hace el código, no el modelo: `date` es `null` si la frase no dice día (el
+    móvil aplica "hoy si la hora no ha pasado, si no mañana") y "en 20 minutos" llega como
+    `inMinutes` y el Worker lo pasa a hora local.
+  - Se valida en el Worker y otra vez en el móvil (`lib/interpret.ts`). Si la IA falla, tarda más
+    de 8 s o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
+  - El modelo se eligió con `npm run eval` (66 frases con respuesta esperada) entre los del plan
+    gratuito: Nemotron acertó 46/48 con ~1,2 s; Qwen 3.8 y Gemma 4 aciertan parecido pero tardan
+    hasta 15–50 s en algunas frases, y Llama 3.3 se quedaba en 37–40/48. Cualquier cambio en el
+    prompt se mide con el banco antes y después, y cada fallo nuevo se añade como caso.
+  - Cuota: el plan gratuito de Workers AI da 10.000 neuronas al día, compartidas entre la app y
+    `npm run eval`. Un dictado gasta ~140 (Whisper + prompt de ~2.000 tokens); si se agota, el
+    dictado deja de funcionar hasta las 00:00 UTC.
+- **Analizador local** (`parseSpoken`, respaldo y única vía sin avisos): entiende las mismas
+  frases salvo varias tareas a la vez. Quita muletillas y verbos de ir (`title.ts`), y reconoce
+  "un cuarto de hora antes", "con media hora de antelación", "el día antes a las 8",
+  "recuérdamelo por la mañana", "y otra vez a las…", "el 22", "el jueves 24", "la semana que
+  viene, el martes", "a primera hora" y "a las 20.00".
 - **Sin avisos** usa la Web Speech API del navegador si la hay (`voice/speech.ts`), siempre con
   el analizador local.
 - El audio no se guarda ni se registra; el Worker descarta las alucinaciones típicas de

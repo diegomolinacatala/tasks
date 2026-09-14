@@ -1,85 +1,93 @@
 import { describe, expect, test } from 'vitest'
-import { buildPrompt, calendar, readModelJson, sanitizeTasks, workersAiInterpreter } from './interpret'
+import { DEFAULT_MODEL, SCHEMA, modelContent, modelInput, readModelJson, sanitizeTasks, workersAiInterpreter } from './interpret'
 import { parseInterpretContext } from './validate'
 
 const TODAY = '2026-09-14'
+const context = { today: TODAY, now: '10:00' }
 
-describe('calendar', () => {
-  test('dos semanas con día de la semana y marcas de hoy y mañana', () => {
-    const lines = calendar(TODAY).split('\n')
-    expect(lines).toHaveLength(14)
-    expect(lines[0]).toBe('lunes 2026-09-14 (hoy)')
-    expect(lines[1]).toBe('martes 2026-09-15 (mañana)')
-    expect(lines[3]).toBe('jueves 2026-09-17')
-  })
-})
-
-describe('buildPrompt', () => {
-  test('lleva reglas, hora actual, ejemplo resuelto con la fecha real y la frase', () => {
-    const messages = buildPrompt('llamar a Ana', { today: TODAY, now: '10:30' })
-    expect(messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user'])
-    expect(messages[0]!.content).toContain('Ahora son las 10:30')
-    expect(messages[2]!.content).toContain('"date":"2026-09-15"')
-    expect(messages[3]!.content).toBe('llamar a Ana')
-  })
-})
+const reminder = (fields: Record<string, unknown>) => ({ minutesBefore: null, inMinutes: null, atDate: null, atTime: null, ...fields })
+const task = (fields: Record<string, unknown>) => ({ tema: '', cuando: null, avisos: [], date: null, time: null, reminders: [], ...fields })
 
 describe('sanitizeTasks', () => {
-  test('acepta la respuesta del ejemplo de la reunión', () => {
+  test('la cena de hoy a las 20:00 con aviso media hora antes', () => {
     const raw = {
-      tasks: [
-        {
-          title: '  Reunión ',
-          date: '2026-09-15',
-          time: '17:00',
-          reminders: [
-            { minutesBefore: 60, atDate: null, atTime: null },
-            { minutesBefore: 30, atDate: null, atTime: null },
-          ],
-        },
-      ],
+      tasks: [task({ title: 'Cena', date: TODAY, time: '20:00', reminders: [reminder({ minutesBefore: 30 })] })],
     }
-    expect(sanitizeTasks(raw, TODAY)).toEqual([
-      {
-        title: 'Reunión',
-        date: '2026-09-15',
-        time: '17:00',
-        reminders: [
-          { kind: 'before', minutes: 60 },
-          { kind: 'before', minutes: 30 },
-        ],
-      },
+    expect(sanitizeTasks(raw, context)).toEqual([
+      { title: 'Cena', date: TODAY, time: '20:00', reminders: [{ kind: 'before', minutes: 30 }] },
     ])
+  })
+
+  test('"dentro de N minutos" lo calcula el código sobre la hora local', () => {
+    const raw = { tasks: [task({ title: 'Mirar el horno', reminders: [reminder({ inMinutes: 90 })] })] }
+    expect(sanitizeTasks(raw, context)[0]!.reminders).toEqual([{ kind: 'at', date: TODAY, time: '11:30' }])
+    const late = sanitizeTasks(raw, { today: TODAY, now: '23:50' })
+    expect(late[0]!.reminders).toEqual([{ kind: 'at', date: '2026-09-15', time: '01:20' }])
   })
 
   test('descarta campos inválidos sin tirar la tarea', () => {
     const raw = {
       tasks: [
-        {
+        task({
           title: 'Pagar luz',
           date: '2026-02-31',
           time: '25:00',
           reminders: [
-            { minutesBefore: 30, atDate: null, atTime: null },
-            { minutesBefore: null, atDate: '2026-09-14', atTime: '21:30' },
-            { minutesBefore: -5 },
+            reminder({ minutesBefore: 30 }),
+            reminder({ atDate: TODAY, atTime: '21:30' }),
+            reminder({ minutesBefore: -5 }),
+            reminder({ inMinutes: 0 }),
+            reminder({ inMinutes: 99_999 }),
             'basura',
           ],
-        },
+        }),
       ],
     }
-    expect(sanitizeTasks(raw, TODAY)).toEqual([
-      { title: 'Pagar luz', date: null, time: null, reminders: [{ kind: 'at', date: '2026-09-14', time: '21:30' }] },
+    expect(sanitizeTasks(raw, context)).toEqual([
+      { title: 'Pagar luz', date: null, time: null, reminders: [{ kind: 'at', date: TODAY, time: '21:30' }] },
+    ])
+  })
+
+  test('quita avisos repetidos, el punto final y pone mayúscula inicial', () => {
+    const raw = {
+      tasks: [
+        task({
+          title: ' reunión con Ana. ',
+          date: TODAY,
+          time: '17:00',
+          reminders: [reminder({ minutesBefore: 60 }), reminder({ minutesBefore: 60 }), reminder({ minutesBefore: 10 })],
+        }),
+      ],
+    }
+    expect(sanitizeTasks(raw, context)).toEqual([
+      {
+        title: 'Reunión con Ana',
+        date: TODAY,
+        time: '17:00',
+        reminders: [
+          { kind: 'before', minutes: 60 },
+          { kind: 'before', minutes: 10 },
+        ],
+      },
     ])
   })
 
   test('descarta tareas sin título, fechas absurdas y excesos', () => {
-    const many = Array.from({ length: 9 }, (_, i) => ({ title: `T${i}`, date: null, time: null, reminders: [] }))
-    expect(sanitizeTasks({ tasks: many }, TODAY)).toHaveLength(5)
-    expect(sanitizeTasks({ tasks: [{ title: ' ', date: null, time: null, reminders: [] }] }, TODAY)).toEqual([])
-    expect(sanitizeTasks({ tasks: [{ title: 'Viejo', date: '2020-01-01', time: null, reminders: [] }] }, TODAY)[0]!.date).toBeNull()
-    expect(sanitizeTasks(null, TODAY)).toEqual([])
-    expect(sanitizeTasks({ tasks: 'no' }, TODAY)).toEqual([])
+    const many = Array.from({ length: 9 }, (_, i) => task({ title: `T${i}` }))
+    expect(sanitizeTasks({ tasks: many }, context)).toHaveLength(5)
+    expect(sanitizeTasks({ tasks: [task({ title: ' ' })] }, context)).toEqual([])
+    expect(sanitizeTasks({ tasks: [task({ title: 'Viejo', date: '2020-01-01' })] }, context)[0]!.date).toBeNull()
+    expect(sanitizeTasks(null, context)).toEqual([])
+    expect(sanitizeTasks({ tasks: 'no' }, context)).toEqual([])
+  })
+})
+
+describe('modelContent', () => {
+  test('lee el formato de Workers AI y el de OpenAI', () => {
+    expect(modelContent({ response: { tasks: [] } })).toEqual({ tasks: [] })
+    expect(modelContent({ choices: [{ message: { content: '{"tasks":[]}' } }] })).toBe('{"tasks":[]}')
+    expect(modelContent({ response: null, choices: [] })).toBeUndefined()
+    expect(modelContent('texto')).toBeUndefined()
   })
 })
 
@@ -92,18 +100,44 @@ describe('readModelJson', () => {
   })
 })
 
+describe('modelInput', () => {
+  test('Llama recibe el esquema tal cual; el resto, en formato OpenAI y sin razonamiento', () => {
+    expect(modelInput('@cf/meta/llama-3.3-70b-instruct-fp8-fast', 'x', context)).toMatchObject({
+      response_format: { type: 'json_schema', json_schema: SCHEMA },
+      temperature: 0,
+    })
+    expect(modelInput(DEFAULT_MODEL, 'x', context)).toMatchObject({
+      response_format: { type: 'json_schema', json_schema: { name: 'tareas', schema: SCHEMA, strict: true } },
+      temperature: 0,
+      chat_template_kwargs: { enable_thinking: false },
+    })
+  })
+})
+
 describe('workersAiInterpreter', () => {
-  test('pide JSON con esquema al modelo y sanea la salida', async () => {
-    const calls: Record<string, unknown>[] = []
+  function fakeAi(output: unknown) {
+    const calls: { model: string; input: Record<string, unknown> }[] = []
     const ai = {
-      run: async (_model: string, input: Record<string, unknown>) => {
-        calls.push(input)
-        return { response: { tasks: [{ title: 'Reunión', date: '2026-09-15', time: '17:00', reminders: [] }] } }
+      run: async (model: string, input: Record<string, unknown>) => {
+        calls.push({ model, input })
+        return output
       },
     } as unknown as Ai
-    const tasks = await workersAiInterpreter(ai).interpret('reunión mañana a las 5', { today: TODAY, now: '10:00' })
+    return { ai, calls }
+  }
+
+  test('usa el modelo por defecto y sanea la salida', async () => {
+    const json = JSON.stringify({ tasks: [task({ title: 'Reunión', date: '2026-09-15', time: '17:00' })] })
+    const { ai, calls } = fakeAi({ choices: [{ message: { content: json } }] })
+    const tasks = await workersAiInterpreter(ai).interpret('reunión mañana a las 5', context)
     expect(tasks).toEqual([{ title: 'Reunión', date: '2026-09-15', time: '17:00', reminders: [] }])
-    expect(calls[0]).toMatchObject({ response_format: { type: 'json_schema' }, temperature: 0 })
+    expect(calls[0]!.model).toBe(DEFAULT_MODEL)
+  })
+
+  test('admite otro modelo', async () => {
+    const { ai, calls } = fakeAi({ response: { tasks: [] } })
+    expect(await workersAiInterpreter(ai, { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }).interpret('hola', context)).toEqual([])
+    expect(calls[0]!.model).toBe('@cf/meta/llama-3.3-70b-instruct-fp8-fast')
   })
 })
 

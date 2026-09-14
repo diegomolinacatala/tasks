@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
-import { MAX_DEVICES_PER_IP_HOUR, handle } from './app'
+import { describe, expect, test, vi } from 'vitest'
+import { INTERPRET_TIMEOUT_MS, MAX_DEVICES_PER_IP_HOUR, handle } from './app'
 import { sha256Hex } from './auth'
 import { countingLimiter, subscription, testDeps } from './testing'
 import type { Deps } from './types'
@@ -235,6 +235,24 @@ describe('rutas autenticadas', () => {
     const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, context } }), broken)
     expect(response.status).toBe(200)
     expect(((await response.json()) as { data: { tasks: unknown } }).data.tasks).toBeNull()
+  })
+
+  test('POST /v1/transcribe no espera indefinidamente a la IA', async () => {
+    const { deps } = testDeps()
+    const { token } = await register(deps)
+    const stuck: Deps = { ...deps, interpreter: { interpret: () => new Promise(() => undefined) } }
+    const context = { today: '2026-09-14', now: '10:30' }
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const pending = handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, context } }), stuck)
+      // El temporizador se arma tras leer el cuerpo y transcribir, que no dependen del reloj.
+      while (vi.getTimerCount() === 0) await new Promise((resolve) => setImmediate(resolve))
+      await vi.advanceTimersByTimeAsync(INTERPRET_TIMEOUT_MS)
+      const response = await pending
+      expect(await response.json()).toEqual({ data: { text: 'llamar a miguel', tasks: null } })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   test('POST /v1/transcribe valida el audio', async () => {

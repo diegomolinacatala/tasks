@@ -60,6 +60,11 @@ describe('draftsFromInterpreted', () => {
     expect(draftsFromInterpreted(raw, NOW)![0]!.reminders).toEqual([{ kind: 'at', at: toInstant('2026-09-14', '21:30') }])
   })
 
+  test('sin día pero con aviso a hora concreta, la tarea es para el día del aviso', () => {
+    const raw = [{ title: 'Mirar el horno', date: null, time: null, reminders: [{ kind: 'at', date: '2026-09-14', time: '10:30' }] }]
+    expect(draftsFromInterpreted(raw, NOW)![0]).toMatchObject({ date: '2026-09-14', label: 'Hoy 10:30' })
+  })
+
   test('hora sin día: hoy si no ha pasado, si no mañana', () => {
     const later = draftsFromInterpreted([{ title: 'A', date: null, time: '12:00', reminders: [] }], NOW)!
     const earlier = draftsFromInterpreted([{ title: 'B', date: null, time: '09:00', reminders: [] }], NOW)!

@@ -54,6 +54,9 @@ export function draftsFromInterpreted(raw: unknown, now: number): ParsedTask[] |
     if (time && !date) date = toInstant(today, time) > now ? today : addDays(today, 1)
 
     const reminders = remindersOf(item.reminders, Boolean(date && time), now)
+    // Sin día pero con un aviso a una hora concreta ("en 20 minutos"): la tarea es para ese día.
+    const firstAt = reminders.find((reminder) => reminder.kind === 'at')
+    if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
     const isDefault = time !== null && reminders.length === 0
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 

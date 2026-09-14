@@ -7,6 +7,8 @@ export const MAX_BODY_BYTES = 512_000
 const MAX_AUDIO_BODY_BYTES = MAX_AUDIO_CHARS + 1000
 export const MAX_DEVICES_PER_IP_HOUR = 10
 const HOUR_MS = 60 * 60 * 1000
+/** Pasado este tiempo, el móvil interpreta el texto con su analizador local antes que esperar más. */
+export const INTERPRET_TIMEOUT_MS = 8000
 
 class HttpError extends Error {
   constructor(
@@ -76,6 +78,16 @@ async function readJson(request: Request, maxBytes = MAX_BODY_BYTES): Promise<Re
   return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error('tiempo agotado'), { name: 'TimeoutError' })), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer)
+  })
+}
+
 function unwrap<T>(result: { ok: true; value: T } | { ok: false; error: string }): T {
   if (!result.ok) throw new HttpError(400, result.error)
   return result.value
@@ -133,7 +145,7 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       let tasks: InterpretedTask[] | null = null
       if (context && text) {
         try {
-          tasks = await deps.interpreter.interpret(text, context)
+          tasks = await withTimeout(deps.interpreter.interpret(text, context), INTERPRET_TIMEOUT_MS)
         } catch (error) {
           console.error('interpretación fallida', error instanceof Error ? error.name : 'desconocido')
         }

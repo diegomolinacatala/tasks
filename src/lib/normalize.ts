@@ -55,7 +55,7 @@ const RE_NUMBER_WORD = new RegExp(
 )
 
 /** Minúsculas sin tildes, unidad a unidad UTF-16: misma longitud que el original. */
-function fold(input: string): string {
+export function fold(input: string): string {
   let out = ''
   for (let i = 0; i < input.length; i++) {
     const char = input[i] ?? ''

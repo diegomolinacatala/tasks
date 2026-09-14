@@ -272,6 +272,133 @@ describe('frases dictadas', () => {
   })
 })
 
+describe('dictado: tema, fecha y avisos por separado', () => {
+  const at = (day: string, time: string) => ({ kind: 'at', at: toInstant(day, time) })
+  const before = (minutes: number) => ({ kind: 'before', minutes })
+
+  test('la cena de hoy a las 20:00 con aviso media hora antes', () => {
+    const text = 'bueno hoy tengo que acudir a una cena a las 20:00, me gustaría que me lo recordaras media hora antes'
+    expect(parseSpoken(text, NOW)).toEqual({
+      title: 'Cena',
+      date: '2026-09-11',
+      time: '20:00',
+      reminders: [before(30)],
+      label: 'Hoy 20:00 · 30 min antes',
+    })
+  })
+
+  test.each([
+    ['yoga el martes a las 19 y avísame un cuarto de hora antes', 15],
+    ['yoga el martes a las 19, recuérdamelo una hora y media antes', 90],
+    ['yoga el martes a las 19, avísame hora y cuarto antes', 75],
+    ['yoga el martes a las 19, avísame con tres cuartos de hora de antelación', 45],
+    ['yoga el martes a las 19 y que me avises con una hora de antelación', 60],
+    ['yoga el martes a las 19, avísame el día anterior', 1440],
+  ])('«%s» → %i min antes', (input, minutes) => {
+    expect(parse(input)).toMatchObject({ title: 'yoga', date: '2026-09-15', time: '19:00', reminders: [before(minutes)] })
+  })
+
+  test('aviso días antes a una hora concreta', () => {
+    expect(parse('renovar el seguro el 30 de septiembre, recuérdamelo tres días antes a las 9')).toMatchObject({
+      title: 'renovar el seguro',
+      date: '2026-09-30',
+      time: null,
+      reminders: [at('2026-09-27', '09:00')],
+    })
+    expect(parse('excursión el domingo a las 8:00, avísame la víspera a las 21:00')).toMatchObject({
+      date: '2026-09-13',
+      time: '08:00',
+      reminders: [at('2026-09-12', '21:00')],
+    })
+  })
+
+  test('aviso en una franja del día', () => {
+    expect(parse('recoger a Leo el lunes a las 17, recuérdamelo por la mañana').reminders).toEqual([at('2026-09-14', '09:00')])
+    expect(parse('ITV el martes a las 10, avísame el día anterior por la tarde').reminders).toEqual([at('2026-09-14', '18:00')])
+    expect(parse('cumpleaños de Sara el domingo, recuérdamelo el sábado por la noche')).toMatchObject({
+      title: 'cumpleaños de Sara',
+      date: '2026-09-13',
+      reminders: [at('2026-09-12', '21:00')],
+    })
+  })
+
+  test('varios avisos a hora concreta seguidos', () => {
+    expect(parse('médico el martes a las 12, avísame media hora antes y a las 9').reminders).toEqual([
+      before(30),
+      at('2026-09-15', '09:00'),
+    ])
+    expect(parse('tren mañana a las 7:00, avísame a las 6:15 y otra vez a las 6:40').reminders).toEqual([
+      at('2026-09-12', '06:15'),
+      at('2026-09-12', '06:40'),
+    ])
+  })
+
+  test('"otra vez" sin un aviso delante no es un aviso', () => {
+    expect(parse('llamar a Juan otra vez a las 17')).toMatchObject({ time: '17:00', reminders: [before(0)] })
+  })
+
+  test('un aviso "días antes" sin día de tarea se descarta', () => {
+    expect(parse('pagar la cuota, avísame el día antes a las 9').reminders).toEqual([])
+  })
+
+  test.each([
+    ['pagar la comunidad el día 5', '2026-10-05'],
+    ['dentista el 20 a las 10', '2026-09-20'],
+    ['entregar el trabajo antes del día 15', '2026-09-15'],
+    ['boda el sábado 3 a las 13:00', '2026-10-03'],
+    ['la semana que viene, el miércoles, dentista', '2026-09-16'],
+    ['dentista el viernes 25 de septiembre', '2026-09-25'],
+  ])('día: «%s» → %s', (input, date) => {
+    expect(parse(input).date).toBe(date)
+    expect(parse(input).title).toMatch(/^(pagar la comunidad|dentista|entregar el trabajo|boda)$/)
+  })
+
+  test('un número detrás de "el" que no es un día se queda en el título', () => {
+    expect(parse('aparcar en el 5')).toEqual(literal('aparcar en el 5'))
+    expect(parse('pagar el 5, mañana').title).toBe('pagar el 5')
+    expect(parse('pagar el 5, mañana').date).toBe('2026-09-12')
+  })
+
+  test('el número junto a un día de la semana tiene que caer en ese día', () => {
+    // El 3 de octubre de 2026 es sábado; el 2, viernes.
+    expect(parse('entradas el sábado 2')).toMatchObject({ title: 'entradas 2', date: '2026-09-12' })
+    expect(parse('boda el sábado 3').date).toBe('2026-10-03')
+    // El próximo jueves 1 es el de octubre de 2026.
+    expect(parse('revisión el jueves 1').date).toBe('2026-10-01')
+  })
+
+  test('"la semana que viene" mueve el día de la semana a la siguiente', () => {
+    const monday = toInstant('2026-09-14', '10:00')
+    expect(parse('dentista el martes', monday).date).toBe('2026-09-15')
+    expect(parse('dentista el martes de la semana que viene', monday).date).toBe('2026-09-22')
+  })
+
+  test.each([
+    ['cena a las 21.30', '21:30'],
+    ['enviar el informe antes de las 12', '12:00'],
+    ['comida a las 12 del mediodía', '12:00'],
+    ['comida a la una del mediodía', '13:00'],
+    ['cena esta noche a las diez', '22:00'],
+    ['correr mañana a primera hora', '08:00'],
+    ['vuelo a las 12 de la noche', '00:00'],
+  ])('hora: «%s» → %s', (input, time) => {
+    expect(parse(input).time).toBe(time)
+  })
+
+  test('un número con punto sin "a las" no es una hora', () => {
+    expect(parse('pagar 12.50 de pan')).toEqual(literal('pagar 12.50 de pan'))
+  })
+
+  test('muletillas y verbos de ir alrededor de la fecha', () => {
+    expect(parseSpoken('Vale, apunta que el lunes tengo la ITV.', NOW).title).toBe('ITV')
+    expect(parseSpoken('He quedado con Iván para jugar al pádel el jueves a las 19:00.', NOW)).toMatchObject({
+      title: 'Jugar al pádel con Iván',
+      date: '2026-09-17',
+      time: '19:00',
+    })
+  })
+})
+
 function literal(title: string) {
   return { title, date: null, time: null, reminders: [], label: null }
 }

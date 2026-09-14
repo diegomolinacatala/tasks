@@ -1,0 +1,7 @@
+# Solo para `npm run eval`: da acceso a Workers AI desde Node.
+name = "tasks-push-eval"
+compatibility_date = "2026-09-01"
+
+[ai]
+binding = "AI"
+remote = true

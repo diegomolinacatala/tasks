@@ -1,8 +1,23 @@
 import type { IsoDate, IsoTime, ReminderDraft } from '../types'
-import { addDays, formatTime, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInstant, toIso } from './date'
+import { addDays, isoOfInstant, relativeLabel, shortTime, startOfWeek, timeOfInstant, toInstant } from './date'
 import type { NormalizedText } from './normalize'
 import { normalizeText, originalSpan } from './normalize'
 import { reminderLabel } from './reminders'
+import type { Span } from './title'
+import { capitalize, cleanTitle } from './title'
+import {
+  AMOUNT_SOURCE,
+  DAY_MINUTES,
+  MONTHS,
+  MONTHS_SHORT,
+  PART_OF_DAY,
+  TIME_SOURCE,
+  WEEKDAYS,
+  amountOf,
+  resolveDay,
+  resolveDayOfMonth,
+  resolveHour,
+} from './when'
 
 export interface ParsedTask {
   title: string
@@ -13,139 +28,82 @@ export interface ParsedTask {
   label: string | null
 }
 
-interface Span {
-  start: number
-  end: number
-}
-
 const MINUTE = 60_000
-const DAY_MINUTES = 24 * 60
 
 /** Palabra completa: sin letras ni dígitos pegados a los lados. */
 const word = (source: string) => new RegExp(`(?<![a-z0-9])(?:${source})(?![a-z0-9])`, 'g')
 
-const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept?', 'oct', 'nov', 'dic']
-const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
+const WEEKDAY = WEEKDAYS.join('|')
+const NEXT_WEEK = '(?:semana que viene|proxima semana|semana siguiente)'
 
-const PART_OF_DAY: Record<string, IsoTime> = { manana: '09:00', mediodia: '14:00', tarde: '18:00', noche: '21:00' }
-
-/** "y recuérdamelo", "avísame", "con un aviso": introduce un recordatorio. */
+/** "y recuérdamelo", "me gustaría que me lo recordaras", "avísame": introduce un recordatorio. */
 const REMIND_VERB =
-  '(?:y |, ?)?(?:quiero |necesito )?(?:que )?(?:me )?(?:lo |la )?' +
-  '(?:recuerdamelo|recuerdamela|recuerdame|recuerdalo|recuerdes|recordarmelo|recordarme|recordarlo|recordarla|recordar' +
-  '|avisamelo|avisame|avisarme|avisarlo|avises|avisa|con (?:un )?(?:aviso|recordatorio))'
+  '(?:y |, ?)?(?:me gustaria |quiero |necesito |puedes |podrias )?(?:que )?(?:me )?(?:lo |la )?' +
+  '(?:recuerdamelo|recuerdamela|recuerdame|recuerdalo|recuerdes|recuerdas|recordaras|recordases' +
+  '|recordarmelo|recordarme|recordarlo|recordarla|recordar|avisamelo|avisame|avisarme|avisarlo' +
+  '|avisaras|avisases|avises|avisas|avisa|con (?:1 )?(?:aviso|recordatorio))'
 
-/** Hora con sus matices; los grupos los interpreta `resolveHour`. */
-const TIME_SOURCE =
-  '((?:a|sobre|hacia) (?:las|la) )?(\\d{1,2})(?:(?::|h)(\\d{2}))?( ?h| horas| hrs)?' +
-  '(?: y (media|cuarto)| (menos cuarto))?(?: de la (manana|tarde|noche|madrugada)| ?(am|pm))?'
-
-const RE_OFFSET = word(
-  '(?:en|dentro de) (\\d{1,3}|media|medio) ?(minutos|minuto|mins|min|horas|hora|hrs|hr|h|dias|dia|semanas|semana)',
+const RE_OFFSET = word(`(?:en|dentro de) (?:${AMOUNT_SOURCE})`)
+/** "el día antes a las 8", "dos días antes a las 10", "la noche anterior a las 22:00". */
+const RE_REMIND_DAYS_BEFORE_AT = word(
+  `(?:${REMIND_VERB} )?(?:(?:el|1) dia (?:antes|anterior)|(\\d) dias antes|la vispera|la noche anterior) ${TIME_SOURCE}`,
 )
-const RE_REMIND_BEFORE = word(
-  `(?:${REMIND_VERB}(?: de)? )?(?:(\\d{1,3}|media|medio) ?(minutos|minuto|mins|min|horas|hora|hrs|h|dias|dia)|(?:el|un) (dia)) antes`,
+/** "recuérdamelo por la mañana", "avísame el día anterior por la tarde", "el sábado por la noche". */
+const RE_REMIND_PART = word(
+  `${REMIND_VERB} (?:(?:((?:el|1) dia (?:antes|anterior)|la vispera)|(?:el )?(${WEEKDAY})|(pasado manana|manana|hoy)) )?` +
+    '(?:por la (manana|tarde|noche)|a (primera hora)|al (mediodia))',
 )
+const RE_REMIND_BEFORE = word(`(?:${REMIND_VERB}(?: de)? )?(?:(?:${AMOUNT_SOURCE})|el (dia)) (?:antes|anterior)`)
+const RE_REMIND_NOTICE = word(`(?:${REMIND_VERB} )?con (?:${AMOUNT_SOURCE}) de antelacion`)
 const RE_REMIND_ON_TIME = word(`${REMIND_VERB} (?:a la hora|en el momento)`)
 const RE_REMIND_AT = word(`${REMIND_VERB} ${TIME_SOURCE}`)
-const RE_DATE_LONG = word(`(?:el )?(\\d{1,2}) de (${MONTHS.join('|')}|setiembre)(?: de (\\d{4}))?`)
+/** "avísame una hora antes y a las 9", "a las 7:30 y otra vez a las 7:50": pegado a otro aviso. */
+const RE_CHAIN_AT = word(`y (?:otra vez )?${TIME_SOURCE}`)
+const RE_NEXT_WEEK_DAY = word(`(?:la )?${NEXT_WEEK},? (?:el )?(${WEEKDAY})|(?:el )?(${WEEKDAY}) de la ${NEXT_WEEK}`)
+const RE_DATE_LONG = word(`(?:antes del |el |del )?(\\d{1,2}) de (${MONTHS.join('|')}|setiembre)(?: de (\\d{4}))?`)
 const RE_DATE_SHORT = word(`(?:el )?(\\d{1,2}) (${MONTHS_SHORT.join('|')})\\.?`)
 const RE_DATE_NUMERIC = word('(?:el )?(\\d{1,2})/(\\d{1,2})(?:/(\\d{4}|\\d{2}))?')
+const RE_WEEKDAY_NUMBER = word(`(?:el )?(${WEEKDAY}) (\\d{1,2})(?! ?(?:de |:|\\.\\d|h(?![a-z])|minutos?|min|horas?|dias?))`)
+/**
+ * "el día 5", "antes del 15", "el 22 a las 10". Un "el 5" suelto no es un día: puede ser un
+ * portal o un número de factura ("aparcar en el 5").
+ */
+const RE_DAY_OF_MONTH = word('(?:antes )?(?:del|el) dia (\\d{1,2})|antes del (\\d{1,2})|el (\\d{1,2})(?= a (?:las?|primera) | por la )')
 const RE_TIME = word(TIME_SOURCE)
-const RE_PART = word('(por la|esta) (manana|tarde|noche)|(?:a|al) (mediodia)')
+const RE_PART = word('(por la|esta) (manana|tarde|noche)|(?:a|al) (mediodia)|a (primera hora)')
 const RE_DAY_WORD = word('pasado manana|manana|hoy')
-const RE_WEEKDAY = word(`(?:el |este |el proximo |proximo )?(${WEEKDAYS.join('|')})(?: que viene)?`)
+const RE_WEEKDAY = word(`(?:el |este |el proximo |proximo )?(${WEEKDAY})(?: que viene)?`)
 
-/** Lo que el dictado suele poner delante y no forma parte de la tarea. */
-const RE_PREFIX = /^(?:tengo (?:que|una?)|hay que|recu[eé]rdame(?: que)?|recordar(?:me)?(?: que)?|ap[uú]nta(?:me)?(?: que)?|a[ñn]ade|a[ñn]adir|nueva tarea|crea(?:r)? (?:una )?tarea(?: para)?)[:,]?\s+/i
-
-/** Fecha real (descarta 31/02) y, si no trae año y ya pasó, la del año siguiente. */
-function resolveDay(day: number, month: number, year: number | null, today: IsoDate): IsoDate | null {
-  const currentYear = Number(today.slice(0, 4))
-  const build = (y: number) => {
-    const date = new Date(y, month - 1, day)
-    return date.getMonth() === month - 1 && date.getDate() === day ? toIso(date) : null
-  }
-  if (year !== null) return build(year < 100 ? 2000 + year : year)
-  const iso = build(currentYear)
-  return iso && iso < today ? build(currentYear + 1) : iso
-}
-
-/** Convierte hora con matices (`de la tarde`, `pm`, `a las 5`) a 24 h. */
-function resolveHour(match: RegExpExecArray): IsoTime | null {
-  const [, prefix, rawHour = '', rawMinutes, suffix, fraction, minusQuarter, part, meridiem] = match
-  let hours = Number(rawHour)
-  let minutes = rawMinutes ? Number(rawMinutes) : 0
-  const qualified = Boolean(part || meridiem)
-  const shortSuffix = suffix?.trim() === 'h'
-
-  // Un número suelto no es una hora: "comprar 5 manzanas", "estudiar 2 horas".
-  const explicit = Boolean(prefix || rawMinutes || qualified || fraction || minusQuarter)
-  if (!explicit && !(shortSuffix && hours >= 6 && hours <= 23)) return null
-  if (hours > 23 || minutes > 59) return null
-
-  if (fraction === 'media') minutes = 30
-  if (fraction === 'cuarto') minutes = 15
-  if (minusQuarter) {
-    hours -= 1
-    minutes = 45
-  }
-
-  const afternoon = part === 'tarde' || part === 'noche' || meridiem === 'pm'
-  if (afternoon && hours < 12) hours += 12
-  if ((part === 'manana' || part === 'madrugada' || meridiem === 'am') && hours === 12) hours = 0
-  // "a las 5" sin más casi siempre es por la tarde.
-  if (prefix && !qualified && !rawMinutes && hours >= 1 && hours <= 7) hours += 12
-
-  return hours >= 0 && hours <= 23 ? formatTime(hours, minutes) : null
-}
-
-function amountInMinutes(rawAmount: string, unit: string): number | null {
-  const half = rawAmount === 'media' || rawAmount === 'medio'
-  if (half && !unit.startsWith('h')) return null
-  const amount = half ? 0.5 : Number(rawAmount)
-  if (!Number.isFinite(amount) || amount <= 0) return null
-  if (unit.startsWith('d')) return amount * DAY_MINUTES
-  if (unit.startsWith('s')) return amount * 7 * DAY_MINUTES
-  return unit.startsWith('m') ? amount : amount * 60
-}
+/** Aviso a una hora concreta que depende del día de la tarea (`daysBefore`) o tiene el suyo. */
+type PendingAt = { time: IsoTime; daysBefore: number } | { time: IsoTime; date: IsoDate }
 
 class Scanner {
   readonly spans: Span[] = []
+  /** Final de cada tramo aceptado, en el texto normalizado. */
+  readonly ends: number[] = []
 
   constructor(readonly normalized: NormalizedText) {}
 
   /** Primer resultado aceptado que no pise lo ya reconocido. Los tramos se guardan en el original. */
-  first<T>(regex: RegExp, accept: (match: RegExpExecArray) => T | null): T | null {
+  first<T>(regex: RegExp, accept: (match: RegExpExecArray) => T | null, startsAt?: (index: number) => boolean): T | null {
     for (const match of this.normalized.text.matchAll(regex)) {
+      if (startsAt && !startsAt(match.index)) continue
       const span = originalSpan(this.normalized, match.index, match.index + match[0].length)
       if (this.spans.some((other) => span.start < other.end && span.end > other.start)) continue
       const value = accept(match as RegExpExecArray)
       if (value === null) continue
       this.spans.push(span)
+      this.ends.push(match.index + match[0].length)
       return value
     }
     return null
   }
-}
 
-const CONNECTORS = /^(?:(?:y|a|el|la|de|para|,)\s+)+|(?:\s+(?:y|a|el|la|de|para|,))+$/i
-
-function cleanTitle(original: string, spans: Span[]): string {
-  const sorted = [...spans].sort((a, b) => b.start - a.start)
-  const cut = sorted.reduce((text, span) => `${text.slice(0, span.start)} ${text.slice(span.end)}`, original)
-  let title = cut.replace(/\s+/g, ' ').replace(/\s+([,.;:])/g, '$1').trim()
-  let previous = ''
-  while (previous !== title) {
-    previous = title
-    title = title.replace(CONNECTORS, '').replace(/[,.;:]+$/, '').trim()
+  all<T>(regex: RegExp, accept: (match: RegExpExecArray) => T | null): T[] {
+    const found: T[] = []
+    for (let value = this.first(regex, accept); value !== null; value = this.first(regex, accept)) found.push(value)
+    return found
   }
-  const unprefixed = title.replace(RE_PREFIX, '')
-  const result = unprefixed || title
-  // El dictado empieza en mayúscula o no según el motor: se respeta, solo se evita la minúscula
-  // inicial cuando se ha recortado un prefijo ("Recuérdame llamar…" → "Llamar…").
-  return unprefixed && unprefixed !== title ? result.charAt(0).toUpperCase() + result.slice(1) : result
 }
 
 const literal = (input: string): ParsedTask => ({ title: input.trim(), date: null, time: null, reminders: [], label: null })
@@ -154,40 +112,56 @@ const literal = (input: string): ParsedTask => ({ title: input.trim(), date: nul
 export function parseTask(input: string, now: number): ParsedTask {
   const today = isoOfInstant(now)
   const scanner = new Scanner(normalizeText(input))
+  const nextWeekday = (name: string) => addDays(today, (WEEKDAYS.indexOf(name) - new Date(now).getDay() + 7) % 7 || 7)
+  const dayWord = (value: string) => addDays(today, value === 'hoy' ? 0 : value === 'manana' ? 1 : 2)
+
   const explicit: ReminderDraft[] = []
-  const remindAtTimes: IsoTime[] = []
+  const pending: PendingAt[] = []
+  let offsetDate: IsoDate | null = null
 
-  let date: IsoDate | null = null
-
-  const offset = scanner.first<{ days: number } | { at: number }>(RE_OFFSET, ([, amount = '', unit = '']) => {
-    const minutes = amountInMinutes(amount, unit)
-    if (minutes === null) return null
-    if (minutes >= DAY_MINUTES && minutes % DAY_MINUTES === 0) return { days: minutes / DAY_MINUTES }
-    return { at: Math.ceil((now + minutes * MINUTE) / MINUTE) * MINUTE }
-  })
-  if (offset && 'at' in offset) {
-    explicit.push({ kind: 'at', at: offset.at })
-    date = isoOfInstant(offset.at)
-  } else if (offset) {
-    date = addDays(today, offset.days)
+  const offset = scanner.first(RE_OFFSET, (match) => amountOf(match.slice(1)))
+  if (offset !== null && offset >= DAY_MINUTES && offset % DAY_MINUTES === 0) {
+    offsetDate = addDays(today, offset / DAY_MINUTES)
+  } else if (offset !== null) {
+    const at = Math.ceil((now + offset * MINUTE) / MINUTE) * MINUTE
+    explicit.push({ kind: 'at', at })
+    offsetDate = isoOfInstant(at)
   }
 
   // Los recordatorios van antes que la hora: "avísame a las 4" no es la hora de la tarea.
-  for (;;) {
-    const before = scanner.first(RE_REMIND_BEFORE, ([, amount, unit, day]) =>
-      day ? DAY_MINUTES : amountInMinutes(amount ?? '', unit ?? ''),
-    )
-    if (before === null) break
-    explicit.push({ kind: 'before', minutes: Math.round(before) })
-  }
+  const firstReminder = scanner.ends.length
+  pending.push(
+    ...scanner.all(RE_REMIND_DAYS_BEFORE_AT, (match): PendingAt | null => {
+      const time = resolveHour(match.slice(2))
+      return time ? { time, daysBefore: match[1] ? Number(match[1]) : 1 } : null
+    }),
+    ...scanner.all(RE_REMIND_PART, ([, dayBefore, weekday, day, part, first, noon]): PendingAt | null => {
+      const time = PART_OF_DAY[part ?? first ?? noon ?? '']
+      if (!time) return null
+      if (weekday) return { time, date: nextWeekday(weekday) }
+      return day ? { time, date: dayWord(day) } : { time, daysBefore: dayBefore ? 1 : 0 }
+    }),
+  )
+  const before = [
+    ...scanner.all(RE_REMIND_BEFORE, (match) => (match[8] ? DAY_MINUTES : amountOf(match.slice(1, 8)))),
+    ...scanner.all(RE_REMIND_NOTICE, (match) => amountOf(match.slice(1))),
+  ]
+  explicit.push(...before.map((minutes): ReminderDraft => ({ kind: 'before', minutes: Math.round(minutes) })))
   if (scanner.first(RE_REMIND_ON_TIME, () => true)) explicit.push({ kind: 'before', minutes: 0 })
+  pending.push(...scanner.all(RE_REMIND_AT, (match) => (match[1] ? resolveHour(match.slice(1)) : null)).map((time) => ({ time, daysBefore: 0 })))
   for (;;) {
-    const at = scanner.first(RE_REMIND_AT, (match) => (match[1] ? resolveHour(match) : null))
-    if (at === null) break
-    remindAtTimes.push(at)
+    const reminderEnds = scanner.ends.slice(firstReminder)
+    const nextTo = (index: number) => reminderEnds.some((end) => index - end >= 0 && index - end <= 2)
+    const time = scanner.first(RE_CHAIN_AT, (match) => (match[1] ? resolveHour(match.slice(1)) : null), nextTo)
+    if (time === null) break
+    pending.push({ time, daysBefore: 0 })
   }
 
-  date =
+  const explicitDate =
+    scanner.first(RE_NEXT_WEEK_DAY, ([, name, other]) => {
+      const weekday = WEEKDAYS.indexOf(name ?? other ?? '')
+      return addDays(startOfWeek(today), 7 + ((weekday + 6) % 7))
+    }) ??
     scanner.first(RE_DATE_LONG, ([, d, month, year]) =>
       resolveDay(Number(d), month === 'setiembre' ? 9 : MONTHS.indexOf(month ?? '') + 1, year ? Number(year) : null, today),
     ) ??
@@ -195,46 +169,36 @@ export function parseTask(input: string, now: number): ParsedTask {
       resolveDay(Number(d), MONTHS_SHORT.findIndex((m) => new RegExp(`^${m}$`).test(month)) + 1, null, today),
     ) ??
     scanner.first(RE_DATE_NUMERIC, ([, d, m, y]) => resolveDay(Number(d), Number(m), y ? Number(y) : null, today)) ??
-    date
+    scanner.first(RE_WEEKDAY_NUMBER, ([, name = '', d]) => resolveDayOfMonth(Number(d), today, WEEKDAYS.indexOf(name))) ??
+    scanner.first(RE_DAY_OF_MONTH, ([, d, before, bare]) => resolveDayOfMonth(Number(d ?? before ?? bare), today))
 
-  let time = scanner.first(RE_TIME, resolveHour)
-
-  const part = scanner.first(RE_PART, ([, kind, name, noon]) => ({
-    time: PART_OF_DAY[noon ?? name ?? ''] ?? null,
-    today: kind === 'esta',
-  }))
-  if (part) {
-    time = time ?? part.time
-    if (part.today) date = date ?? today
-  }
-
-  date =
-    scanner.first(RE_DAY_WORD, ([value]) => {
-      if (value === 'hoy') return today
-      return addDays(today, value === 'manana' ? 1 : 2)
-    }) ??
-    scanner.first(RE_WEEKDAY, ([, name]) => {
-      const target = WEEKDAYS.indexOf(name ?? '')
-      const current = new Date(now).getDay()
-      return addDays(today, (target - current + 7) % 7 || 7)
-    }) ??
-    date
+  const part = scanner.first(RE_PART, ([, kind, name, noon, first]) => {
+    const key = name ?? noon ?? first ?? ''
+    return { key, time: PART_OF_DAY[key] ?? null, today: kind === 'esta' }
+  })
+  // "esta noche a las nueve": la franja decide si la hora es de mañana o de tarde.
+  const time = scanner.first(RE_TIME, (match) => resolveHour(match.slice(1), part?.key)) ?? part?.time ?? null
+  const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
+  const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
   if (scanner.spans.length === 0) return literal(input)
   const title = cleanTitle(input, scanner.spans)
   if (!title) return literal(input)
 
-  if (time) {
-    // Una hora sin día que ya pasó hoy se entiende para mañana.
-    date = date ?? (toInstant(today, time) > now ? today : addDays(today, 1))
-  } else if (remindAtTimes.length) {
-    date = date ?? today
-  }
+  let date = explicitDate ?? namedDay ?? weekday ?? offsetDate ?? (part?.today ? today : null)
+  // Una hora sin día que ya pasó hoy se entiende para mañana.
+  if (time && !date) date = toInstant(today, time) > now ? today : addDays(today, 1)
 
-  const reminders: ReminderDraft[] = [
-    ...explicit,
-    ...remindAtTimes.map((at): ReminderDraft => ({ kind: 'at', at: toInstant(date ?? today, at) })),
-  ]
+  const atReminders = pending.flatMap((reminder): ReminderDraft[] => {
+    if ('date' in reminder) return [{ kind: 'at', at: toInstant(reminder.date, reminder.time) }]
+    // "el día antes a las 8" sin día de tarea no tiene a qué referirse.
+    if (reminder.daysBefore > 0 && !date) return []
+    return [{ kind: 'at', at: toInstant(addDays(date ?? today, -reminder.daysBefore), reminder.time) }]
+  })
+  const [firstAt] = atReminders
+  if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
+
+  const reminders: ReminderDraft[] = [...explicit, ...atReminders]
   const isDefault = time !== null && reminders.length === 0
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
@@ -244,12 +208,13 @@ export function parseTask(input: string, now: number): ParsedTask {
 
 /**
  * Igual que `parseTask`, pero para texto dictado: aunque no traiga fecha ni hora, se limpian
- * la muletilla inicial ("Recuérdame…") y la puntuación final que añade la transcripción.
+ * las muletillas ("Bueno, recuérdame…") y la puntuación que añade la transcripción, y el
+ * título empieza siempre en mayúscula.
  */
 export function parseSpoken(input: string, now: number): ParsedTask {
   const parsed = parseTask(input.trim(), now)
-  if (parsed.label !== null) return parsed
-  return { ...parsed, title: cleanTitle(parsed.title, []) }
+  const title = parsed.label !== null ? parsed.title : cleanTitle(parsed.title, []) || parsed.title
+  return { ...parsed, title: capitalize(title) }
 }
 
 /** `Mañana 17:00 · 1 h antes · 30 min antes`. `isDefault`: el único aviso es el automático "a la hora". */
