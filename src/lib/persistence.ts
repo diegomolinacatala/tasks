@@ -62,10 +62,15 @@ export interface Persister {
   flush: () => void
 }
 
-/** Agrupa escrituras seguidas y permite forzarlas antes de que el sistema mate la pestaña. */
+/**
+ * Agrupa escrituras seguidas y permite forzarlas antes de que el sistema mate la pestaña. Las
+ * escrituras van en serie: si una lenta terminara después de otra más reciente, en disco quedaría
+ * el estado viejo (y en el iPhone el fichero manda al arrancar).
+ */
 export function createPersister(delay = 250): Persister {
   let timer: ReturnType<typeof setTimeout> | undefined
   let pending: AppState | null = null
+  let writing: Promise<void> = Promise.resolve()
 
   const write = () => {
     if (timer) clearTimeout(timer)
@@ -73,7 +78,7 @@ export function createPersister(delay = 250): Persister {
     if (!pending) return
     const state = pending
     pending = null
-    void saveState(state)
+    writing = writing.then(() => saveState(state))
   }
 
   return {

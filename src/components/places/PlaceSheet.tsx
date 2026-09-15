@@ -62,6 +62,8 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
     const name = cleanPlaceName(draft.name)
     if (request && name) {
       if (place) {
+        const clash = findPlace(state.places, name)
+        if (clash && clash.id !== place.id) toast({ message:  })
         dispatch({ type: 'place/update', id: place.id, name, location: draft.location, radius: draft.radius })
         request.onSaved?.(place.id)
       } else {
