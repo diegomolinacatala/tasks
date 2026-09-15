@@ -7,10 +7,11 @@ const THURSDAY = 4
 
 const RULES = `Conviertes lo que alguien dicta en español en tareas de una app de to-do. Respondes solo con JSON.
 
-Primero separas cada tarea en tres partes copiando las palabras de la frase:
+Primero separas cada tarea en cuatro partes copiando las palabras de la frase:
 - tema: qué hay que hacer.
 - cuando: el día y la hora de la tarea, o null.
 - avisos: cada petición de aviso por separado, o [].
+- lugar: si pide que el aviso salte al llegar a un sitio o al salir de él ("al pasar por Mercadona", "cuando llegue a la universidad", "al salir de casa"), esas palabras; si no, null.
 Después conviertes cada parte.
 
 TÍTULO (title), a partir del tema:
@@ -43,6 +44,13 @@ AVISOS (reminders). Solo los que se piden expresamente ("avísame", "recuérdame
 - A un día y hora concretos: atDate y atTime. "avísame a las 9" → el día de la tarea (o hoy) a las 09:00; "el día antes a las 8 de la tarde" → la víspera a las 20:00; "recuérdamelo por la mañana" → ese día a las 09:00; "la noche anterior a las 22:00" → la víspera a las 22:00.
 - Dentro de un rato contando desde ahora: inMinutes. "en 20 minutos" 20, "en media hora" 30, "dentro de dos horas" 120.
 - "recuérdame comprar pan" sin decir cuándo avisar no es un aviso: es la propia tarea.
+
+LUGAR (placeName y placeOn), a partir de lugar:
+- placeName: el sitio con mayúscula inicial y sin artículo delante, salvo que sea parte del nombre: "al pasar por Mercadona" → "Mercadona"; "cuando llegue a la universidad" → "Universidad"; "al salir de casa" → "Casa"; "cuando pase por El Corte Inglés" → "El Corte Inglés".
+- placeOn: "arrive" para llegar, pasar por, entrar o estar en; "leave" para salir o irse.
+- El lugar no va en el título ni es un aviso por hora: "recuérdame al pasar por Mercadona de comprar pan" → title "Comprar pan", reminders [].
+- Un sitio que solo es parte de la tarea no es lugar y se queda en el título como se dijo: "comprar fruta en Mercadona mañana" → title "Comprar fruta en Mercadona", placeName y placeOn null. Igual con "ir al gimnasio" o "tengo clase en la universidad".
+- Sin lugar, placeName y placeOn son null.
 
 VARIAS TAREAS solo si son cosas distintas ("llamar a mamá esta noche y comprar el pan mañana"). Una lista de cosas que comprar o hacer juntas es una sola tarea. Si no hay ninguna tarea (un saludo, ruido, algo sin sentido), {"tasks": []}.`
 
@@ -86,6 +94,9 @@ const before = (minutes: number) => ({ minutesBefore: minutes, inMinutes: null, 
 const inMinutes = (minutes: number) => ({ minutesBefore: null, inMinutes: minutes, atDate: null, atTime: null })
 const at = (date: string, time: string) => ({ minutesBefore: null, inMinutes: null, atDate: date, atTime: time })
 
+/** Campos de lugar vacíos para los ejemplos sin lugar: todos deben cumplir el esquema. */
+const noPlace = { lugar: null, placeName: null, placeOn: null }
+
 /** Ejemplos resueltos con las fechas reales de hoy, para que no contradigan el calendario. */
 function examples(today: string): Example[] {
   const tomorrow = addDaysIso(today, 1)
@@ -100,6 +111,7 @@ function examples(today: string): Example[] {
             tema: 'acudir a una cena',
             cuando: 'hoy a las 20:00',
             avisos: ['media hora antes'],
+            ...noPlace,
             title: 'Cena',
             date: today,
             time: '20:00',
@@ -116,6 +128,7 @@ function examples(today: string): Example[] {
             tema: 'tengo la revisión de la moto',
             cuando: 'el jueves a las 4 y media',
             avisos: ['el día antes', 'una hora antes'],
+            ...noPlace,
             title: 'Revisión de la moto',
             date: thursday,
             time: '16:30',
@@ -132,6 +145,7 @@ function examples(today: string): Example[] {
             tema: 'sacar la pizza del horno',
             cuando: null,
             avisos: ['en 15 minutos'],
+            ...noPlace,
             title: 'Sacar la pizza del horno',
             date: null,
             time: null,
@@ -141,6 +155,7 @@ function examples(today: string): Example[] {
             tema: 'comprar pilas, cinta y pegamento',
             cuando: 'mañana',
             avisos: [],
+            ...noPlace,
             title: 'Comprar pilas, cinta y pegamento',
             date: tomorrow,
             time: null,
@@ -157,10 +172,30 @@ function examples(today: string): Example[] {
             tema: 'voy al teatro con Lola',
             cuando: 'pasado mañana a las 9 de la noche',
             avisos: ['ese día a las 6 de la tarde'],
+            ...noPlace,
             title: 'Teatro con Lola',
             date: afterTomorrow,
             time: '21:00',
             reminders: [at(afterTomorrow, '18:00')],
+          },
+        ],
+      },
+    },
+    {
+      input: 'Recuérdame al llegar a la universidad que tengo que reunirme con José.',
+      output: {
+        tasks: [
+          {
+            tema: 'tengo que reunirme con José',
+            cuando: null,
+            avisos: [],
+            lugar: 'al llegar a la universidad',
+            title: 'Reunirme con José',
+            date: null,
+            time: null,
+            reminders: [],
+            placeName: 'Universidad',
+            placeOn: 'arrive',
           },
         ],
       },

@@ -176,10 +176,47 @@ describe('snoozeOptions', () => {
   })
 })
 
+describe('avisos de lugar', () => {
+  const place = { kind: 'place', placeId: 'm', on: 'arrive' } as const
+
+  test('no tienen instante: no cuentan como próximo aviso por hora', () => {
+    const withPlace = task({ id: 'a', reminders: [{ ...place, id: 'r' }] })
+    expect(resolveAt(withPlace, place)).toBeNull()
+    expect(nextReminderAt(withPlace, NOW)).toBeNull()
+  })
+
+  test('están activos mientras la tarea siga pendiente', () => {
+    expect(isPending(task({ id: 'a' }), place, NOW)).toBe(true)
+    expect(isPending(task({ id: 'a', done: true }), place, NOW)).toBe(false)
+  })
+
+  test('no se repite el mismo lugar y sentido, pero llegar y salir conviven', () => {
+    const once = withReminder(task({ id: 'a' }), place, 'r1')
+    expect(withReminder(once, place, 'r2').reminders).toHaveLength(1)
+    expect(withReminder(once, { ...place, on: 'leave' }, 'r3').reminders).toHaveLength(2)
+  })
+
+  test('posponer conserva los avisos de lugar', () => {
+    const withPlace = task({ id: 'a', reminders: [{ ...place, id: 'r' }] })
+    expect(snoozed(withPlace, NOW + MINUTE, NOW, 'n').reminders.map((reminder) => reminder.kind)).toEqual(['place', 'at'])
+  })
+
+  test('la etiqueta usa el nombre del lugar', () => {
+    const places = [{ id: 'm', name: 'Mercadona', location: null, radius: 150 }]
+    expect(reminderLabel(place, NOW, places)).toBe('Al llegar a Mercadona')
+  })
+})
+
 describe('normalizeReminder', () => {
-  test('acepta los dos tipos válidos', () => {
+  test('acepta los tipos válidos', () => {
     expect(normalizeReminder({ id: 'a', kind: 'at', at: 10.4 })).toEqual({ id: 'a', kind: 'at', at: 10 })
     expect(normalizeReminder({ id: 'b', kind: 'before', minutes: 15 })).toEqual({ id: 'b', kind: 'before', minutes: 15 })
+    expect(normalizeReminder({ id: 'c', kind: 'place', placeId: 'm', on: 'leave' })).toEqual({
+      id: 'c',
+      kind: 'place',
+      placeId: 'm',
+      on: 'leave',
+    })
   })
 
   test.each([
@@ -191,6 +228,8 @@ describe('normalizeReminder', () => {
     { id: 'a', kind: 'before', minutes: 1.5 },
     { id: 'a', kind: 'before', minutes: -1 },
     { id: 'a', kind: 'before', minutes: 999_999 },
+    { id: 'a', kind: 'place', placeId: '', on: 'arrive' },
+    { id: 'a', kind: 'place', placeId: 'm', on: 'pasar' },
     { id: 'a', kind: 'otro' },
   ])('rechaza %j', (raw) => {
     expect(normalizeReminder(raw)).toBeNull()

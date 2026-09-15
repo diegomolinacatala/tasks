@@ -11,6 +11,8 @@ export interface ExpectedTask {
   date: string | null
   time: string | null | (string | null)[]
   reminders: string[]
+  /** Aviso al llegar o salir de un sitio. Sin él, la tarea no debe tener lugar. */
+  place?: { name: string | string[]; on: 'arrive' | 'leave' }
 }
 
 export interface EvalCase {
@@ -403,6 +405,33 @@ export const CASES: EvalCase[] = [
     id: 'hora-con-punto-sin-dia',
     text: 'A las 19.30 recoger a Lucas del fútbol.',
     expected: [{ title: 'Recoger a Lucas del fútbol', date: '2026-09-14', time: '19:30', reminders: ['2026-09-14 19:30'] }],
+  },
+  {
+    id: 'lugar-mercadona',
+    text: 'Recuérdame al pasar por Mercadona de comprar pan.',
+    expected: [{ title: 'Comprar pan', date: null, time: null, reminders: [], place: { name: 'Mercadona', on: 'arrive' } }],
+  },
+  {
+    id: 'lugar-universidad',
+    text: 'Recuérdame al llegar a la universidad de que tengo que reunirme con José.',
+    expected: [
+      { title: 'Reunirme con José', date: null, time: null, reminders: [], place: { name: ['Universidad', 'Uni'], on: 'arrive' } },
+    ],
+  },
+  {
+    id: 'lugar-salir-casa',
+    text: 'Cuando salga de casa, que no se me olvide coger las llaves del coche.',
+    expected: [{ title: 'Coger las llaves del coche', date: null, time: null, reminders: [], place: { name: 'Casa', on: 'leave' } }],
+  },
+  {
+    id: 'lugar-con-dia',
+    text: 'Mañana cuando llegue al trabajo llamar a Marta.',
+    expected: [{ title: 'Llamar a Marta', date: '2026-09-15', time: null, reminders: [], place: { name: 'Trabajo', on: 'arrive' } }],
+  },
+  {
+    id: 'sitio-sin-aviso',
+    text: 'Comprar fruta en Mercadona mañana.',
+    expected: [{ title: 'Comprar fruta en Mercadona', date: '2026-09-15', time: null, reminders: [] }],
   },
   {
     id: 'reunion-hoy-pasada',

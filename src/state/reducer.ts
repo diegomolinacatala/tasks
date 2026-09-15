@@ -1,11 +1,12 @@
 import { isValidTime } from '../lib/date'
 import { createId } from '../lib/id'
 import { applyOrder, moveTask, nextOrder, scopeKey } from '../lib/order'
+import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
-import type { AppState, IsoDate, Section, Settings, Task } from '../types'
+import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' } })
 
@@ -13,6 +14,7 @@ export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
   tasks: [],
   sections: [],
+  places: [],
   collapsed: { overdue: false, backlog: false },
   settings: defaultSettings(),
 })
@@ -183,6 +185,40 @@ export function reducer(state: AppState, action: Action): AppState {
           return order === undefined ? section : { ...section, order }
         }),
       }
+    }
+
+    case 'place/add': {
+      const name = cleanPlaceName(action.name)
+      const taken = state.places.some((place) => place.id === action.id || placeKey(place.name) === placeKey(name))
+      if (!name || taken || state.places.length >= MAX_PLACES) return state
+      const place: Place = {
+        id: action.id,
+        name,
+        location: action.location ?? null,
+        radius: action.radius === undefined ? DEFAULT_RADIUS : clampRadius(action.radius),
+      }
+      return { ...state, places: [...state.places, place] }
+    }
+
+    case 'place/update': {
+      const current = state.places.find((place) => place.id === action.id)
+      if (!current) return state
+      const next: Place = {
+        ...current,
+        name: action.name === undefined ? current.name : cleanPlaceName(action.name) || current.name,
+        location: action.location === undefined ? current.location : action.location,
+        radius: action.radius === undefined ? current.radius : clampRadius(action.radius),
+      }
+      return { ...state, places: state.places.map((place) => (place.id === action.id ? next : place)) }
+    }
+
+    case 'place/remove': {
+      if (!state.places.some((place) => place.id === action.id)) return state
+      const tasks = state.tasks.map((task) => {
+        const reminders = task.reminders.filter((reminder) => reminder.kind !== 'place' || reminder.placeId !== action.id)
+        return reminders.length === task.reminders.length ? task : { ...task, reminders }
+      })
+      return { ...state, tasks, places: state.places.filter((place) => place.id !== action.id) }
     }
 
     case 'block/toggle':

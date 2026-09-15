@@ -72,6 +72,30 @@ describe('sanitizeTasks', () => {
     ])
   })
 
+  test('el lugar dicho viaja con su nombre y si es al llegar o al salir', () => {
+    const raw = {
+      tasks: [
+        task({ title: 'Comprar pan', placeName: ' Mercadona ', placeOn: 'arrive' }),
+        task({ title: 'Coger las llaves', placeName: 'Casa', placeOn: 'leave' }),
+      ],
+    }
+    expect(sanitizeTasks(raw, context)).toEqual([
+      { title: 'Comprar pan', date: null, time: null, reminders: [], place: { name: 'Mercadona', on: 'arrive' } },
+      { title: 'Coger las llaves', date: null, time: null, reminders: [], place: { name: 'Casa', on: 'leave' } },
+    ])
+  })
+
+  test('sin nombre o con un sentido inválido no hay lugar', () => {
+    const raw = {
+      tasks: [
+        task({ title: 'A', placeName: 'Mercadona', placeOn: 'pasar' }),
+        task({ title: 'B', placeName: '   ', placeOn: 'arrive' }),
+        task({ title: 'C', placeName: null, placeOn: null }),
+      ],
+    }
+    expect(sanitizeTasks(raw, context).map((item) => item.place)).toEqual([undefined, undefined, undefined])
+  })
+
   test('descarta tareas sin título, fechas absurdas y excesos', () => {
     const many = Array.from({ length: 9 }, (_, i) => task({ title: `T${i}` }))
     expect(sanitizeTasks({ tasks: many }, context)).toHaveLength(5)

@@ -338,3 +338,46 @@ describe('recordatorios', () => {
     expect(next.tasks[0]!.reminders).toHaveLength(1)
   })
 })
+
+describe('lugares', () => {
+  const location = { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }
+
+  test('añadir guarda el nombre limpio, sin ubicación y con el radio por defecto', () => {
+    const state = run(emptyState(), { type: 'place/add', id: 'p1', name: '  Mercadona  ' })
+    expect(state.places).toEqual([{ id: 'p1', name: 'Mercadona', location: null, radius: 150 }])
+  })
+
+  test('no añade nombres vacíos ni repetidos', () => {
+    const state = run(emptyState(), { type: 'place/add', id: 'p1', name: 'Mercadona' })
+    expect(reducer(state, { type: 'place/add', id: 'p2', name: '   ' })).toBe(state)
+    expect(reducer(state, { type: 'place/add', id: 'p2', name: 'mercadona' })).toBe(state)
+  })
+
+  test('actualizar cambia ubicación, radio y nombre sin mutar', () => {
+    const state = run(emptyState(), { type: 'place/add', id: 'p1', name: 'Mercadona' })
+    const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 50 })
+    expect(state.places[0]!.location).toBeNull()
+    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', location, radius: 100 })
+    expect(reducer(next, { type: 'place/update', id: 'nadie', radius: 300 })).toBe(next)
+  })
+
+  test('borrar un lugar quita sus avisos de las tareas', () => {
+    const state = run(
+      emptyState(),
+      { type: 'place/add', id: 'p1', name: 'Mercadona' },
+      {
+        type: 'task/add',
+        title: 'pan',
+        date: null,
+        sectionId: null,
+        reminders: [
+          { kind: 'place', placeId: 'p1', on: 'arrive' },
+          { kind: 'at', at: 5 },
+        ],
+      },
+      { type: 'place/remove', id: 'p1' },
+    )
+    expect(state.places).toEqual([])
+    expect(state.tasks[0]!.reminders.map((reminder) => reminder.kind)).toEqual(['at'])
+  })
+})

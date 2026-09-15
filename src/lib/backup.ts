@@ -1,6 +1,7 @@
-import type { AppState, Reminder, Section, Settings, Task } from '../types'
+import type { AppState, Place, Reminder, Section, Settings, Task } from '../types'
 import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
 import { isValidTime } from './date'
+import { MAX_PLACES, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 
 export interface BackupFile {
@@ -69,6 +70,20 @@ function normalizeSettings(raw: unknown): Settings {
   }
 }
 
+/** Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). */
+function normalizePlaces(raw: unknown): Place[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map(normalizePlace)
+    .filter((place): place is Place => place !== null)
+    .reduce<Place[]>(
+      (acc, place) =>
+        acc.some((other) => other.id === place.id || placeKey(other.name) === placeKey(place.name)) ? acc : [...acc, place],
+      [],
+    )
+    .slice(0, MAX_PLACES)
+}
+
 /** Acepta tanto el fichero de backup como un AppState suelto. */
 export function normalizeState(raw: unknown): AppState | null {
   if (!isObject(raw)) return null
@@ -77,10 +92,16 @@ export function normalizeState(raw: unknown): AppState | null {
 
   const sections = candidate.sections.map(normalizeSection).filter((s): s is Section => s !== null)
   const known = new Set(sections.map((section) => section.id))
+  const places = normalizePlaces(candidate.places)
+  const knownPlaces = new Set(places.map((place) => place.id))
   const tasks = candidate.tasks
     .map(normalizeTask)
     .filter((task): task is Task => task !== null)
     .map((task) => (task.sectionId && !known.has(task.sectionId) ? { ...task, sectionId: null } : task))
+    .map((task) => {
+      const reminders = task.reminders.filter((reminder) => reminder.kind !== 'place' || knownPlaces.has(reminder.placeId))
+      return reminders.length === task.reminders.length ? task : { ...task, reminders }
+    })
 
   const collapsed = isObject(candidate.collapsed) ? candidate.collapsed : {}
 
@@ -89,6 +110,7 @@ export function normalizeState(raw: unknown): AppState | null {
     schemaVersion: SCHEMA_VERSION,
     tasks,
     sections,
+    places,
     collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true },
     settings: normalizeSettings(candidate.settings),
   }

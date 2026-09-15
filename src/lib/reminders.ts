@@ -1,5 +1,6 @@
-import type { Reminder, ReminderDraft, Task } from '../types'
+import type { Place, Reminder, ReminderDraft, Task } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInstant } from './date'
+import { placeReminderLabel } from './places'
 
 export const MAX_REMINDERS = 20
 /** Tope de avisos que se suben al servidor de una vez. */
@@ -18,20 +19,23 @@ export function taskInstant(task: Task): number | null {
   return task.date && task.time ? toInstant(task.date, task.time) : null
 }
 
-/** Cuándo suena un recordatorio. `null` = inactivo (un `before` sin fecha u hora). */
+/** Cuándo suena un recordatorio. `null` = sin instante (un `before` sin fecha u hora, o un lugar). */
 export function resolveAt(task: Task, reminder: ReminderDraft): number | null {
   if (reminder.kind === 'at') return reminder.at
+  if (reminder.kind === 'place') return null
   const base = taskInstant(task)
   return base === null ? null : base - reminder.minutes * MINUTE
 }
 
 export function sameReminder(a: ReminderDraft, b: ReminderDraft): boolean {
   if (a.kind === 'at') return b.kind === 'at' && a.at === b.at
+  if (a.kind === 'place') return b.kind === 'place' && a.placeId === b.placeId && a.on === b.on
   return b.kind === 'before' && a.minutes === b.minutes
 }
 
 export const isPending = (task: Task, reminder: ReminderDraft, now: number): boolean => {
   if (task.done) return false
+  if (reminder.kind === 'place') return true
   const at = resolveAt(task, reminder)
   return at !== null && at > now
 }
@@ -69,9 +73,10 @@ function beforeLabel(minutes: number): string {
   return `${minutes} min antes`
 }
 
-/** `Hoy 18:00`, `Mañana 9:00`, `15 min antes`. */
-export function reminderLabel(reminder: ReminderDraft, now: number): string {
+/** `Hoy 18:00`, `Mañana 9:00`, `15 min antes`, `Al llegar a Mercadona`. */
+export function reminderLabel(reminder: ReminderDraft, now: number, places: readonly Place[] = []): string {
   if (reminder.kind === 'before') return beforeLabel(reminder.minutes)
+  if (reminder.kind === 'place') return placeReminderLabel(reminder, places)
   return `${relativeLabel(isoOfInstant(reminder.at), isoOfInstant(now))} ${shortTime(timeOfInstant(reminder.at))}`
 }
 
@@ -145,6 +150,9 @@ export function normalizeReminder(raw: unknown): Reminder | null {
     value.minutes <= MAX_BEFORE_MINUTES
   ) {
     return { id: value.id, kind: 'before', minutes: value.minutes }
+  }
+  if (value.kind === 'place' && typeof value.placeId === 'string' && value.placeId && (value.on === 'arrive' || value.on === 'leave')) {
+    return { id: value.id, kind: 'place', placeId: value.placeId, on: value.on }
   }
   return null
 }

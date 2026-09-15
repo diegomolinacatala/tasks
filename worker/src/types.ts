@@ -111,6 +111,8 @@ export interface InterpretedTask {
   date: string | null
   time: string | null
   reminders: InterpretedReminder[]
+  /** "al pasar por Mercadona": el nombre tal como se dijo. El móvil lo empareja con sus lugares. */
+  place?: { name: string; on: 'arrive' | 'leave' }
 }
 
 /** Texto dictado → tareas estructuradas. En producción, un LLM de Workers AI. */

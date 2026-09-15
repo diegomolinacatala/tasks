@@ -10,6 +10,7 @@ export const DEFAULT_MODEL = '@cf/nvidia/nemotron-3-120b-a12b'
 const MAX_TASKS = 5
 const MAX_REMINDERS = 10
 const MAX_TITLE = 200
+const MAX_PLACE_NAME = 60
 const MAX_BEFORE_MINUTES = 30 * 24 * 60
 const MAX_IN_MINUTES = 7 * 24 * 60
 const MAX_TOKENS = 1200
@@ -38,6 +39,7 @@ export const SCHEMA = {
           tema: { type: 'string' },
           cuando: nullable('string'),
           avisos: { type: 'array', items: { type: 'string' } },
+          lugar: nullable('string'),
           title: { type: 'string' },
           date: nullable('string'),
           time: nullable('string'),
@@ -55,8 +57,10 @@ export const SCHEMA = {
               additionalProperties: false,
             },
           },
+          placeName: nullable('string'),
+          placeOn: nullable('string'),
         },
-        required: ['tema', 'cuando', 'avisos', 'title', 'date', 'time', 'reminders'],
+        required: ['tema', 'cuando', 'avisos', 'lugar', 'title', 'date', 'time', 'reminders', 'placeName', 'placeOn'],
         additionalProperties: false,
       },
     },
@@ -101,6 +105,12 @@ function reminderOf(raw: unknown, hasTime: boolean, context: InterpretContext): 
   return null
 }
 
+function placeOf(item: Record<string, unknown>): InterpretedTask['place'] {
+  const name = typeof item.placeName === 'string' ? item.placeName.replace(/\s+/g, ' ').trim().slice(0, MAX_PLACE_NAME) : ''
+  if (!name || (item.placeOn !== 'arrive' && item.placeOn !== 'leave')) return undefined
+  return { name, on: item.placeOn }
+}
+
 const reminderKey = (reminder: InterpretedReminder) =>
   reminder.kind === 'before' ? `before:${reminder.minutes}` : `at:${reminder.date} ${reminder.time}`
 
@@ -121,7 +131,9 @@ export function sanitizeTasks(raw: unknown, context: InterpretContext): Interpre
       seen.add(reminderKey(reminder))
       return [reminder]
     })
-    return [{ title: title.charAt(0).toUpperCase() + title.slice(1), date, time, reminders }]
+    const place = placeOf(item)
+    const base = { title: title.charAt(0).toUpperCase() + title.slice(1), date, time, reminders }
+    return [place ? { ...base, place } : base]
   })
 }
 

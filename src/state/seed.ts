@@ -25,5 +25,5 @@ export function seedState(): AppState {
     completedAt: null,
   }))
 
-  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [], collapsed: { overdue: false, backlog: false }, settings: defaultSettings() }
+  return { schemaVersion: SCHEMA_VERSION, tasks, sections: [], places: [], collapsed: { overdue: false, backlog: false }, settings: defaultSettings() }
 }

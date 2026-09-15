@@ -72,6 +72,39 @@ describe('draftsFromInterpreted', () => {
     expect(earlier[0]!.date).toBe('2026-09-15')
   })
 
+  test('un lugar guardado se convierte en aviso de lugar', () => {
+    const places = [{ id: 'm', name: 'Mercadona', location: null, radius: 150 }]
+    const raw = [{ title: 'Comprar pan', date: null, time: null, reminders: [], place: { name: 'mercadona', on: 'arrive' } }]
+    expect(draftsFromInterpreted(raw, NOW, places)).toEqual([
+      {
+        title: 'Comprar pan',
+        date: null,
+        time: null,
+        reminders: [{ kind: 'place', placeId: 'm', on: 'arrive' }],
+        label: 'Al llegar a Mercadona',
+      },
+    ])
+  })
+
+  test('un lugar sin guardar se propone para crearlo y quita el aviso «a la hora»', () => {
+    const raw = [{ title: 'Ver a José', date: null, time: '12:00', reminders: [], place: { name: 'Universidad', on: 'arrive' } }]
+    expect(draftsFromInterpreted(raw, NOW)).toEqual([
+      {
+        title: 'Ver a José',
+        date: '2026-09-14',
+        time: '12:00',
+        reminders: [],
+        label: 'Hoy 12:00 · Al llegar a Universidad',
+        newPlace: { name: 'Universidad', on: 'arrive' },
+      },
+    ])
+  })
+
+  test('un lugar mal formado se ignora', () => {
+    const raw = [{ title: 'A', date: null, time: null, reminders: [], place: { name: 'Casa', on: 'cerca' } }]
+    expect(draftsFromInterpreted(raw, NOW)![0]).toEqual({ title: 'A', date: null, time: null, reminders: [], label: '' })
+  })
+
   test('sanea lo inválido y devuelve null si no queda nada', () => {
     const raw = [
       { title: 'Ok', date: '2026-02-31', time: '7:00', reminders: [{ kind: 'before', minutes: 30 }, 'x', { kind: 'otro' }] },

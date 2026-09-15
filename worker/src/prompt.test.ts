@@ -34,7 +34,7 @@ describe('buildPrompt', () => {
   const messages = buildPrompt('llamar a Ana', context)
 
   test('reglas y calendario, ejemplos como conversación y la frase al final', () => {
-    expect(messages.map((m) => m.role)).toEqual(['system', ...Array(5).fill(['user', 'assistant']).flat(), 'user'])
+    expect(messages.map((m) => m.role)).toEqual(['system', ...Array(6).fill(['user', 'assistant']).flat(), 'user'])
     expect(messages[0]!.content).toContain('Ahora es lunes 2026-09-14, a las 10:30')
     expect(messages[0]!.content).toContain('lunes 2026-09-14 (hoy)')
     expect(messages.at(-1)!.content).toBe('llamar a Ana')
@@ -48,6 +48,13 @@ describe('buildPrompt', () => {
     // Si hoy es jueves, "el jueves" es el de la semana siguiente.
     const fromThursday = buildPrompt('x', { today: '2026-09-17', now: '10:00' }).filter((m) => m.role === 'assistant')
     expect(JSON.parse(fromThursday[1]!.content).tasks[0].date).toBe('2026-09-24')
+  })
+
+  test('hay un ejemplo de aviso al llegar a un lugar', () => {
+    const outputs = messages.filter((m) => m.role === 'assistant').map((m) => JSON.parse(m.content))
+    const withPlace = outputs.flatMap((output) => output.tasks).find((task) => task.placeName)
+    expect(withPlace).toMatchObject({ title: 'Reunirme con José', placeName: 'Universidad', placeOn: 'arrive', reminders: [] })
+    expect(messages[0]!.content).toContain('LUGAR')
   })
 
   test('cada ejemplo cumple el esquema y sobrevive a la validación', () => {

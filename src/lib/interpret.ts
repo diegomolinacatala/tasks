@@ -1,7 +1,8 @@
-import type { IsoDate, ReminderDraft } from '../types'
+import type { IsoDate, Place, PlaceTrigger, ReminderDraft } from '../types'
 import { addDays, isValidTime, isoOfInstant, toInstant, toIso } from './date'
 import type { ParsedTask } from './parse'
-import { draftLabel } from './parse'
+import { draftLabel, withPlaceLabel } from './parse'
+import { MAX_PLACE_NAME, findPlace } from './places'
 import { MAX_BEFORE_MINUTES, MAX_REMINDERS } from './reminders'
 
 const MAX_TASKS = 5
@@ -35,11 +36,18 @@ function remindersOf(raw: unknown, hasInstant: boolean, now: number): ReminderDr
   })
 }
 
+function placeOf(raw: unknown): { name: string; on: PlaceTrigger } | null {
+  if (!isObject(raw) || typeof raw.name !== 'string' || (raw.on !== 'arrive' && raw.on !== 'leave')) return null
+  const name = raw.name.replace(/\s+/g, ' ').trim().slice(0, MAX_PLACE_NAME)
+  return name ? { name, on: raw.on } : null
+}
+
 /**
  * Tareas que devuelve la IA del servidor, validadas otra vez en el móvil (la hora local solo
  * la conoce el móvil). `null` si no hay nada aprovechable: entonces se usa el analizador local.
+ * El servidor solo dice el nombre del lugar; aquí se empareja con los guardados (`places`).
  */
-export function draftsFromInterpreted(raw: unknown, now: number): ParsedTask[] | null {
+export function draftsFromInterpreted(raw: unknown, now: number, places: readonly Place[] = []): ParsedTask[] | null {
   if (!Array.isArray(raw)) return null
   const today = isoOfInstant(now)
 
@@ -57,10 +65,16 @@ export function draftsFromInterpreted(raw: unknown, now: number): ParsedTask[] |
     // Sin día pero con un aviso a una hora concreta ("en 20 minutos"): la tarea es para ese día.
     const firstAt = reminders.find((reminder) => reminder.kind === 'at')
     if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
-    const isDefault = time !== null && reminders.length === 0
+
+    const spokenPlace = placeOf(item.place)
+    const saved = spokenPlace ? findPlace(places, spokenPlace.name) : null
+    if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
+    const isDefault = time !== null && reminders.length === 0 && !spokenPlace
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-    return [{ title, date, time, reminders, label: draftLabel(date, time, reminders, isDefault, now) }]
+    const label = draftLabel(date, time, reminders, isDefault, now, places)
+    if (!spokenPlace || saved) return [{ title, date, time, reminders, label }]
+    return [{ title, date, time, reminders, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]
   })
 
   return drafts.length ? drafts : null

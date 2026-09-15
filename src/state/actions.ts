@@ -1,4 +1,4 @@
-import type { AppState, BlockId, IsoDate, IsoTime, ReminderDraft, Task } from '../types'
+import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, ReminderDraft, Task } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -36,6 +36,10 @@ export type Action =
   | { type: 'section/remove'; id: string }
   | { type: 'section/toggle'; id: string }
   | { type: 'sections/reorder'; ids: string[] }
+  | { type: 'place/add'; id: string; name: string; location?: PlaceLocation | null; radius?: number }
+  | { type: 'place/update'; id: string; name?: string; location?: PlaceLocation | null; radius?: number }
+  /** Quita también sus avisos de las tareas. */
+  | { type: 'place/remove'; id: string }
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'state/replace'; state: AppState }

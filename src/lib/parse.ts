@@ -1,7 +1,9 @@
-import type { IsoDate, IsoTime, ReminderDraft } from '../types'
+import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, startOfWeek, timeOfInstant, toInstant } from './date'
 import type { NormalizedText } from './normalize'
 import { normalizeText, originalSpan } from './normalize'
+import { placePhraseRegex, readPlacePhrase } from './placePhrase'
+import { placeTriggerLabel } from './places'
 import { reminderLabel } from './reminders'
 import type { Span } from './title'
 import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
@@ -26,6 +28,8 @@ export interface ParsedTask {
   reminders: ReminderDraft[]
   /** Resumen de lo detectado (`Mañana 17:00 · 10 min antes`), o `null` si no se detectó nada. */
   label: string | null
+  /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
+  newPlace?: { name: string; on: PlaceTrigger }
 }
 
 const MINUTE = 60_000
@@ -86,15 +90,32 @@ class Scanner {
 
   /** Primer resultado aceptado que no pise lo ya reconocido. Los tramos se guardan en el original. */
   first<T>(regex: RegExp, accept: (match: RegExpExecArray) => T | null, startsAt?: (index: number) => boolean): T | null {
+    return this.firstSized(
+      regex,
+      (match) => {
+        const value = accept(match)
+        return value === null ? null : { value, length: match[0].length }
+      },
+      startsAt,
+    )
+  }
+
+  /** Como `first`, pero `accept` decide cuánto del resultado es tramo reconocido. */
+  firstSized<T>(
+    regex: RegExp,
+    accept: (match: RegExpExecArray) => { value: T; length: number } | null,
+    startsAt?: (index: number) => boolean,
+  ): T | null {
     for (const match of this.normalized.text.matchAll(regex)) {
       if (startsAt && !startsAt(match.index)) continue
-      const span = originalSpan(this.normalized, match.index, match.index + match[0].length)
+      const result = accept(match as RegExpExecArray)
+      if (result === null) continue
+      const end = match.index + result.length
+      const span = originalSpan(this.normalized, match.index, end)
       if (this.spans.some((other) => span.start < other.end && span.end > other.start)) continue
-      const value = accept(match as RegExpExecArray)
-      if (value === null) continue
       this.spans.push(span)
-      this.ends.push(match.index + match[0].length)
-      return value
+      this.ends.push(end)
+      return result.value
     }
     return null
   }
@@ -108,8 +129,11 @@ class Scanner {
 
 const literal = (input: string): ParsedTask => ({ title: input.trim(), date: null, time: null, reminders: [], label: null })
 
-/** Extrae fecha, hora y avisos de un texto en español. Si no queda título, lo deja literal. */
-export function parseTask(input: string, now: number): ParsedTask {
+/**
+ * Extrae fecha, hora y avisos de un texto en español. Si no queda título, lo deja literal.
+ * `places`: lugares guardados, para reconocer "al llegar a la universidad".
+ */
+export function parseTask(input: string, now: number, places: readonly Place[] = []): ParsedTask {
   const today = isoOfInstant(now)
   const scanner = new Scanner(normalizeText(input))
   const nextWeekday = (name: string) => addDays(today, (WEEKDAYS.indexOf(name) - new Date(now).getDay() + 7) % 7 || 7)
@@ -118,6 +142,12 @@ export function parseTask(input: string, now: number): ParsedTask {
   const explicit: ReminderDraft[] = []
   const pending: PendingAt[] = []
   let offsetDate: IsoDate | null = null
+
+  // El lugar va primero: se lleva la petición que lo acompaña ("recuérdame al pasar por…").
+  const placePhrase = scanner.firstSized(placePhraseRegex(REMIND_VERB, places), (match) => {
+    const phrase = readPlacePhrase(match, scanner.normalized, input, places)
+    return { value: phrase, length: phrase.length }
+  })
 
   const offset = scanner.first(RE_OFFSET, (match) => amountOf(match.slice(1)))
   if (offset !== null && offset >= DAY_MINUTES && offset % DAY_MINUTES === 0) {
@@ -198,12 +228,18 @@ export function parseTask(input: string, now: number): ParsedTask {
   const [firstAt] = atReminders
   if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
 
-  const reminders: ReminderDraft[] = [...explicit, ...atReminders]
-  const isDefault = time !== null && reminders.length === 0
+  const placeReminders: ReminderDraft[] = placePhrase?.place
+    ? [{ kind: 'place', placeId: placePhrase.place.id, on: placePhrase.on }]
+    : []
+  const reminders: ReminderDraft[] = [...explicit, ...atReminders, ...placeReminders]
+  const isDefault = time !== null && reminders.length === 0 && !placePhrase
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-  return { title, date, time, reminders, label: draftLabel(date, time, reminders, isDefault, now) }
+  const label = draftLabel(date, time, reminders, isDefault, now, places)
+  if (!placePhrase || placePhrase.place) return { title, date, time, reminders, label }
+  const newPlace = { name: placePhrase.name, on: placePhrase.on }
+  return { title, date, time, reminders, label: withPlaceLabel(label, newPlace), newPlace }
 }
 
 /**
@@ -213,12 +249,16 @@ export function parseTask(input: string, now: number): ParsedTask {
  * recordarme…?"), sus signos no son parte de la tarea; se mira la frase original porque el
  * analizador puede haberse llevado ya la petición junto con la hora del aviso.
  */
-export function parseSpoken(input: string, now: number): ParsedTask {
+export function parseSpoken(input: string, now: number, places: readonly Place[] = []): ParsedTask {
   const text = input.trim()
-  const parsed = parseTask(text, now)
+  const parsed = parseTask(text, now, places)
   const title = parsed.label !== null ? parsed.title : cleanTitle(parsed.title, []) || parsed.title
   return { ...parsed, title: capitalize(isRequestQuestion(text) ? unwrapQuestion(title) : title) }
 }
+
+/** Añade a la etiqueta el lugar que aún no existe: `Mañana · Al llegar a Mercadona`. */
+export const withPlaceLabel = (label: string, place: { name: string; on: PlaceTrigger }) =>
+  [label, placeTriggerLabel(place.name, place.on)].filter(Boolean).join(' · ')
 
 /** `Mañana 17:00 · 1 h antes · 30 min antes`. `isDefault`: el único aviso es el automático "a la hora". */
 export function draftLabel(
@@ -227,6 +267,7 @@ export function draftLabel(
   reminders: ReminderDraft[],
   isDefault: boolean,
   now: number,
+  places: readonly Place[] = [],
 ): string {
   const today = isoOfInstant(now)
   const parts: string[] = []
@@ -236,7 +277,7 @@ export function draftLabel(
   const extras = isDefault
     ? []
     : reminders.map((reminder) =>
-        reminder.kind === 'at' && !time ? shortTime(timeOfInstant(reminder.at)) : reminderLabel(reminder, now),
+        reminder.kind === 'at' && !time ? shortTime(timeOfInstant(reminder.at)) : reminderLabel(reminder, now, places),
       )
   if (!time && extras.length && reminders[0]?.kind === 'at') {
     // "en 30 min": la hora del aviso es lo que da sentido a la etiqueta.

@@ -20,6 +20,7 @@ const state: AppState = {
     },
   ],
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
+  places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   collapsed: { overdue: false, backlog: true },
   settings: { digest: { enabled: false, time: '08:30' } },
 }
@@ -128,5 +129,34 @@ describe('migración v2 → v3', () => {
     const reminders = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, kind: 'at', at: i + 1 }))
     const result = normalizeState({ tasks: [{ id: 'a', title: 'x', reminders }], sections: [] })
     expect(result!.tasks[0]!.reminders).toHaveLength(20)
+  })
+})
+
+describe('migración v4 → v5: lugares', () => {
+  test('una copia sin lugares arranca con la lista vacía', () => {
+    expect(normalizeState({ schemaVersion: 4, tasks: [], sections: [] })!.places).toEqual([])
+  })
+
+  test('quita los avisos que apuntan a un lugar inexistente y los lugares repetidos', () => {
+    const result = normalizeState({
+      tasks: [
+        {
+          id: 'a',
+          title: 'x',
+          reminders: [
+            { id: 'r1', kind: 'place', placeId: 'p1', on: 'arrive' },
+            { id: 'r2', kind: 'place', placeId: 'fantasma', on: 'arrive' },
+          ],
+        },
+      ],
+      sections: [],
+      places: [
+        { id: 'p1', name: 'Mercadona' },
+        { id: 'p1', name: 'Otro' },
+        { id: 'p2', name: '' },
+      ],
+    })
+    expect(result!.places.map((place) => place.name)).toEqual(['Mercadona'])
+    expect(result!.tasks[0]!.reminders.map((reminder) => reminder.id)).toEqual(['r1'])
   })
 })
