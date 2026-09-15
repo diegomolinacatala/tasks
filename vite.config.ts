@@ -5,11 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 // El repo se publica en https://<user>.github.io/tasks/ -> base obligatoria.
 const BASE = '/tasks/'
 
-export default defineConfig({
-  base: BASE,
+// `--mode native`: la web que empaqueta Capacitor. Se sirve desde capacitor://localhost,
+// así que va con rutas relativas y sin service worker (WKWebView no lo usa).
+export default defineConfig(({ mode }) => ({
+  base: mode === 'native' ? './' : BASE,
   plugins: [
     react(),
     VitePWA({
+      disable: mode === 'native',
       // SW propio: además de precachear, recibe los push y abre la tarea al tocar el aviso.
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -40,7 +43,9 @@ export default defineConfig({
   ],
   build: {
     target: 'es2022',
-    sourcemap: true,
+    // En la app nativa los sourcemaps solo engordan el paquete que se sube a Apple.
+    sourcemap: mode !== 'native',
+    outDir: mode === 'native' ? 'dist-native' : 'dist',
   },
   test: {
     environment: 'node',
@@ -62,4 +67,4 @@ export default defineConfig({
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
     },
   },
-})
+}))

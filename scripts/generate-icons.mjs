@@ -53,8 +53,18 @@ function render(size, glyphScale) {
   const bx = c + half * 0.45
   const by = c - half * 0.36
 
+  // Fuera del cuadro del glifo todo es fondo: en la pantalla de carga (2732 px) ahorra casi todo el cálculo.
+  const reach = half + stroke * 2
+  pixels.fill(255)
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
+      if (Math.abs(x + 0.5 - c) > reach || Math.abs(y + 0.5 - c) > reach) {
+        const offset = (y * size + x) * 4
+        pixels[offset] = BG[0]
+        pixels[offset + 1] = BG[1]
+        pixels[offset + 2] = BG[2]
+        continue
+      }
       let ring = 0
       let mark = 0
 
@@ -108,17 +118,23 @@ function chunk(type, data) {
   return Buffer.concat([length, body, crc])
 }
 
-function encodePng(size, pixels) {
+/** `opaque`: PNG sin canal alfa. Apple rechaza el icono de la App Store si lo lleva, aunque sea 255. */
+function encodePng(size, pixels, opaque = false) {
+  const channels = opaque ? 3 : 4
   const header = Buffer.alloc(13)
   header.writeUInt32BE(size, 0)
   header.writeUInt32BE(size, 4)
   header[8] = 8 // bit depth
-  header[9] = 6 // RGBA
-  const stride = size * 4
+  header[9] = opaque ? 2 : 6 // RGB : RGBA
+  const stride = size * channels
   const raw = Buffer.alloc((stride + 1) * size)
   for (let y = 0; y < size; y += 1) {
-    raw[y * (stride + 1)] = 0
-    pixels.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride)
+    const row = y * (stride + 1)
+    raw[row] = 0
+    for (let x = 0; x < size; x += 1) {
+      const from = (y * size + x) * 4
+      pixels.copy(raw, row + 1 + x * channels, from, from + channels)
+    }
   }
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -151,3 +167,17 @@ for (const [name, size, scale] of targets) {
 
 writeFileSync(join(OUT, 'favicon.svg'), FAVICON)
 console.log('icons/favicon.svg')
+
+// App nativa: icono único de 1024 px (Xcode genera el resto) y pantalla de carga negra con el
+// glifo pequeño en el centro; se escala con aspect fill, así que 0.1 del lado ≈ 85 pt en un iPhone.
+const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'ios', 'App', 'App', 'Assets.xcassets')
+const nativeTargets = [
+  [join('AppIcon.appiconset', 'AppIcon-512@2x.png'), 1024, 0.74],
+  [join('Splash.imageset', 'splash-2732x2732.png'), 2732, 0.1],
+]
+
+for (const [name, size, scale] of nativeTargets) {
+  mkdirSync(dirname(join(ASSETS, name)), { recursive: true })
+  writeFileSync(join(ASSETS, name), encodePng(size, render(size, scale), true))
+  console.log(`ios/${name.replace(/\\/g, '/')}`)
+}

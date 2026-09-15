@@ -7,3 +7,5 @@ coverage
 .vscode/*
 !.vscode/extensions.json
 .idea
+dist-native
+build

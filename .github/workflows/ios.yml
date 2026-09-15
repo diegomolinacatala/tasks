@@ -1,0 +1,123 @@
+name: iOS
+
+# Compila la app de iPhone en un Mac de GitHub (gratis en repos públicos). Sin las claves de
+# App Store Connect solo comprueba que compila; con ellas firma y sube a TestFlight.
+on:
+  push:
+    branches: [main, capacitor]
+    paths:
+      - src/**
+      - ios/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - capacitor.config.ts
+      - vite.config.ts
+      - .github/workflows/ios.yml
+  workflow_dispatch:
+  schedule:
+    # Las compilaciones de TestFlight caducan a los 90 días: una nueva el día 1 de cada dos meses.
+    - cron: '0 6 1 */2 *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      HAS_SIGNING: ${{ secrets.ASC_KEY_P8 != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && vars.APPLE_TEAM_ID != '' }}
+      # Solo se sube lo que llega a main, lo lanzado a mano y la compilación programada.
+      SHOULD_UPLOAD: ${{ github.ref == 'refs/heads/main' || github.event_name != 'push' }}
+      PROJECT: ios/App/App.xcodeproj
+      ARCHIVE: ${{ github.workspace }}/build/Tasks.xcarchive
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:native
+        env:
+          VITE_PUSH_API: ${{ vars.VITE_PUSH_API }}
+
+      - name: Compilar sin firmar
+        if: env.HAS_SIGNING != 'true' || env.SHOULD_UPLOAD != 'true'
+        run: |
+          bash scripts/xcodebuild.sh -project "$PROJECT" -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Clave de App Store Connect
+        if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+
+      - name: Archivar y firmar
+        if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          bash scripts/xcodebuild.sh -project "$PROJECT" -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$ARCHIVE" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            archive
+
+      - name: Subir a TestFlight
+        if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+          bash scripts/xcodebuild.sh -exportArchive -archivePath "$ARCHIVE" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath build/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Log de xcodebuild
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log
+          retention-days: 7
+
+      - name: Borrar la clave
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
