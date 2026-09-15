@@ -13,6 +13,8 @@ import { PushContext } from './pushContext'
 import { useNativeSchedule } from './useNativeSchedule'
 
 const API_URL = import.meta.env.VITE_PUSH_API
+/** El permiso se pide solo una vez por instalación; después manda lo que diga Ajustes de iOS. */
+const ASKED_KEY = 'tasks:notifications-asked'
 
 const statusOf = (permission: PermissionStatus): PushStatus =>
   permission === 'granted' ? 'on' : permission === 'denied' ? 'denied' : 'off'
@@ -68,6 +70,19 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
       setBusy(false)
     }
   }, [toast])
+
+  // La primera vez que hay algo que avisar se pide el permiso: en la app nativa iOS lo admite sin gesto.
+  const hasReminders = state.tasks.some((task) => !task.done && task.reminders.length > 0)
+  useEffect(() => {
+    if (status !== 'off' || !hasReminders) return
+    try {
+      if (localStorage.getItem(ASKED_KEY)) return
+      localStorage.setItem(ASKED_KEY, '1')
+    } catch {
+      return
+    }
+    void enable()
+  }, [status, hasReminders, enable])
 
   const disable = useCallback(async () => {
     const { TasksNative } = await import('../../lib/platform/native')
