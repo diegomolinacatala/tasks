@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
-import { createId } from './lib/id'
 import { draftsFromInterpreted } from './lib/interpret'
+import type { ParsedTask } from './lib/parse'
 import { parseSpoken } from './lib/parse'
-import { useDispatch } from './state/StoreProvider'
+import { isNative } from './lib/platform'
+import { useAppState, useDispatch } from './state/StoreProvider'
 import type { IsoDate, ViewId } from './types'
 import { Composer } from './components/compose/Composer'
+import { useAddTasks } from './components/compose/useAddTasks'
 import { useNotificationActions } from './components/push/useNotificationActions'
 import { SectionSheet } from './components/section/SectionSheet'
 import { SettingsSheet } from './components/settings/SettingsSheet'
 import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
+import { useNativeActions } from './components/shell/useNativeActions'
 import { TaskSheet } from './components/task/TaskSheet'
 import { IconMore } from './components/ui/Icons'
 import { useToast } from './components/ui/Toast'
@@ -20,11 +23,19 @@ import { HomeView } from './components/views/HomeView'
 import { WeekView } from './components/views/WeekView'
 import './components/shell/shell.css'
 
+const PlaceTasksSheet = lazy(() =>
+  import('./components/places/PlaceTasksSheet').then((module) => ({ default: module.PlaceTasksSheet })),
+)
+
 export function App() {
+  const state = useAppState()
   const dispatch = useDispatch()
   const today = useToday()
   const typing = useKeyboardInset()
   const toast = useToast()
+  const addTasks = useAddTasks()
+  // La PWA no puede avisar por lugar: allí esas frases se dejan tal cual.
+  const places = isNative ? state.places : null
 
   const [view, setView] = useState<ViewId>('home')
   const [weekAnchor, setWeekAnchor] = useState(today)
@@ -33,6 +44,13 @@ export function App() {
   const [fromNotification, setFromNotification] = useState(false)
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [placeId, setPlaceId] = useState<string | null>(null)
+  const [focusRequest, setFocusRequest] = useState(0)
+
+  useEffect(() => {
+    // La pantalla de carga nativa espera a que haya estado que pintar.
+    if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
+  }, [])
 
   // Pasada la medianoche con la app abierta, lo que apuntaba a "hoy" pasa al día nuevo:
   // si no, el atajo de la semana crearía tareas ya atrasadas.
@@ -57,23 +75,18 @@ export function App() {
     setTaskId(id)
   }
 
-  useNotificationActions((id) => {
-    setFromNotification(true)
-    setTaskId(id)
+  useNotificationActions({
+    onOpenTask: (id) => {
+      setFromNotification(true)
+      setTaskId(id)
+    },
+    onOpenPlace: setPlaceId,
   })
 
-  // Lo dictado se crea sin pasos intermedios; el toast confirma qué se ha entendido.
-  // Lo que entendió la IA del servidor manda; si no hay nada válido, el analizador local.
-  const addFromVoice = (text: string, interpreted: unknown) => {
-    const now = Date.now()
-    const drafts = draftsFromInterpreted(interpreted, now) ?? [parseSpoken(text, now)].filter((draft) => draft.title)
+  /** Lo dictado o pedido a Siri se crea sin pasos intermedios; el toast confirma qué se ha entendido. */
+  const addSpoken = (drafts: ParsedTask[]) => {
     if (!drafts.length) return
-
-    const ids = drafts.map(({ title, date, time, reminders }) => {
-      const id = createId()
-      dispatch({ type: 'task/add', id, title, date, time, reminders, sectionId: null })
-      return id
-    })
+    const ids = addTasks(drafts)
     const [first] = drafts
     toast({
       message:
@@ -84,6 +97,23 @@ export function App() {
       onAction: () => ids.forEach((id) => dispatch({ type: 'task/remove', id })),
     })
   }
+
+  // Lo que entendió la IA del servidor manda; si no hay nada válido, el analizador local.
+  const addFromVoice = (text: string, interpreted: unknown) => {
+    const now = Date.now()
+    addSpoken(draftsFromInterpreted(interpreted, now, places) ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
+  }
+
+  const showWeek = () => withTransition(() => setView('week'))
+
+  useNativeActions({
+    onAdd: (text) => addSpoken([parseSpoken(text, Date.now(), places)].filter((draft) => draft.title)),
+    onCompose: () => {
+      setView('home')
+      setFocusRequest((count) => count + 1)
+    },
+    onWeek: showWeek,
+  })
 
   const inWeek = view === 'week' && selectedDay !== today
   const quickDate = view === 'week' ? selectedDay : today
@@ -113,7 +143,9 @@ export function App() {
         <Composer
           quickLabel={quickLabel}
           quickDate={quickDate}
-          onSubmit={(draft) => dispatch({ type: 'task/add', ...draft, sectionId: null })}
+          places={places}
+          focusRequest={focusRequest}
+          onSubmit={(draft) => addTasks([draft])}
           onVoice={addFromVoice}
         />
         <BottomNav view={view} onChange={(next) => withTransition(() => setView(next))} />
@@ -122,6 +154,11 @@ export function App() {
       <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} />
       <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {isNative && (
+        <Suspense fallback={null}>
+          <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />
+        </Suspense>
+      )}
     </div>
   )
 }

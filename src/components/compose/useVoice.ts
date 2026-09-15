@@ -138,7 +138,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   const start = useCallback(() => {
     if (phase !== 'idle') return
-    if (push.status === 'on') return record()
+    if (push.canTranscribe) return record()
     if (speechSupported()) return dictate()
     toast({
       message:
@@ -146,7 +146,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
           ? 'El dictado no está disponible en este navegador.'
           : 'Activa los avisos en Ajustes para dictar tareas.',
     })
-  }, [dictate, phase, push.status, record, toast])
+  }, [dictate, phase, push.canTranscribe, push.status, record, toast])
 
   const stop = useCallback(() => session.current?.stop(), [])
   const cancel = useCallback(() => session.current?.cancel(), [])

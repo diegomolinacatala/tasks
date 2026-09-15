@@ -203,9 +203,12 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'place/update': {
       const current = state.places.find((place) => place.id === action.id)
       if (!current) return state
+      const wanted = action.name === undefined ? '' : cleanPlaceName(action.name)
+      // Dos lugares con el mismo nombre harían ambiguo "al llegar a Mercadona".
+      const clashes = state.places.some((place) => place.id !== current.id && placeKey(place.name) === placeKey(wanted))
       const next: Place = {
         ...current,
-        name: action.name === undefined ? current.name : cleanPlaceName(action.name) || current.name,
+        name: wanted && !clashes ? wanted : current.name,
         location: action.location === undefined ? current.location : action.location,
         radius: action.radius === undefined ? current.radius : clampRadius(action.radius),
       }

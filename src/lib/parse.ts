@@ -131,9 +131,10 @@ const literal = (input: string): ParsedTask => ({ title: input.trim(), date: nul
 
 /**
  * Extrae fecha, hora y avisos de un texto en español. Si no queda título, lo deja literal.
- * `places`: lugares guardados, para reconocer "al llegar a la universidad".
+ * `places`: lugares guardados, para reconocer "al llegar a la universidad". `null` = la
+ * plataforma no tiene avisos por lugar (la PWA): esas frases se dejan como están.
  */
-export function parseTask(input: string, now: number, places: readonly Place[] = []): ParsedTask {
+export function parseTask(input: string, now: number, places: readonly Place[] | null = []): ParsedTask {
   const today = isoOfInstant(now)
   const scanner = new Scanner(normalizeText(input))
   const nextWeekday = (name: string) => addDays(today, (WEEKDAYS.indexOf(name) - new Date(now).getDay() + 7) % 7 || 7)
@@ -144,10 +145,14 @@ export function parseTask(input: string, now: number, places: readonly Place[] =
   let offsetDate: IsoDate | null = null
 
   // El lugar va primero: se lleva la petición que lo acompaña ("recuérdame al pasar por…").
-  const placePhrase = scanner.firstSized(placePhraseRegex(REMIND_VERB, places), (match) => {
-    const phrase = readPlacePhrase(match, scanner.normalized, input, places)
-    return { value: phrase, length: phrase.length }
-  })
+  const known = places ?? []
+  const placePhrase =
+    places === null
+      ? null
+      : scanner.firstSized(placePhraseRegex(REMIND_VERB, known), (match) => {
+          const phrase = readPlacePhrase(match, scanner.normalized, input, known)
+          return { value: phrase, length: phrase.length }
+        })
 
   const offset = scanner.first(RE_OFFSET, (match) => amountOf(match.slice(1)))
   if (offset !== null && offset >= DAY_MINUTES && offset % DAY_MINUTES === 0) {
@@ -236,7 +241,7 @@ export function parseTask(input: string, now: number, places: readonly Place[] =
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-  const label = draftLabel(date, time, reminders, isDefault, now, places)
+  const label = draftLabel(date, time, reminders, isDefault, now, known)
   if (!placePhrase || placePhrase.place) return { title, date, time, reminders, label }
   const newPlace = { name: placePhrase.name, on: placePhrase.on }
   return { title, date, time, reminders, label: withPlaceLabel(label, newPlace), newPlace }
@@ -249,7 +254,7 @@ export function parseTask(input: string, now: number, places: readonly Place[] =
  * recordarme…?"), sus signos no son parte de la tarea; se mira la frase original porque el
  * analizador puede haberse llevado ya la petición junto con la hora del aviso.
  */
-export function parseSpoken(input: string, now: number, places: readonly Place[] = []): ParsedTask {
+export function parseSpoken(input: string, now: number, places: readonly Place[] | null = []): ParsedTask {
   const text = input.trim()
   const parsed = parseTask(text, now, places)
   const title = parsed.label !== null ? parsed.title : cleanTitle(parsed.title, []) || parsed.title

@@ -58,7 +58,8 @@ export function d1Store(db: D1Database): Store {
         .prepare(
           'INSERT INTO devices (id, token_hash, endpoint, p256dh, auth, ip_hash, created_at, seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         )
-        .bind(id, tokenHash, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, ipHash, now, now)
+        // Sin suscripción (solo dictado) las columnas quedan vacías: nunca tendrá agenda que enviar.
+        .bind(id, tokenHash, subscription?.endpoint ?? '', subscription?.keys.p256dh ?? '', subscription?.keys.auth ?? '', ipHash, now, now)
         .run()
     },
 
@@ -67,7 +68,7 @@ export function d1Store(db: D1Database): Store {
         .prepare('SELECT id, endpoint, p256dh, auth FROM devices WHERE token_hash = ?')
         .bind(tokenHash)
         .first<DeviceRow>()
-      return row ? { id: row.id, subscription: subscriptionOf(row) } : null
+      return row ? { id: row.id, subscription: row.endpoint ? subscriptionOf(row) : null } : null
     },
 
     async touchDevice(id, now, subscription) {

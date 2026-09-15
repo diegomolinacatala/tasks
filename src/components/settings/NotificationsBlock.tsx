@@ -1,6 +1,7 @@
 import { shortTime } from '../../lib/date'
 import { upcomingSchedule } from '../../lib/schedule'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
+import { isNative } from '../../lib/platform'
 import { usePush } from '../push/PushProvider'
 import { IconBell, IconBellOff } from '../ui/Icons'
 
@@ -24,9 +25,15 @@ export function NotificationsBlock() {
 
       {push.status === 'unsupported' && <p className="sheet__note">Este navegador no admite avisos.</p>}
 
-      {push.status === 'denied' && (
-        <p className="sheet__note">Bloqueados. Actívalos en Ajustes → Notificaciones → Tasks.</p>
-      )}
+      {push.status === 'denied' &&
+        (isNative ? (
+          <button type="button" className="sheet__row" onClick={() => void push.disable()}>
+            <IconBellOff size={18} />
+            Bloqueados: abrir Ajustes
+          </button>
+        ) : (
+          <p className="sheet__note">Bloqueados. Actívalos en Ajustes → Notificaciones → Tasks.</p>
+        ))}
 
       {push.status === 'off' && (
         <button type="button" className="sheet__row" disabled={push.busy} onClick={() => void push.enable()}>
@@ -69,7 +76,7 @@ export function NotificationsBlock() {
 
           <button type="button" className="sheet__row" disabled={push.busy} onClick={() => void push.disable()}>
             <IconBellOff size={18} />
-            Desactivar avisos
+            {isNative ? 'Ajustes de notificaciones' : 'Desactivar avisos'}
           </button>
         </>
       )}

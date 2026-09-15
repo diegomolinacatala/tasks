@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { parseTask } from '../../lib/parse'
-import type { IsoDate, IsoTime, ReminderDraft } from '../../types'
-import { IconBell, IconCheck, IconClose, IconMic, IconPlus } from '../ui/Icons'
+import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft } from '../../types'
+import { IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus } from '../ui/Icons'
 import { VoiceBar } from './VoiceBar'
 import { useVoice } from './useVoice'
 import './composer.css'
@@ -12,6 +12,8 @@ export interface TaskDraft {
   date: IsoDate | null
   time: IsoTime | null
   reminders: ReminderDraft[]
+  /** Lugar dicho que aún no existe: quien recibe el borrador lo crea. */
+  newPlace?: { name: string; on: PlaceTrigger }
 }
 
 interface ComposerProps {
@@ -21,6 +23,10 @@ interface ComposerProps {
   onSubmit: (draft: TaskDraft) => void
   /** Texto dictado: quien lo recibe crea la tarea y avisa con opción de deshacer. */
   onVoice: (text: string, interpreted: unknown) => void
+  /** Lugares guardados; `null` si la plataforma no tiene avisos por lugar. */
+  places: readonly Place[] | null
+  /** Cambia para pedir el foco (acceso rápido "Nueva tarea" del icono). */
+  focusRequest?: number
 }
 
 /**
@@ -28,13 +34,19 @@ interface ComposerProps {
  * se aplican y se enseña una píldora; tocarla deja el texto literal. Con la barra vacía,
  * el micrófono dicta la tarea entera.
  */
-export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerProps) {
+export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, focusRequest = 0 }: ComposerProps) {
   const [value, setValue] = useState('')
+  const input = useRef<HTMLInputElement>(null)
   const [literal, setLiteral] = useState(false)
   const voice = useVoice(onVoice)
   const ready = value.trim().length > 0
-  const parsed = useMemo(() => parseTask(value, Date.now()), [value])
+  const parsed = useMemo(() => parseTask(value, Date.now(), places), [value, places])
   const detected = ready && parsed.label !== null
+  const placed = Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place')
+
+  useEffect(() => {
+    if (focusRequest) input.current?.focus()
+  }, [focusRequest])
 
   const reset = () => {
     setValue('')
@@ -46,10 +58,11 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerP
     if (!ready) return
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
     // añade la tarea, no desde la última tecla.
-    const fresh = parseTask(value, Date.now())
+    const fresh = parseTask(value, Date.now(), places)
+    const { title, date, time, reminders, newPlace } = fresh
     onSubmit(
       fresh.label !== null && !literal
-        ? { title: fresh.title, date: fresh.date, time: fresh.time, reminders: fresh.reminders }
+        ? { title, date, time, reminders, ...(newPlace ? { newPlace } : {}) }
         : { title: value, date: null, time: null, reminders: [] },
     )
     reset()
@@ -94,6 +107,7 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerP
         <IconPlus size={15} />
       </button>
       <input
+        ref={input}
         className="composer__input"
         value={value}
         placeholder="Añadir tarea"
@@ -119,7 +133,7 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerP
           aria-label={literal ? `Usar ${parsed.label}` : `Ignorar ${parsed.label}`}
           onClick={() => setLiteral((current) => !current)}
         >
-          {parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
+          {placed ? <IconPin size={12} strokeWidth={2} /> : parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
           {parsed.label}
         </button>
       )}

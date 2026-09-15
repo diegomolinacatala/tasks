@@ -40,6 +40,8 @@ export class PushApiError extends Error {
 export interface PushApi {
   vapidKey(): Promise<string>
   register(subscription: PushSubscriptionData): Promise<DeviceCredentials>
+  /** Alta de la app nativa: solo dicta, sus avisos son notificaciones locales. */
+  registerVoice(): Promise<DeviceCredentials>
   updateSubscription(token: string, subscription: PushSubscriptionData): Promise<void>
   /** `keepalive`: la petición sobrevive a que iOS congele la página al salir de la app. */
   putSchedule(token: string, items: readonly EncryptedItem[], options?: { keepalive?: boolean }): Promise<void>
@@ -61,6 +63,13 @@ const KEEPALIVE_MAX_CHARS = 60_000
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
+
+function credentialsOf(data: unknown): DeviceCredentials {
+  if (!isRecord(data) || typeof data.deviceId !== 'string' || typeof data.token !== 'string') {
+    throw new PushApiError(500, 'Respuesta inesperada.')
+  }
+  return { deviceId: data.deviceId, token: data.token }
+}
 
 export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) => fetch(input, init)): PushApi {
   const base = baseUrl.replace(/\/+$/, '')
@@ -107,11 +116,10 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
       return data.publicKey
     },
     async register(subscription) {
-      const data = await call('POST', '/v1/devices', { body: { subscription } })
-      if (!isRecord(data) || typeof data.deviceId !== 'string' || typeof data.token !== 'string') {
-        throw new PushApiError(500, 'Respuesta inesperada.')
-      }
-      return { deviceId: data.deviceId, token: data.token }
+      return credentialsOf(await call('POST', '/v1/devices', { body: { subscription } }))
+    },
+    async registerVoice() {
+      return credentialsOf(await call('POST', '/v1/devices', { body: { voice: true } }))
     },
     async updateSubscription(token, subscription) {
       await call('PUT', '/v1/devices/subscription', { token, body: { subscription } })

@@ -361,6 +361,19 @@ describe('lugares', () => {
     expect(reducer(next, { type: 'place/update', id: 'nadie', radius: 300 })).toBe(next)
   })
 
+  test('renombrar con el nombre de otro lugar conserva el nombre actual', () => {
+    const state = run(
+      emptyState(),
+      { type: 'place/add', id: 'p1', name: 'Mercadona' },
+      { type: 'place/add', id: 'p2', name: 'Lidl' },
+      { type: 'place/update', id: 'p2', name: 'mercadona', radius: 300 },
+    )
+    expect(state.places.map((place) => [place.name, place.radius])).toEqual([
+      ['Mercadona', 150],
+      ['Lidl', 300],
+    ])
+  })
+
   test('borrar un lugar quita sus avisos de las tareas', () => {
     const state = run(
       emptyState(),

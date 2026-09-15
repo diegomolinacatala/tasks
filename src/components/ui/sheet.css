@@ -153,6 +153,10 @@
   color: var(--text-2);
 }
 
+.sheet__chips--places {
+  margin-top: var(--sp-2);
+}
+
 .chip--reminder {
   color: var(--text);
   background: var(--accent-dim);

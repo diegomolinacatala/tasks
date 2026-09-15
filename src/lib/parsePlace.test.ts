@@ -118,6 +118,19 @@ describe('lugares nuevos', () => {
   })
 })
 
+describe('sin lugares en esta plataforma', () => {
+  test('con `null` no se buscan lugares: la frase queda como estaba', () => {
+    expect(parseTask('comprar pan al pasar por mercadona', NOW, null)).toEqual({
+      title: 'comprar pan al pasar por mercadona',
+      date: null,
+      time: null,
+      reminders: [],
+      label: null,
+    })
+    expect(parseTask('mañana al pasar por mercadona', NOW, null).title).toBe('al pasar por mercadona')
+  })
+})
+
 describe('sin lugar', () => {
   test.each(['llegar a casa pronto', 'pasar por el taller', 'al pasar la ITV', 'salir de dudas'])('«%s» no tiene aviso de lugar', (text) => {
     const parsed = parseTask(text, NOW, PLACES)

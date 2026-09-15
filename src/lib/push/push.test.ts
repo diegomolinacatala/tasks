@@ -162,6 +162,13 @@ describe('api', () => {
     expect(JSON.parse(String(fetch.calls[1]!.init!.body))).toEqual({ subscription })
   })
 
+  test('registerVoice da de alta la app nativa sin suscripción', async () => {
+    const fetch = fakeFetch(() => json(201, { data: { deviceId: 'd', token: 't' } }))
+    const api = createPushApi('https://api.test', fetch.impl)
+    expect(await api.registerVoice()).toEqual({ deviceId: 'd', token: 't' })
+    expect(JSON.parse(String(fetch.calls[0]!.init!.body))).toEqual({ voice: true })
+  })
+
   test('las rutas autenticadas mandan el token y aceptan 204', async () => {
     const fetch = fakeFetch(() => new Response(null, { status: 204 }))
     const api = createPushApi('https://api.test', fetch.impl)

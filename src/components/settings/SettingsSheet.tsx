@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react'
+import { Suspense, lazy, useRef, useState } from 'react'
 import { backupFilename, parseBackup, serializeBackup } from '../../lib/backup'
+import { isNative } from '../../lib/platform'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
 import { NotificationsBlock } from './NotificationsBlock'
+
+const PlacesBlock = lazy(() => import('../places/PlacesBlock').then((module) => ({ default: module.PlacesBlock })))
 
 interface SettingsSheetProps {
   open: boolean
@@ -20,7 +23,16 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
   const pending = state.tasks.filter((task) => !task.done).length
 
-  const exportBackup = () => {
+  const exportBackup = async () => {
+    if (isNative) {
+      try {
+        const { shareFile } = await import('../../lib/platform/share')
+        await shareFile(backupFilename(), serializeBackup(state))
+      } catch {
+        toast({ message: 'No se pudo exportar la copia.' })
+      }
+      return
+    }
     const blob = new Blob([serializeBackup(state)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -54,13 +66,18 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Ajustes">
       <NotificationsBlock />
+      {isNative && (
+        <Suspense fallback={null}>
+          <PlacesBlock />
+        </Suspense>
+      )}
 
       <p className="sheet__title">Datos</p>
       <p className="sheet__note">
         {state.tasks.length} tareas · {pending} pendientes · {state.sections.length} secciones
       </p>
 
-      <button type="button" className="sheet__row" onClick={exportBackup}>
+      <button type="button" className="sheet__row" onClick={() => void exportBackup()}>
         <IconDownload size={18} />
         Exportar copia (.json)
       </button>

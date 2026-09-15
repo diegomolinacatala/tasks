@@ -134,3 +134,23 @@ export const IconUpload = (props: IconProps) => (
     <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14" />
   </Icon>
 )
+
+export const IconPin = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+    <circle cx="12" cy="10" r="2.3" />
+  </Icon>
+)
+
+export const IconLocate = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M20 4 4 11l7 2 2 7 7-16Z" />
+  </Icon>
+)
+
+export const IconSearch = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.2-4.2" />
+  </Icon>
+)

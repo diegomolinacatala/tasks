@@ -13,7 +13,8 @@ export interface ScheduleItem {
 
 export interface Device {
   id: string
-  subscription: Subscription
+  /** `null`: la app nativa, que solo usa el dictado (sus avisos son locales). */
+  subscription: Subscription | null
 }
 
 export interface DueItem extends ScheduleItem {
@@ -30,7 +31,7 @@ export interface ItemKey {
 export interface NewDevice {
   id: string
   tokenHash: string
-  subscription: Subscription
+  subscription: Subscription | null
   ipHash: string
   now: number
 }

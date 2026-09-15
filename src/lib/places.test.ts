@@ -5,7 +5,9 @@ import {
   MAX_PLACE_ALERTS,
   MAX_RADIUS,
   MIN_RADIUS,
+  distanceMeters,
   findPlace,
+  formatDistance,
   normalizePlace,
   placeAlerts,
   placeKey,
@@ -97,6 +99,22 @@ describe('normalizePlace', () => {
     expect(normalizePlace({ id: '', name: 'A' })).toBeNull()
     expect(normalizePlace({ id: 'a', name: '  ' })).toBeNull()
     expect(normalizePlace(null)).toBeNull()
+  })
+})
+
+describe('distanceMeters / formatDistance', () => {
+  test('mide en línea recta sobre la Tierra', () => {
+    // Puerta del Sol → Cibeles: ~900 m.
+    const meters = distanceMeters({ lat: 40.4169, lng: -3.7035 }, { lat: 40.4193, lng: -3.6931 })
+    expect(meters).toBeGreaterThan(850)
+    expect(meters).toBeLessThan(950)
+  })
+
+  test('en metros de cerca y en kilómetros con coma decimal de lejos', () => {
+    expect(formatDistance(42)).toBe('40 m')
+    expect(formatDistance(950)).toBe('950 m')
+    expect(formatDistance(1234)).toBe('1,2 km')
+    expect(formatDistance(25_400)).toBe('25 km')
   })
 })
 

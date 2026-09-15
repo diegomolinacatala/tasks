@@ -35,6 +35,24 @@ export function placeReminderLabel(reminder: Extract<ReminderDraft, { kind: 'pla
   return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? 'un lugar', reminder.on)
 }
 
+const EARTH_RADIUS_M = 6_371_000
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180
+
+/** Distancia en línea recta (haversine). Basta para ordenar resultados de búsqueda. */
+export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const dLat = toRadians(b.lat - a.lat)
+  const dLng = toRadians(b.lng - a.lng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h))
+}
+
+/** `40 m`, `950 m`, `1,2 km`, `25 km`. */
+export function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters / 10) * 10} m`
+  const km = meters / 1000
+  return km < 10 ? `${km.toFixed(1).replace('.', ',')} km` : `${Math.round(km)} km`
+}
+
 export const clampRadius = (radius: number) => Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, Math.round(radius)))
 
 function normalizeLocation(raw: unknown): PlaceLocation | null {

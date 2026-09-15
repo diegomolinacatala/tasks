@@ -101,8 +101,10 @@ async function authenticate(request: Request, deps: Deps): Promise<Device> {
   return device
 }
 
+/** `{ subscription }` para la PWA; `{ voice: true }` para la app nativa, que solo dicta. */
 async function registerDevice(request: Request, deps: Deps, ipHash: string) {
-  const subscription = unwrap(parseSubscription((await readJson(request)).subscription))
+  const body = await readJson(request)
+  const subscription = body.voice === true ? null : unwrap(parseSubscription(body.subscription))
   const now = deps.now()
   if ((await deps.store.countDevicesSince(ipHash, now - HOUR_MS)) >= MAX_DEVICES_PER_IP_HOUR) throw tooMany()
   const token = randomToken()
@@ -121,6 +123,7 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       return empty(headers)
     },
     'PUT /v1/schedule': async (device) => {
+      if (!device.subscription) throw new HttpError(409, 'dispositivo sin avisos push')
       const now = deps.now()
       const items = unwrap(parseSchedule(await readJson(request), now))
       await deps.store.replaceSchedule(device.id, items)
@@ -134,6 +137,8 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       const body = await readJson(request, MAX_AUDIO_BODY_BYTES)
       const audio = unwrap(parseAudio(body.audio))
       const context = parseInterpretContext(body.context)
+      // La app nativa solo aparece por aquí: sin esto caducaría a los 180 días aunque se use.
+      await deps.store.touchDevice(device.id, deps.now())
       let text: string
       try {
         text = await deps.transcriber.transcribe(audio)

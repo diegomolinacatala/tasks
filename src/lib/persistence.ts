@@ -1,11 +1,11 @@
 import { get, set } from 'idb-keyval'
 import type { AppState } from '../types'
 import { normalizeState } from './backup'
+import { isNative } from './platform'
 
 const KEY = 'tasks:state:v1'
 
-/** IndexedDB primero; localStorage como red de seguridad (modo privado, permisos). */
-export async function loadState(): Promise<AppState | null> {
+async function loadFromBrowser(): Promise<AppState | null> {
   try {
     const stored = normalizeState(await get(KEY))
     if (stored) return stored
@@ -20,7 +20,17 @@ export async function loadState(): Promise<AppState | null> {
   }
 }
 
-export async function saveState(state: AppState): Promise<void> {
+/** En el iPhone manda el fichero; IndexedDB primero en la web; localStorage como red de seguridad. */
+export async function loadState(): Promise<AppState | null> {
+  if (isNative) {
+    const { readStateFile } = await import('./platform/storage')
+    const fromFile = normalizeState(await readStateFile())
+    if (fromFile) return fromFile
+  }
+  return loadFromBrowser()
+}
+
+async function saveToBrowser(state: AppState): Promise<void> {
   try {
     await set(KEY, state)
     return
@@ -32,6 +42,19 @@ export async function saveState(state: AppState): Promise<void> {
   } catch {
     console.error('No se pudo guardar el estado: almacenamiento no disponible.')
   }
+}
+
+export async function saveState(state: AppState): Promise<void> {
+  if (isNative) {
+    try {
+      const { writeStateFile } = await import('./platform/storage')
+      await writeStateFile(JSON.stringify(state))
+    } catch {
+      // Queda la copia del WebView: al arrancar se usa si el fichero falta.
+      console.error('No se pudo guardar el fichero de estado.')
+    }
+  }
+  await saveToBrowser(state)
 }
 
 export interface Persister {

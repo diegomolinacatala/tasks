@@ -41,10 +41,12 @@ export function memoryStore() {
     },
     async dueItems(until, limit): Promise<DueItem[]> {
       return items
-        .filter((i) => i.at <= until && devices.has(i.deviceId))
+        .flatMap((i) => {
+          const subscription = devices.get(i.deviceId)?.subscription
+          return i.at <= until && subscription ? [{ ...i, subscription }] : []
+        })
         .sort((a, b) => a.at - b.at)
         .slice(0, limit)
-        .map((i) => ({ ...i, subscription: devices.get(i.deviceId)!.subscription }))
     },
     async deleteItems(keys) {
       items = items.filter((i) => !keys.some((k) => k.deviceId === i.deviceId && k.id === i.id))

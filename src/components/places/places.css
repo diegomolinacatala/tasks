@@ -1,0 +1,89 @@
+.place-current {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.place-current svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.place-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-elev-2);
+  color: var(--text-3);
+}
+
+.place-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  color: var(--text);
+  /* 16px: iOS no hace zoom al enfocar. */
+  font-size: 16px;
+}
+
+.place-results {
+  margin: var(--sp-2) 0 0;
+}
+
+.place-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  transition: opacity var(--dur-1) var(--ease);
+}
+
+.place-result:active {
+  opacity: 0.6;
+}
+
+.place-result__name {
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+
+.place-result__detail,
+.place-row__detail {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.place-row svg {
+  flex: none;
+  color: var(--text-2);
+}
+
+.place-row.is-unset svg {
+  color: var(--text-3);
+}
+
+.place-row.is-unset .place-row__detail {
+  color: var(--danger);
+}
+
+.place-tasks {
+  margin-top: var(--sp-1);
+}

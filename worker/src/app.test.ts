@@ -105,6 +105,34 @@ describe('POST /v1/devices', () => {
     expect(sent).toBeLessThan(20)
   })
 
+  test('la app nativa se da de alta solo para dictar, sin suscripción push', async () => {
+    const { deps, memory } = testDeps()
+    const response = await handle(request('POST', '/v1/devices', { body: { voice: true } }), deps)
+    expect(response.status).toBe(201)
+    const { data } = (await response.json()) as { data: { deviceId: string; token: string } }
+    expect(memory.devices.get(data.deviceId)!.subscription).toBeNull()
+
+    const transcribed = await handle(request('POST', '/v1/transcribe', { token: data.token, body: { audio: AUDIO } }), deps)
+    expect(transcribed.status).toBe(200)
+    // Sin push no hay a quién enviar la agenda.
+    const schedule = await handle(request('PUT', '/v1/schedule', { token: data.token, body: { items: [] } }), deps)
+    expect(schedule.status).toBe(409)
+  })
+
+  test('sin suscripción ni alta de dictado es una petición inválida', async () => {
+    const { deps } = testDeps()
+    expect((await handle(request('POST', '/v1/devices', { body: {} }), deps)).status).toBe(400)
+    expect((await handle(request('POST', '/v1/devices', { body: { voice: 'si' } }), deps)).status).toBe(400)
+  })
+
+  test('dictar cuenta como uso: el dispositivo no caduca mientras se dicte', async () => {
+    const { deps, memory, setNow, now } = testDeps()
+    const { deviceId, token } = await register(deps)
+    setNow(now() + 1000)
+    await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), deps)
+    expect(memory.devices.get(deviceId)!.seenAt).toBe(now())
+  })
+
   test('limita las altas por IP', async () => {
     const { deps } = testDeps()
     for (let i = 0; i < MAX_DEVICES_PER_IP_HOUR; i++) await register(deps)
@@ -201,7 +229,7 @@ describe('rutas autenticadas', () => {
     const next = subscription('https://web.push.apple.com/nuevo')
     const body = { subscription: next }
     expect((await handle(request('PUT', '/v1/devices/subscription', { token, body }), deps)).status).toBe(204)
-    expect(memory.devices.get(deviceId)!.subscription.endpoint).toBe(next.endpoint)
+    expect(memory.devices.get(deviceId)!.subscription?.endpoint).toBe(next.endpoint)
   })
 
   test('POST /v1/transcribe devuelve el texto', async () => {

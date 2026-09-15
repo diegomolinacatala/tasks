@@ -1,32 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useToday } from '../../hooks/useToday'
 import { timeOfInstant, todayIso } from '../../lib/date'
-import type { DeviceCredentials, Transcription } from '../../lib/push/api'
+import type { DeviceCredentials } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { currentSupport, disablePush, enablePush, loadDevice, refreshPush } from '../../lib/push/client'
 import { clearDevice } from '../../lib/push/keystore'
 import { useAppState } from '../../state/StoreProvider'
 import { useToast } from '../ui/Toast'
+import type { PushStatus } from './pushContext'
+import { PushContext } from './pushContext'
 import { useScheduleSync } from './useScheduleSync'
 
-/**
- * `unconfigured`: build sin servidor de avisos.
- * `needs-install`: iPhone sin instalar en la pantalla de inicio.
- */
-export type PushStatus = 'unconfigured' | 'unsupported' | 'needs-install' | 'denied' | 'off' | 'on'
-
-interface PushContextValue {
-  status: PushStatus
-  busy: boolean
-  syncFailed: boolean
-  enable: () => Promise<void>
-  disable: () => Promise<void>
-  /** Voz a texto (y a tareas) en el servidor. Requiere los avisos activados: usa el token del dispositivo. */
-  transcribe: (audio: string, signal?: AbortSignal) => Promise<Transcription>
-}
-
-const PushContext = createContext<PushContextValue | null>(null)
+export { usePush } from './pushContext'
+export type { PushStatus } from './pushContext'
 
 const API_URL = import.meta.env.VITE_PUSH_API
 
@@ -132,15 +119,9 @@ export function PushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, enable, disable, transcribe }),
+    () => ({ status, busy, syncFailed, enable, disable, canTranscribe: status === 'on', transcribe }),
     [status, busy, syncFailed, enable, disable, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>
-}
-
-export function usePush(): PushContextValue {
-  const value = useContext(PushContext)
-  if (!value) throw new Error('usePush debe usarse dentro de <PushProvider>')
-  return value
 }

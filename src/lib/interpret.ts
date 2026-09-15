@@ -46,8 +46,9 @@ function placeOf(raw: unknown): { name: string; on: PlaceTrigger } | null {
  * Tareas que devuelve la IA del servidor, validadas otra vez en el móvil (la hora local solo
  * la conoce el móvil). `null` si no hay nada aprovechable: entonces se usa el analizador local.
  * El servidor solo dice el nombre del lugar; aquí se empareja con los guardados (`places`).
+ * `null` = sin avisos por lugar en esta plataforma: el lugar se ignora.
  */
-export function draftsFromInterpreted(raw: unknown, now: number, places: readonly Place[] = []): ParsedTask[] | null {
+export function draftsFromInterpreted(raw: unknown, now: number, places: readonly Place[] | null = []): ParsedTask[] | null {
   if (!Array.isArray(raw)) return null
   const today = isoOfInstant(now)
 
@@ -66,13 +67,13 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
     const firstAt = reminders.find((reminder) => reminder.kind === 'at')
     if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
 
-    const spokenPlace = placeOf(item.place)
-    const saved = spokenPlace ? findPlace(places, spokenPlace.name) : null
+    const spokenPlace = places === null ? null : placeOf(item.place)
+    const saved = spokenPlace ? findPlace(places ?? [], spokenPlace.name) : null
     if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
     const isDefault = time !== null && reminders.length === 0 && !spokenPlace
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-    const label = draftLabel(date, time, reminders, isDefault, now, places)
+    const label = draftLabel(date, time, reminders, isDefault, now, places ?? [])
     if (!spokenPlace || saved) return [{ title, date, time, reminders, label }]
     return [{ title, date, time, reminders, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]
   })
