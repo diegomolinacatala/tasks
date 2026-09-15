@@ -62,8 +62,9 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
     const name = cleanPlaceName(draft.name)
     if (request && name) {
       if (place) {
+        // El reducer no deja dos lugares con el mismo nombre: se conserva el anterior y se avisa.
         const clash = findPlace(state.places, name)
-        if (clash && clash.id !== place.id) toast({ message:  })
+        if (clash && clash.id !== place.id) toast({ message: `Ya hay un lugar llamado ${clash.name}.` })
         dispatch({ type: 'place/update', id: place.id, name, location: draft.location, radius: draft.radius })
         request.onSaved?.(place.id)
       } else {
