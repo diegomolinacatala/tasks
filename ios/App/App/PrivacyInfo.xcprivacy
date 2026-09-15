@@ -2,14 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Sin rastreo ni recogida de datos: las tareas y los lugares no salen del iPhone, y el audio
-	     del dictado se transcribe al momento sin guardarse. Capacitor y sus plugins llevan su propio manifiesto. -->
+	<!-- Sin rastreo. Las tareas, los lugares y la ubicación no salen del iPhone; el audio del dictado
+	     se transcribe al momento sin guardarse. Lo único que conserva el servidor es un identificador
+	     aleatorio del dispositivo para el dictado (límites de uso), sin vínculo con la identidad.
+	     Capacitor y sus plugins llevan su propio manifiesto. Debe coincidir con docs/app-store.md. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array/>
 </dict>

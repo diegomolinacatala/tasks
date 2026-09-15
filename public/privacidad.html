@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>Privacidad · Tasks</title>
+    <style>
+      :root {
+        --bg: #000;
+        --text: #ededf0;
+        --text-2: #98989f;
+        --accent: #6e8bff;
+        --line: rgba(255, 255, 255, 0.07);
+      }
+      body {
+        margin: 0;
+        padding: max(32px, env(safe-area-inset-top)) 20px 48px;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-2);
+        margin: 36px 0 8px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      p,
+      li {
+        color: var(--text);
+      }
+      .date {
+        color: var(--text-2);
+        margin: 0 0 24px;
+      }
+      a {
+        color: var(--accent);
+      }
+      strong {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacidad</h1>
+      <p class="date">Tasks · actualizada el 15 de septiembre de 2026</p>
+
+      <p>
+        Tasks no tiene cuentas, publicidad ni analítica. <strong>No recopilamos datos personales</strong> y no
+        vendemos ni compartimos nada con terceros.
+      </p>
+
+      <h2>Tus tareas y lugares</h2>
+      <p>
+        Las tareas, secciones, recordatorios y lugares se guardan solo en tu dispositivo. En el iPhone forman
+        parte de la copia de seguridad del propio dispositivo (iCloud o el ordenador), que gestiona Apple y no
+        nosotros. Puedes exportarlas o borrarlas desde Ajustes.
+      </p>
+
+      <h2>Ubicación</h2>
+      <p>
+        La app pide acceso a tu ubicación <strong>solo mientras la usas</strong> y solo para dos cosas: guardar dónde
+        está un lugar y buscar sitios cerca de ti. Los avisos al llegar o salir de un lugar los vigila iOS en el
+        propio iPhone. Tu ubicación nunca se envía a nuestro servidor.
+      </p>
+      <p>
+        Las búsquedas de sitios («Mercadona») se hacen con Apple Maps, sujeto a la
+        <a href="https://www.apple.com/es/legal/privacy/">política de privacidad de Apple</a>.
+      </p>
+
+      <h2>Avisos</h2>
+      <p>
+        En la app de iPhone los recordatorios son notificaciones locales: se programan en el dispositivo y no
+        pasan por ningún servidor.
+      </p>
+      <p>
+        En la versión web, para que un aviso llegue con la app cerrada, se envía a nuestro servidor la hora de
+        cada aviso y su contenido <strong>cifrado en tu dispositivo</strong> con una clave que el servidor no tiene.
+        El servidor nunca ve el texto de tus tareas.
+      </p>
+
+      <h2>Qué guarda el servidor</h2>
+      <p>
+        Para enviar avisos y limitar abusos, el servidor guarda por dispositivo: un identificador aleatorio, la huella
+        (hash) de su clave de acceso, la dirección de notificaciones que da el navegador (solo en la web), una huella
+        anonimizada de la IP y la fecha de último uso. Un dispositivo que no se usa en 180 días se borra solo.
+      </p>
+
+      <h2>Dictado</h2>
+      <p>
+        Si dictas una tarea, el audio y la fecha y hora de tu dispositivo se envían a nuestro servidor para
+        transcribirlo e interpretarlo con modelos de Cloudflare Workers AI. El audio y el texto se procesan al
+        momento y <strong>no se guardan ni se registran</strong>. La lista de tus lugares no se envía: el nombre que
+        dices se empareja con tus lugares en el propio dispositivo.
+      </p>
+
+      <h2>Micrófono</h2>
+      <p>El micrófono solo se usa mientras dictas, cuando tú lo activas.</p>
+
+      <h2>Menores</h2>
+      <p>La app no está dirigida a menores de 13 años y no recoge datos de nadie.</p>
+
+      <h2>Contacto</h2>
+      <p>
+        Dudas o peticiones:
+        <a href="https://github.com/diegomolinacatala/tasks/issues">github.com/diegomolinacatala/tasks/issues</a>.
+      </p>
+    </main>
+  </body>
+</html>

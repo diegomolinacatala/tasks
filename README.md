@@ -20,6 +20,9 @@ solo en tu dispositivo.
 - Tocar el aviso abre la tarea para **posponerla** o marcarla hecha. El icono muestra lo
   pendiente de hoy.
 - **Resumen del día** opcional: cada mañana, un aviso con lo que toca.
+- **Avisos al llegar o salir de un sitio** (app de iPhone): *"comprar pan al pasar por
+  Mercadona"*. Guarda tus lugares buscándolos en Mapas o con tu ubicación actual; el iPhone
+  avisa aunque la app esté cerrada. También con Siri: *"Añade una tarea en Tasks"*.
 - Deslizar a la derecha completa, a la izquierda borra (con deshacer).
 - Arrastrar por el asa de la derecha para reordenar o cambiar de bloque.
 - Exportar e importar una copia en JSON desde Ajustes.

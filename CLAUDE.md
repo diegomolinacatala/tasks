@@ -1,10 +1,12 @@
 # Tasks
 
-To-do diaria para móvil. PWA instalable y sin cuentas: las tareas viven en el propio
-dispositivo. Se publica en GitHub Pages desde este repo público. Un Worker mínimo de
-Cloudflare envía los avisos push y solo ve horas y contenido cifrado.
+To-do diaria para móvil y sin cuentas: las tareas viven en el propio dispositivo. Un mismo
+código se publica de dos formas: PWA en GitHub Pages desde este repo público y app de iPhone
+con Capacitor (TestFlight / App Store). Un Worker mínimo de Cloudflare envía los avisos push de
+la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
-- Producción: https://diegomolinacatala.github.io/tasks/
+- Producción web: https://diegomolinacatala.github.io/tasks/
+- App de iPhone: `io.github.diegomolinacatala.tasks`. Pasos de TestFlight y ficha de la App Store en `docs/app-store.md`.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
@@ -16,7 +18,8 @@ npm test           # tests unitarios (vitest, entorno node)
 npm run coverage   # cobertura de src/lib y src/state
 npm run typecheck  # tsc de la app y del service worker (tsconfig.sw.json)
 npm run build      # typecheck + build de producción a dist/
-npm run icons      # regenera public/icons/* (solo si cambia la marca)
+npm run build:native  # typecheck + web para la app (dist-native/) + cap sync ios
+npm run icons      # regenera public/icons/* y el icono y la pantalla de carga de iOS
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
 
@@ -44,16 +47,19 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Persistencia | IndexedDB vía `idb-keyval`, con `localStorage` de reserva | offline real, sin servidor |
 | PWA | `vite-plugin-pwa` con `injectManifest` (`src/sw.ts`) | instalable, offline y receptor de push |
 | Avisos | Cloudflare Worker + D1 + alarma de Durable Object, `@block65/webcrypto-web-push` | iOS solo despierta una PWA cerrada con Web Push desde un servidor |
+| App de iPhone | Capacitor 8 con Swift Package Manager + plugin propio `TasksNative` | mismo código que la PWA; lo que la web no puede (avisos por lugar, notificaciones locales, Siri) |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle debe seguir por debajo de ~120 kB gzip.
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip: lo que solo
+existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`, editor de lugares) se
+carga con `import()` o `lazy`.
 
 ## Arquitectura
 
 ```
 src/
-├── types.ts              # Task, Reminder, Section, AppState
+├── types.ts              # Task, Reminder, Section, Place, AppState
 ├── sw.ts                 # precache + push + notificationclick
 ├── lib/                  # lógica pura + adaptadores de navegador
 │   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
@@ -65,13 +71,20 @@ src/
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
 │   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, badge
+│   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
+│   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
+│   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
+│   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos y toques en avisos
+│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback
 │   ├── transition.ts     # View Transitions API con degradación
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
-└── components/           # por dominio: shell, views, task, section, compose, push, settings, ui, dnd
+└── components/           # por dominio: shell, views, task, section, compose, push, places, settings, ui, dnd
+ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
+docs/app-store.md         # TestFlight, secretos, ficha y privacidad de la App Store
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
@@ -172,7 +185,10 @@ toast enseña lo entendido con "Deshacer".
     `inMinutes` y el Worker lo pasa a hora local.
   - Se valida en el Worker y otra vez en el móvil (`lib/interpret.ts`). Si la IA falla, tarda más
     de 8 s o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
-  - El modelo se eligió con `npm run eval` (66 frases con respuesta esperada) entre los del plan
+  - Lugar: el modelo copia también el fragmento `lugar` y devuelve solo el nombre dicho
+    (`placeName`, `placeOn`). El móvil lo empareja con sus lugares guardados: la lista nunca
+    se envía al servidor.
+  - El modelo se eligió con `npm run eval` (66 frases, ahora 71 con las de lugar) entre los del plan
     gratuito: Nemotron acertó 46/48 con ~1,2 s; Qwen 3.8 y Gemma 4 aciertan parecido pero tardan
     hasta 15–50 s en algunas frases, y Llama 3.3 se quedaba en 37–40/48. Cualquier cambio en el
     prompt se mide con el banco antes y después, y cada fallo nuevo se añade como caso.
@@ -198,8 +214,64 @@ toast enseña lo entendido con "Deshacer".
 - `before`: minutos antes de fecha + hora de la tarea. Sigue a la tarea si cambia de día;
   sin fecha u hora queda inactivo (se pinta atenuado y no se envía).
 
+- `place`: al llegar a un lugar guardado o al salir (solo en la app de iPhone). No tiene
+  instante: suena cada vez que se cruza el radio mientras la tarea siga pendiente y su día haya
+  llegado (una tarea para mañana no avisa hoy).
+
 Posponer (`task/snooze`) descarta los `at` que ya sonaron y añade uno nuevo. Máximo 20 por
 tarea.
+
+### Lugares
+
+`AppState.places`: globales como las secciones, con nombre único (sin tildes ni artículo:
+`placeKey`), ubicación (`null` hasta elegirla) y radio (100–1000 m). Borrar un lugar quita sus
+avisos de las tareas.
+
+- **Alta**: Ajustes → Lugares, o al escribir o dictar un sitio nuevo ("al pasar por Mercadona"):
+  `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor buscando ese
+  nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
+- **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / al salir
+  de". Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
+  Corte Inglés"). `parseTask(texto, ahora, null)` desactiva los lugares: así funciona la PWA, que
+  no puede avisar por lugar y deja esas frases literales.
+- **Regiones**: `placeAlerts` hace un aviso por lugar y sentido con todas sus tareas en el
+  cuerpo; iOS vigila como mucho 20, con prioridad para lo de hoy o atrasado. Un aviso con varias
+  tareas abre `PlaceTasksSheet`.
+
+### App de iPhone
+
+Capacitor carga `dist-native/` (build con `--mode native`: rutas relativas, sin service worker)
+desde `capacitor://localhost`. `isNative` (`lib/platform`) decide el adaptador; la lógica pura es
+la misma.
+
+- **Avisos**: notificaciones locales, sin servidor. `useNativeSchedule` calcula `nativePlan` y lo
+  aplica entero tras cada cambio y al volver a primer plano (huella para no repetir). iOS guarda
+  como mucho **64 pendientes** entre hora y lugar: las regiones restan del hueco y se programan
+  los avisos por hora más próximos. Ids numéricos estables (FNV-1a): por debajo de
+  `PLACE_ID_BASE` hora, por encima lugar, para que cada lado limpie solo lo suyo.
+- **Avisos por lugar**: `TasksNativePlugin.syncPlaceAlerts` crea `UNLocationNotificationTrigger`
+  con `repeats: true` y permiso de ubicación **solo mientras se usa** (la región la vigila iOS).
+  No re-añade los que no han cambiado: hacerlo estando dentro podría repetir el aviso. Se crean
+  con id numérico y `userInfo.cap_extra` para que el plugin de notificaciones entregue el toque
+  a la web como cualquier otro aviso.
+- **Botones** "Hecha" y "+10 min" con `foreground: true`: el estado vive en la web y con la app
+  en segundo plano iOS no garantiza que el WebView ejecute nada.
+- **Almacenamiento**: fichero `tasks-state.json` en Library (entra en las copias de iCloud del
+  dispositivo y iOS no lo borra al liberar espacio) más IndexedDB de respaldo. No comparte datos
+  con la PWA: se pasa con Exportar/Importar.
+- **Dictado**: igual que la PWA, pero el dispositivo se da de alta solo para dictar
+  (`POST /v1/devices { voice: true }`, sin suscripción push); si el servidor lo olvida (401) se
+  da de alta otra vez y se reintenta.
+- **Siri y accesos rápidos**: `AppIntents.swift` ("Añade una tarea en Tasks", "Mi semana en
+  Tasks") y `UIApplicationShortcutItems` pasan por `NativeActions`, que guarda la acción hasta que
+  la web escucha (`retainUntilConsumed`). La web la valida con `parseNativeAction`.
+- **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
+  de carga que la web oculta al pintar.
+- **Sin Mac**: se compila en GitHub Actions (`macos-26`, gratis en repo público). No hay
+  simulador ni Safari Web Inspector: lo nativo se prueba en el iPhone vía TestFlight. Los errores
+  de compilación salen como anotaciones del workflow.
+- Swift nuevo = añadirlo a mano en `project.pbxproj` (PBXBuildFile, PBXFileReference, grupo y
+  fase Sources) con ids de 24 hex únicos.
 
 ### Avisos push
 
@@ -269,7 +341,10 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 ## Decisiones cerradas
 
 - **Sin cuentas ni login.** El repo es público: nunca añadir claves privadas. Los secrets
-  del Worker viven en Cloudflare (`wrangler secret put`) y en GitHub Actions.
+  del Worker viven en Cloudflare (`wrangler secret put`) y en GitHub Actions, igual que la clave
+  de App Store Connect.
+- **Un solo código para PWA y app de iPhone.** La PWA sigue publicándose; lo nativo va detrás de
+  `isNative` y no cambia el comportamiento de la web.
 - **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
   claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
@@ -287,6 +362,11 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   app sale igual, sin avisos. La `base` de Vite es `/tasks/`: si el repo se renombra, hay
   que cambiarla en `vite.config.ts` (afecta también a `start_url` y `scope` del manifiesto)
   y en `ALLOWED_ORIGINS` de `worker/wrangler.toml`.
+- **App de iPhone**: `.github/workflows/ios.yml` en `macos-26` al tocar la app en `main` o
+  `capacitor`. Sin secretos solo compila; con `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la
+  variable `APPLE_TEAM_ID` firma en la nube y sube a TestFlight (solo `main`, manual y programado).
+  Se relanza el día 1 de cada dos meses porque TestFlight caduca a los 90 días. El número de
+  compilación es `github.run_number`; la versión, `MARKETING_VERSION` del proyecto.
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Necesita el secret `CLOUDFLARE_API_TOKEN` (y la variable
   `CLOUDFLARE_ACCOUNT_ID` si la cuenta tiene varias); sin él solo valida.
