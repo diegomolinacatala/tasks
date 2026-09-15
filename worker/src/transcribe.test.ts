@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { cleanTranscript, workersAiTranscriber } from './transcribe'
+import { cleanTranscript, isQuotaExceeded, workersAiTranscriber } from './transcribe'
+
+describe('isQuotaExceeded', () => {
+  test('reconoce el error de cuota diaria de Workers AI', () => {
+    expect(isQuotaExceeded(new Error('4006: you have used up your daily free allocation of 10,000 neurons'))).toBe(true)
+    expect(isQuotaExceeded(new Error('modelo caído'))).toBe(false)
+    expect(isQuotaExceeded('4006')).toBe(false)
+  })
+})
 
 describe('cleanTranscript', () => {
   test('normaliza espacios y recorta', () => {

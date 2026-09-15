@@ -48,7 +48,6 @@
   display: flex;
   align-items: stretch;
   background: var(--bg);
-  will-change: transform;
 }
 
 .column > .task + .task .task__surface {

@@ -18,15 +18,16 @@ export class Scheduler extends DurableObject<Env> {
   async alarm(): Promise<void> {
     const deps = depsFrom(this.env)
     let summary = { sent: 0, late: 0, retried: 0, dropped: 0, gone: 0, unauthorized: 0 }
+    let failed = false
     try {
       summary = await runDue(deps)
       if (summary.unauthorized) console.error('avisos: VAPID rechazado, revisa la configuración', summary)
       else console.info('avisos', summary)
     } catch (error) {
       console.error('avisos: ejecución fallida', reason(error))
-      summary = { ...summary, retried: 1 }
+      failed = true
     }
-    const next = planNext(await deps.store.nextDueAt(), deps.now(), summary)
+    const next = planNext(await deps.store.nextDueAt(), deps.now(), { ...summary, failed })
     if (next !== null) await this.ctx.storage.setAlarm(next)
   }
 }

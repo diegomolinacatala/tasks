@@ -46,7 +46,8 @@ export interface Store {
   deleteDevices(ids: readonly string[]): Promise<void>
   dueItems(until: number, limit: number): Promise<DueItem[]>
   deleteItems(keys: readonly ItemKey[]): Promise<void>
-  bumpAttempts(keys: readonly ItemKey[]): Promise<void>
+  /** Suma un intento y aplaza el aviso a `retryAt`. */
+  bumpAttempts(keys: readonly ItemKey[], retryAt: number): Promise<void>
   deleteStaleDevices(seenBefore: number): Promise<void>
   /** Instante del aviso pendiente más próximo de cualquier dispositivo. */
   nextDueAt(): Promise<number | null>

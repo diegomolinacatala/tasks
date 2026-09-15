@@ -23,7 +23,7 @@ interface PushContextValue {
   enable: () => Promise<void>
   disable: () => Promise<void>
   /** Voz a texto (y a tareas) en el servidor. Requiere los avisos activados: usa el token del dispositivo. */
-  transcribe: (audio: string) => Promise<Transcription>
+  transcribe: (audio: string, signal?: AbortSignal) => Promise<Transcription>
 }
 
 const PushContext = createContext<PushContextValue | null>(null)
@@ -114,11 +114,12 @@ export function PushProvider({ children }: { children: ReactNode }) {
   }, [api, toast])
 
   const transcribe = useCallback(
-    async (audio: string) => {
+    async (audio: string, signal?: AbortSignal) => {
       if (!api || !device) throw new Error('Activa los avisos en Ajustes para dictar tareas.')
       try {
         const now = Date.now()
-        return await api.transcribe(device.token, audio, { today: todayIso(new Date(now)), now: timeOfInstant(now) })
+        const context = { today: todayIso(new Date(now)), now: timeOfInstant(now) }
+        return await api.transcribe(device.token, audio, context, { signal })
       } catch (error) {
         if (error instanceof PushApiError && error.status === 401) forget()
         if (error instanceof PushApiError && error.status === 404) {

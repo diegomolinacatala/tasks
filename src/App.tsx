@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
@@ -33,6 +33,17 @@ export function App() {
   const [fromNotification, setFromNotification] = useState(false)
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Pasada la medianoche con la app abierta, lo que apuntaba a "hoy" pasa al día nuevo:
+  // si no, el atajo de la semana crearía tareas ya atrasadas.
+  const previousToday = useRef(today)
+  useEffect(() => {
+    const previous = previousToday.current
+    if (previous === today) return
+    previousToday.current = today
+    setSelectedDay((day) => (day === previous ? today : day))
+    setWeekAnchor((anchor) => (weekDays(anchor).includes(previous) ? today : anchor))
+  }, [today])
 
   // Al cambiar de semana, el día al que apunta el atajo se mueve con ella.
   const changeWeek = (day: IsoDate) => {
@@ -88,6 +99,7 @@ export function App() {
         {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
         {view === 'week' && (
           <WeekView
+            today={today}
             anchor={weekAnchor}
             selectedDay={selectedDay}
             onAnchorChange={changeWeek}

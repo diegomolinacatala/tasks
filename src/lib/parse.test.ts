@@ -413,4 +413,22 @@ describe('parseSpoken', () => {
     const text = 'Llamar a Miguel hoy a las 17:00 y recordarlo 10 minutos antes.'
     expect(parseSpoken(text, NOW)).toEqual(parseTask(text, NOW))
   })
+
+  test('dictado como pregunta: los signos eran de la petición, no de la tarea', () => {
+    expect(parseSpoken('¿Me recuerdas llamar a Ana mañana?', NOW)).toMatchObject({ title: 'Llamar a Ana', date: '2026-09-12' })
+    // "Recuérdame a las 5" es la hora del aviso, no la de la tarea.
+    expect(parseSpoken('¿Puedes recordarme a las 5 llamar a Ana?', NOW)).toMatchObject({
+      title: 'Llamar a Ana',
+      time: null,
+      reminders: [{ kind: 'at', at: toInstant('2026-09-11', '17:00') }],
+    })
+  })
+
+  test('una pregunta que es la propia tarea conserva sus signos', () => {
+    expect(parseSpoken('¿Qué le regalo a Ana?', NOW).title).toBe('¿Qué le regalo a Ana?')
+    expect(parseSpoken('¿Qué le regalo a Ana mañana?', NOW)).toMatchObject({
+      title: '¿Qué le regalo a Ana?',
+      date: '2026-09-12',
+    })
+  })
 })

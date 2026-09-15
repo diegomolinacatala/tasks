@@ -29,11 +29,17 @@ const subscriptionOf = (row: DeviceRow): Subscription => ({
   keys: { p256dh: row.p256dh, auth: row.auth },
 })
 
-function keyConditions(db: D1Database, sqlPrefix: string, keys: readonly ItemKey[]): D1PreparedStatement[] {
-  return chunk(keys, MAX_PARAMS / 2).map((group) =>
+/** `leading`: parámetros de `sqlPrefix`, que se repiten en cada bloque. */
+function keyConditions(
+  db: D1Database,
+  sqlPrefix: string,
+  keys: readonly ItemKey[],
+  leading: readonly unknown[] = [],
+): D1PreparedStatement[] {
+  return chunk(keys, Math.floor((MAX_PARAMS - leading.length) / 2)).map((group) =>
     db
       .prepare(`${sqlPrefix} WHERE ${group.map(() => '(device_id = ? AND id = ?)').join(' OR ')}`)
-      .bind(...group.flatMap((key) => [key.deviceId, key.id])),
+      .bind(...leading, ...group.flatMap((key) => [key.deviceId, key.id])),
   )
 }
 
@@ -126,8 +132,10 @@ export function d1Store(db: D1Database): Store {
       if (keys.length) await db.batch(keyConditions(db, 'DELETE FROM schedule', keys))
     },
 
-    async bumpAttempts(keys) {
-      if (keys.length) await db.batch(keyConditions(db, 'UPDATE schedule SET attempts = attempts + 1', keys))
+    async bumpAttempts(keys, retryAt) {
+      if (keys.length) {
+        await db.batch(keyConditions(db, 'UPDATE schedule SET attempts = attempts + 1, at = ?', keys, [retryAt]))
+      }
     },
 
     async nextDueAt() {

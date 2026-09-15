@@ -201,6 +201,18 @@ describe('api', () => {
     await expect(bad.transcribe('tok', 'QUJD')).rejects.toThrow(/inesperada/)
   })
 
+  test('transcribe se puede cancelar: el aborto no se disfraza de error de conexión', async () => {
+    const controller = new AbortController()
+    const fetch = fakeFetch(() => json(200, { data: { text: 'hola' } }))
+    const api = createPushApi('https://api.test', (input, init) => {
+      controller.abort()
+      return init?.signal?.aborted ? Promise.reject(init.signal.reason) : fetch.impl(input, init)
+    })
+    const error = await api.transcribe('tok', 'QUJD', undefined, { signal: controller.signal }).catch((e: unknown) => e)
+    expect(error).not.toBeInstanceOf(PushApiError)
+    expect(error).toMatchObject({ name: 'AbortError' })
+  })
+
   test('los errores del servidor llegan con estado y mensaje', async () => {
     const api = createPushApi('https://api.test', fakeFetch(() => json(401, { error: 'no autorizado' })).impl)
     const error = await api.putSchedule('tok', []).catch((e: unknown) => e)

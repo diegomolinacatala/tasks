@@ -18,6 +18,8 @@ const LEADING = new RegExp(
     'oye',
     'mira',
     'pues',
+    // Solo con coma o punto detrás: "nada, comprar pan", no "nada 30 largos".
+    'nada(?=[,.])',
     'vamos a ver',
     'a ver',
     'eh+',
@@ -26,6 +28,8 @@ const LEADING = new RegExp(
     'recuerdame(?: que)?',
     'recordarme(?: que)?',
     'recordar que',
+    'me recuerdas(?: que)?',
+    '(?:me )?(?:puedes|podrias) recordar(?:me)?(?: que)?',
     'acuerdate de(?: que)?',
     'acordarme de(?: que)?',
     'no te olvides de(?: que)?',
@@ -54,6 +58,8 @@ const MEETING = /^(?:he )?quedado con (.+?) para (?!que )(.+)$/d
 
 const CONNECTORS = /^(?:(?:y|a|el|la|de|para|,)\s+)+|(?:\s+(?:y|a|el|la|de|para|,))+$/i
 const EDGE_PUNCTUATION = /^[,.;:]+|[,.;:]+$/g
+/** "¿Me recuerdas llamar a Ana?": pregunta entera, con lo de dentro aparte. */
+const QUESTION = /^[¿¡]\s*([^¿¡?!]+?)\s*[?!]*$/
 
 function stripLeading(title: string): string {
   const folded = fold(title)
@@ -65,7 +71,24 @@ function stripLeading(title: string): string {
   return lead && lead[0].length < title.length ? title.slice(lead[0].length) : title
 }
 
+/** Si la pregunta era la petición ("¿puedes recordarme…?"), los signos sobran; si no, se quedan. */
+function stripRequest(title: string): string {
+  const inner = QUESTION.exec(title)?.[1]
+  if (!inner) return stripLeading(title)
+  const unprefixed = stripLeading(inner)
+  return unprefixed === inner ? title : unprefixed
+}
+
 export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** Quita los signos que envuelven una pregunta entera: "¿llamar a Ana?" → "llamar a Ana". */
+export const unwrapQuestion = (text: string) => QUESTION.exec(text)?.[1] ?? text
+
+/** "¿Puedes recordarme…?" es una petición; "¿Qué le regalo a Ana?" es la tarea misma. */
+export function isRequestQuestion(text: string): boolean {
+  const inner = QUESTION.exec(text)?.[1]
+  return inner !== undefined && stripLeading(inner) !== inner
+}
 
 /**
  * Quita del texto original los tramos reconocidos (fechas, horas, avisos) y lo que sobra
@@ -76,14 +99,18 @@ export function cleanTitle(original: string, spans: readonly Span[]): string {
   const sorted = [...spans].sort((a, b) => b.start - a.start)
   const cut = sorted.reduce((text, span) => `${text.slice(0, span.start)} ${text.slice(span.end)}`, original)
 
-  let title = cut.replace(/\s+/g, ' ').replace(/\s+([,.;:])/g, '$1').trim()
+  let title = cut
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:?!])/g, '$1')
+    .replace(/([¿¡])\s+/g, '$1')
+    .trim()
   let stripped = false
   let previous = ''
   while (previous !== title) {
     previous = title
     // La muletilla va antes que los conectores: si no, "a ver" perdería la "a".
     const trimmed = title.replace(EDGE_PUNCTUATION, '').trim()
-    const unprefixed = stripLeading(trimmed)
+    const unprefixed = stripRequest(trimmed)
     stripped ||= unprefixed !== trimmed
     title = unprefixed.replace(CONNECTORS, '').replace(EDGE_PUNCTUATION, '').trim()
   }

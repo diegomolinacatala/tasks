@@ -4,7 +4,7 @@ import type { NormalizedText } from './normalize'
 import { normalizeText, originalSpan } from './normalize'
 import { reminderLabel } from './reminders'
 import type { Span } from './title'
-import { capitalize, cleanTitle } from './title'
+import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
 import {
   AMOUNT_SOURCE,
   DAY_MINUTES,
@@ -209,12 +209,15 @@ export function parseTask(input: string, now: number): ParsedTask {
 /**
  * Igual que `parseTask`, pero para texto dictado: aunque no traiga fecha ni hora, se limpian
  * las muletillas ("Bueno, recuérdame…") y la puntuación que añade la transcripción, y el
- * título empieza siempre en mayúscula.
+ * título empieza siempre en mayúscula. Si la pregunta dictada era una petición ("¿puedes
+ * recordarme…?"), sus signos no son parte de la tarea; se mira la frase original porque el
+ * analizador puede haberse llevado ya la petición junto con la hora del aviso.
  */
 export function parseSpoken(input: string, now: number): ParsedTask {
-  const parsed = parseTask(input.trim(), now)
+  const text = input.trim()
+  const parsed = parseTask(text, now)
   const title = parsed.label !== null ? parsed.title : cleanTitle(parsed.title, []) || parsed.title
-  return { ...parsed, title: capitalize(title) }
+  return { ...parsed, title: capitalize(isRequestQuestion(text) ? unwrapQuestion(title) : title) }
 }
 
 /** `Mañana 17:00 · 1 h antes · 30 min antes`. `isDefault`: el único aviso es el automático "a la hora". */

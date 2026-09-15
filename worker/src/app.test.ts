@@ -282,6 +282,16 @@ describe('rutas autenticadas', () => {
     expect(await response.text()).not.toContain('modelo')
   })
 
+  test('POST /v1/transcribe responde 503 si se agota la cuota diaria de Workers AI', async () => {
+    const { deps } = testDeps()
+    const { token } = await register(deps)
+    const quota = new Error('4006: you have used up your daily free allocation of 10,000 neurons')
+    const exhausted: Deps = { ...deps, transcriber: { transcribe: () => Promise.reject(quota) } }
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), exhausted)
+    expect(response.status).toBe(503)
+    expect(await response.text()).not.toContain('neurons')
+  })
+
   test('DELETE /v1/devices borra dispositivo y agenda', async () => {
     const { deps, memory, now } = testDeps()
     const { token, deviceId } = await register(deps)

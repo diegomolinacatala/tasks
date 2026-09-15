@@ -1,7 +1,7 @@
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--nav-h) + var(--composer-h) + var(--safe-b) + 12px);
+  bottom: calc(var(--nav-h) + var(--composer-h) + var(--safe-b) + 12px + var(--kb, 0px));
   transform: translateX(-50%);
   z-index: 50;
   display: flex;

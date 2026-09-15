@@ -55,16 +55,30 @@ describe('runDue', () => {
   })
 
   test('reintenta fallos transitorios hasta el máximo', async () => {
-    const { deps, memory, addDevice, now } = setup(() => 'retry')
+    const { deps, memory, addDevice, now, setNow } = setup(() => 'retry')
     await addDevice('d1')
     await deps.store.replaceSchedule('d1', [{ id: 'a', at: now(), payload: 'eA' }])
 
     for (let attempt = 1; attempt < MAX_ATTEMPTS; attempt++) {
       expect((await runDue(deps)).retried).toBe(1)
-      expect(memory.items()[0]!.attempts).toBe(attempt)
+      expect(memory.items()[0]!).toMatchObject({ attempts: attempt, at: now() + RETRY_DELAY_MS })
+      setNow(now() + RETRY_DELAY_MS)
     }
     expect((await runDue(deps)).dropped).toBe(1)
     expect(memory.items()).toEqual([])
+  })
+
+  test('un reintento se aplaza sin retrasar los avisos que vienen justo detrás', async () => {
+    const { deps, addDevice, now } = setup((endpoint) => (endpoint.endsWith('caido') ? 'retry' : 'sent'))
+    await addDevice('caido')
+    await addDevice('d1')
+    await deps.store.replaceSchedule('caido', [{ id: 'a', at: now(), payload: 'eA' }])
+    await deps.store.replaceSchedule('d1', [{ id: 'b', at: now() + 5000, payload: 'eA' }])
+
+    const summary = await runDue(deps)
+
+    expect(await deps.store.nextDueAt()).toBe(now() + 5000)
+    expect(planNext(await deps.store.nextDueAt(), now(), summary)).toBe(now() + 5000)
   })
 
   test('borra el dispositivo cuya suscripción ya no existe', async () => {
@@ -137,8 +151,12 @@ describe('planNext', () => {
     expect(planNext(NOW - 5, NOW, { ...idle, sent: MAX_PER_RUN })).toBe(NOW + LOOKAHEAD_MS)
   })
 
-  test('si hubo reintentos, espera antes de volver', () => {
-    expect(planNext(NOW - 5, NOW, { ...idle, retried: 1 })).toBe(NOW + RETRY_DELAY_MS)
+  test('si la ejecución falló, espera antes de volver', () => {
+    expect(planNext(NOW - 5, NOW, { ...idle, failed: true })).toBe(NOW + RETRY_DELAY_MS)
+  })
+
+  test('los reintentos ya llevan su nueva hora: se sigue la del próximo pendiente', () => {
+    expect(planNext(NOW + RETRY_DELAY_MS, NOW, { ...idle, retried: 1 })).toBe(NOW + RETRY_DELAY_MS)
   })
 })
 

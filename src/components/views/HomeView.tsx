@@ -28,7 +28,7 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
   const dispatch = useDispatch()
   const sensors = useDragSensors()
   const { toggle, remove } = useTaskActions()
-  const { columns, sections, activeId, activeType, handlers } = useHomeBoard(today)
+  const { columns, hasOverdue, sections, activeId, activeType, handlers } = useHomeBoard(today)
   const [draftSection, setDraftSection] = useState<string | null>(null)
 
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
@@ -94,7 +94,7 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
         accessibility={{ announcements }}
         {...handlers}
       >
-        {overdueIds.length > 0 && (
+        {hasOverdue && (
           <section className="block">
             <BlockHeader
               label="Atrasadas"

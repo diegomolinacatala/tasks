@@ -58,6 +58,14 @@ describe('normalizeState', () => {
     expect(result!.tasks[0]!.sectionId).toBeNull()
   })
 
+  test('una tarea sin fecha no conserva sección', () => {
+    const result = normalizeState({
+      tasks: [{ id: 'a', title: 'x', date: null, sectionId: 's1' }],
+      sections: [{ id: 's1', name: 'Casa' }],
+    })
+    expect(result!.tasks[0]!.sectionId).toBeNull()
+  })
+
   test('ignora fechas con formato inválido', () => {
     const result = normalizeState({ tasks: [{ id: 'a', title: 'x', date: '11/09/2026' }], sections: [] })
     expect(result!.tasks[0]!.date).toBeNull()

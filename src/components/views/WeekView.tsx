@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { addDays, dayNameShort, dayNumber, rangeLabel, todayIso, weekDays } from '../../lib/date'
+import { addDays, dayNameShort, dayNumber, rangeLabel, weekDays } from '../../lib/date'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { sortedSections } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
@@ -15,6 +15,7 @@ import './views.css'
 const dayDropId = (day: IsoDate) => `day:${day}`
 
 interface WeekViewProps {
+  today: IsoDate
   anchor: IsoDate
   selectedDay: IsoDate
   onAnchorChange: (day: IsoDate) => void
@@ -22,7 +23,7 @@ interface WeekViewProps {
   onOpenTask: (id: string) => void
 }
 
-export function WeekView({ anchor, selectedDay, onAnchorChange, onSelectDay, onOpenTask }: WeekViewProps) {
+export function WeekView({ today, anchor, selectedDay, onAnchorChange, onSelectDay, onOpenTask }: WeekViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const sensors = useDragSensors()
@@ -30,7 +31,6 @@ export function WeekView({ anchor, selectedDay, onAnchorChange, onSelectDay, onO
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const days = useMemo(() => weekDays(anchor), [anchor])
-  const today = todayIso()
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
 
   const rank = useMemo(() => {

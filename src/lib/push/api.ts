@@ -45,9 +45,14 @@ export interface PushApi {
   putSchedule(token: string, items: readonly EncryptedItem[], options?: { keepalive?: boolean }): Promise<void>
   /**
    * WAV en base64 → texto transcrito y, si se manda el contexto, las tareas que la IA entiende.
-   * `tasks` llega sin validar: ver `draftsFromInterpreted`.
+   * `tasks` llega sin validar: ver `draftsFromInterpreted`. `signal` cancela la espera.
    */
-  transcribe(token: string, audio: string, context?: VoiceContext): Promise<Transcription>
+  transcribe(
+    token: string,
+    audio: string,
+    context?: VoiceContext,
+    options?: { signal?: AbortSignal },
+  ): Promise<Transcription>
   unregister(token: string): Promise<void>
 }
 
@@ -63,7 +68,7 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
   async function call(
     method: string,
     path: string,
-    options: { token?: string; body?: unknown; keepalive?: boolean } = {},
+    options: { token?: string; body?: unknown; keepalive?: boolean; signal?: AbortSignal } = {},
   ): Promise<unknown> {
     const headers: Record<string, string> = {}
     if (options.token) headers.authorization = `Bearer ${options.token}`
@@ -76,10 +81,13 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
         method,
         headers,
         body,
+        signal: options.signal,
         // Los navegadores rechazan `keepalive` con cuerpos de más de 64 KB.
         keepalive: Boolean(options.keepalive) && (body?.length ?? 0) < KEEPALIVE_MAX_CHARS,
       })
-    } catch {
+    } catch (error) {
+      // Una cancelación pedida no es un fallo de red: quien la pidió decide qué enseñar.
+      if (options.signal?.aborted) throw error
       throw new PushApiError(0, 'Sin conexión con el servidor de avisos.')
     }
 
@@ -111,8 +119,8 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
     async putSchedule(token, items, options = {}) {
       await call('PUT', '/v1/schedule', { token, body: { items }, keepalive: options.keepalive })
     },
-    async transcribe(token, audio, context) {
-      const data = await call('POST', '/v1/transcribe', { token, body: { audio, context } })
+    async transcribe(token, audio, context, options = {}) {
+      const data = await call('POST', '/v1/transcribe', { token, body: { audio, context }, signal: options.signal })
       if (!isRecord(data) || typeof data.text !== 'string') throw new PushApiError(500, 'Respuesta inesperada.')
       return { text: data.text, tasks: data.tasks ?? null }
     },

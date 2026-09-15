@@ -1,4 +1,5 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
+import { isQuotaExceeded } from './transcribe'
 import type { Deps, Device } from './types'
 import type { InterpretedTask } from './types'
 import { MAX_AUDIO_CHARS, parseAudio, parseInterpretContext, parseSchedule, parseSubscription } from './validate'
@@ -137,6 +138,11 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       try {
         text = await deps.transcriber.transcribe(audio)
       } catch (error) {
+        // El móvil distingue la cuota por el 503 para decir cuándo vuelve el dictado.
+        if (isQuotaExceeded(error)) {
+          console.error('transcripción fallida', 'cuota diaria agotada')
+          throw new HttpError(503, 'cuota diaria de dictado agotada')
+        }
         // Ni audio ni texto en los registros: solo que falló.
         console.error('transcripción fallida', error instanceof Error ? error.name : 'desconocido')
         throw new HttpError(502, 'no se pudo transcribir el audio')

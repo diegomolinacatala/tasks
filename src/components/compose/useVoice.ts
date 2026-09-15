@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { nextUtcMidnight, shortTime, timeOfInstant } from '../../lib/date'
+import { PushApiError } from '../../lib/push/api'
+import type { Capture } from '../../lib/voice/capture'
 import { createAudioContext, startCapture } from '../../lib/voice/capture'
 import { speechSupported, startSpeech } from '../../lib/voice/speech'
 import { TARGET_RATE, bytesToBase64, encodeWav, resample } from '../../lib/voice/wav'
@@ -6,6 +9,12 @@ import { usePush } from '../push/PushProvider'
 import { useToast } from '../ui/Toast'
 
 export type VoicePhase = 'idle' | 'listening' | 'processing'
+
+/**
+ * Whisper más la IA tardan unos segundos; si el servidor se queda colgado, la barra no puede
+ * quedarse en "Creando tarea…" para siempre.
+ */
+const TRANSCRIBE_TIMEOUT_MS = 25_000
 
 interface Session {
   stop: () => void
@@ -17,6 +26,11 @@ function errorMessage(error: unknown): string {
     return 'Permite el acceso al micrófono para dictar.'
   }
   if (error instanceof DOMException && error.name === 'NotFoundError') return 'No se encuentra ningún micrófono.'
+  // 503: el servidor ha gastado la cuota diaria de Workers AI, que se renueva a las 00:00 UTC.
+  if (error instanceof PushApiError && error.status === 503) {
+    return `Dictado agotado por hoy. Vuelve a las ${shortTime(timeOfInstant(nextUtcMidnight(Date.now())))}.`
+  }
+  if (error instanceof PushApiError && error.status === 502) return 'No se ha podido transcribir el audio.'
   return error instanceof Error ? error.message : 'No se pudo dictar.'
 }
 
@@ -32,7 +46,9 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const [partial, setPartial] = useState('')
   const session = useRef<Session | null>(null)
 
-  const reset = useCallback(() => {
+  /** Solo la sesión vigente puede devolver la barra a reposo: una cancelada no pisa a la siguiente. */
+  const finish = useCallback((owner: Session) => {
+    if (session.current !== owner) return
     session.current = null
     setPhase('idle')
     setLevel(0)
@@ -58,44 +74,67 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
       toast({ message: errorMessage(error) })
       return
     }
+
+    const controller = new AbortController()
+    let capture: Capture | null = null
+    let timedOut = false
+    // Cancelar sirve en cualquier fase: pidiendo permiso, grabando o esperando al servidor.
+    const current: Session = {
+      stop: () => capture?.stop(),
+      cancel: () => {
+        controller.abort()
+        capture?.cancel()
+        finish(current)
+      },
+    }
+    session.current = current
     setPhase('listening')
+
     void (async () => {
+      let timer: ReturnType<typeof setTimeout> | undefined
       try {
-        const capture = await startCapture(context, setLevel)
-        session.current = capture
+        capture = await startCapture(context, setLevel)
+        if (controller.signal.aborted) {
+          capture.cancel()
+          return
+        }
         const audio = await capture.result
-        session.current = null
-        if (audio.status === 'cancelled') return
+        if (audio.status === 'cancelled' || controller.signal.aborted) return
         if (audio.status === 'silent') {
           toast({ message: 'No te he oído.' })
           return
         }
         setPhase('processing')
         const wav = encodeWav(resample(audio.samples, audio.sampleRate), TARGET_RATE)
-        const { text, tasks } = await push.transcribe(bytesToBase64(wav))
-        deliver(text, tasks)
+        timer = setTimeout(() => {
+          timedOut = true
+          controller.abort()
+        }, TRANSCRIBE_TIMEOUT_MS)
+        const { text, tasks } = await push.transcribe(bytesToBase64(wav), controller.signal)
+        if (!controller.signal.aborted) deliver(text, tasks)
       } catch (error) {
-        toast({ message: errorMessage(error) })
+        if (timedOut) toast({ message: 'El dictado está tardando demasiado. Prueba otra vez.' })
+        else if (!controller.signal.aborted) toast({ message: errorMessage(error) })
       } finally {
-        reset()
+        clearTimeout(timer)
+        finish(current)
       }
     })()
-  }, [deliver, push, reset, toast])
+  }, [deliver, finish, push, toast])
 
   const dictate = useCallback(() => {
-    setPhase('listening')
     try {
       const speech = startSpeech(setPartial)
       session.current = speech
+      setPhase('listening')
       speech.result
         .then((text) => deliver(text))
         .catch((error: unknown) => toast({ message: errorMessage(error) }))
-        .finally(reset)
+        .finally(() => finish(speech))
     } catch (error) {
       toast({ message: errorMessage(error) })
-      reset()
     }
-  }, [deliver, reset, toast])
+  }, [deliver, finish, toast])
 
   const start = useCallback(() => {
     if (phase !== 'idle') return

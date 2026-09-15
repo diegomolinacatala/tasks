@@ -178,6 +178,37 @@ describe('task/move', () => {
     const next = reducer(state, { type: 'task/move', id: state.tasks[0]!.id, date: null, sectionId: null })
     expect(next.tasks[0]!.date).toBeNull()
   })
+
+  test('volver a elegir el mismo día y sección no la manda al final', () => {
+    const state = withTasks('uno', 'dos', 'tres')
+    const first = state.tasks[0]!
+    expect(reducer(state, { type: 'task/move', id: first.id, date: TODAY, sectionId: null })).toBe(state)
+    expect(titles(state)).toEqual(['uno', 'dos', 'tres'])
+  })
+
+  test('una tarea sin fecha pierde la sección', () => {
+    const withSection = run(emptyState(), { type: 'section/add', name: 'Casa', id: 'casa' })
+    const state = run(withSection, { type: 'task/add', title: 'uno', date: TODAY, sectionId: 'casa' })
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/move', id, date: null, sectionId: 'casa' }).tasks[0]!.sectionId).toBeNull()
+  })
+})
+
+describe('acciones sin efecto', () => {
+  test('no crean estado nuevo: ni guardado ni sincronización de más', () => {
+    const state = withTasks('uno', 'dos')
+    const [a, b] = state.tasks as [Task, Task]
+    expect(reducer(state, { type: 'task/rename', id: a.id, title: 'uno' })).toBe(state)
+    expect(reducer(state, { type: 'task/toggle', id: 'nadie' })).toBe(state)
+    expect(
+      reducer(state, { type: 'board/commit', columns: [{ date: TODAY, sectionId: null, ids: [a.id, b.id] }] }),
+    ).toBe(state)
+  })
+
+  test('crear una tarea sin fecha ignora la sección', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'x', date: null, sectionId: 'casa' })
+    expect(state.tasks[0]!.sectionId).toBeNull()
+  })
 })
 
 describe('scope/reorder', () => {

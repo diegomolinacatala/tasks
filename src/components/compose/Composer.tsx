@@ -44,9 +44,12 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice }: ComposerP
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
     if (!ready) return
+    // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
+    // añade la tarea, no desde la última tecla.
+    const fresh = parseTask(value, Date.now())
     onSubmit(
-      detected && !literal
-        ? { title: parsed.title, date: parsed.date, time: parsed.time, reminders: parsed.reminders }
+      fresh.label !== null && !literal
+        ? { title: fresh.title, date: fresh.date, time: fresh.time, reminders: fresh.reminders }
         : { title: value, date: null, time: null, reminders: [] },
     )
     reset()

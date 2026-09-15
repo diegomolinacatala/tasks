@@ -18,11 +18,19 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   const [shown, setShown] = useState(false)
   const [dragY, setDragY] = useState(0)
   const startY = useRef(0)
+  // Al soltar hay que leer el desplazamiento real, no el del último render.
+  const dragged = useRef(0)
   const panel = useRef<HTMLDivElement>(null)
+
+  const drag = (value: number) => {
+    dragged.current = value
+    setDragY(value)
+  }
 
   useEffect(() => {
     if (open) {
       setMounted(true)
+      dragged.current = 0
       setDragY(0)
       const frame = requestAnimationFrame(() => setShown(true))
       return () => cancelAnimationFrame(frame)
@@ -55,12 +63,12 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
 
   const onHandleMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-    setDragY(Math.max(0, event.clientY - startY.current))
+    drag(Math.max(0, event.clientY - startY.current))
   }
 
   const onHandleUp = () => {
-    if (dragY > CLOSE_DRAG_PX) onClose()
-    setDragY(0)
+    if (dragged.current > CLOSE_DRAG_PX) onClose()
+    drag(0)
   }
 
   return createPortal(

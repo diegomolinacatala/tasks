@@ -6,6 +6,7 @@ import {
   isValidTime,
   isoOfInstant,
   shortTime,
+  nextUtcMidnight,
   timeOfInstant,
   toInstant,
   fromIso,
@@ -108,6 +109,11 @@ describe('horas', () => {
     expect(new Date(ms).getHours()).toBe(17)
     expect(isoOfInstant(ms)).toBe('2026-09-11')
     expect(timeOfInstant(ms)).toBe('17:05')
+  })
+
+  test('nextUtcMidnight salta a las 00:00 UTC del día siguiente, también a fin de mes', () => {
+    expect(nextUtcMidnight(Date.UTC(2026, 8, 15, 18, 30))).toBe(Date.UTC(2026, 8, 16))
+    expect(nextUtcMidnight(Date.UTC(2026, 8, 30, 0, 0))).toBe(Date.UTC(2026, 9, 1))
   })
 
   test('formatTime rellena y shortTime quita el cero inicial', () => {

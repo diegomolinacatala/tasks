@@ -66,15 +66,19 @@ const TASK_ACTIONS: { action: NotificationAction; title: string }[] = [
 
 /** La app aplica la acción: el estado de las tareas solo vive en la página. */
 async function openTask(taskId: string | null, action: NotificationAction | null): Promise<void> {
+  const scope = new URL(BASE, self.location.origin).href
   const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-  const client = windows[0]
+  // La ventana de la app, no otra pestaña del mismo origen; mejor la que ya está a la vista.
+  const inScope = windows.filter((item) => item.url.startsWith(scope))
+  const client = inScope.find((item) => item.focused) ?? inScope[0]
   if (client) {
-    await client.focus()
     const message: OpenTaskMessage = { type: 'open-task', taskId, action }
+    // El mensaje sale aunque el sistema no deje enfocar: la acción no puede perderse por eso.
     client.postMessage(message)
+    await client.focus().catch(() => undefined)
     return
   }
-  const url = new URL(BASE, self.location.origin)
+  const url = new URL(scope)
   if (taskId) url.searchParams.set('task', taskId)
   if (taskId && action) url.searchParams.set('action', action)
   await self.clients.openWindow(url.href)

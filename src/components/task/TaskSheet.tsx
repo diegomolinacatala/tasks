@@ -8,6 +8,7 @@ import { IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { ReminderPicker } from './ReminderPicker'
 import { SnoozeBar } from './SnoozeBar'
+import { useTaskActions } from './useTaskActions'
 
 interface TaskSheetProps {
   taskId: string | null
@@ -19,6 +20,7 @@ interface TaskSheetProps {
 export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
+  const { remove } = useTaskActions()
   const task = findTask(state, taskId)
   // Se conserva la última tarea para poder animar el cierre del panel.
   const [shown, setShown] = useState<Task | null>(task)
@@ -77,7 +79,8 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
 
   return (
     <Sheet open={open} onClose={close} title="Editar tarea">
-      {fromNotification && <SnoozeBar task={shown} onDone={close} />}
+      {/* Posponer una tarea ya hecha crearía un aviso que nunca suena. */}
+      {fromNotification && !shown.done && <SnoozeBar task={shown} onDone={close} />}
 
       <textarea
         className="sheet__input"
@@ -136,51 +139,57 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
 
       <ReminderPicker task={shown} />
 
-      <p className="sheet__title">Sección</p>
-      <div className="sheet__chips">
-        <button
-          type="button"
-          className={`chip ${shown.sectionId === null ? 'is-active' : ''}`}
-          onClick={() => setSection(null)}
-        >
-          Ninguna
-        </button>
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={`chip ${shown.sectionId === section.id ? 'is-active' : ''}`}
-            onClick={() => setSection(section.id)}
-          >
-            {section.name}
-          </button>
-        ))}
-        {draftSection === null ? (
-          <button type="button" className="chip" onClick={() => setDraftSection('')}>
-            + Nueva
-          </button>
-        ) : (
-          <input
-            className="chip"
-            autoFocus
-            placeholder="Nombre"
-            value={draftSection}
-            onChange={(event) => setDraftSection(event.target.value)}
-            onBlur={() => setDraftSection(null)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') createSection(draftSection)
-              if (event.key === 'Escape') setDraftSection(null)
-            }}
-          />
-        )}
-      </div>
+      {/* Las secciones agrupan dentro del día: sin fecha no hay dónde agrupar. */}
+      {shown.date !== null && (
+        <>
+          <p className="sheet__title">Sección</p>
+          <div className="sheet__chips">
+            <button
+              type="button"
+              className={`chip ${shown.sectionId === null ? 'is-active' : ''}`}
+              onClick={() => setSection(null)}
+            >
+              Ninguna
+            </button>
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={`chip ${shown.sectionId === section.id ? 'is-active' : ''}`}
+                onClick={() => setSection(section.id)}
+              >
+                {section.name}
+              </button>
+            ))}
+            {draftSection === null ? (
+              <button type="button" className="chip" onClick={() => setDraftSection('')}>
+                + Nueva
+              </button>
+            ) : (
+              <input
+                className="chip"
+                autoFocus
+                placeholder="Nombre"
+                value={draftSection}
+                onChange={(event) => setDraftSection(event.target.value)}
+                onBlur={() => setDraftSection(null)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') createSection(draftSection)
+                  if (event.key === 'Escape') setDraftSection(null)
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <p className="sheet__title">Acciones</p>
       <button
         type="button"
         className="sheet__row sheet__row--danger"
         onClick={() => {
-          if (task) dispatch({ type: 'task/remove', id: task.id })
+          // Mismo borrado que al deslizar: con "Deshacer" en el aviso.
+          if (task) remove(task.id)
           onClose()
         }}
       >

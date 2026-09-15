@@ -94,6 +94,12 @@ export function timeOfInstant(ms: number): IsoTime {
   return formatTime(date.getHours(), date.getMinutes())
 }
 
+/** Siguiente medianoche UTC: cuando se renueva la cuota diaria de Workers AI. */
+export function nextUtcMidnight(ms: number): number {
+  const date = new Date(ms)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1)
+}
+
 /** `9:00`, `17:30`: sin cero a la izquierda, como se lee en español. */
 export const shortTime = (time: IsoTime): string => time.replace(/^0(\d)/, '$1')
 

@@ -74,11 +74,12 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     [api, device, onForgotten],
   )
 
+  // `today` también: al cambiar de día con la app abierta, el resumen diario gana el día nuevo.
   useEffect(() => {
     if (!device) return
     const timer = setTimeout(() => void sync(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, state.settings, device, sync])
+  }, [state.tasks, state.settings, today, device, sync])
 
   useEffect(() => {
     const onVisibility = () => {

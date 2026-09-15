@@ -46,7 +46,8 @@ export async function runDue(deps: Deps): Promise<RunSummary> {
   const retrying = failed.filter((item) => item.attempts + 1 < MAX_ATTEMPTS)
 
   await deps.store.deleteItems([...late, ...finished, ...exhausted].map(keyOf))
-  await deps.store.bumpAttempts(retrying.map(keyOf))
+  // El reintento se aplaza en la propia fila: así no retiene la alarma de los avisos que vienen detrás.
+  await deps.store.bumpAttempts(retrying.map(keyOf), now + RETRY_DELAY_MS)
   await deps.store.deleteDevices([...goneDevices])
   await deps.store.deleteStaleDevices(now - STALE_DEVICE_MS)
 
@@ -62,10 +63,16 @@ export async function runDue(deps: Deps): Promise<RunSummary> {
 
 /**
  * Cuándo debe volver a sonar la alarma tras una ejecución. `null` = no queda nada.
- * Si aún hay avisos vencidos (se superó el tope por ejecución o hay reintentos), vuelve pronto.
+ * Los reintentos ya llevan su hora aplazada, así que basta seguir al pendiente más próximo.
+ * Si aún quedan vencidos (se superó el tope por ejecución), vuelve enseguida; si la ejecución
+ * falló entera, espera antes de insistir.
  */
-export function planNext(pending: number | null, now: number, summary: RunSummary): number | null {
+export function planNext(
+  pending: number | null,
+  now: number,
+  outcome: RunSummary & { failed?: boolean },
+): number | null {
   if (pending === null) return null
   if (pending > now) return pending
-  return now + (summary.retried > 0 ? RETRY_DELAY_MS : LOOKAHEAD_MS)
+  return now + (outcome.failed ? RETRY_DELAY_MS : LOOKAHEAD_MS)
 }

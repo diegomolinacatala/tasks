@@ -60,7 +60,10 @@ export function TaskShell({
       <div
         className="task__surface"
         style={{
-          transform: `translate3d(${swipe.offset}px,0,0)`,
+          // Capa propia solo mientras se mueve: una por fila en reposo gasta memoria de GPU y
+          // hace que el scroll de listas largas vaya a tirones en iPhone.
+          transform: swipe.offset ? `translate3d(${swipe.offset}px,0,0)` : undefined,
+          willChange: swipe.settling ? undefined : 'transform',
           transition: swipe.settling ? 'transform var(--dur-2) var(--ease)' : 'none',
         }}
         onPointerDown={swipe.handlers.onPointerDown}

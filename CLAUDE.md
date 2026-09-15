@@ -178,7 +178,8 @@ toast enseña lo entendido con "Deshacer".
     prompt se mide con el banco antes y después, y cada fallo nuevo se añade como caso.
   - Cuota: el plan gratuito de Workers AI da 10.000 neuronas al día, compartidas entre la app y
     `npm run eval`. Un dictado gasta ~140 (Whisper + prompt de ~2.000 tokens); si se agota, el
-    dictado deja de funcionar hasta las 00:00 UTC.
+    dictado deja de funcionar hasta las 00:00 UTC. Workers AI lo indica con el error `4006`: el
+    Worker responde 503 y la app avisa de a qué hora vuelve.
 - **Analizador local** (`parseSpoken`, respaldo y única vía sin avisos): entiende las mismas
   frases salvo varias tareas a la vez. Quita muletillas y verbos de ir (`title.ts`), y reconoce
   "un cuarto de hora antes", "con media hora de antelación", "el día antes a las 8",

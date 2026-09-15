@@ -34,6 +34,17 @@ describe('cleanTitle', () => {
     expect(clean('he quedado con el fontanero para que revise la caldera')).toBe('he quedado con el fontanero para que revise la caldera')
   })
 
+  test('una petición en forma de pregunta deja solo la tarea', () => {
+    expect(clean('¿Me recuerdas llamar a Ana?')).toBe('Llamar a Ana')
+    expect(clean('¿Puedes recordarme comprar leche?')).toBe('Comprar leche')
+    expect(clean('Bueno, pues nada, comprar pan.')).toBe('Comprar pan')
+  })
+
+  test('sin espacios colgando antes de los signos al recortar', () => {
+    expect(cleanTitle('¿qué le regalo a Ana mañana?', [{ start: 21, end: 27 }])).toBe('¿qué le regalo a Ana?')
+    expect(clean('¿Qué le regalo a Ana?')).toBe('¿Qué le regalo a Ana?')
+  })
+
   test('lo escrito sin muletillas no se toca', () => {
     expect(clean('comprar pan')).toBe('comprar pan')
     expect(clean('Tengo que')).toBe('Tengo que')

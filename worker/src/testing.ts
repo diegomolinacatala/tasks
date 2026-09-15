@@ -49,9 +49,9 @@ export function memoryStore() {
     async deleteItems(keys) {
       items = items.filter((i) => !keys.some((k) => k.deviceId === i.deviceId && k.id === i.id))
     },
-    async bumpAttempts(keys) {
+    async bumpAttempts(keys, retryAt) {
       items = items.map((i) =>
-        keys.some((k) => k.deviceId === i.deviceId && k.id === i.id) ? { ...i, attempts: i.attempts + 1 } : i,
+        keys.some((k) => k.deviceId === i.deviceId && k.id === i.id) ? { ...i, attempts: i.attempts + 1, at: retryAt } : i,
       )
     },
     async nextDueAt() {

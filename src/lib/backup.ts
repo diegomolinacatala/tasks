@@ -34,14 +34,16 @@ function normalizeTask(raw: unknown): Task | null {
   const id = str(raw.id)
   const title = str(raw.title)
   if (!id || !title) return null
+  const date = typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : null
   return {
     id,
     title,
     done: raw.done === true,
-    date: typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : null,
+    date,
     time: isValidTime(raw.time) ? raw.time : null,
     reminders: normalizeReminders(raw.reminders),
-    sectionId: typeof raw.sectionId === 'string' ? raw.sectionId : null,
+    // Sin fecha no hay sección: las secciones agrupan dentro del día.
+    sectionId: date && typeof raw.sectionId === 'string' ? raw.sectionId : null,
     order: num(raw.order),
     createdAt: num(raw.createdAt, Date.now()),
     completedAt: typeof raw.completedAt === 'number' ? raw.completedAt : null,

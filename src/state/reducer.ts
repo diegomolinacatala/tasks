@@ -33,11 +33,15 @@ function updateTask(state: AppState, id: string, update: (task: Task) => Task): 
   return changed ? { ...state, tasks } : state
 }
 
+/** Una tarea sin fecha no tiene sección: las secciones agrupan dentro del día. */
+const sectionFor = (date: IsoDate | null, sectionId: string | null) => (date ? sectionId : null)
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'task/add': {
       const title = clean(action.title)
       if (!title) return state
+      const sectionId = sectionFor(action.date, action.sectionId)
       const base: Task = {
         id: action.id ?? createId(),
         title,
@@ -45,8 +49,8 @@ export function reducer(state: AppState, action: Action): AppState {
         date: action.date,
         time: isValidTime(action.time) ? action.time : null,
         reminders: [],
-        sectionId: action.sectionId,
-        order: nextOrder(state.tasks, scopeKey(action.date, action.sectionId)),
+        sectionId,
+        order: nextOrder(state.tasks, scopeKey(action.date, sectionId)),
         createdAt: Date.now(),
         completedAt: null,
       }
@@ -73,55 +77,57 @@ export function reducer(state: AppState, action: Action): AppState {
       return updateTask(state, action.id, (task) => snoozed(task, action.at, action.now, createId()))
 
     case 'task/toggle':
-      return {
-        ...state,
-        tasks: state.tasks.map((task) =>
-          task.id === action.id
-            ? { ...task, done: !task.done, completedAt: task.done ? null : Date.now() }
-            : task,
-        ),
-      }
+      return updateTask(state, action.id, (task) => ({
+        ...task,
+        done: !task.done,
+        completedAt: task.done ? null : Date.now(),
+      }))
 
     case 'task/rename': {
       const title = clean(action.title)
       if (!title) return state
-      return {
-        ...state,
-        tasks: state.tasks.map((task) => (task.id === action.id ? { ...task, title } : task)),
-      }
+      return updateTask(state, action.id, (task) => (task.title === title ? task : { ...task, title }))
     }
 
     case 'task/remove':
-      return { ...state, tasks: state.tasks.filter((task) => task.id !== action.id) }
+      return state.tasks.some((task) => task.id === action.id)
+        ? { ...state, tasks: state.tasks.filter((task) => task.id !== action.id) }
+        : state
 
     case 'task/restore':
       return state.tasks.some((task) => task.id === action.task.id)
         ? state
         : { ...state, tasks: [...state.tasks, action.task] }
 
-    case 'task/move':
-      return {
-        ...state,
-        tasks: moveTask(state.tasks, action.id, { date: action.date, sectionId: action.sectionId }, action.index),
-      }
+    case 'task/move': {
+      const current = state.tasks.find((task) => task.id === action.id)
+      if (!current) return state
+      const target = { date: action.date, sectionId: sectionFor(action.date, action.sectionId) }
+      // Tocar el día o la sección que ya tiene no debe mandarla al final de su lista.
+      const samePlace = current.date === target.date && current.sectionId === target.sectionId
+      if (samePlace && action.index === undefined) return state
+      return { ...state, tasks: moveTask(state.tasks, action.id, target, action.index) }
+    }
 
     case 'board/commit': {
       const placement = new Map<string, { date: IsoDate | null; sectionId: string | null; order: number }>()
       for (const column of action.columns) {
         column.ids.forEach((id, order) =>
-          placement.set(id, { date: column.date, sectionId: column.sectionId, order }),
+          placement.set(id, { date: column.date, sectionId: sectionFor(column.date, column.sectionId), order }),
         )
       }
-      return {
-        ...state,
-        tasks: state.tasks.map((task) => {
-          const next = placement.get(task.id)
-          if (!next) return task
-          const unchanged =
-            task.date === next.date && task.sectionId === next.sectionId && task.order === next.order
-          return unchanged ? task : { ...task, ...next }
-        }),
-      }
+      let changed = false
+      const tasks = state.tasks.map((task) => {
+        const next = placement.get(task.id)
+        if (!next) return task
+        const unchanged =
+          task.date === next.date && task.sectionId === next.sectionId && task.order === next.order
+        if (unchanged) return task
+        changed = true
+        return { ...task, ...next }
+      })
+      // Soltar una tarea donde estaba no debe guardar ni sincronizar nada.
+      return changed ? { ...state, tasks } : state
     }
 
     case 'scope/reorder':

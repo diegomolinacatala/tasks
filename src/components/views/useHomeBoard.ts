@@ -121,6 +121,9 @@ export function useHomeBoard(today: IsoDate) {
 
   return {
     columns,
+    // Se mira el tablero confirmado, no la copia: si al arrastrar se saca la única atrasada,
+    // el bloque no desaparece a mitad del gesto y la lista no salta bajo el dedo.
+    hasOverdue: (base[OVERDUE]?.length ?? 0) > 0,
     sections,
     activeId: active?.id ?? null,
     activeType: active?.type ?? null,

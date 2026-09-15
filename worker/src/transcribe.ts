@@ -9,6 +9,11 @@ const PROMPT = 'Llamar a Miguel hoy a las 17:00 y recuérdamelo 10 minutos antes
 /** Frases que Whisper inventa sobre audio vacío o ruido (vienen de subtítulos de su entrenamiento). */
 const HALLUCINATIONS = [/amara\.org/i, /subt[ií]tulos (realizados|por)/i, /gracias por ver/i, /^\W*$/]
 
+/** Workers AI responde "4006: you have used up your daily free allocation…" al agotar las neuronas del día. */
+export function isQuotaExceeded(error: unknown): boolean {
+  return error instanceof Error && /\b4006\b|daily free allocation/i.test(error.message)
+}
+
 export function cleanTranscript(raw: string): string {
   const text = raw.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT_CHARS)
   return HALLUCINATIONS.some((pattern) => pattern.test(text)) ? '' : text

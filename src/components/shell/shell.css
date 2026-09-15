@@ -44,6 +44,11 @@
   padding-bottom: 0;
 }
 
+/* La barra sube sobre el final de la lista: ese hueco se puede recorrer para ver lo último */
+.app.is-typing .app__scroll {
+  padding-bottom: var(--kb, 0px);
+}
+
 .nav {
   display: flex;
   height: var(--nav-h);
