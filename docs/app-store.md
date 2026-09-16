@@ -54,7 +54,8 @@ Después de pegarlo, borra el `.p8` del ordenador o guárdalo en un gestor de co
 
 ### 1.5 Lanzar la compilación
 
-*Actions* → **iOS** → *Run workflow* → rama `capacitor`. Tarda unos 10 minutos; después App Store
+*Actions* → **iOS** → *Run workflow*. Ese botón solo aparece cuando el workflow está en `main`; mientras
+la app viva en la rama `capacitor`, cada push a esa rama firma y sube una compilación. Tarda unos 10 minutos; después App Store
 Connect la procesa entre 5 y 30 minutos más.
 
 A partir de ahí, cada push a `main` que toque la app sube una compilación nueva, y el día 1 de cada

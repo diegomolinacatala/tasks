@@ -33,8 +33,9 @@ jobs:
     timeout-minutes: 45
     env:
       HAS_SIGNING: ${{ secrets.ASC_KEY_P8 != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && vars.APPLE_TEAM_ID != '' }}
-      # Solo se sube lo que llega a main, lo lanzado a mano y la compilación programada.
-      SHOULD_UPLOAD: ${{ github.ref == 'refs/heads/main' || github.event_name != 'push' }}
+      # Se sube lo que llega a main o a capacitor, lo lanzado a mano y la compilación programada.
+      # "Run workflow" solo aparece cuando este fichero está en main: hasta entonces, un push a capacitor.
+      SHOULD_UPLOAD: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/capacitor' || github.event_name != 'push' }}
       PROJECT: ios/App/App.xcodeproj
       ARCHIVE: ${{ github.workspace }}/build/Tasks.xcarchive
     steps:
