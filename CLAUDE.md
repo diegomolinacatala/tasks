@@ -365,7 +365,10 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - **App de iPhone**: `.github/workflows/ios.yml` en `macos-26` al tocar la app en `main` o
   `capacitor`. Sin secretos solo compila; con `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la
   variable `APPLE_TEAM_ID` firma en la nube y sube a TestFlight (`main`, `capacitor`, manual y programado).
-  Se relanza el día 1 de cada dos meses porque TestFlight caduca a los 90 días. El número de
+  Se archiva **sin firmar** y la firma de distribución la pone `-exportArchive` con el certificado
+  que Apple gestiona en la nube: firmar al archivar usa el modo desarrollo, que exige iPhones
+  registrados en la cuenta ("Your team has no devices"). "Run workflow" solo aparece con el
+  workflow en `main`. Se relanza el día 1 de cada dos meses porque TestFlight caduca a los 90 días. El número de
   compilación es `github.run_number`; la versión, `MARKETING_VERSION` del proyecto.
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Necesita el secret `CLOUDFLARE_API_TOKEN` (y la variable
