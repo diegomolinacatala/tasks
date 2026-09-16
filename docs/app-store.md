@@ -138,6 +138,9 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 - [ ] Aviso de un lugar con varias tareas: al tocarlo se abren todas juntas.
 - [ ] Siri: *«Oye Siri, añade una tarea en Tasks»*.
 - [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Semana* abre la semana.
+- [ ] Tres toques atrás: crear en **Atajos** un atajo con la acción *Nueva tarea* de Tasks, asignarlo
+      en **Ajustes → Accesibilidad → Tocar → Tocar atrás → Triple toque** y que, con la app cerrada o
+      desde otra app, se abra Tasks con el teclado fuera.
 - [ ] Widget: abrir la app una vez, añadir el widget *Hoy* (mantener pulsada la pantalla de inicio →
       **Editar** → **Añadir widget** → Tasks) y que salgan las tareas de hoy y las atrasadas en rojo.
 - [ ] Tocar el círculo en el widget: se marca sin abrir la app; al abrirla, la tarea está hecha y su

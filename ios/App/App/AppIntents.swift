@@ -17,6 +17,20 @@ struct AddTaskIntent: AppIntent {
     }
 }
 
+/// Abre la app con la barra de escribir enfocada. Es la acción que se asigna a "Tocar atrás" de
+/// Accesibilidad: iOS no deja a las apps detectar esos toques, solo lanzar un atajo.
+struct ComposeTaskIntent: AppIntent {
+    static var title: LocalizedStringResource = "Nueva tarea"
+    static var description = IntentDescription("Abre Tasks con el teclado listo para escribir una tarea.")
+    static var openAppWhenRun: Bool = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        NativeActions.shared.post(["type": "compose"])
+        return .result()
+    }
+}
+
 /// Abre la app directamente en la vista de semana.
 struct OpenWeekIntent: AppIntent {
     static var title: LocalizedStringResource = "Ver la semana"

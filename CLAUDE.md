@@ -323,6 +323,10 @@ la misma.
 - **Siri y accesos rápidos**: `AppIntents.swift` ("Añade una tarea en Tasks", "Mi semana en
   Tasks") y `UIApplicationShortcutItems` pasan por `NativeActions`, que guarda la acción hasta que
   la web escucha (`retainUntilConsumed`). La web la valida con `parseNativeAction`.
+- **Tres toques atrás**: las apps no pueden detectarlos. `ComposeTaskIntent` ("Nueva tarea", sin
+  frase de Siri para no chocar con la de añadir) aparece como acción en Atajos; el usuario crea un
+  atajo con ella y lo asigna en Accesibilidad → Tocar → Tocar atrás. Envía `compose`, igual que el
+  acceso rápido del icono.
 - **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
   de carga que la web oculta al pintar.
 - **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
