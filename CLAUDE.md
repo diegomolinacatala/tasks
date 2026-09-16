@@ -14,37 +14,40 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Hecho**
 
-- Rama `capacitor` (subida a GitHub, **sin unir a `main`**) con la app de iPhone completa:
-  avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de estado, CI hacia
-  TestFlight, política de privacidad y ficha de la App Store. Tests: 363 de la app y 130 del
-  Worker; la PWA probada en el navegador sin cambios de comportamiento.
-- `main` local tiene un commit sin subir (`8e82120`, cambios previos del usuario); la rama
-  `capacitor` ya lo contiene. El `main` remoto sigue en `0b86599`: la web publicada y el Worker
-  desplegado aún **no** tienen nada de esta rama.
+- App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
+  estado, CI hacia TestFlight, política de privacidad y ficha de la App Store. Tests: 363 de la
+  app y 130 del Worker; la PWA probada en el navegador sin cambios de comportamiento.
+- `capacitor` unida a `main` (fast-forward a `e951c8f`) el 16/09/2026: web publicada con
+  `privacidad.html` y Worker desplegado a mano con `wrangler deploy` desde ese commit. Antes el
+  dictado de la app fallaba porque el Worker antiguo respondía 403 a `capacitor://localhost`.
+- **El CI no despliega el Worker**: falta el secreto `CLOUDFLARE_API_TOKEN` y los pasos de esquema
+  y despliegue se saltan. Hasta configurarlo, desplegar con `npm --prefix worker run deploy` desde
+  `main` (wrangler está autenticado en el portátil).
 - Apple Developer Program activo (cuenta individual de Diego Molina Catalá, Team ID
   `APD54YM4F3`). En App Store Connect existe la app **Tasks: tareas y lugares** (Apple ID
   `6812776586`, SKU `tasks-ios`, bundle id `io.github.diegomolinacatala.tasks`).
 - Secretos de GitHub configurados: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la variable
   `APPLE_TEAM_ID`. Cada push a `capacitor` que toque la app sube una compilación a TestFlight.
-- TestFlight: compilación 6 (aviso ITMS-90683, ya corregido) y **compilación 7** limpia, lista
-  para probar. Grupo interno `Yo` en proceso de configurarse por el usuario.
+- TestFlight: compilación 6 (aviso ITMS-90683, ya corregido), compilación 7 limpia y la 8, la
+  primera desde `main`. Grupo interno `Yo` en proceso de configurarse por el usuario.
+- Widget de la pantalla de inicio (rama `capacitor`, 16/09/2026): extensión `TasksWidget` añadida a
+  mano al proyecto de Xcode, App Group `group.io.github.diegomolinacatala.tasks`. Sin probar en el
+  iPhone.
 
 **Pendiente, en este orden**
 
 1. Que el usuario pruebe la app en su iPhone (checklist en `docs/app-store.md` §2). **Nada nativo
    se ha ejecutado aún en un dispositivo**: todo lo de Swift solo está compilado. Lo más delicado:
-   avisos por lugar con la app cerrada, toques en avisos con la app cerrada, Siri y el fichero de
-   estado al forzar el cierre.
-2. Unir `capacitor` con `main` (pedir permiso antes: publica la web y despliega el Worker). Hace
-   falta para el dictado de la app (altas `{ voice: true }` y origen `capacitor://localhost`) y
-   para que exista `https://diegomolinacatala.github.io/tasks/privacidad.html`, que exige Apple.
+   avisos por lugar con la app cerrada, toques en avisos con la app cerrada, Siri, el fichero de
+   estado al forzar el cierre y el widget (que vea las tareas y que marcar desde él llegue a la app).
+2. Configurar `CLOUDFLARE_API_TOKEN` en GitHub para que el Worker se despliegue solo desde `main`.
 3. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
    (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
    redimensionarlas con un script.
-4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la compilación posterior a unir con `main`.
+4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la compilación 8 o posterior.
 
-**Ideas aplazadas**: widgets (piden un objetivo de extensión en Xcode, arriesgado sin Mac),
-sincronización por iCloud (CloudKit) y refresco en segundo plano para reprogramar avisos.
+**Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
+reprogramar avisos.
 
 ## Trabajar en este repo
 
@@ -124,7 +127,8 @@ src/
 │   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
 │   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
-│   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos y toques en avisos
+│   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
+│   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
 │   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
@@ -134,9 +138,11 @@ src/
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio: shell, views, task, section, compose, push, places, settings, ui, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
+ios/App/TasksWidget/      # extensión del widget; WidgetStore.swift se compila también en la app
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
+scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
@@ -319,6 +325,20 @@ la misma.
   la web escucha (`retainUntilConsumed`). La web la valida con `parseNativeAction`.
 - **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
   de carga que la web oculta al pintar.
+- **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
+  bloque Hoy con lo atrasado en rojo y el número del icono. Mismos colores que `tokens.css`
+  (`Palette`). Datos por el App Group, con un fichero para cada lado:
+  - La app escribe `widget-snapshot.json` con `widgetSnapshot` (`NativeWidget`, debounce 400 ms y
+    al instante al pasar a segundo plano) y pide recargar. La foto trae lo atrasado y 7 días por
+    delante: el widget tiene una entrada por medianoche y cambia de día sin abrir la app.
+  - Tocar el círculo ejecuta `ToggleTaskIntent` en la extensión: apunta el cambio en
+    `widget-changes.json`, quita los avisos pendientes de esa tarea y pone el número del icono. La
+    web no corre ahí, así que al volver a primer plano `widgetChanges()` devuelve lo apuntado (y lo
+    vacía), la web lo aplica con `task/toggle` y, si el widget quitó avisos, lanza
+    `RESCHEDULE_EVENT` para reprogramar aunque la huella del plan no haya cambiado.
+  - Enlaces `io.github.diegomolinacatala.tasks://today|compose|task/<id>` (`WidgetLink`,
+    `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose` y `open`.
+  - Sin App Group (compilación sin firmar) el widget dice "Abre Tasks" y la web ignora el error.
 - **Permisos**: el de notificaciones se pide solo la primera vez que hay algún recordatorio
   (`tasks:notifications-asked` en localStorage); después manda Ajustes de iOS. El de ubicación, al
   buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). Ajustes → Lugares avisa
@@ -335,7 +355,8 @@ la misma.
 - **Cambios en Swift**: el compilado lo valida el CI en unos 2 minutos, pero cualquier cambio de
   comportamiento hay que pedir al usuario que lo pruebe en el iPhone.
 - Swift nuevo = añadirlo a mano en `project.pbxproj` (PBXBuildFile, PBXFileReference, grupo y
-  fase Sources) con ids de 24 hex únicos.
+  fase Sources) con ids de 24 hex únicos. Lo compartido con el widget lleva un PBXBuildFile en cada
+  fase Sources.
 
 ### Avisos push
 
@@ -432,6 +453,12 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   - Se archiva **sin firmar** y la firma de distribución la pone `-exportArchive` con el
     certificado que Apple gestiona en la nube. Firmar al archivar usa el modo desarrollo, que exige
     iPhones registrados en la cuenta ("Your team has no devices").
+  - La exportación copia los entitlements de la firma que ya tiene cada binario: por eso
+    `scripts/sign-archive.sh` firma el archivo ad hoc con `App.entitlements` y
+    `TasksWidget.entitlements` antes de exportar. Sin eso, el App Group no llega a TestFlight. El
+    paso "Comprobar la firma subida" avisa si falta en `DistributionSummary.plist`.
+  - El App Group y el identificador `io.github.diegomolinacatala.tasks.widget` tienen que existir en
+    developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
   - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.0).

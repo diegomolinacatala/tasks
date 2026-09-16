@@ -6,10 +6,11 @@ publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de Gi
 | Paso | Estado (16/09/2026) |
 |---|---|
 | 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
-| 1.5 Compilación en TestFlight | Hecho. Compilación 7 lista (la 6 tenía el aviso ITMS-90683) |
-| 1.6 Instalarla | En curso: grupo interno `Yo` e instalación desde TestFlight |
-| 2 Probar en el iPhone | Pendiente |
-| Unir `capacitor` con `main` | Pendiente (necesario para el dictado y la URL de privacidad) |
+| 1.5 Compilación en TestFlight | Hecho. Compilación 8, la primera desde `main` |
+| 1.6 Instalarla | Hecho |
+| 2 Probar en el iPhone | Hecho a grandes rasgos: «funciona medio decente» |
+| Unir `capacitor` con `main` | Hecho: Worker desplegado y URL de privacidad publicada |
+| 1.7 App Group del widget | Pendiente |
 | 6 Publicar en la App Store | Pendiente (faltan capturas) |
 
 ## 1. Primera compilación en TestFlight
@@ -96,6 +97,34 @@ Lo que pasó la primera vez, por si vuelve a aparecer:
 > dispositivos solo para dictar y el origen `capacitor://localhost`). Se despliega solo al unir la
 > rama con `main`.
 
+### 1.7 App Group para el widget (tú)
+
+La app y el widget comparten las tareas por un *App Group*. Apple tiene que conocerlo antes de que
+GitHub Actions pueda firmar. En [developer.apple.com/account](https://developer.apple.com/account) →
+*Certificates, Identifiers & Profiles* → *Identifiers*:
+
+1. **Crear el grupo.** Botón **+** (junto al título *Identifiers*) → marca **App Groups** →
+   **Continue** → *Description*: `Tasks`, *Identifier*: `group.io.github.diegomolinacatala.tasks` →
+   **Continue** → **Register**.
+2. **Dárselo a la app.** Arriba a la derecha, el desplegable que pone *App IDs* → vuelve a *App IDs*
+   → pulsa **Tasks** (`io.github.diegomolinacatala.tasks`) → en la lista de *Capabilities* marca
+   **App Groups** → en esa misma fila, **Configure** → marca `group.io.github.diegomolinacatala.tasks`
+   → **Continue** → **Save** (arriba a la derecha) → si pregunta *Modify App Capabilities*,
+   **Confirm**.
+3. **Identificador del widget.** **+** → **App IDs** → **Continue** → **App** → **Continue**:
+   - Description: `Tasks Widget`
+   - Bundle ID: **Explicit** → `io.github.diegomolinacatala.tasks.widget`
+   - Capabilities: marca **App Groups**
+
+   **Continue** → **Register**. Después pulsa **Tasks Widget** en la lista → fila **App Groups** →
+   **Configure** → marca el grupo → **Continue** → **Save** → **Confirm**.
+
+Para comprobarlo: en *Identifiers*, con el desplegable en *App Groups* aparece el grupo; al abrir
+**Tasks** y **Tasks Widget**, *App Groups* está marcado y dice *1 App Group*.
+
+Si una compilación falla en *Firmar y subir a TestFlight* con *"doesn't include the
+com.apple.security.application-groups entitlement"*, falta alguno de estos pasos.
+
 ## 2. Qué probar en el iPhone
 
 - [ ] Avisos: permiso, aviso por hora, botones *Hecha* y *+10 min*, resumen diario, número del icono.
@@ -107,6 +136,12 @@ Lo que pasó la primera vez, por si vuelve a aparecer:
 - [ ] Aviso de un lugar con varias tareas: al tocarlo se abren todas juntas.
 - [ ] Siri: *«Oye Siri, añade una tarea en Tasks»*.
 - [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Semana* abre la semana.
+- [ ] Widget: abrir la app una vez, añadir el widget *Hoy* (mantener pulsada la pantalla de inicio →
+      **Editar** → **Añadir widget** → Tasks) y que salgan las tareas de hoy y las atrasadas en rojo.
+- [ ] Tocar el círculo en el widget: se marca sin abrir la app; al abrirla, la tarea está hecha y su
+      aviso ya no suena. Si se desmarca en el widget, al abrir la app su aviso vuelve a programarse.
+- [ ] Tocar una tarea del widget abre esa tarea; el **+** abre la barra de escribir.
+- [ ] Widget al día siguiente sin abrir la app: lo de ayer pasa a atrasado.
 - [ ] Exportar copia: se abre la hoja de compartir.
 - [ ] Cerrar la app a la fuerza y volver: las tareas siguen ahí.
 
@@ -202,7 +237,8 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 
 1. **Información de la app** (columna izquierda): subtítulo, categoría *Productividad*,
    **Clasificación por edades → Configurar** (todo *Ninguno/No* → 4+), *Derechos de contenido*:
-   no usa contenido de terceros, **estado de comerciante: No soy comerciante** → **Guardar**.
+   no usa contenido de terceros → **Guardar**. El estado de comerciante (UE) no está aquí: es de la
+   cuenta, en **Negocio → Acuerdos → Cumplimiento → Digital Services Act**.
 2. **Privacidad de la app**: URL de la política → **Guardar**; *Recopilación de datos* →
    **Empezar** → *Sí* → solo **Identificadores → ID de dispositivo** → uso *Funcionalidad de la
    app*, vinculado *No*, rastreo *No* → **Guardar** → **Publicar** (arriba a la derecha).
