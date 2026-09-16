@@ -122,8 +122,10 @@ GitHub Actions pueda firmar. En [developer.apple.com/account](https://developer.
 Para comprobarlo: en *Identifiers*, con el desplegable en *App Groups* aparece el grupo; al abrir
 **Tasks** y **Tasks Widget**, *App Groups* está marcado y dice *1 App Group*.
 
-Si una compilación falla en *Firmar y subir a TestFlight* con *"doesn't include the
-com.apple.security.application-groups entitlement"*, falta alguno de estos pasos.
+Si una compilación falla en *Firmar y subir a TestFlight* con *"No profiles for
+'io.github.diegomolinacatala.tasks.widget' were found"* y *"Authentication failed"* (o con *"doesn't
+include the com.apple.security.application-groups entitlement"*), falta alguno de estos pasos: la
+clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 
 ## 2. Qué probar en el iPhone
 
