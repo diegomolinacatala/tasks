@@ -32,6 +32,10 @@
 	<string>public.app-category.productivity</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- La app nunca pide "siempre" (los avisos por lugar los vigila iOS con "mientras se usa"),
+	     pero Apple exige la clave si alguna librería menciona esa API (ITMS-90683). -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Para avisarte al llegar o salir de tus lugares y buscar sitios cerca de ti.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Para avisarte al llegar o salir de tus lugares y buscar sitios cerca de ti.</string>
 	<key>NSMicrophoneUsageDescription</key>
