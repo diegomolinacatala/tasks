@@ -10,6 +10,56 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
+## Estado actual (16/09/2026)
+
+**Hecho**
+
+- Rama `capacitor` (subida a GitHub, **sin unir a `main`**) con la app de iPhone completa:
+  avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de estado, CI hacia
+  TestFlight, política de privacidad y ficha de la App Store. Tests: 363 de la app y 130 del
+  Worker; la PWA probada en el navegador sin cambios de comportamiento.
+- `main` local tiene un commit sin subir (`8e82120`, cambios previos del usuario); la rama
+  `capacitor` ya lo contiene. El `main` remoto sigue en `0b86599`: la web publicada y el Worker
+  desplegado aún **no** tienen nada de esta rama.
+- Apple Developer Program activo (cuenta individual de Diego Molina Catalá, Team ID
+  `APD54YM4F3`). En App Store Connect existe la app **Tasks: tareas y lugares** (Apple ID
+  `6812776586`, SKU `tasks-ios`, bundle id `io.github.diegomolinacatala.tasks`).
+- Secretos de GitHub configurados: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la variable
+  `APPLE_TEAM_ID`. Cada push a `capacitor` que toque la app sube una compilación a TestFlight.
+- TestFlight: compilación 6 (aviso ITMS-90683, ya corregido) y **compilación 7** limpia, lista
+  para probar. Grupo interno `Yo` en proceso de configurarse por el usuario.
+
+**Pendiente, en este orden**
+
+1. Que el usuario pruebe la app en su iPhone (checklist en `docs/app-store.md` §2). **Nada nativo
+   se ha ejecutado aún en un dispositivo**: todo lo de Swift solo está compilado. Lo más delicado:
+   avisos por lugar con la app cerrada, toques en avisos con la app cerrada, Siri y el fichero de
+   estado al forzar el cierre.
+2. Unir `capacitor` con `main` (pedir permiso antes: publica la web y despliega el Worker). Hace
+   falta para el dictado de la app (altas `{ voice: true }` y origen `capacitor://localhost`) y
+   para que exista `https://diegomolinacatala.github.io/tasks/privacidad.html`, que exige Apple.
+3. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
+   (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
+   redimensionarlas con un script.
+4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la compilación posterior a unir con `main`.
+
+**Ideas aplazadas**: widgets (piden un objetivo de extensión en Xcode, arriesgado sin Mac),
+sincronización por iCloud (CloudKit) y refresco en segundo plano para reprogramar avisos.
+
+## Trabajar en este repo
+
+- **Sin Mac.** El usuario solo tiene un portátil Windows y un iPhone. Lo nativo se compila en
+  GitHub Actions y se prueba en su iPhone con TestFlight. Guíale con pasos exactos, clic a clic.
+- **No hay `gh`** en esta máquina. Para seguir el CI: API pública sin autenticar (60 peticiones
+  por hora: sondear cada 60 s como poco), `/actions/runs?branch=…&head_sha=…`, `/runs/<id>/jobs`
+  y los errores en `/check-runs/<job>/annotations` (`scripts/xcodebuild.sh` los emite como
+  anotaciones). Si se agota el límite, leer la página de Actions con WebFetch.
+- **Antes de commitear**: `npm test && npm run typecheck && npm run build` encadenado con `&&`.
+  Un `;` en la cadena llegó a subir un commit que no compilaba.
+- **Editar con Edit/Write** o con un script en un fichero. `node -e` dentro de bash rompe los
+  textos con backticks o `${…}`.
+- El usuario escribe en español y quiere respuestas en español.
+
 ## Comandos
 
 ```bash
@@ -78,13 +128,15 @@ src/
 │   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
-│   ├── persistence.ts    # IndexedDB + fallback
+│   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
 │   ├── transition.ts     # View Transitions API con degradación
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio: shell, views, task, section, compose, push, places, settings, ui, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
-docs/app-store.md         # TestFlight, secretos, ficha y privacidad de la App Store
+docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
+public/privacidad.html    # política de privacidad (URL que pide la App Store)
+scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
@@ -267,9 +319,21 @@ la misma.
   la web escucha (`retainUntilConsumed`). La web la valida con `parseNativeAction`.
 - **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
   de carga que la web oculta al pintar.
+- **Permisos**: el de notificaciones se pide solo la primera vez que hay algún recordatorio
+  (`tasks:notifications-asked` en localStorage); después manda Ajustes de iOS. El de ubicación, al
+  buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). Ajustes → Lugares avisa
+  si está bloqueado.
+- **Plugins**: app, filesystem, haptics, local-notifications, share, splash-screen y status-bar.
+  **No** usar `@capacitor/geolocation`: la ubicación va por el plugin propio y su presencia
+  provocó ITMS-90683. `Info.plist` lleva igualmente `NSLocationAlwaysAndWhenInUseUsageDescription`
+  (Apple la exige si cualquier librería menciona esa API), aunque nunca se pide "siempre".
+- **Privacidad**: `PrivacyInfo.xcprivacy` declara solo el identificador de dispositivo del
+  dictado (sin vínculo ni rastreo). Tiene que coincidir con las respuestas de App Store Connect.
 - **Sin Mac**: se compila en GitHub Actions (`macos-26`, gratis en repo público). No hay
   simulador ni Safari Web Inspector: lo nativo se prueba en el iPhone vía TestFlight. Los errores
   de compilación salen como anotaciones del workflow.
+- **Cambios en Swift**: el compilado lo valida el CI en unos 2 minutos, pero cualquier cambio de
+  comportamiento hay que pedir al usuario que lo pruebe en el iPhone.
 - Swift nuevo = añadirlo a mano en `project.pbxproj` (PBXBuildFile, PBXFileReference, grupo y
   fase Sources) con ids de 24 hex únicos.
 
@@ -362,14 +426,18 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   app sale igual, sin avisos. La `base` de Vite es `/tasks/`: si el repo se renombra, hay
   que cambiarla en `vite.config.ts` (afecta también a `start_url` y `scope` del manifiesto)
   y en `ALLOWED_ORIGINS` de `worker/wrangler.toml`.
-- **App de iPhone**: `.github/workflows/ios.yml` en `macos-26` al tocar la app en `main` o
-  `capacitor`. Sin secretos solo compila; con `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la
-  variable `APPLE_TEAM_ID` firma en la nube y sube a TestFlight (`main`, `capacitor`, manual y programado).
-  Se archiva **sin firmar** y la firma de distribución la pone `-exportArchive` con el certificado
-  que Apple gestiona en la nube: firmar al archivar usa el modo desarrollo, que exige iPhones
-  registrados en la cuenta ("Your team has no devices"). "Run workflow" solo aparece con el
-  workflow en `main`. Se relanza el día 1 de cada dos meses porque TestFlight caduca a los 90 días. El número de
-  compilación es `github.run_number`; la versión, `MARKETING_VERSION` del proyecto.
+- **App de iPhone**: `.github/workflows/ios.yml` en `macos-26` al tocar la app (`src`, `ios`,
+  `public`, dependencias…) en `main` o `capacitor`. Sin secretos solo compila; con ellos firma y
+  sube a TestFlight en `main`, `capacitor`, a mano y en la ejecución programada.
+  - Se archiva **sin firmar** y la firma de distribución la pone `-exportArchive` con el
+    certificado que Apple gestiona en la nube. Firmar al archivar usa el modo desarrollo, que exige
+    iPhones registrados en la cuenta ("Your team has no devices").
+  - "Run workflow" solo aparece cuando el workflow está en `main`.
+  - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.0).
+    Para publicar una versión nueva en la App Store hay que subir `MARKETING_VERSION` en
+    `project.pbxproj`.
+  - Tras subir, Apple procesa 5–30 min y avisa por correo de problemas del binario (`ITMS-…`).
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Necesita el secret `CLOUDFLARE_API_TOKEN` (y la variable
   `CLOUDFLARE_ACCOUNT_ID` si la cuenta tiene varias); sin él solo valida.

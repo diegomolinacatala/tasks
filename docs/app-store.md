@@ -3,6 +3,15 @@
 Todo lo que hace falta para pasar de la rama `capacitor` a la app instalada y, cuando se quiera,
 publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de GitHub.
 
+| Paso | Estado (16/09/2026) |
+|---|---|
+| 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
+| 1.5 Compilación en TestFlight | Hecho. Compilación 7 lista (la 6 tenía el aviso ITMS-90683) |
+| 1.6 Instalarla | En curso: grupo interno `Yo` e instalación desde TestFlight |
+| 2 Probar en el iPhone | Pendiente |
+| Unir `capacitor` con `main` | Pendiente (necesario para el dictado y la URL de privacidad) |
+| 6 Publicar en la App Store | Pendiente (faltan capturas) |
+
 ## 1. Primera compilación en TestFlight
 
 ### 1.1 Registrar el identificador de la app (tú)
@@ -61,12 +70,27 @@ Connect la procesa entre 5 y 30 minutos más.
 A partir de ahí, cada push a `main` que toque la app sube una compilación nueva, y el día 1 de cada
 dos meses se sube otra sola para que TestFlight no caduque (90 días).
 
+Lo que pasó la primera vez, por si vuelve a aparecer:
+
+- *"No profiles… Your team has no devices"*: firmar al archivar usa el modo desarrollo. El
+  workflow archiva sin firmar y firma al exportar con el certificado de la nube.
+- Correo **ITMS-90683** (*Missing purpose string*): alguna librería menciona una API de ubicación.
+  Es un aviso: la compilación sirve, pero hay que corregirlo antes de publicar.
+
 ### 1.6 Instalarla (tú)
 
-1. App Store Connect → la app → *TestFlight* → *Internal Testing* → **+** → crea un grupo y añádete.
-2. Instala **TestFlight** desde la App Store en el iPhone y acepta la invitación que llega por correo.
-3. Antes de desinstalar la web de la pantalla de inicio: en la web, *Ajustes → Exportar copia*; en la
-   app, *Ajustes → Importar copia*. No comparten almacenamiento.
+1. App Store Connect → la app → *TestFlight* → en la columna izquierda, **+** junto a
+   *PRUEBAS INTERNAS* → nombre `Yo`, con distribución automática → **Crear**.
+2. En el grupo: *Testers* → **+** → márcate → **Añadir**. En *Compilaciones*, si no está la
+   última: **+** → elígela → **Añadir**.
+3. En el iPhone, instala **TestFlight** desde la App Store. Si al abrirla pide **canjear un
+   código**, abre en el iPhone el correo de invitación y pulsa *View in TestFlight*; en el
+   ordenador, ese mismo botón enseña un código de 8 caracteres para escribirlo allí. Si no llega
+   el correo, en el grupo pasa el ratón por tu fila de *Testers* → *Reenviar invitación*.
+4. **Aceptar** → **Instalar**.
+5. Antes de desinstalar la web de la pantalla de inicio: en la web, **···** → *Exportar copia* →
+   compartir → *Guardar en Archivos*; en la app, **···** → *Importar copia* → ese fichero. No
+   comparten almacenamiento.
 
 > El dictado de la app necesita el Worker desplegado con los cambios de esta rama (alta de
 > dispositivos solo para dictar y el origen `capacitor://localhost`). Se despliega solo al unir la
@@ -162,3 +186,38 @@ Siri: «Añade una tarea en Tasks».
 Si la revisión alega la norma 4.2 (funcionalidad mínima de una web empaquetada), responde señalando
 lo que solo hace la app: avisos por lugar gestionados por iOS, notificaciones locales con acciones,
 Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibración háptica.
+
+## 6. Publicar en la App Store
+
+### Antes de empezar
+
+- Probada en el iPhone (§2).
+- Rama `capacitor` unida con `main`: despliega el Worker (dictado) y publica la URL de privacidad.
+  Después sale una compilación nueva: es la que se envía.
+- Capturas del iPhone (botón lateral + subir volumen), de 3 a 10. Tamaños aceptados: 6,9"
+  (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5" (1284 × 2778 o 1242 × 2688). Otros tamaños
+  hay que redimensionarlos antes de subirlos.
+
+### En App Store Connect → la app → pestaña **Distribución**
+
+1. **Información de la app** (columna izquierda): subtítulo, categoría *Productividad*,
+   **Clasificación por edades → Configurar** (todo *Ninguno/No* → 4+), *Derechos de contenido*:
+   no usa contenido de terceros, **estado de comerciante: No soy comerciante** → **Guardar**.
+2. **Privacidad de la app**: URL de la política → **Guardar**; *Recopilación de datos* →
+   **Empezar** → *Sí* → solo **Identificadores → ID de dispositivo** → uso *Funcionalidad de la
+   app*, vinculado *No*, rastreo *No* → **Guardar** → **Publicar** (arriba a la derecha).
+3. **Precios y disponibilidad**: precio 0 (gratis), países → **Guardar**.
+4. **1.0 Preparar para el envío** (bajo *iOS App*):
+   - Capturas de pantalla, descripción, palabras clave y URL de soporte (§3).
+   - **Compilación → Añadir compilación** → la más reciente.
+   - Copyright: `2026 Diego Molina Catalá`.
+   - **Información para la revisión**: desmarcar *Se requiere iniciar sesión*; nombre, teléfono y
+     correo de contacto; notas del §5.
+   - **Publicación de la versión**: *manualmente*.
+   - **Guardar** → **Añadir para revisión** → **Enviar a App Review**.
+5. Revisión en 24–48 h: *Esperando revisión* → *En revisión* → *Pendiente de publicación del
+   desarrollador* → **Publicar esta versión**. Si la rechazan, el motivo llega al *Centro de
+   resoluciones*: se corrige, se sube otra compilación y se reenvía.
+
+Versiones posteriores: subir `MARKETING_VERSION` en `ios/App/App.xcodeproj/project.pbxproj` (1.1…),
+esperar la compilación y repetir el punto 4 con la versión nueva.
