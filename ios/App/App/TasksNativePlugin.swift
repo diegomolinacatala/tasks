@@ -3,9 +3,10 @@ import CoreLocation
 import MapKit
 import UIKit
 import UserNotifications
+import WidgetKit
 
 /// Lo que la web no puede hacer sola: avisos al llegar o salir de un lugar, buscar sitios,
-/// la ubicación actual, el número del icono y abrir los ajustes de la app.
+/// la ubicación actual, el número del icono, abrir los ajustes de la app y el widget.
 @objc(TasksNativePlugin)
 public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "TasksNativePlugin"
@@ -18,6 +19,8 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "currentPosition", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "searchPlaces", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "syncPlaceAlerts", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "syncWidget", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "widgetChanges", returnType: CAPPluginReturnPromise),
     ]
 
     /// iOS vigila como mucho 20 regiones por app.
@@ -171,6 +174,28 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["scheduled": requests.count - failed, "changed": changed.count])
             }
         }
+    }
+
+    /// Foto de las tareas para el widget. La web solo la manda cuando ha cambiado.
+    @objc func syncWidget(_ call: CAPPluginCall) {
+        guard let json = call.getString("json") else {
+            call.reject("Falta la foto del widget.")
+            return
+        }
+        do {
+            try WidgetStore.saveSnapshot(json)
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.kind)
+            call.resolve()
+        } catch {
+            call.reject("No se pudo guardar la foto del widget.")
+        }
+    }
+
+    /// Lo marcado desde el widget desde la última lectura. Se vacía al leerlo.
+    @objc func widgetChanges(_ call: CAPPluginCall) {
+        let pending = WidgetStore.takeChanges()
+        let changes: [[String: Any]] = pending.done.map { ["taskId": $0.key, "done": $0.value] }
+        call.resolve(["changes": changes, "reschedule": pending.reschedule])
     }
 
     private static func describe(_ status: CLAuthorizationStatus) -> String {

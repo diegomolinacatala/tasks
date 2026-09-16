@@ -26,6 +26,7 @@ import './components/shell/shell.css'
 const PlaceTasksSheet = lazy(() =>
   import('./components/places/PlaceTasksSheet').then((module) => ({ default: module.PlaceTasksSheet })),
 )
+const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
 
 export function App() {
   const state = useAppState()
@@ -113,6 +114,10 @@ export function App() {
       setFocusRequest((count) => count + 1)
     },
     onWeek: showWeek,
+    onToday: () => {
+      if (view !== 'home') withTransition(() => setView('home'))
+    },
+    onOpenTask: openTask,
   })
 
   const inWeek = view === 'week' && selectedDay !== today
@@ -157,6 +162,7 @@ export function App() {
       {isNative && (
         <Suspense fallback={null}>
           <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />
+          <NativeWidget today={today} />
         </Suspense>
       )}
     </div>

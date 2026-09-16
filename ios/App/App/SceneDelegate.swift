@@ -13,14 +13,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
 
-        // App cerrada y abierta desde un acceso rápido del icono.
+        // App cerrada y abierta desde un acceso rápido del icono o desde el widget.
         if let shortcut = connectionOptions.shortcutItem {
             handle(shortcut)
         }
+        connectionOptions.urlContexts.forEach { handle($0.url) }
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        URLContexts.forEach { handle($0.url) }
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
@@ -45,6 +47,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             return true
         default:
             return false
+        }
+    }
+
+    /// Enlaces del widget: abrir hoy, una tarea o la barra de escribir.
+    private func handle(_ url: URL) {
+        if let action = WidgetLink.action(for: url) {
+            NativeActions.shared.post(action)
         }
     }
 }

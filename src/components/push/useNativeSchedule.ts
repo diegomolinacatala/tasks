@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { nativePlan, planFingerprint } from '../../lib/nativeSchedule'
+import { RESCHEDULE_EVENT, nativePlan, planFingerprint } from '../../lib/nativeSchedule'
 import { badgeCount } from '../../lib/schedule'
 import type { AppState, IsoDate } from '../../types'
 
@@ -59,6 +59,17 @@ export function useNativeSchedule(state: AppState, today: IsoDate, enabled: bool
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [sync])
+
+  useEffect(() => {
+    // El widget quita los avisos de lo que marca como hecho. Si después lo desmarca, el plan
+    // es el mismo que había y la huella no bastaría para volver a programarlos.
+    const onReschedule = () => {
+      applied.current = null
+      void sync()
+    }
+    window.addEventListener(RESCHEDULE_EVENT, onReschedule)
+    return () => window.removeEventListener(RESCHEDULE_EVENT, onReschedule)
   }, [sync])
 
   useEffect(() => {

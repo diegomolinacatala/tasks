@@ -13,6 +13,8 @@ export const PLACE_ID_BASE = 1_000_000_000
 const ID_LIMIT = 2_147_483_647
 /** Categoría con los botones "Hecha" y "+10 min". */
 export const TASK_CATEGORY = 'task'
+/** Evento de `window` que obliga a reprogramar todo aunque el plan no haya cambiado. */
+export const RESCHEDULE_EVENT = 'tasks:reschedule'
 
 export interface TimedNotification {
   id: number

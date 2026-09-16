@@ -22,7 +22,37 @@
 		7A5C00000000000000000104 /* NativeActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000004 /* NativeActions.swift */; };
 		7A5C00000000000000000105 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000005 /* AppIntents.swift */; };
 		7A5C00000000000000000106 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */; };
+		7A5C00000000000000000107 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000008 /* WidgetStore.swift */; };
+		7A5C00000000000000000108 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000008 /* WidgetStore.swift */; };
+		7A5C00000000000000000109 /* TasksWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000009 /* TasksWidget.swift */; };
+		7A5C0000000000000000010A /* TasksWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000A /* TasksWidgetViews.swift */; };
+		7A5C0000000000000000010B /* ToggleTaskIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000B /* ToggleTaskIntent.swift */; };
+		7A5C0000000000000000010C /* TasksWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000E /* TasksWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7A5C00000000000000000601 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A5C00000000000000000401;
+			remoteInfo = TasksWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7A5C00000000000000000304 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7A5C0000000000000000010C /* TasksWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -42,6 +72,14 @@
 		7A5C00000000000000000004 /* NativeActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeActions.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000005 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7A5C00000000000000000007 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		7A5C00000000000000000008 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000009 /* TasksWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksWidget.swift; sourceTree = "<group>"; };
+		7A5C0000000000000000000A /* TasksWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksWidgetViews.swift; sourceTree = "<group>"; };
+		7A5C0000000000000000000B /* ToggleTaskIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleTaskIntent.swift; sourceTree = "<group>"; };
+		7A5C0000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A5C0000000000000000000D /* TasksWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TasksWidget.entitlements; sourceTree = "<group>"; };
+		7A5C0000000000000000000E /* TasksWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TasksWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +91,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A5C00000000000000000302 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -61,6 +106,7 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				7A5C00000000000000000201 /* TasksWidget */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -69,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				7A5C0000000000000000000E /* TasksWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +130,7 @@
 				7A5C00000000000000000004 /* NativeActions.swift */,
 				7A5C00000000000000000005 /* AppIntents.swift */,
 				7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */,
+				7A5C00000000000000000007 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -95,6 +143,19 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		7A5C00000000000000000201 /* TasksWidget */ = {
+			isa = PBXGroup;
+			children = (
+				7A5C00000000000000000009 /* TasksWidget.swift */,
+				7A5C0000000000000000000A /* TasksWidgetViews.swift */,
+				7A5C0000000000000000000B /* ToggleTaskIntent.swift */,
+				7A5C00000000000000000008 /* WidgetStore.swift */,
+				7A5C0000000000000000000C /* Info.plist */,
+				7A5C0000000000000000000D /* TasksWidget.entitlements */,
+			);
+			path = TasksWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -105,10 +166,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				7A5C00000000000000000304 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7A5C00000000000000000602 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -117,6 +180,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7A5C00000000000000000401 /* TasksWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A5C00000000000000000501 /* Build configuration list for PBXNativeTarget "TasksWidget" */;
+			buildPhases = (
+				7A5C00000000000000000301 /* Sources */,
+				7A5C00000000000000000302 /* Frameworks */,
+				7A5C00000000000000000303 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TasksWidget;
+			productName = TasksWidget;
+			productReference = 7A5C0000000000000000000E /* TasksWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -130,6 +210,10 @@
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
+						ProvisioningStyle = Automatic;
+					};
+					7A5C00000000000000000401 = {
+						CreatedOnToolsVersion = 16.0;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -151,6 +235,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				7A5C00000000000000000401 /* TasksWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -170,6 +255,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A5C00000000000000000303 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -184,10 +276,30 @@
 				7A5C00000000000000000103 /* LocationRequester.swift in Sources */,
 				7A5C00000000000000000104 /* NativeActions.swift in Sources */,
 				7A5C00000000000000000105 /* AppIntents.swift in Sources */,
+				7A5C00000000000000000107 /* WidgetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A5C00000000000000000301 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A5C00000000000000000109 /* TasksWidget.swift in Sources */,
+				7A5C0000000000000000010A /* TasksWidgetViews.swift in Sources */,
+				7A5C0000000000000000010B /* ToggleTaskIntent.swift in Sources */,
+				7A5C00000000000000000108 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7A5C00000000000000000602 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A5C00000000000000000401 /* TasksWidget */;
+			targetProxy = 7A5C00000000000000000601 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -323,6 +435,7 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -345,6 +458,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -356,6 +470,54 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		7A5C00000000000000000502 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = TasksWidget/TasksWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = TasksWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7A5C00000000000000000503 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = TasksWidget/TasksWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = TasksWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -379,6 +541,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A5C00000000000000000501 /* Build configuration list for PBXNativeTarget "TasksWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A5C00000000000000000502 /* Debug */,
+				7A5C00000000000000000503 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -82,6 +82,11 @@ jobs:
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
 
+      # La exportación copia los entitlements de la firma del archivo: sin firma no hay App Group.
+      - name: Entitlements en el archivo
+        if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
+        run: bash scripts/sign-archive.sh "$ARCHIVE"
+
       - name: Firmar y subir a TestFlight
         if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
         env:
@@ -108,6 +113,21 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      # Lo que se firmó de verdad. Sin el App Group el widget se queda en "Abre Tasks".
+      - name: Comprobar la firma subida
+        if: env.HAS_SIGNING == 'true' && env.SHOULD_UPLOAD == 'true'
+        run: |
+          summary=build/export/DistributionSummary.plist
+          if [ ! -f "$summary" ]; then
+            echo "::warning::No hay DistributionSummary.plist para comprobar los entitlements."
+            exit 0
+          fi
+          plutil -p "$summary"
+          groups=$(grep -c 'group.io.github.diegomolinacatala.tasks' <(plutil -p "$summary") || true)
+          if [ "$groups" -lt 2 ]; then
+            echo "::warning::La app o el widget se firmaron sin el App Group: el widget no verá las tareas."
+          fi
 
       - name: Log de xcodebuild
         if: failure()

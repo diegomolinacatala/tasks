@@ -10,6 +10,10 @@ interface NativeActionHandlers {
   onCompose: () => void
   /** Acceso rápido "Semana" y "Mi semana en Tasks". */
   onWeek: () => void
+  /** Widget: tocarlo fuera de una tarea. */
+  onToday: () => void
+  /** Widget: tocar una tarea. */
+  onOpenTask: (taskId: string) => void
 }
 
 /** Acciones que llegan de fuera de la web en la app de iPhone. */
@@ -31,6 +35,8 @@ export function useNativeActions(handlers: NativeActionHandlers) {
           if (action?.type === 'add') current.current.onAdd(action.text)
           if (action?.type === 'compose') current.current.onCompose()
           if (action?.type === 'week') current.current.onWeek()
+          if (action?.type === 'today') current.current.onToday()
+          if (action?.type === 'open') current.current.onOpenTask(action.taskId)
         }),
       )
       .then((registered) => {

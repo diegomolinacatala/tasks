@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNativeAction, parseNotificationEvent } from './nativeEvents'
+import { parseNativeAction, parseNotificationEvent, parseWidgetChanges } from './nativeEvents'
 
 describe('parseNativeAction', () => {
   test('Siri: añadir con texto', () => {
@@ -11,7 +11,21 @@ describe('parseNativeAction', () => {
     expect(parseNativeAction({ type: 'week' })).toEqual({ type: 'week' })
   })
 
-  test.each([null, 'add', { type: 'add' }, { type: 'add', text: '   ' }, { type: 'borrar' }])('ignora %j', (raw) => {
+  test('widget: tocarlo abre hoy y tocar una tarea la abre', () => {
+    expect(parseNativeAction({ type: 'today' })).toEqual({ type: 'today' })
+    expect(parseNativeAction({ type: 'open', taskId: 't1' })).toEqual({ type: 'open', taskId: 't1' })
+  })
+
+  test.each([
+    null,
+    'add',
+    { type: 'add' },
+    { type: 'add', text: '   ' },
+    { type: 'borrar' },
+    { type: 'open' },
+    { type: 'open', taskId: '' },
+    { type: 'open', taskId: 'x'.repeat(101) },
+  ])('ignora %j', (raw) => {
     expect(parseNativeAction(raw)).toBeNull()
   })
 
@@ -46,5 +60,25 @@ describe('parseNotificationEvent', () => {
   test('descartar el aviso o datos desconocidos no hacen nada', () => {
     expect(parseNotificationEvent('dismiss', { taskId: 't1' })).toBeNull()
     expect(parseNotificationEvent('tap', 'basura')).toBeNull()
+  })
+})
+
+describe('parseWidgetChanges', () => {
+  test('lee las tareas marcadas y desmarcadas en el widget', () => {
+    expect(
+      parseWidgetChanges([
+        { taskId: 't1', done: true },
+        { taskId: 't2', done: false },
+      ]),
+    ).toEqual([
+      { taskId: 't1', done: true },
+      { taskId: 't2', done: false },
+    ])
+  })
+
+  test('descarta lo que no tiene forma de cambio', () => {
+    expect(parseWidgetChanges([{ taskId: 't1' }, { taskId: '', done: true }, { done: true }, 'basura', null])).toEqual([])
+    expect(parseWidgetChanges({ taskId: 't1', done: true })).toEqual([])
+    expect(parseWidgetChanges(undefined)).toEqual([])
   })
 })
