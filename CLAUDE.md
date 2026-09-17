@@ -10,41 +10,39 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (16/09/2026)
+## Estado actual (17/09/2026)
 
 **Hecho**
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
-  estado, CI hacia TestFlight, política de privacidad y ficha de la App Store. Tests: 363 de la
-  app y 130 del Worker; la PWA probada en el navegador sin cambios de comportamiento.
-- `capacitor` unida a `main` (fast-forward a `e951c8f`) el 16/09/2026: web publicada con
-  `privacidad.html` y Worker desplegado a mano con `wrangler deploy` desde ese commit. Antes el
-  dictado de la app fallaba porque el Worker antiguo respondía 403 a `capacitor://localhost`.
-- **El CI no despliega el Worker**: falta el secreto `CLOUDFLARE_API_TOKEN` y los pasos de esquema
-  y despliegue se saltan. Hasta configurarlo, desplegar con `npm --prefix worker run deploy` desde
-  `main` (wrangler está autenticado en el portátil).
+  estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
+  ficha de la App Store. Tests: 380 de la app y 130 del Worker; la PWA probada en el navegador sin
+  cambios de comportamiento.
+- `capacitor` unida a `main` por segunda vez (fast-forward) el 17/09/2026. Cada push a cualquiera
+  de las dos que toque la app sube una compilación a TestFlight.
+- **El CI despliega el Worker** desde `main`: secreto `CLOUDFLARE_API_TOKEN` y variable
+  `CLOUDFLARE_ACCOUNT_ID` configurados y comprobados con "Run workflow" el 17/09/2026. A mano sigue
+  valiendo `npm --prefix worker run deploy` desde `main` (wrangler está autenticado en el portátil).
 - Apple Developer Program activo (cuenta individual de Diego Molina Catalá, Team ID
   `APD54YM4F3`). En App Store Connect existe la app **Tasks: tareas y lugares** (Apple ID
-  `6812776586`, SKU `tasks-ios`, bundle id `io.github.diegomolinacatala.tasks`).
+  `6812776586`, SKU `tasks-ios`, bundle id `io.github.diegomolinacatala.tasks`). App Group e
+  identificador del widget registrados en developer.apple.com.
 - Secretos de GitHub configurados: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` y la variable
-  `APPLE_TEAM_ID`. Cada push a `capacitor` que toque la app sube una compilación a TestFlight.
-- TestFlight: compilación 6 (aviso ITMS-90683, ya corregido), compilación 7 limpia y la 8, la
-  primera desde `main`. Grupo interno `Yo` en proceso de configurarse por el usuario.
-- Widget de la pantalla de inicio (rama `capacitor`, 16/09/2026): extensión `TasksWidget` añadida a
-  mano al proyecto de Xcode, App Group `group.io.github.diegomolinacatala.tasks`. Sin probar en el
-  iPhone.
+  `APPLE_TEAM_ID`.
+- TestFlight: la 8 fue la primera desde `main`, la 9 trae el widget y la 10 la acción de Atajos.
+  El usuario la tiene instalada en su iPhone.
+- Probado en el iPhone: la app a grandes rasgos («funciona medio decente», sin lista de fallos) y
+  el widget, que funciona bien.
 
 **Pendiente, en este orden**
 
-1. Que el usuario pruebe la app en su iPhone (checklist en `docs/app-store.md` §2). **Nada nativo
-   se ha ejecutado aún en un dispositivo**: todo lo de Swift solo está compilado. Lo más delicado:
-   avisos por lugar con la app cerrada, toques en avisos con la app cerrada, Siri, el fichero de
-   estado al forzar el cierre y el widget (que vea las tareas y que marcar desde él llegue a la app).
-2. Configurar `CLOUDFLARE_API_TOKEN` en GitHub para que el Worker se despliegue solo desde `main`.
-3. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
+1. Concretar qué falla en el iPhone y confirmar uno por uno lo más delicado (checklist en
+   `docs/app-store.md` §2): avisos por lugar con la app cerrada, toques en avisos con la app
+   cerrada, Siri, el fichero de estado al forzar el cierre y los tres toques atrás.
+2. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
    (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
    redimensionarlas con un script.
-4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la compilación 8 o posterior.
+3. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main`.
 
 **Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
 reprogramar avisos.
@@ -460,7 +458,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   - La exportación copia los entitlements de la firma que ya tiene cada binario: por eso
     `scripts/sign-archive.sh` firma el archivo ad hoc con `App.entitlements` y
     `TasksWidget.entitlements` antes de exportar. Sin eso, el App Group no llega a TestFlight. El
-    paso "Comprobar la firma subida" avisa si falta en `DistributionSummary.plist`.
+    paso "Comprobar la firma subida" lee `DistributionSummary.plist`, pero al exportar con
+    `destination: upload` no aparece y solo avisa: la prueba real es que el widget vea las tareas.
   - El App Group y el identificador `io.github.diegomolinacatala.tasks.widget` tienen que existir en
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
@@ -470,5 +469,6 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
     `project.pbxproj`.
   - Tras subir, Apple procesa 5–30 min y avisa por correo de problemas del binario (`ITMS-…`).
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
-  esquema D1 → `wrangler deploy`). Necesita el secret `CLOUDFLARE_API_TOKEN` (y la variable
-  `CLOUDFLARE_ACCOUNT_ID` si la cuenta tiene varias); sin él solo valida.
+  esquema D1 → `wrangler deploy`). Usa el secret `CLOUDFLARE_API_TOKEN` (plantilla *Edit Cloudflare
+  Workers* más *Account → D1 → Edit*) y la variable `CLOUDFLARE_ACCOUNT_ID`; sin el token solo
+  valida. Para relanzarlo sin cambios: Actions → Deploy worker → Run workflow.

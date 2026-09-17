@@ -3,14 +3,14 @@
 Todo lo que hace falta para pasar de la rama `capacitor` a la app instalada y, cuando se quiera,
 publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de GitHub.
 
-| Paso | Estado (16/09/2026) |
+| Paso | Estado (17/09/2026) |
 |---|---|
 | 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
-| 1.5 Compilación en TestFlight | Hecho. Compilación 8, la primera desde `main` |
+| 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget y la 10 la acción de Atajos |
 | 1.6 Instalarla | Hecho |
-| 2 Probar en el iPhone | Hecho a grandes rasgos: «funciona medio decente» |
-| Unir `capacitor` con `main` | Hecho: Worker desplegado y URL de privacidad publicada |
-| 1.7 App Group del widget | Pendiente |
+| 1.7 App Group del widget | Hecho |
+| 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget probado y bien. Falta confirmar el resto de la lista |
+| Unir `capacitor` con `main` | Hecho (17/09/2026). El Worker se despliega solo desde `main` |
 | 6 Publicar en la App Store | Pendiente (faltan capturas) |
 
 ## 1. Primera compilación en TestFlight
@@ -64,9 +64,9 @@ Después de pegarlo, borra el `.p8` del ordenador o guárdalo en un gestor de co
 
 ### 1.5 Lanzar la compilación
 
-*Actions* → **iOS** → *Run workflow*. Ese botón solo aparece cuando el workflow está en `main`; mientras
-la app viva en la rama `capacitor`, cada push a esa rama firma y sube una compilación. Tarda unos 10 minutos; después App Store
-Connect la procesa entre 5 y 30 minutos más.
+*Actions* → **iOS** → *Run workflow* (el botón solo aparece porque el workflow ya está en `main`). También
+firma y sube una compilación cada push a `main` o a `capacitor` que toque la app. Tarda unos 10 minutos;
+después App Store Connect la procesa entre 5 y 30 minutos más.
 
 A partir de ahí, cada push a `main` que toque la app sube una compilación nueva, y el día 1 de cada
 dos meses se sube otra sola para que TestFlight no caduque (90 días).
@@ -93,9 +93,9 @@ Lo que pasó la primera vez, por si vuelve a aparecer:
    compartir → *Guardar en Archivos*; en la app, **···** → *Importar copia* → ese fichero. No
    comparten almacenamiento.
 
-> El dictado de la app necesita el Worker desplegado con los cambios de esta rama (alta de
-> dispositivos solo para dictar y el origen `capacitor://localhost`). Se despliega solo al unir la
-> rama con `main`.
+> El dictado de la app necesita el Worker con el alta de dispositivos solo para dictar y el origen
+> `capacitor://localhost`. Ya está desplegado, y el CI lo vuelve a desplegar en cada push a `main`
+> que toque `worker/`.
 
 ### 1.7 App Group para el widget (tú)
 
