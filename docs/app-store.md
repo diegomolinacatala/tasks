@@ -9,7 +9,7 @@ publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de Gi
 | 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget y la 10 la acción de Atajos |
 | 1.6 Instalarla | Hecho |
 | 1.7 App Group del widget | Hecho |
-| 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget probado y bien. Falta confirmar el resto de la lista |
+| 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |
 | Unir `capacitor` con `main` | Hecho (17/09/2026). El Worker se despliega solo desde `main` |
 | 6 Publicar en la App Store | Pendiente (faltan capturas) |
 
@@ -134,14 +134,15 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 - [ ] Escribir *«comprar pan al pasar por mercadona»*: píldora *Al llegar a Mercadona*.
 - [ ] Dictar *«recuérdame al llegar a la universidad que tengo que reunirme con José»* con la
       universidad sin guardar: se crea la tarea y se abre el editor del lugar.
-- [ ] Ir físicamente a un lugar guardado (o salir de él) y que salte el aviso con la app cerrada.
+- [x] Ir físicamente a un lugar guardado (o salir de él) y que salte el aviso con la app cerrada.
+      Probado al salir; falta al llegar.
 - [ ] Aviso de un lugar con varias tareas: al tocarlo se abren todas juntas.
-- [ ] Siri: *«Oye Siri, añade una tarea en Tasks»*.
+- [x] Siri: *«Oye Siri, añade una tarea en Tasks»*.
 - [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Semana* abre la semana.
-- [ ] Tres toques atrás: crear en **Atajos** un atajo con la acción *Nueva tarea* de Tasks, asignarlo
+- [x] Tres toques atrás: crear en **Atajos** un atajo con la acción *Nueva tarea* de Tasks, asignarlo
       en **Ajustes → Accesibilidad → Tocar → Tocar atrás → Triple toque** y que, con la app cerrada o
       desde otra app, se abra Tasks con el teclado fuera.
-- [ ] Widget: abrir la app una vez, añadir el widget *Hoy* (mantener pulsada la pantalla de inicio →
+- [x] Widget: abrir la app una vez, añadir el widget *Hoy* (mantener pulsada la pantalla de inicio →
       **Editar** → **Añadir widget** → Tasks) y que salgan las tareas de hoy y las atrasadas en rojo.
 - [ ] Tocar el círculo en el widget: se marca sin abrir la app; al abrirla, la tarea está hecha y su
       aviso ya no suena. Si se desmarca en el widget, al abrir la app su aviso vuelve a programarse.

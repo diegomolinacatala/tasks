@@ -31,14 +31,15 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   `APPLE_TEAM_ID`.
 - TestFlight: la 8 fue la primera desde `main`, la 9 trae el widget y la 10 la acción de Atajos.
   El usuario la tiene instalada en su iPhone.
-- Probado en el iPhone: la app a grandes rasgos («funciona medio decente», sin lista de fallos) y
-  el widget, que funciona bien.
+- Probado en el iPhone (17/09/2026): la app a grandes rasgos («funciona medio decente», sin lista
+  de fallos), el widget, Siri ("añade una tarea en Tasks"), los tres toques atrás y el aviso al
+  salir de un lugar con la app cerrada a la fuerza. Todo funciona.
 
 **Pendiente, en este orden**
 
-1. Concretar qué falla en el iPhone y confirmar uno por uno lo más delicado (checklist en
-   `docs/app-store.md` §2): avisos por lugar con la app cerrada, toques en avisos con la app
-   cerrada, Siri, el fichero de estado al forzar el cierre y los tres toques atrás.
+1. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
+   `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
+   tareas sigan ahí tras forzar el cierre.
 2. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
    (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
    redimensionarlas con un script.
