@@ -38,6 +38,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   iPhone): Siri y la acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la
   app"). Endpoint `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`; hasta
   entonces la app usa su analizador local.
+- TestFlight 13 (18/09/2026): los avisos por hora del iPhone suenan (antes llegaban en silencio).
 
 **Pendiente, en este orden**
 

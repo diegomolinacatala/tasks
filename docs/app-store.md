@@ -6,7 +6,7 @@ publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de Gi
 | Paso | Estado (17/09/2026) |
 |---|---|
 | 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
-| 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget, la 10 la acción de Atajos y la 12 apuntar sin abrir la app (§2.1) |
+| 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget, la 10 la acción de Atajos y la 12 apuntar sin abrir la app (§2.1) y la 13 el sonido de los avisos por hora |
 | 1.6 Instalarla | Hecho |
 | 1.7 App Group del widget | Hecho |
 | 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |
@@ -129,7 +129,8 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 
 ## 2. Qué probar en el iPhone
 
-- [ ] Avisos: permiso, aviso por hora, botones *Hecha* y *+10 min*, resumen diario, número del icono.
+- [ ] Avisos: permiso, aviso por hora **con sonido** (desde la 13), botones *Hecha* y *+10 min*,
+      resumen diario, número del icono.
 - [ ] Lugares: crear uno desde Ajustes buscando «Mercadona»; «usar mi ubicación actual»; radio.
 - [ ] Escribir *«comprar pan al pasar por mercadona»*: píldora *Al llegar a Mercadona*.
 - [ ] Dictar *«recuérdame al llegar a la universidad que tengo que reunirme con José»* con la
