@@ -5,6 +5,7 @@ import {
   isAllowedPushEndpoint,
   isValidVapidSubject,
   parseAudio,
+  parseInterpretText,
   parsePayload,
   parseSchedule,
   parseSubscription,
@@ -120,5 +121,20 @@ describe('parseAudio', () => {
     expect(parseAudio('A'.repeat(10)).ok).toBe(false)
     expect(parseAudio('A'.repeat(2_000_001)).ok).toBe(false)
     expect(parseAudio(null).ok).toBe(false)
+  })
+})
+
+describe('parseInterpretText', () => {
+  test('texto dictado a Siri, con los espacios arreglados', () => {
+    expect(parseInterpretText('  llamar a   Ana mañana ')).toEqual({ ok: true, value: 'llamar a Ana mañana' })
+  })
+
+  test('recorta lo que pasa del máximo de una transcripción', () => {
+    const parsed = parseInterpretText('x'.repeat(800))
+    expect(parsed.ok && parsed.value.length).toBe(500)
+  })
+
+  test.each([null, 42, '', '   ', 'x'.repeat(5001)])('rechaza %j', (raw) => {
+    expect(parseInterpretText(raw).ok).toBe(false)
   })
 })

@@ -179,6 +179,7 @@ describe('rutas autenticadas', () => {
     ['PUT', '/v1/schedule'],
     ['PUT', '/v1/devices/subscription'],
     ['POST', '/v1/transcribe'],
+    ['POST', '/v1/interpret'],
     ['DELETE', '/v1/devices'],
   ])('%s %s exige token válido', async (method, path) => {
     const { deps } = testDeps()
@@ -318,6 +319,52 @@ describe('rutas autenticadas', () => {
     const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), exhausted)
     expect(response.status).toBe(503)
     expect(await response.text()).not.toContain('neurons')
+  })
+
+  test('POST /v1/interpret entiende el texto dictado a Siri igual que el dictado de la app', async () => {
+    const { deps, interpreted } = testDeps()
+    const { token } = await register(deps)
+    const context = { today: '2026-09-18', now: '10:30' }
+    const response = await handle(request('POST', '/v1/interpret', { token, body: { text: ' llamar a  Miguel ', context } }), deps)
+    expect(response.status).toBe(200)
+    const { data } = (await response.json()) as { data: { tasks: unknown[] } }
+    expect(data.tasks).toHaveLength(1)
+    expect(interpreted).toEqual([{ text: 'llamar a Miguel', context }])
+  })
+
+  test('POST /v1/interpret exige texto y contexto', async () => {
+    const { deps, interpreted } = testDeps()
+    const { token } = await register(deps)
+    const send = (body: unknown) => handle(request('POST', '/v1/interpret', { token, body }), deps)
+    const context = { today: '2026-09-18', now: '10:30' }
+    expect((await send({ text: '  ', context })).status).toBe(400)
+    expect((await send({ text: 42, context })).status).toBe(400)
+    expect((await send({ text: 'comprar pan' })).status).toBe(400)
+    expect((await send({ text: 'comprar pan', context: { today: 'hoy', now: '10:30' } })).status).toBe(400)
+    expect(interpreted).toEqual([])
+  })
+
+  test('POST /v1/interpret sobrevive a un fallo de la IA: el móvil usa su analizador', async () => {
+    const { deps } = testDeps()
+    const { token } = await register(deps)
+    const broken: Deps = { ...deps, interpreter: { interpret: () => Promise.reject(new Error('4006: daily free allocation')) } }
+    const body = { text: 'comprar pan', context: { today: '2026-09-18', now: '10:30' } }
+    const response = await handle(request('POST', '/v1/interpret', { token, body }), broken)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ data: { tasks: null } })
+  })
+
+  test('POST /v1/interpret cuenta como uso y comparte el límite del dictado', async () => {
+    const voice = countingLimiter(1)
+    const { deps, memory, setNow, now } = testDeps()
+    const { deviceId, token } = await register(deps)
+    setNow(now() + 1000)
+    const limited = { ...deps, limits: { ...deps.limits, voice: voice.limiter } }
+    const body = { text: 'comprar pan', context: { today: '2026-09-18', now: '10:30' } }
+    const send = () => handle(request('POST', '/v1/interpret', { token, body }), limited)
+    expect((await send()).status).toBe(200)
+    expect(memory.devices.get(deviceId)!.seenAt).toBe(now())
+    expect((await send()).status).toBe(429)
   })
 
   test('DELETE /v1/devices borra dispositivo y agenda', async () => {

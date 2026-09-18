@@ -68,6 +68,18 @@ export function parseAudio(raw: unknown): Result<string> {
   return BASE64.test(raw) ? ok(raw) : fail('audio inválido')
 }
 
+/** Lo mismo que se guarda de una transcripción: más largo no es una tarea. */
+const MAX_TEXT_CHARS = 500
+/** Por encima de esto no es un dictado sino otra cosa: se rechaza sin llegar a la IA. */
+const MAX_TEXT_INPUT_CHARS = 5000
+
+/** Texto que Siri o un atajo ya transcribieron en el iPhone. */
+export function parseInterpretText(raw: unknown): Result<string> {
+  if (typeof raw !== 'string' || raw.length > MAX_TEXT_INPUT_CHARS) return fail('texto inválido')
+  const text = raw.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT_CHARS)
+  return text ? ok(text) : fail('texto vacío')
+}
+
 /** Contexto opcional para interpretar el dictado; si no es válido, se ignora. */
 export function parseInterpretContext(raw: unknown): InterpretContext | null {
   if (!isObject(raw)) return null
