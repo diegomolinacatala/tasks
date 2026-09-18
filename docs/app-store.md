@@ -6,7 +6,7 @@ publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de Gi
 | Paso | Estado (17/09/2026) |
 |---|---|
 | 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
-| 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget y la 10 la acción de Atajos |
+| 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget, la 10 la acción de Atajos y la 12 apuntar sin abrir la app (§2.1) |
 | 1.6 Instalarla | Hecho |
 | 1.7 App Group del widget | Hecho |
 | 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |

@@ -34,9 +34,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Probado en el iPhone (17/09/2026): la app a grandes rasgos («funciona medio decente», sin lista
   de fallos), el widget, Siri ("añade una tarea en Tasks"), los tres toques atrás y el aviso al
   salir de un lugar con la app cerrada a la fuerza. Todo funciona.
-- **Apuntar sin abrir la app** (18/09/2026, rama `capacitor`, sin probar aún en el iPhone): Siri y la
-  acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la app"). Endpoint
-  `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`.
+- **Apuntar sin abrir la app** (18/09/2026, rama `capacitor`, TestFlight 12, sin probar aún en el
+  iPhone): Siri y la acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la
+  app"). Endpoint `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`; hasta
+  entonces la app usa su analizador local.
 
 **Pendiente, en este orden**
 
