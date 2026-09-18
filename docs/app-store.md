@@ -138,6 +138,16 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
       Probado al salir; falta al llegar.
 - [ ] Aviso de un lugar con varias tareas: al tocarlo se abren todas juntas.
 - [x] Siri: *«Oye Siri, añade una tarea en Tasks»*.
+- [ ] Apuntar sin abrir la app (§2.1): *«Oye Siri, apunta en Tasks»* → *«cena hoy a las 9 y
+      recuérdamelo media hora antes»*. Siri responde *«Apuntada: Cena, hoy 21:00, 30 min antes»*, la
+      app **no** se abre y el aviso suena a las 20:30 aunque no se abra en ningún momento.
+- [ ] Lo mismo con el iPhone bloqueado.
+- [ ] Atajo *Dictar tarea* (§2.1) desde tocar atrás, el botón de acción (si lo hay), la pantalla de
+      bloqueo y el widget de Atajos: escucha al momento y apunta sin abrir la app.
+- [ ] Tras apuntar así, el widget *Hoy* y el número del icono ya cuentan la tarea; al abrir la app
+      está en su sitio una sola vez.
+- [ ] Apuntar con la app abierta (tocar atrás mientras se usa): la tarea aparece en la lista.
+- [ ] Tocar el aviso de una tarea apuntada con Siri con la app cerrada: se abre esa tarea.
 - [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Semana* abre la semana.
 - [x] Tres toques atrás: crear en **Atajos** un atajo con la acción *Nueva tarea* de Tasks, asignarlo
       en **Ajustes → Accesibilidad → Tocar → Tocar atrás → Triple toque** y que, con la app cerrada o
@@ -150,6 +160,33 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 - [ ] Widget al día siguiente sin abrir la app: lo de ayer pasa a atrasado.
 - [ ] Exportar copia: se abre la hoja de compartir.
 - [ ] Cerrar la app a la fuerza y volver: las tareas siguen ahí.
+
+### 2.1 Apuntar sin abrir la app (tú, una vez)
+
+iOS no deja a ninguna app encender el micrófono sin abrirse; quien escucha es el sistema (Siri o
+*Dictar texto*) y Tasks recibe el texto en segundo plano. Con **Siri** no hay que preparar nada:
+*«Oye Siri, apunta en Tasks»*. Para un solo gesto, un atajo:
+
+1. App **Atajos** → pestaña *Atajos* → **+** arriba a la derecha.
+2. Buscar la acción **Dictar texto** y tocarla. Tocar la flecha **›** de la acción y dejar *Idioma*
+   en **Español (España)** y *Dejar de escuchar* en **Tras una pausa**.
+3. Buscar **Añadir tarea** (de Tasks) y tocarla: queda *Apuntar [Texto dictado] en Tasks*. Si en vez
+   de *Texto dictado* pone *Tarea*, tocar *Tarea* → **Texto dictado**.
+4. Arriba, tocar el nombre → **Cambiar nombre** → `Dictar tarea`. En el mismo menú, **Elegir icono**
+   → el micrófono. **OK**.
+
+Dónde ponerlo:
+
+- **Tocar atrás**: *Ajustes → Accesibilidad → Tocar → Tocar atrás → Doble toque* → *Dictar tarea*.
+- **Botón de acción** (iPhone 15 Pro y posteriores): *Ajustes → Botón de acción* → deslizar hasta
+  *Atajo* → **Elegir un atajo** → *Dictar tarea*.
+- **Pantalla de bloqueo**: mantener pulsada la pantalla bloqueada → **Personalizar** → *Pantalla de
+  bloqueo* → tocar el **−** de la linterna o de la cámara → **+** → buscar **Atajo** → elegirlo →
+  *Dictar tarea*. Queda como botón abajo; se mantiene pulsado para lanzarlo.
+- **Centro de control**: deslizar desde la esquina superior derecha → **+** arriba a la izquierda →
+  **Añadir un control** → **Atajo** → *Dictar tarea*.
+- **Widget**: mantener pulsada la pantalla de inicio → **Editar** → **Añadir widget** → **Atajos** →
+  el pequeño → **Añadir**. Mantenerlo pulsado → **Editar widget** → *Atajo* → *Dictar tarea*.
 
 ## 3. Ficha de la App Store
 
@@ -187,7 +224,7 @@ RECORDATORIOS
 Tantos como quieras por tarea: a la hora, antes, a una hora concreta. Márcala hecha o pospónla desde la propia notificación.
 
 SIRI Y ATAJOS
-«Oye Siri, añade una tarea en Tasks».
+«Oye Siri, apunta en Tasks» y dilo de corrido, sin abrir la app y con el iPhone bloqueado. Con un atajo, también desde tocar atrás, el botón de acción o la pantalla de bloqueo.
 
 PRIVADA
 Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publicidad, sin analítica.
@@ -221,7 +258,7 @@ Avisos por lugar: Ajustes (icono ··· arriba a la derecha) → Lugares → Añ
 
 Dictado: botón de micrófono con la barra de texto vacía. El audio se transcribe en nuestro servidor y no se guarda.
 
-Siri: «Añade una tarea en Tasks».
+Siri: «Apunta en Tasks» y, cuando pregunte, «llamar a Ana mañana a las 5». La tarea se crea en segundo plano, sin abrir la app, con su aviso programado. Para interpretar la frase se envía el texto (no el audio: lo transcribe Siri) a nuestro servidor, que no lo guarda.
 ```
 
 Si la revisión alega la norma 4.2 (funcionalidad mínima de una web empaquetada), responde señalando

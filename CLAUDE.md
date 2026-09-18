@@ -10,13 +10,13 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (17/09/2026)
+## Estado actual (18/09/2026)
 
 **Hecho**
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 380 de la app y 130 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 418 de la app y 142 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por segunda vez (fast-forward) el 17/09/2026. Cada push a cualquiera
   de las dos que toque la app sube una compilación a TestFlight.
@@ -34,16 +34,21 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Probado en el iPhone (17/09/2026): la app a grandes rasgos («funciona medio decente», sin lista
   de fallos), el widget, Siri ("añade una tarea en Tasks"), los tres toques atrás y el aviso al
   salir de un lugar con la app cerrada a la fuerza. Todo funciona.
+- **Apuntar sin abrir la app** (18/09/2026, rama `capacitor`, sin probar aún en el iPhone): Siri y la
+  acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la app"). Endpoint
+  `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`.
 
 **Pendiente, en este orden**
 
-1. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
+1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
+   atajo *Dictar tarea* con los pasos de §2.1).
+2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
-2. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
+3. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
    (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
    redimensionarlas con un script.
-3. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main`.
+4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main`.
 
 **Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
 reprogramar avisos.
@@ -70,7 +75,8 @@ npm test           # tests unitarios (vitest, entorno node)
 npm run coverage   # cobertura de src/lib y src/state
 npm run typecheck  # tsc de la app y del service worker (tsconfig.sw.json)
 npm run build      # typecheck + build de producción a dist/
-npm run build:native  # typecheck + web para la app (dist-native/) + cap sync ios
+npm run build:native  # typecheck + web para la app (dist-native/) + headless.js + cap sync ios
+npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/* y el icono y la pantalla de carga de iOS
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
@@ -100,6 +106,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | PWA | `vite-plugin-pwa` con `injectManifest` (`src/sw.ts`) | instalable, offline y receptor de push |
 | Avisos | Cloudflare Worker + D1 + alarma de Durable Object, `@block65/webcrypto-web-push` | iOS solo despierta una PWA cerrada con Web Push desde un servidor |
 | App de iPhone | Capacitor 8 con Swift Package Manager + plugin propio `TasksNative` | mismo código que la PWA; lo que la web no puede (avisos por lugar, notificaciones locales, Siri) |
+| Siri sin abrir la app | JavaScriptCore con `headless.js` | la misma lógica TypeScript fuera del WebView, sin reescribirla en Swift |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
@@ -113,6 +120,7 @@ carga con `import()` o `lazy`.
 src/
 ├── types.ts              # Task, Reminder, Section, Place, AppState
 ├── sw.ts                 # precache + push + notificationclick
+├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
 │   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
 │   ├── order.ts          # scopes y reordenación
@@ -128,6 +136,8 @@ src/
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
 │   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
+│   ├── inbox.ts          # bandeja de lo apuntado fuera de la web: entradas, aplicarlas, validarlas
+│   ├── headless.ts       # apuntar sin abrir la app: bandeja, avisos, icono y widget de una vez
 │   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
@@ -137,6 +147,7 @@ src/
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio: shell, views, task, section, compose, push, places, settings, ui, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
+                          # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
 ios/App/TasksWidget/      # extensión del widget; WidgetStore.swift se compila también en la app
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
@@ -319,13 +330,14 @@ la misma.
 - **Dictado**: igual que la PWA, pero el dispositivo se da de alta solo para dictar
   (`POST /v1/devices { voice: true }`, sin suscripción push); si el servidor lo olvida (401) se
   da de alta otra vez y se reintenta.
-- **Siri y accesos rápidos**: `AppIntents.swift` ("Añade una tarea en Tasks", "Mi semana en
-  Tasks") y `UIApplicationShortcutItems` pasan por `NativeActions`, que guarda la acción hasta que
-  la web escucha (`retainUntilConsumed`). La web la valida con `parseNativeAction`.
-- **Tres toques atrás**: las apps no pueden detectarlos. `ComposeTaskIntent` ("Nueva tarea", sin
-  frase de Siri para no chocar con la de añadir) aparece como acción en Atajos; el usuario crea un
-  atajo con ella y lo asigna en Accesibilidad → Tocar → Tocar atrás. Envía `compose`, igual que el
-  acceso rápido del icono.
+- **Siri y accesos rápidos**: "Añadir tarea" ("Apunta en Tasks") no abre la app: ver "Apuntar sin
+  abrir la app". "Mi semana en Tasks", "Nueva tarea" y `UIApplicationShortcutItems` sí la abren y
+  pasan por `NativeActions`, que guarda la acción hasta que la web escucha (`retainUntilConsumed`).
+  La web la valida con `parseNativeAction`.
+- **Tres toques atrás**: las apps no pueden detectarlos, solo lanzar un atajo. Para dictar, el atajo
+  *Dictar tarea* ("Dictar texto" + "Añadir tarea"). Para escribir, `ComposeTaskIntent` ("Nueva
+  tarea", sin frase de Siri para no chocar con la de añadir), que abre la app con el teclado: envía
+  `compose`, igual que el acceso rápido del icono.
 - **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
   de carga que la web oculta al pintar.
 - **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
@@ -360,6 +372,41 @@ la misma.
 - Swift nuevo = añadirlo a mano en `project.pbxproj` (PBXBuildFile, PBXFileReference, grupo y
   fase Sources) con ids de 24 hex únicos. Lo compartido con el widget lleva un PBXBuildFile en cada
   fase Sources.
+
+### Apuntar sin abrir la app
+
+Siri ("Apunta en Tasks") y la acción "Añadir tarea" de Atajos crean la tarea en segundo plano,
+también con el iPhone bloqueado (`authenticationPolicy = .alwaysAllowed`).
+
+- **Escucha el sistema, no la app.** iOS no deja activar el micrófono desde segundo plano (Apple,
+  DTS: *privacy block*); `AudioRecordingIntent` solo sirve si la sesión de audio ya se abrió con la
+  app delante. Por eso no hay botón propio que grabe: el atajo *Dictar tarea* ("Dictar texto" +
+  "Añadir tarea") hace de botón en tocar atrás, botón de acción, pantalla de bloqueo, centro de
+  control y widget de Atajos (pasos en `docs/app-store.md` §2.1).
+- **Flujo** (`QuickAdd.swift`): el intent corre en el proceso de la app, sin WebView →
+  `HeadlessCore` carga `public/headless.js` en JavaScriptCore → `DictationServer` pide la
+  interpretación a la IA (`POST /v1/interpret`, 6 s como mucho; si no, el analizador local) →
+  `addFromText` (`src/lib/headless.ts`) con el fichero de estado, la bandeja y lo marcado en el
+  widget → la entrada va a la bandeja y se aplican el plan de avisos (`NotificationPlanner`, con el
+  mismo formato que el plugin de notificaciones para que los toques lleguen a la web), el número
+  del icono y la foto del widget. Siri dice el mensaje: "Apuntada: Cena, hoy 20:00, 30 min antes".
+- **La web sigue siendo la única que escribe el estado.** La bandeja (`Library/tasks-inbox.json`,
+  `InboxStore.swift`, `src/lib/inbox.ts`) se aplica al cargar (`loadState`, antes de pintar: tocar
+  el aviso de una de esas tareas ya la encuentra) y, con la app viva, al volver a primer plano o con
+  la acción `inbox` (`NativeInbox`). Aplicar es idempotente por id: el reducer ignora un `task/add`
+  con un id que ya existe. Una entrada sale de la bandeja cuando un estado que la contiene se ha
+  escrito en el fichero (`settleInbox`, tras `writeStateFile`).
+- **Sin fichero de estado** (la app aún no se ha abierto) solo se apunta: sin estado no se sabe qué
+  avisos hay, y aplicar un plan vacío los borraría todos.
+- **Si `headless.js` falla**, se guarda solo el texto y la web lo interpreta al aplicarlo, con la
+  hora a la que se dijo e ids derivados del de la entrada (releerla no duplica).
+- `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
+  `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
+  puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
+  lados.
+- Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
+  del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
+- Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.
 
 ### Avisos push
 
@@ -432,7 +479,10 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   del Worker viven en Cloudflare (`wrangler secret put`) y en GitHub Actions, igual que la clave
   de App Store Connect.
 - **Un solo código para PWA y app de iPhone.** La PWA sigue publicándose; lo nativo va detrás de
-  `isNative` y no cambia el comportamiento de la web.
+  `isNative` y no cambia el comportamiento de la web. Lo que Swift necesite de la lógica (Siri sin
+  abrir la app) se ejecuta con JavaScriptCore, no se reescribe en Swift.
+- **La web es la única que escribe el estado.** Lo que nace fuera (widget, Siri) se apunta aparte y
+  la web lo aplica al cargar o al volver a primer plano.
 - **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
   claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
