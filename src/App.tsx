@@ -13,7 +13,6 @@ import { Composer } from './components/compose/Composer'
 import { useAddTasks } from './components/compose/useAddTasks'
 import { useNotificationActions } from './components/push/useNotificationActions'
 import { SectionSheet } from './components/section/SectionSheet'
-import { SettingsSheet } from './components/settings/SettingsSheet'
 import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { useNativeActions } from './components/shell/useNativeActions'
@@ -29,6 +28,7 @@ const PlaceTasksSheet = lazy(() =>
 )
 const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
 const NativeInbox = lazy(() => import('./components/shell/NativeInbox').then((module) => ({ default: module.NativeInbox })))
+const SettingsSheet = lazy(() => import('./components/settings/SettingsSheet').then((module) => ({ default: module.SettingsSheet })))
 
 export function App() {
   const state = useAppState()
@@ -47,6 +47,8 @@ export function App() {
   const [fromNotification, setFromNotification] = useState(false)
   const [sectionId, setSectionId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Ajustes se abre poco: su código se carga la primera vez y luego sigue montado (animación de cierre).
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [focusRequest, setFocusRequest] = useState(0)
 
@@ -129,7 +131,15 @@ export function App() {
 
   return (
     <div className={`app ${typing ? 'is-typing' : ''}`}>
-      <button type="button" className="app__settings" aria-label="Ajustes" onClick={() => setSettingsOpen(true)}>
+      <button
+        type="button"
+        className="app__settings"
+        aria-label="Ajustes"
+        onClick={() => {
+          setSettingsLoaded(true)
+          setSettingsOpen(true)
+        }}
+      >
         <IconMore size={18} />
       </button>
 
@@ -161,7 +171,11 @@ export function App() {
 
       <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} />
       <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {settingsLoaded && (
+        <Suspense fallback={null}>
+          <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
       {isNative && (
         <Suspense fallback={null}>
           <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />

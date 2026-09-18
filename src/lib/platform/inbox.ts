@@ -1,6 +1,7 @@
 import type { AppState } from '../../types'
-import type { AwaitingEntry, InboxEntry } from '../inbox'
-import { parseInbox, settleSaved } from '../inbox'
+import type { InboxEntry } from '../inbox'
+import type { AwaitingEntry } from '../inboxFile'
+import { parseInbox, settleSaved } from '../inboxFile'
 import { TasksNative } from './native'
 
 /**
