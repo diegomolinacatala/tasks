@@ -150,6 +150,8 @@ enum NotificationPlanner {
         let content = UNMutableNotificationContent()
         content.title = notification.title
         content.body = notification.body
+        // La web pasa `sound: 'default'` al plugin, que acaba en el sonido del sistema: el mismo.
+        content.sound = .default
         let schedule: [String: Any] = ["at": at, "allowWhileIdle": true]
         content.userInfo = ["cap_schedule": schedule, "cap_extra": notification.extra]
         if let category = notification.category {

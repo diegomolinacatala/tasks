@@ -8,6 +8,12 @@ import { TasksNative } from './native'
 
 const toStatus = (state: string): PermissionStatus => (state === 'granted' ? 'granted' : state === 'denied' ? 'denied' : 'prompt')
 
+/**
+ * Sin `sound`, el plugin programa los avisos de iOS en silencio. Un nombre que no es de ningún
+ * fichero hace sonar el sonido del sistema (lo documenta el plugin); los de lugar usan el mismo.
+ */
+const SYSTEM_SOUND = 'default'
+
 export async function notificationPermission(): Promise<PermissionStatus> {
   return toStatus((await LocalNotifications.checkPermissions()).display)
 }
@@ -59,6 +65,7 @@ export async function applyPlan(plan: NativePlan): Promise<void> {
       title: notification.title,
       body: notification.body,
       schedule: { at: new Date(notification.at), allowWhileIdle: true },
+      sound: SYSTEM_SOUND,
       extra: notification.extra,
       actionTypeId: notification.category,
       threadIdentifier: notification.extra.taskId ? 'tasks' : 'tasks-digest',
