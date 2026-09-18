@@ -6,7 +6,8 @@ import UserNotifications
 import WidgetKit
 
 /// Lo que la web no puede hacer sola: avisos al llegar o salir de un lugar, buscar sitios,
-/// la ubicación actual, el número del icono, abrir los ajustes de la app y el widget.
+/// la ubicación actual, el número del icono, abrir los ajustes de la app, el widget y la bandeja
+/// de lo apuntado con Siri o Atajos.
 @objc(TasksNativePlugin)
 public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "TasksNativePlugin"
@@ -21,12 +22,10 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "syncPlaceAlerts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "syncWidget", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "widgetChanges", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "inbox", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "ackInbox", returnType: CAPPluginReturnPromise),
     ]
 
-    /// iOS vigila como mucho 20 regiones por app.
-    private static let maxRegions = 20
-    private static let minRadius = 100.0
-    private static let maxRadius = 1000.0
     private static let searchSpanMeters = 30_000.0
     private static let maxResults = 10
 
@@ -137,42 +136,12 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    /**
-     * Sustituye los avisos por lugar pendientes por los recibidos. Uno por lugar y sentido
-     * (llegar o salir), con todas sus tareas en el cuerpo. Los que no han cambiado no se tocan:
-     * volver a añadir una región estando dentro podría hacer sonar el aviso otra vez.
-     */
+    /// Sustituye los avisos por lugar pendientes por los recibidos (`PlaceAlerts.sync`).
     @objc func syncPlaceAlerts(_ call: CAPPluginCall) {
-        let alerts = call.getArray("alerts", JSObject.self) ?? []
-        let requests = Array(alerts.compactMap(Self.request(from:)).prefix(Self.maxRegions))
-        let center = UNUserNotificationCenter.current()
-
-        center.getPendingNotificationRequests { pending in
-            let placePending = pending.filter { $0.trigger is UNLocationNotificationTrigger }
-            let wanted = Set(requests.map(\.identifier))
-            let stale = placePending.map(\.identifier).filter { !wanted.contains($0) }
-            center.removePendingNotificationRequests(withIdentifiers: stale)
-
-            let changed = requests.filter { request in
-                !placePending.contains { Self.sameAlert($0, request) }
-            }
-            let group = DispatchGroup()
-            let lock = NSLock()
-            var failed = 0
-            for request in changed {
-                group.enter()
-                center.add(request) { error in
-                    if error != nil {
-                        lock.lock()
-                        failed += 1
-                        lock.unlock()
-                    }
-                    group.leave()
-                }
-            }
-            group.notify(queue: .main) {
-                call.resolve(["scheduled": requests.count - failed, "changed": changed.count])
-            }
+        let alerts = (call.getArray("alerts", JSObject.self) ?? []).compactMap(Self.alert(from:))
+        Task {
+            let result = await PlaceAlerts.sync(alerts)
+            call.resolve(["scheduled": result.scheduled, "changed": result.changed])
         }
     }
 
@@ -198,6 +167,27 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve(["changes": changes, "reschedule": pending.reschedule])
     }
 
+    /// Lo apuntado con Siri o Atajos sin abrir la app. No se vacía al leerlo: ver `ackInbox`.
+    @objc func inbox(_ call: CAPPluginCall) {
+        do {
+            let entries = try InboxStore.entries()
+            call.resolve(["entries": entries])
+        } catch {
+            call.reject("No se pudo leer la bandeja.")
+        }
+    }
+
+    /// La web ya tiene en su fichero de estado lo de estas entradas: salen de la bandeja.
+    @objc func ackInbox(_ call: CAPPluginCall) {
+        let ids = Set(call.getArray("ids", String.self) ?? [])
+        do {
+            try InboxStore.remove(ids: ids)
+            call.resolve()
+        } catch {
+            call.reject("No se pudo vaciar la bandeja.")
+        }
+    }
+
     private static func describe(_ status: CLAuthorizationStatus) -> String {
         switch status {
         case .authorizedAlways, .authorizedWhenInUse:
@@ -215,53 +205,23 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         value as? NSNumber
     }
 
-    /// El id es numérico: así el plugin de notificaciones locales entrega el toque a la web.
-    private static func request(from alert: JSObject) -> UNNotificationRequest? {
+    private static func alert(from object: JSObject) -> PlaceAlert? {
         guard
-            let id = number(alert["id"])?.intValue,
-            let lat = number(alert["lat"])?.doubleValue,
-            let lng = number(alert["lng"])?.doubleValue,
-            let title = alert["title"] as? String
+            let id = number(object["id"])?.intValue,
+            let lat = number(object["lat"])?.doubleValue,
+            let lng = number(object["lng"])?.doubleValue,
+            let title = object["title"] as? String
         else { return nil }
-        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        guard CLLocationCoordinate2DIsValid(coordinate) else { return nil }
-
-        let radius = min(max(number(alert["radius"])?.doubleValue ?? minRadius, minRadius), maxRadius)
-        let leaving = (alert["on"] as? String) == "leave"
-        let region = CLCircularRegion(center: coordinate, radius: radius, identifier: "tasks-place-\(id)")
-        region.notifyOnEntry = !leaving
-        region.notifyOnExit = leaving
-
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = alert["body"] as? String ?? ""
-        content.sound = .default
-        content.threadIdentifier = "tasks-places"
-        if let category = alert["category"] as? String {
-            content.categoryIdentifier = category
-        }
-        // Solo texto: `userInfo` tiene que poder guardarse como property list.
-        if let extra = (alert["extra"] as? JSObject)?.compactMapValues({ $0 as? String }) {
-            content.userInfo = ["cap_extra": extra]
-        }
-        // Se repite: suena cada vez que llegas mientras la tarea siga pendiente.
-        let trigger = UNLocationNotificationTrigger(region: region, repeats: true)
-        return UNNotificationRequest(identifier: String(id), content: content, trigger: trigger)
-    }
-
-    private static func sameAlert(_ current: UNNotificationRequest, _ next: UNNotificationRequest) -> Bool {
-        guard
-            current.identifier == next.identifier,
-            let currentRegion = (current.trigger as? UNLocationNotificationTrigger)?.region as? CLCircularRegion,
-            let nextRegion = (next.trigger as? UNLocationNotificationTrigger)?.region as? CLCircularRegion
-        else { return false }
-        return current.content.title == next.content.title
-            && current.content.body == next.content.body
-            && current.content.categoryIdentifier == next.content.categoryIdentifier
-            && currentRegion.center.latitude == nextRegion.center.latitude
-            && currentRegion.center.longitude == nextRegion.center.longitude
-            && currentRegion.radius == nextRegion.radius
-            && currentRegion.notifyOnEntry == nextRegion.notifyOnEntry
-            && NSDictionary(dictionary: current.content.userInfo).isEqual(to: next.content.userInfo)
+        return PlaceAlert(
+            id: id,
+            lat: lat,
+            lng: lng,
+            radius: number(object["radius"])?.doubleValue,
+            on: object["on"] as? String,
+            title: title,
+            body: object["body"] as? String,
+            category: object["category"] as? String,
+            extra: (object["extra"] as? JSObject)?.compactMapValues { $0 as? String }
+        )
     }
 }

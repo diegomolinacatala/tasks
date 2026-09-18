@@ -28,6 +28,11 @@
 		7A5C0000000000000000010A /* TasksWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000A /* TasksWidgetViews.swift */; };
 		7A5C0000000000000000010B /* ToggleTaskIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000B /* ToggleTaskIntent.swift */; };
 		7A5C0000000000000000010C /* TasksWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000E /* TasksWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7A5C0000000000000000010D /* HeadlessCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C0000000000000000000F /* HeadlessCore.swift */; };
+		7A5C0000000000000000010E /* InboxStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000010 /* InboxStore.swift */; };
+		7A5C0000000000000000010F /* DictationServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000011 /* DictationServer.swift */; };
+		7A5C00000000000000000110 /* NotificationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000012 /* NotificationPlan.swift */; };
+		7A5C00000000000000000111 /* QuickAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000013 /* QuickAdd.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +85,11 @@
 		7A5C0000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A5C0000000000000000000D /* TasksWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TasksWidget.entitlements; sourceTree = "<group>"; };
 		7A5C0000000000000000000E /* TasksWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TasksWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A5C0000000000000000000F /* HeadlessCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadlessCore.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000010 /* InboxStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxStore.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000011 /* DictationServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationServer.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000012 /* NotificationPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPlan.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000013 /* QuickAdd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAdd.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +139,11 @@
 				7A5C00000000000000000003 /* LocationRequester.swift */,
 				7A5C00000000000000000004 /* NativeActions.swift */,
 				7A5C00000000000000000005 /* AppIntents.swift */,
+				7A5C00000000000000000013 /* QuickAdd.swift */,
+				7A5C0000000000000000000F /* HeadlessCore.swift */,
+				7A5C00000000000000000010 /* InboxStore.swift */,
+				7A5C00000000000000000011 /* DictationServer.swift */,
+				7A5C00000000000000000012 /* NotificationPlan.swift */,
 				7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */,
 				7A5C00000000000000000007 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -277,6 +292,11 @@
 				7A5C00000000000000000104 /* NativeActions.swift in Sources */,
 				7A5C00000000000000000105 /* AppIntents.swift in Sources */,
 				7A5C00000000000000000107 /* WidgetStore.swift in Sources */,
+				7A5C0000000000000000010D /* HeadlessCore.swift in Sources */,
+				7A5C0000000000000000010E /* InboxStore.swift in Sources */,
+				7A5C0000000000000000010F /* DictationServer.swift in Sources */,
+				7A5C00000000000000000110 /* NotificationPlan.swift in Sources */,
+				7A5C00000000000000000111 /* QuickAdd.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

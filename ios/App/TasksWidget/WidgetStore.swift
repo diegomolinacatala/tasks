@@ -63,6 +63,11 @@ enum WidgetStore {
         save(changes)
     }
 
+    /** Lo marcado y aún sin aplicar, sin vaciarlo, como lo recibe la web: `[{ taskId, done }]`. */
+    static func pendingDone() -> [[String: Any]] {
+        loadChanges().done.map { ["taskId": $0.key, "done": $0.value] }
+    }
+
     /** Para la app: lo pendiente de aplicar, y se vacía. */
     static func takeChanges() -> WidgetChanges {
         let changes = loadChanges()
