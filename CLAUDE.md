@@ -111,9 +111,9 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip: lo que solo
-existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`, editor de lugares) se
-carga con `import()` o `lazy`.
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (120,0 el
+18/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes) se carga con `import()` o `lazy`.
 
 ## Arquitectura
 
@@ -137,7 +137,8 @@ src/
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
 │   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
-│   ├── inbox.ts          # bandeja de lo apuntado fuera de la web: entradas, aplicarlas, validarlas
+│   ├── inbox.ts          # bandeja de lo apuntado fuera de la web: entradas y cómo aplicarlas
+│   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
 │   ├── headless.ts       # apuntar sin abrir la app: bandeja, avisos, icono y widget de una vez
 │   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
@@ -318,6 +319,9 @@ la misma.
   como mucho **64 pendientes** entre hora y lugar: las regiones restan del hueco y se programan
   los avisos por hora más próximos. Ids numéricos estables (FNV-1a): por debajo de
   `PLACE_ID_BASE` hora, por encima lugar, para que cada lado limpie solo lo suyo.
+- **Sonido**: el plugin de notificaciones programa en silencio si no recibe `sound`; `applyPlan`
+  pasa `'default'` (un nombre sin fichero = sonido del sistema). Los de lugar y los que programa
+  Siri (`NotificationPlanner`) usan `.default`.
 - **Avisos por lugar**: `TasksNativePlugin.syncPlaceAlerts` crea `UNLocationNotificationTrigger`
   con `repeats: true` y permiso de ubicación **solo mientras se usa** (la región la vigila iOS).
   No re-añade los que no han cambiado: hacerlo estando dentro podría repetir el aviso. Se crean
