@@ -42,7 +42,8 @@ export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'task/add': {
       const title = clean(action.title)
-      if (!title) return state
+      // Un id repetido sería la misma tarea aplicada dos veces (la bandeja de Siri se puede releer).
+      if (!title || (action.id !== undefined && state.tasks.some((task) => task.id === action.id))) return state
       const sectionId = sectionFor(action.date, action.sectionId)
       const base: Task = {
         id: action.id ?? createId(),

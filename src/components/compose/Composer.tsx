@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { parseTask } from '../../lib/parse'
-import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft } from '../../types'
+import type { IsoDate, Place, TaskDraft } from '../../types'
 import { IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus } from '../ui/Icons'
 import { VoiceBar } from './VoiceBar'
 import { useVoice } from './useVoice'
 import './composer.css'
-
-export interface TaskDraft {
-  title: string
-  date: IsoDate | null
-  time: IsoTime | null
-  reminders: ReminderDraft[]
-  /** Lugar dicho que aún no existe: quien recibe el borrador lo crea. */
-  newPlace?: { name: string; on: PlaceTrigger }
-}
 
 interface ComposerProps {
   /** Atajo de un toque: añade con fecha en vez de dejarla en blanco. */

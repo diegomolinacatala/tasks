@@ -11,6 +11,8 @@ export type NativeAction =
   | { type: 'today' }
   /** Widget: tocar una tarea. */
   | { type: 'open'; taskId: string }
+  /** Siri o un atajo han dejado tareas en la bandeja con la app abierta. */
+  | { type: 'inbox' }
 
 /** Tarea marcada o desmarcada en el widget mientras la app no estaba delante. */
 export interface WidgetChange {
@@ -31,7 +33,7 @@ const isId = (value: unknown): value is string => typeof value === 'string' && v
 
 export function parseNativeAction(raw: unknown): NativeAction | null {
   if (!isObject(raw)) return null
-  if (raw.type === 'compose' || raw.type === 'week' || raw.type === 'today') return { type: raw.type }
+  if (raw.type === 'compose' || raw.type === 'week' || raw.type === 'today' || raw.type === 'inbox') return { type: raw.type }
   if (raw.type === 'open') return isId(raw.taskId) ? { type: 'open', taskId: raw.taskId } : null
   if (raw.type !== 'add' || typeof raw.text !== 'string') return null
   const text = raw.text.trim().slice(0, MAX_TEXT)

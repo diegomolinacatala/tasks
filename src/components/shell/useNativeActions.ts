@@ -14,6 +14,8 @@ interface NativeActionHandlers {
   onToday: () => void
   /** Widget: tocar una tarea. */
   onOpenTask: (taskId: string) => void
+  /** Siri o un atajo han apuntado algo sin abrir la app mientras esta seguía viva. */
+  onInbox: () => void
 }
 
 /** Acciones que llegan de fuera de la web en la app de iPhone. */
@@ -37,6 +39,7 @@ export function useNativeActions(handlers: NativeActionHandlers) {
           if (action?.type === 'week') current.current.onWeek()
           if (action?.type === 'today') current.current.onToday()
           if (action?.type === 'open') current.current.onOpenTask(action.taskId)
+          if (action?.type === 'inbox') current.current.onInbox()
         }),
       )
       .then((registered) => {

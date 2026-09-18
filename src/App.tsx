@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
+import { INBOX_EVENT } from './lib/inbox'
 import { draftsFromInterpreted } from './lib/interpret'
 import type { ParsedTask } from './lib/parse'
 import { parseSpoken } from './lib/parse'
@@ -27,6 +28,7 @@ const PlaceTasksSheet = lazy(() =>
   import('./components/places/PlaceTasksSheet').then((module) => ({ default: module.PlaceTasksSheet })),
 )
 const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
+const NativeInbox = lazy(() => import('./components/shell/NativeInbox').then((module) => ({ default: module.NativeInbox })))
 
 export function App() {
   const state = useAppState()
@@ -118,6 +120,7 @@ export function App() {
       if (view !== 'home') withTransition(() => setView('home'))
     },
     onOpenTask: openTask,
+    onInbox: () => window.dispatchEvent(new Event(INBOX_EVENT)),
   })
 
   const inWeek = view === 'week' && selectedDay !== today
@@ -163,6 +166,7 @@ export function App() {
         <Suspense fallback={null}>
           <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />
           <NativeWidget today={today} />
+          <NativeInbox />
         </Suspense>
       )}
     </div>

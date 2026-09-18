@@ -36,6 +36,16 @@ export interface Task {
   completedAt: number | null
 }
 
+/** Tarea por crear: lo que sale del compositor, del dictado o de Siri. */
+export interface TaskDraft {
+  title: string
+  date: IsoDate | null
+  time: IsoTime | null
+  reminders: ReminderDraft[]
+  /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
+  newPlace?: { name: string; on: PlaceTrigger }
+}
+
 export interface Section {
   id: string
   name: string

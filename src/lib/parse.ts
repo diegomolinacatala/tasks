@@ -1,4 +1,4 @@
-import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft } from '../types'
+import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft, TaskDraft } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, startOfWeek, timeOfInstant, toInstant } from './date'
 import type { NormalizedText } from './normalize'
 import { normalizeText, originalSpan } from './normalize'
@@ -21,15 +21,9 @@ import {
   resolveHour,
 } from './when'
 
-export interface ParsedTask {
-  title: string
-  date: IsoDate | null
-  time: IsoTime | null
-  reminders: ReminderDraft[]
+export interface ParsedTask extends TaskDraft {
   /** Resumen de lo detectado (`Mañana 17:00 · 10 min antes`), o `null` si no se detectó nada. */
   label: string | null
-  /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
-  newPlace?: { name: string; on: PlaceTrigger }
 }
 
 const MINUTE = 60_000

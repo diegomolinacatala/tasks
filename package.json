@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build",
-    "build:native": "npm run typecheck && vite build --mode native && cap sync ios",
+    "build:native": "npm run typecheck && vite build --mode native && npm run build:headless && cap sync ios",
+    "build:headless": "vite build --mode native -c vite.headless.config.ts && node scripts/check-headless.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json",
     "test": "vitest run",

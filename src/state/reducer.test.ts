@@ -33,6 +33,11 @@ describe('task/add', () => {
     run(before, { type: 'task/add', title: 'x', date: TODAY, sectionId: null })
     expect(before.tasks).toHaveLength(0)
   })
+
+  test('un id que ya existe no crea otra tarea: aplicar la bandeja dos veces no duplica', () => {
+    const once = run(emptyState(), { type: 'task/add', id: 'siri', title: 'Comprar pan', date: null, sectionId: null })
+    expect(reducer(once, { type: 'task/add', id: 'siri', title: 'Otra', date: TODAY, sectionId: null })).toBe(once)
+  })
 })
 
 describe('task/toggle', () => {

@@ -16,6 +16,10 @@ describe('parseNativeAction', () => {
     expect(parseNativeAction({ type: 'open', taskId: 't1' })).toEqual({ type: 'open', taskId: 't1' })
   })
 
+  test('Siri o un atajo han apuntado algo sin abrir la app', () => {
+    expect(parseNativeAction({ type: 'inbox' })).toEqual({ type: 'inbox' })
+  })
+
   test.each([
     null,
     'add',

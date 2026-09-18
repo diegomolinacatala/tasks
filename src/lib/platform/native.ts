@@ -27,6 +27,10 @@ interface TasksNativePlugin {
    * validar (`parseWidgetChanges`). `reschedule`: el widget quitó avisos y hay que reprogramarlos.
    */
   widgetChanges(): Promise<{ changes: unknown; reschedule: boolean }>
+  /** Tareas apuntadas con Siri o Atajos sin abrir la app. Llega sin validar: ver `parseInbox`. */
+  inbox(): Promise<{ entries: unknown }>
+  /** Borra de la bandeja lo que ya está en el fichero de estado. */
+  ackInbox(options: { ids: string[] }): Promise<void>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
 }
