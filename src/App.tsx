@@ -19,11 +19,13 @@ import { useNativeActions } from './components/shell/useNativeActions'
 import { IconMore, IconTextSize } from './components/ui/Icons'
 import { useToast } from './components/ui/Toast'
 import { HomeView } from './components/views/HomeView'
-import { WeekView } from './components/views/WeekView'
 import './components/shell/shell.css'
 
-// Los paneles de tarea y sección van en su propio trozo: se piden en cuanto la lista está pintada,
-// no al tocar, así que abrirlos no espera a nada y la PWA arranca más ligera.
+const loadWeekView = () => import('./components/views/WeekView')
+
+// Los paneles de tarea y sección, y la vista semana, van en su propio trozo: se piden en cuanto la
+// lista está pintada, no al tocar, así que abrirlos no espera a nada y la PWA arranca más ligera.
+const WeekView = lazy(() => loadWeekView().then((module) => ({ default: module.WeekView })))
 const TaskSheet = lazy(() => import('./components/task/TaskSheet').then((module) => ({ default: module.TaskSheet })))
 const SectionSheet = lazy(() => import('./components/section/SectionSheet').then((module) => ({ default: module.SectionSheet })))
 const PlaceTasksSheet = lazy(() =>
@@ -60,6 +62,8 @@ export function App() {
   useEffect(() => {
     // La pantalla de carga nativa espera a que haya estado que pintar.
     if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
+    // La vista semana, ya pintada la lista: tocar "Semana" no espera a la red.
+    void loadWeekView()
   }, [])
 
   // Pasada la medianoche con la app abierta, lo que apuntaba a "hoy" pasa al día nuevo:
@@ -161,14 +165,16 @@ export function App() {
         <SizingContext.Provider value={sizing}>
           {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
           {view === 'week' && (
-            <WeekView
-              today={today}
-              anchor={weekAnchor}
-              selectedDay={selectedDay}
-              onAnchorChange={changeWeek}
-              onSelectDay={setSelectedDay}
-              onOpenTask={openTask}
-            />
+            <Suspense fallback={null}>
+              <WeekView
+                today={today}
+                anchor={weekAnchor}
+                selectedDay={selectedDay}
+                onAnchorChange={changeWeek}
+                onSelectDay={setSelectedDay}
+                onOpenTask={openTask}
+              />
+            </Suspense>
           )}
         </SizingContext.Provider>
       </main>
