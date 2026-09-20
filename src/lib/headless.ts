@@ -1,4 +1,5 @@
 import { emptyState, reducer } from '../state/reducer'
+import { overdueTasks } from '../state/selectors'
 import type { AppState } from '../types'
 import { normalizeState } from './backup'
 import { isoOfInstant, timeOfInstant } from './date'
@@ -16,9 +17,10 @@ import type { WidgetSnapshot } from './widget'
 import { widgetSnapshot, widgetToggles } from './widget'
 
 /**
- * Apuntar una tarea sin abrir la app (Siri, Atajos). Lo ejecuta el lado nativo con JavaScriptCore
- * (`src/headless.ts`): es la misma lógica que la web, sin React ni navegador. No escribe nada; dice
- * qué entrada añadir a la bandeja y cómo dejar los avisos, el icono y el widget contando con ella.
+ * Apuntar una tarea o pasar lo atrasado a hoy sin abrir la app (Siri, Atajos, el widget). Lo ejecuta
+ * el lado nativo con JavaScriptCore (`src/headless.ts`): es la misma lógica que la web, sin React ni
+ * navegador. No escribe nada; dice qué entrada añadir a la bandeja y cómo dejar los avisos, el icono
+ * y el widget contando con ella.
  */
 
 export interface HeadlessInput {
@@ -33,6 +35,9 @@ export interface HeadlessInput {
   /** Lo marcado desde el widget que la web aún no ha aplicado (`[{ taskId, done }]`). */
   widgetChanges: unknown
 }
+
+/** Pasar lo atrasado a hoy: lo mismo que para apuntar, sin frase. */
+export type MoveInput = Omit<HeadlessInput, 'text' | 'interpreted'>
 
 export interface HeadlessResult {
   /** Lo que hay que añadir a la bandeja; `null` si no se entendió nada. */
@@ -86,4 +91,32 @@ export function addFromText(input: HeadlessInput, newId: () => string): Headless
 
   const next = applyInbox(state, [entry]).state
   return { entry, message, plan: nativePlan(next, now), badge: badgeCount(next.tasks, now), widget: widgetSnapshot(next, now) }
+}
+
+const plural = (count: number) => (count === 1 ? '1 tarea pasada' : `${count} tareas pasadas`)
+
+/**
+ * Lo atrasado, a hoy (arriba de su sección), como el botón del bloque Atrasadas. El mensaje no dice
+ * qué tareas son: se oye y se ve también con el iPhone bloqueado.
+ */
+export function moveOverdue(input: MoveInput, newId: () => string): HeadlessResult {
+  const saved = normalizeState(input.state)
+  // Sin el estado guardado no se sabe qué está atrasado.
+  if (!saved) return { entry: null, message: 'Abre Tasks para ver lo atrasado.', plan: null, badge: null, widget: null }
+
+  const { now } = input
+  const state = projected(saved, input.inbox, input.widgetChanges)
+  const date = isoOfInstant(now)
+  const taskIds = overdueTasks(state, date).map((task) => task.id)
+  if (!taskIds.length) return { entry: null, message: 'No hay nada atrasado.', plan: null, badge: null, widget: null }
+
+  const entry: InboxEntry = { id: newId(), createdAt: now, places: [], tasks: [], move: { date, taskIds } }
+  const next = applyInbox(state, [entry]).state
+  return {
+    entry,
+    message: `${plural(taskIds.length)} a hoy.`,
+    plan: nativePlan(next, now),
+    badge: badgeCount(next.tasks, now),
+    widget: widgetSnapshot(next, now),
+  }
 }

@@ -159,6 +159,20 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
       aviso ya no suena. Si se desmarca en el widget, al abrir la app su aviso vuelve a programarse.
 - [ ] Tocar una tarea del widget abre esa tarea; el **+** abre la barra de escribir.
 - [ ] Widget al día siguiente sin abrir la app: lo de ayer pasa a atrasado.
+- [ ] **Pasar a hoy** (desde la 14): con algo atrasado, *Pasar a hoy* en la cabecera de
+      *Atrasadas* lo sube arriba de *Hoy* (cada una a su sección) con *Deshacer*; en *Semana*, cada día
+      pasado con pendientes tiene el suyo.
+- [ ] Widget con algo atrasado: sale **A hoy**. Tocarlo con la app cerrada: el widget las pasa a hoy
+      sin abrir nada, y el aviso de una atrasada con hora (p. ej. ayer a las 17:00 con aviso 15 min
+      antes) suena hoy a las 16:45 aunque no se abra la app. Al abrirla, están en *Hoy* una sola vez.
+- [ ] Siri: *«Oye Siri, pasa lo atrasado a hoy en Tasks»* → *«2 tareas pasadas a hoy»*, sin abrir la
+      app. Opcional, cada mañana sola (§2.2).
+- [ ] Resumen diario con algo atrasado: mantener pulsado el aviso → *Pasar atrasadas a hoy*. Un aviso
+      pospuesto a mañana (de una tarea de hoy) trae *Hecha*, *Pasar a hoy* y *+10 min*.
+- [ ] **Importancia**: tocar **Aa** arriba; cada tarea cambia el asa por un número. Arrastrarlo hacia
+      arriba agranda el título (vibra en cada punto) y hacia abajo lo encoge; tocarlo sube uno. En el
+      panel de la tarea, la escala del 1 al 10. Al completarla vuelve al tamaño normal.
+- [ ] Widget: las importantes salen más grandes; en la pantalla de bloqueo, las dos más importantes.
 - [ ] Exportar copia: se abre la hoja de compartir.
 - [ ] Cerrar la app a la fuerza y volver: las tareas siguen ahí.
 
@@ -188,6 +202,17 @@ Dónde ponerlo:
   **Añadir un control** → **Atajo** → *Dictar tarea*.
 - **Widget**: mantener pulsada la pantalla de inicio → **Editar** → **Añadir widget** → **Atajos** →
   el pequeño → **Añadir**. Mantenerlo pulsado → **Editar widget** → *Atajo* → *Dictar tarea*.
+
+### 2.2 Pasar lo atrasado a hoy cada mañana (opcional)
+
+Lo que otras apps llaman *arrastrar lo pendiente*: que lo que quedó sin hacer amanezca en hoy.
+
+1. App **Atajos** → pestaña **Automatización** → **+** → **Hora del día**.
+2. Elegir la hora (p. ej. **7:00**) y **Diariamente**; marcar que se ejecute sin preguntar
+   (**Ejecutar de inmediato**). **Siguiente**.
+3. Buscar **Pasar atrasadas a hoy** (de Tasks) y tocarla. **OK**.
+
+No abre la app: el widget, el número del icono y los avisos quedan al día solos.
 
 ## 3. Ficha de la App Store
 

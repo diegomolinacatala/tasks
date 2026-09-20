@@ -19,6 +19,8 @@ export interface WidgetTask {
   date: IsoDate
   time: IsoTime | null
   done: boolean
+  /** 1 a 10: el widget agranda el título y, donde solo caben dos, enseña las más importantes. */
+  importance: number
 }
 
 export interface WidgetSnapshot {
@@ -47,7 +49,7 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     .filter((task) => visible(task, today, last))
     .sort(compare)
     .slice(0, WIDGET_MAX_TASKS)
-    .map(({ id, title, date, time, done }) => ({ id, title, date, time, done }))
+    .map(({ id, title, date, time, done, importance }) => ({ id, title, date, time, done, importance }))
 
   return { version: WIDGET_VERSION, tasks }
 }

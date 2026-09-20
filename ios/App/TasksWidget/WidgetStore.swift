@@ -107,6 +107,14 @@ struct WidgetTask: Codable, Hashable, Identifiable {
     /** `HH:MM` o `nil`. */
     let time: String?
     var done: Bool
+    /** 1 a 10 (`src/lib/importance.ts`). Falta en las fotos de versiones anteriores: normal. */
+    var importance: Int? = nil
+
+    /** De 0 (normal) a 1 (lo más importante). */
+    var weight: Double {
+        let level = min(max(importance ?? 1, 1), 10)
+        return Double(level - 1) / 9
+    }
 }
 
 struct WidgetSnapshot: Codable {
@@ -138,6 +146,17 @@ struct WidgetDay {
     /** Lo mismo que el número del icono: pendientes de hoy más atrasadas. */
     var pending: Int {
         overdue.count + today.filter { !$0.done }.count
+    }
+
+    /** Pendientes, las más importantes primero; a igualdad, atrasadas y luego hoy, en su orden. */
+    var mostImportant: [WidgetTask] {
+        let waiting = overdue + today.filter { !$0.done }
+        return waiting.enumerated()
+            .sorted { a, b in
+                let (left, right) = (a.element.importance ?? 1, b.element.importance ?? 1)
+                return left != right ? left > right : a.offset < b.offset
+            }
+            .map(\.element)
     }
 
     /** Día local en ISO, siempre en calendario gregoriano como la web. */

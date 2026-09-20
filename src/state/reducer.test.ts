@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { inScope } from '../lib/order'
+import { inScope, placementsOf } from '../lib/order'
 import type { AppState, Task } from '../types'
 import type { Action } from './actions'
 import { emptyState, reducer } from './reducer'
@@ -196,6 +196,69 @@ describe('task/move', () => {
     const state = run(withSection, { type: 'task/add', title: 'uno', date: TODAY, sectionId: 'casa' })
     const id = state.tasks[0]!.id
     expect(reducer(state, { type: 'task/move', id, date: null, sectionId: 'casa' }).tasks[0]!.sectionId).toBeNull()
+  })
+})
+
+describe('task/importance', () => {
+  test('una tarea nueva nace con importancia normal', () => {
+    expect(withTasks('uno').tasks[0]!.importance).toBe(1)
+  })
+
+  test('cambia la importancia dentro de la escala del 1 al 10', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/importance', id, importance: 7 }).tasks[0]!.importance).toBe(7)
+    expect(reducer(state, { type: 'task/importance', id, importance: 40 }).tasks[0]!.importance).toBe(10)
+    expect(reducer(state, { type: 'task/importance', id, importance: -3 }).tasks[0]!.importance).toBe(1)
+  })
+
+  test('la misma importancia o un valor que no es número no crean estado nuevo', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/importance', id, importance: 1 })).toBe(state)
+    expect(reducer(state, { type: 'task/importance', id, importance: Number.NaN })).toBe(state)
+  })
+
+  test('no cambia el orden: importancia es tamaño, no posición', () => {
+    const state = withTasks('uno', 'dos')
+    const next = reducer(state, { type: 'task/importance', id: state.tasks[1]!.id, importance: 9 })
+    expect(titles(next)).toEqual(['uno', 'dos'])
+  })
+})
+
+describe('tasks/reschedule y tasks/place', () => {
+  const YESTERDAY = '2026-09-10'
+  const overdue = () =>
+    run(
+      emptyState(),
+      { type: 'section/add', name: 'Casa', id: 'casa' },
+      { type: 'task/add', id: 'hoy', title: 'hoy', date: TODAY, sectionId: null },
+      { type: 'task/add', id: 'a', title: 'a', date: YESTERDAY, sectionId: null },
+      { type: 'task/add', id: 'b', title: 'b', date: YESTERDAY, sectionId: 'casa' },
+      { type: 'task/add', id: 'c', title: 'c', date: YESTERDAY, sectionId: null },
+    )
+
+  test('pasa lo atrasado a hoy, arriba y conservando la sección', () => {
+    const next = reducer(overdue(), { type: 'tasks/reschedule', ids: ['a', 'b'], date: TODAY })
+    expect(titles(next)).toEqual(['a', 'hoy'])
+    expect(inScope(next.tasks, `${TODAY}::casa`).map((task) => task.id)).toEqual(['b'])
+    expect(inScope(next.tasks, `${YESTERDAY}::root`).map((task) => task.id)).toEqual(['c'])
+  })
+
+  test('nada que mover no crea estado nuevo', () => {
+    const state = overdue()
+    expect(reducer(state, { type: 'tasks/reschedule', ids: ['hoy', 'nadie'], date: TODAY })).toBe(state)
+    expect(reducer(state, { type: 'tasks/place', placements: [{ id: 'nadie', date: TODAY, sectionId: null, index: 0 }] })).toBe(state)
+  })
+
+  test('deshacer las devuelve a su día y su sitio', () => {
+    const state = overdue()
+    const before = placementsOf(state.tasks, ['a', 'b', 'c'])
+    const moved = reducer(state, { type: 'tasks/reschedule', ids: ['a', 'b', 'c'], date: TODAY })
+    const undone = reducer(moved, { type: 'tasks/place', placements: before })
+    const where = (s: AppState) => s.tasks.map(({ id, date, sectionId }) => ({ id, date, sectionId }))
+    expect(where(undone)).toEqual(where(state))
+    expect(inScope(undone.tasks, `${YESTERDAY}::root`).map((task) => task.id)).toEqual(['a', 'c'])
   })
 })
 

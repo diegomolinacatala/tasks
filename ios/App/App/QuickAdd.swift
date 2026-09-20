@@ -3,9 +3,10 @@ import UserNotifications
 import WidgetKit
 
 /**
- * Apuntar una tarea sin abrir la app (Siri, Atajos). El estado vive en la web, que aquí no corre:
- * la tarea va a la bandeja (la web la aplica al cargar o al volver) y, entretanto, `headless.js`
- * dice cómo dejar sus avisos, el número del icono y el widget con la misma lógica que la web.
+ * Apuntar una tarea o pasar lo atrasado a hoy sin abrir la app (Siri, Atajos, el widget). El estado
+ * vive en la web, que aquí no corre: el cambio va a la bandeja (la web lo aplica al cargar o al
+ * volver) y, entretanto, `headless.js` dice cómo dejar los avisos, el número del icono y el widget
+ * con la misma lógica que la web.
  */
 enum QuickAdd {
     /** Lo que Siri o el atajo enseñan si algo falla. */
@@ -17,8 +18,8 @@ enum QuickAdd {
     private static let interpretSeconds = 6.0
 
     /**
-     * Una alta cada vez: dos a la vez calcularían sus avisos cada una sin la tarea de la otra, y la
-     * última en aplicar su plan borraría los avisos de la primera.
+     * Un cambio cada vez: dos a la vez calcularían sus avisos cada uno sin lo del otro, y el último
+     * en aplicar su plan borraría los avisos del primero.
      */
     private static let queue = SerialQueue()
 
@@ -68,6 +69,38 @@ enum QuickAdd {
         return message
     }
 
+    /** Pasa lo atrasado a hoy. Devuelve lo que dice Siri: "3 tareas pasadas a hoy". */
+    static func moveOverdue() async throws -> String {
+        try await queue.run { try await QuickAdd.moveOverdueNow() }
+    }
+
+    private static func moveOverdueNow() async throws -> String {
+        let now = Int64((Date().timeIntervalSince1970 * 1000).rounded())
+        do {
+            let inbox = try InboxStore.entries()
+            let result = try HeadlessCore().moveOverdue([
+                "now": NSNumber(value: now),
+                "state": stateFile() ?? NSNull(),
+                "inbox": inbox,
+                "widgetChanges": WidgetStore.pendingDone(),
+            ])
+            guard let message = result["message"] as? String else {
+                throw HeadlessCore.Failure(message: "headless.js no devolvió el mensaje.")
+            }
+            // Nada atrasado, o la app aún no tiene estado guardado.
+            guard let entry = result["entry"] as? [String: Any] else { return message }
+            try InboxStore.append(entry)
+            await refresh(with: result)
+            notifyWeb()
+            return message
+        } catch is InboxStore.Full {
+            throw Failure(localizedStringResource: "Hay demasiados cambios sin ordenar. Abre Tasks para seguir.")
+        } catch {
+            // Sin `headless.js` no se sabe qué está atrasado: mejor no tocar nada.
+            throw Failure(localizedStringResource: "No se ha podido pasar a hoy. Hazlo desde Tasks.")
+        }
+    }
+
     /** Las tareas que entiende la IA del servidor, o `nil` para usar el analizador del iPhone. */
     private static func interpret(_ text: String, core: HeadlessCore, now: Int64) async -> Any? {
         guard let api = core.api, let context = try? core.voiceContext(now: now) else { return nil }
@@ -79,7 +112,7 @@ enum QuickAdd {
         return try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
     }
 
-    /** Icono, avisos y widget contando ya con lo apuntado, como los dejaría la web. */
+    /** Icono, avisos y widget contando ya con el cambio, como los dejaría la web. */
     private static func refresh(with result: [String: Any]) async {
         if let badge = result["badge"] as? Int {
             try? await UNUserNotificationCenter.current().setBadgeCount(badge)
@@ -160,5 +193,12 @@ private actor SerialQueue {
         }
         last = Task { _ = try? await current.value }
         return try await current.value
+    }
+}
+
+/** El botón "A hoy" del widget (`WidgetMoveOverdueIntent`) en el proceso de la app. */
+enum OverdueMover {
+    static func moveToToday() async throws -> String {
+        try await QuickAdd.moveOverdue()
     }
 }

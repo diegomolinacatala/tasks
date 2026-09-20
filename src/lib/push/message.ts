@@ -8,6 +8,8 @@ export interface NotificationContent {
   badge: number | null
   /** Hora prevista del aviso (epoch ms), para que el sistema muestre esa y no la de llegada. */
   at?: number
+  /** Hay algo atrasado que se puede pasar a hoy desde el aviso (ver `ScheduleEntry.overdue`). */
+  overdue?: boolean
 }
 
 const MAX_TITLE = 120
@@ -33,6 +35,7 @@ export function parseContent(raw: unknown): NotificationContent | null {
     badge:
       typeof value.badge === 'number' && Number.isInteger(value.badge) && value.badge >= 0 ? value.badge : null,
     ...(typeof value.at === 'number' && Number.isFinite(value.at) ? { at: value.at } : {}),
+    ...(value.overdue === true ? { overdue: true } : {}),
   }
 }
 
@@ -49,10 +52,10 @@ export function parsePushData(text: string): string | null {
 }
 
 /** Botones de la notificación. iOS no los muestra; Android y escritorio sí. */
-export type NotificationAction = 'done' | 'snooze'
+export type NotificationAction = 'done' | 'snooze' | 'today'
 
 export const isNotificationAction = (value: unknown): value is NotificationAction =>
-  value === 'done' || value === 'snooze'
+  value === 'done' || value === 'snooze' || value === 'today'
 
 /** Mensaje del service worker a la página cuando ya estaba abierta. */
 export interface OpenTaskMessage {

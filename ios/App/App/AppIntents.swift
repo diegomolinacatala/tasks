@@ -24,6 +24,21 @@ struct AddTaskIntent: AppIntent {
     }
 }
 
+/// "Pasa lo atrasado a hoy en Tasks": lo mismo que el botón del bloque Atrasadas, sin abrir la app.
+/// En una automatización de Atajos cada mañana, lo pendiente de ayer amanece en hoy.
+struct MoveOverdueIntent: AppIntent {
+    static var title: LocalizedStringResource = "Pasar atrasadas a hoy"
+    static var description = IntentDescription("Pasa a hoy las tareas atrasadas sin abrir Tasks.")
+    static var openAppWhenRun: Bool = false
+    /// El mensaje solo dice cuántas: no enseña nada con el iPhone bloqueado.
+    static var authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let message = try await QuickAdd.moveOverdue()
+        return .result(dialog: "\(message)")
+    }
+}
+
 /// Abre la app con la barra de escribir enfocada. Para escribir con calma; para dictar sin abrirla,
 /// "Añadir tarea". iOS no deja a las apps detectar los toques atrás, solo lanzar un atajo.
 struct ComposeTaskIntent: AppIntent {
@@ -62,6 +77,15 @@ struct TasksShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Añadir tarea",
             systemImageName: "plus.circle"
+        )
+        AppShortcut(
+            intent: MoveOverdueIntent(),
+            phrases: [
+                "Pasa lo atrasado a hoy en \(.applicationName)",
+                "Pasa las atrasadas a hoy en \(.applicationName)",
+            ],
+            shortTitle: "Atrasadas a hoy",
+            systemImageName: "arrow.uturn.down.circle"
         )
         AppShortcut(
             intent: OpenWeekIntent(),

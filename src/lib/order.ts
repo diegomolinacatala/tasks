@@ -69,3 +69,57 @@ export function moveTask(
 
   return applyOrder(reordered, fromScope, inScope(reordered, fromScope).map((task) => task.id))
 }
+
+/** Sitio de una tarea: día, sección y puesto dentro de ellos. */
+export interface Placement {
+  id: string
+  date: IsoDate | null
+  sectionId: string | null
+  index: number
+}
+
+/**
+ * Dónde está cada tarea ahora, para poder devolverla ahí (deshacer). Van de menor a mayor puesto:
+ * al recolocarlas una detrás de otra, cada una cae en su hueco.
+ */
+export function placementsOf(tasks: readonly Task[], ids: readonly string[]): Placement[] {
+  return ids
+    .flatMap((id) => {
+      const task = tasks.find((item) => item.id === id)
+      if (!task) return []
+      const index = inScope(tasks, scopeOf(task)).findIndex((item) => item.id === id)
+      return [{ id, date: task.date, sectionId: task.sectionId, index }]
+    })
+    .sort((a, b) => a.index - b.index)
+}
+
+/** Coloca las tareas en orden, una detrás de otra. Sin fecha no hay sección. */
+export function applyPlacements(tasks: readonly Task[], placements: readonly Placement[]): Task[] {
+  return placements.reduce<Task[]>(
+    (acc, { id, date, sectionId, index }) => moveTask(acc, id, { date, sectionId: date ? sectionId : null }, index),
+    tasks as Task[],
+  )
+}
+
+/**
+ * Pasa tareas pendientes a otro día (lo atrasado, a hoy): cada una arriba del todo de su sección,
+ * en el orden dado. Las hechas y las que ya son de ese día no se tocan, así que repetirlo no cambia
+ * nada. Si no hay nada que mover, devuelve la misma lista.
+ */
+export function rescheduled(tasks: readonly Task[], ids: readonly string[], date: IsoDate): Task[] {
+  const byId = new Map(tasks.map((task) => [task.id, task]))
+  const moving = [...new Set(ids)].flatMap((id) => {
+    const task = byId.get(id)
+    return task && !task.done && task.date !== date ? [task] : []
+  })
+  if (!moving.length) return tasks as Task[]
+
+  const taken = new Map<string, number>()
+  const placements = moving.map((task): Placement => {
+    const scope = scopeKey(date, task.sectionId)
+    const index = taken.get(scope) ?? 0
+    taken.set(scope, index + 1)
+    return { id: task.id, date, sectionId: task.sectionId, index }
+  })
+  return applyPlacements(tasks, placements)
+}

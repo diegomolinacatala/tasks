@@ -154,3 +154,11 @@ export const IconSearch = (props: IconProps) => (
     <path d="m20 20-4.2-4.2" />
   </Icon>
 )
+
+/** "aA": el modo de importancia, que agranda los títulos. */
+export const IconTextSize = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M2.5 19 6 11l3.5 8M3.7 16.3h4.6" />
+    <path d="M11 19 16.25 5.5 21.5 19M12.9 14.2h6.7" />
+  </Icon>
+)

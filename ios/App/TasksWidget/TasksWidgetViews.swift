@@ -35,6 +35,9 @@ struct SmallWidget: View {
                 CountLabel(count: day.pending, size: 26)
                 DayLabel()
                 Spacer(minLength: 0)
+                if !day.overdue.isEmpty {
+                    MoveOverdueButton()
+                }
             }
             TaskList(day: day, slots: 3, style: .compact, ready: ready)
         }
@@ -52,6 +55,10 @@ struct MediumWidget: View {
                 Spacer(minLength: 0)
                 CountLabel(count: day.pending, size: 34)
                 DayLabel()
+                if !day.overdue.isEmpty {
+                    MoveOverdueButton()
+                        .padding(.top, 8)
+                }
             }
             .frame(minWidth: 44, maxHeight: .infinity, alignment: .leading)
             TaskList(day: day, slots: 4, style: .regular, ready: ready)
@@ -71,6 +78,10 @@ struct LargeWidget: View {
                     DayLabel()
                 }
                 Spacer(minLength: 0)
+                if !day.overdue.isEmpty {
+                    MoveOverdueButton()
+                        .padding(.trailing, 8)
+                }
                 AddLink()
             }
             TaskList(day: day, slots: 8, style: .regular, ready: ready)
@@ -99,13 +110,13 @@ struct CircularWidget: View {
     }
 }
 
-/** Pantalla de bloqueo: el número y las dos primeras pendientes. */
+/** Pantalla de bloqueo: el número y, como solo caben dos, las dos pendientes más importantes. */
 struct RectangularWidget: View {
     let day: WidgetDay
     let ready: Bool
 
     var body: some View {
-        let pending = Array((day.overdue + day.today.filter { !$0.done }).prefix(2))
+        let pending = Array(day.mostImportant.prefix(2))
         VStack(alignment: .leading, spacing: 1) {
             Text(verbatim: day.pending == 0 ? "Hoy" : "Hoy · \(day.pending)")
                 .font(.headline)
@@ -116,6 +127,7 @@ struct RectangularWidget: View {
             } else {
                 ForEach(pending) { task in
                     Text(task.title)
+                        .fontWeight(task.weight >= 0.5 ? .semibold : .regular)
                 }
             }
         }
@@ -131,14 +143,24 @@ struct RectangularWidget: View {
 struct RowStyle {
     let circle: CGFloat
     let title: CGFloat
+    /** Lo que crece el título de lo más importante: las filas tienen alto fijo, menos que en la app. */
+    let growth: CGFloat
     let gap: CGFloat
     /** Hora o fecha a la derecha y enlace a la tarea. */
     let detailed: Bool
 
-    static let regular = RowStyle(circle: 20, title: 15, gap: 10, detailed: true)
-    static let compact = RowStyle(circle: 17, title: 13, gap: 8, detailed: false)
+    static let regular = RowStyle(circle: 20, title: 15, growth: 5, gap: 10, detailed: true)
+    static let compact = RowStyle(circle: 17, title: 13, growth: 3, gap: 8, detailed: false)
 
     var inset: CGFloat { circle + gap }
+
+    /** Como en la app: lo importante, más grande y con más peso. Lo hecho vuelve a lo normal. */
+    func titleFont(_ task: WidgetTask) -> Font {
+        let weight = task.done ? 0 : task.weight
+        let font = Font.system(size: title + growth * weight)
+        if weight >= 0.5 { return font.weight(.semibold) }
+        return weight > 0 ? font.weight(.medium) : font
+    }
 }
 
 enum WidgetRow: Hashable {
@@ -232,7 +254,7 @@ struct TaskRow: View {
     private var label: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(task.title)
-                .font(.system(size: style.title))
+                .font(style.titleFont(task))
                 .foregroundStyle(titleColor)
                 .strikethrough(task.done, color: Palette.text3)
                 .lineLimit(1)
@@ -311,6 +333,28 @@ struct DayLabel: View {
             .font(.system(size: 11, weight: .semibold))
             .tracking(1)
             .foregroundStyle(Palette.text2)
+    }
+}
+
+/**
+ * Pasa lo atrasado a hoy sin abrir la app, como el botón del bloque Atrasadas. Corre en el proceso
+ * de la app (`WidgetMoveOverdueIntent`), que después recarga el widget.
+ */
+struct MoveOverdueButton: View {
+    var body: some View {
+        Button(intent: WidgetMoveOverdueIntent()) {
+            Text(verbatim: "A hoy")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 9)
+                .frame(height: 24)
+                .background(Capsule().fill(Palette.accentDim))
+                .widgetAccentable()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: "Pasar atrasadas a hoy"))
     }
 }
 

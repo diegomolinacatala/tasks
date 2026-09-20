@@ -42,6 +42,7 @@ async function updateBadge(count: number | null): Promise<void> {
 
 async function showFromPush(text: string): Promise<void> {
   const content = await readContent(text)
+  const actions = actionsFor(content)
   // Primero la notificación: iOS retira el permiso si un push no muestra nada.
   // `actions` y `timestamp` no están en los tipos de TS pero sí en los navegadores que los admiten.
   const options: NotificationOptions & { actions?: { action: NotificationAction; title: string }[]; timestamp?: number } = {
@@ -49,7 +50,7 @@ async function showFromPush(text: string): Promise<void> {
     data: { taskId: content.taskId },
     icon: `${BASE}icons/icon-192.png`,
     ...(content.at ? { timestamp: content.at } : {}),
-    ...(content.taskId ? { actions: TASK_ACTIONS } : {}),
+    ...(actions.length ? { actions } : {}),
   }
   await self.registration.showNotification(content.title, options)
   await updateBadge(content.badge)
@@ -59,10 +60,19 @@ self.addEventListener('push', (event) => {
   event.waitUntil(showFromPush(event.data?.text() ?? ''))
 })
 
-const TASK_ACTIONS: { action: NotificationAction; title: string }[] = [
-  { action: 'done', title: 'Hecha' },
-  { action: 'snooze', title: '+10 min' },
-]
+type Button = { action: NotificationAction; title: string }
+
+const DONE: Button = { action: 'done', title: 'Hecha' }
+const SNOOZE: Button = { action: 'snooze', title: '+10 min' }
+
+/**
+ * Tarea: "Hecha" y "+10 min", y "Pasar a hoy" si ya es de un día anterior (delante de posponer:
+ * donde solo caben dos, manda). Resumen diario con algo atrasado: pasarlo todo a hoy.
+ */
+function actionsFor(content: NotificationContent): Button[] {
+  if (content.taskId) return content.overdue ? [DONE, { action: 'today', title: 'Pasar a hoy' }, SNOOZE] : [DONE, SNOOZE]
+  return content.overdue ? [{ action: 'today', title: 'Pasar atrasadas a hoy' }] : []
+}
 
 /** La app aplica la acción: el estado de las tareas solo vive en la página. */
 async function openTask(taskId: string | null, action: NotificationAction | null): Promise<void> {
@@ -80,7 +90,8 @@ async function openTask(taskId: string | null, action: NotificationAction | null
   }
   const url = new URL(scope)
   if (taskId) url.searchParams.set('task', taskId)
-  if (taskId && action) url.searchParams.set('action', action)
+  // Sin tarea, solo "Pasar a hoy" del resumen diario tiene sentido.
+  if (action && (taskId || action === 'today')) url.searchParams.set('action', action)
   await self.clients.openWindow(url.href)
 }
 

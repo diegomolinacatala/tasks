@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { emptyState } from '../state/reducer'
 import type { AppState, Task } from '../types'
 import { addDays, toInstant } from './date'
-import { addFromText, voiceContext } from './headless'
+import { addFromText, moveOverdue, voiceContext } from './headless'
 import type { HeadlessInput } from './headless'
 import type { InboxEntry } from './inbox'
 
@@ -23,6 +23,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })
@@ -101,7 +102,7 @@ describe('addFromText', () => {
     })
     expect(result.plan?.timed).toMatchObject([{ at: toInstant(TODAY, '16:45'), title: 'Dentista', extra: { taskId: 'id-1' } }])
     expect(result.badge).toBe(1)
-    expect(result.widget?.tasks).toEqual([{ id: 'id-1', title: 'Dentista', date: TODAY, time: '17:00', done: false }])
+    expect(result.widget?.tasks).toEqual([{ id: 'id-1', title: 'Dentista', date: TODAY, time: '17:00', done: false, importance: 1 }])
   })
 
   test('lo apuntado antes sin aplicar y lo marcado en el widget también cuentan', () => {
@@ -129,5 +130,54 @@ describe('addFromText', () => {
     expect(result.plan).toBeNull()
     expect(result.badge).toBeNull()
     expect(result.widget).toBeNull()
+  })
+})
+
+describe('moveOverdue', () => {
+  const YESTERDAY = addDays(TODAY, -1)
+  const move = (partial: Partial<HeadlessInput> = {}) => moveOverdue(input(partial), sequence())
+  const stateOf = (tasks: Task[]) => JSON.parse(JSON.stringify(saved(tasks)))
+
+  test('apunta en la bandeja lo atrasado, de lo más antiguo a lo más reciente', () => {
+    const result = move({
+      state: stateOf([
+        task({ id: 'ayer', date: YESTERDAY }),
+        task({ id: 'antigua', date: addDays(TODAY, -5) }),
+        task({ id: 'hecha', date: YESTERDAY, done: true }),
+        task({ id: 'hoy' }),
+      ]),
+    })
+    expect(result.entry).toEqual({ id: 'id-1', createdAt: NOW, places: [], tasks: [], move: { date: TODAY, taskIds: ['antigua', 'ayer'] } })
+    // Solo cuántas: se oye y se ve también con el iPhone bloqueado.
+    expect(result.message).toBe('2 tareas pasadas a hoy.')
+  })
+
+  test('el widget y los avisos ya las tienen en hoy; el número del icono no cambia', () => {
+    const result = move({
+      state: stateOf([task({ id: 'llamar', date: YESTERDAY, time: '17:00', reminders: [{ id: 'r', kind: 'before', minutes: 15 }] })]),
+    })
+    expect(result.message).toBe('1 tarea pasada a hoy.')
+    expect(result.widget?.tasks).toMatchObject([{ id: 'llamar', date: TODAY }])
+    expect(result.plan?.timed).toMatchObject([{ at: toInstant(TODAY, '16:45'), extra: { taskId: 'llamar' } }])
+    expect(result.badge).toBe(1)
+  })
+
+  test('lo marcado en el widget ya no está atrasado', () => {
+    const result = move({
+      state: stateOf([task({ id: 'a', date: YESTERDAY }), task({ id: 'b', date: YESTERDAY })]),
+      widgetChanges: [{ taskId: 'a', done: true }],
+    })
+    expect(result.entry?.move?.taskIds).toEqual(['b'])
+  })
+
+  test('sin nada atrasado, o sin fichero de estado, no apunta nada', () => {
+    expect(move({ state: stateOf([task({ id: 'hoy' })])})).toEqual({
+      entry: null,
+      message: 'No hay nada atrasado.',
+      plan: null,
+      badge: null,
+      widget: null,
+    })
+    expect(move({ state: null })).toMatchObject({ entry: null, message: 'Abre Tasks para ver lo atrasado.', plan: null })
   })
 })

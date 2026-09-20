@@ -28,6 +28,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })

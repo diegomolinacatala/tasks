@@ -27,7 +27,7 @@ export function WeekView({ today, anchor, selectedDay, onAnchorChange, onSelectD
   const state = useAppState()
   const dispatch = useDispatch()
   const sensors = useDragSensors()
-  const { toggle, remove } = useTaskActions()
+  const { toggle, remove, toToday, setImportance } = useTaskActions()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const days = useMemo(() => weekDays(anchor), [anchor])
@@ -111,6 +111,8 @@ export function WeekView({ today, anchor, selectedDay, onAnchorChange, onSelectD
             onToggle={toggle}
             onDelete={remove}
             onOpen={onOpenTask}
+            onImportance={setImportance}
+            onToToday={toToday}
           />
         ))}
 
@@ -136,11 +138,26 @@ interface DayBlockProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onOpen: (id: string) => void
+  onImportance: (id: string, importance: number) => void
+  onToToday: (ids: string[]) => void
 }
 
-function DayBlock({ day, tasks, isToday, isPast, isSelected, onSelect, onToggle, onDelete, onOpen }: DayBlockProps) {
+function DayBlock({
+  day,
+  tasks,
+  isToday,
+  isPast,
+  isSelected,
+  onSelect,
+  onToggle,
+  onDelete,
+  onOpen,
+  onImportance,
+  onToToday,
+}: DayBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: dayDropId(day), data: { type: 'container' } })
-  const pending = tasks.filter((task) => !task.done).length
+  const pendingIds = tasks.filter((task) => !task.done).map((task) => task.id)
+  const pending = pendingIds.length
   const overdue = isPast && pending > 0
 
   return (
@@ -150,11 +167,19 @@ function DayBlock({ day, tasks, isToday, isPast, isSelected, onSelect, onToggle,
         isSelected ? 'is-selected' : ''
       } ${isOver ? 'is-over' : ''}`}
     >
-      <button type="button" className="day__head" onClick={onSelect}>
-        <span className="day__name">{dayNameShort(day)}</span>
-        <span className="day__num">{dayNumber(day)}</span>
-        {pending > 0 && <span className="day__count">{pending}</span>}
-      </button>
+      <div className="day__head">
+        <button type="button" className="day__select" onClick={onSelect}>
+          <span className="day__name">{dayNameShort(day)}</span>
+          <span className="day__num">{dayNumber(day)}</span>
+          {pending > 0 && <span className="day__count">{pending}</span>}
+        </button>
+        {/* Lo pendiente de un día pasado, de un toque a hoy: lo mismo que el bloque Atrasadas. */}
+        {overdue && (
+          <button type="button" className="section__action" onClick={() => onToToday(pendingIds)}>
+            Pasar a hoy
+          </button>
+        )}
+      </div>
       <ul className="day__list">
         {tasks.map((task) => (
           <DraggableTask
@@ -164,6 +189,7 @@ function DayBlock({ day, tasks, isToday, isPast, isSelected, onSelect, onToggle,
             onToggle={() => onToggle(task.id)}
             onDelete={() => onDelete(task.id)}
             onOpen={() => onOpen(task.id)}
+            onImportance={(importance) => onImportance(task.id, importance)}
           />
         ))}
       </ul>

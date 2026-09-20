@@ -16,6 +16,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })
@@ -73,6 +74,17 @@ describe('upcomingSchedule', () => {
     expect(schedule[0]!.body).toBe('Para hoy')
   })
 
+  test('marca como atrasado el aviso que suena cuando el día de la tarea ya pasó', () => {
+    const tomorrowAt = toInstant('2026-09-12', '09:00')
+    const state = stateOf([
+      task({ id: 'hoy', reminders: [{ id: 'h', kind: 'at', at: NOW + MINUTE }] }),
+      task({ id: 'pospuesta', reminders: [{ id: 'p', kind: 'at', at: tomorrowAt }] }),
+      task({ id: 'sin', date: null, reminders: [{ id: 's', kind: 'at', at: tomorrowAt }] }),
+    ])
+    const overdue = Object.fromEntries(upcomingSchedule(state, NOW).map((entry) => [entry.id, entry.overdue]))
+    expect(overdue).toEqual({ h: false, p: true, s: false })
+  })
+
   test('recorta al máximo indicado', () => {
     const reminders = Array.from({ length: 5 }, (_, i) => ({ id: `r${i}`, kind: 'at' as const, at: NOW + (i + 1) * MINUTE }))
     expect(upcomingSchedule(stateOf([task({ id: 'a', reminders })]), NOW, 3)).toHaveLength(3)
@@ -127,14 +139,28 @@ describe('digestEntries', () => {
       at: toInstant('2026-09-12', '08:30'),
       title: '4 tareas para hoy',
       body: '17:00 Llamar · Luz · Pan · +1',
+      overdue: false,
     })
+  })
+
+  test('si no caben todas, adelanta las más importantes', () => {
+    const state = stateOf(
+      [
+        task({ id: 'a', title: 'Llamar', date: '2026-09-12', time: '09:00', order: 0 }),
+        task({ id: 'b', title: 'Pan', date: '2026-09-12', order: 1 }),
+        task({ id: 'c', title: 'Luz', date: '2026-09-12', order: 2 }),
+        task({ id: 'd', title: 'Informe', date: '2026-09-12', order: 3, importance: 7 }),
+      ],
+      enabled,
+    )
+    expect(digestEntries(state, NOW)[0]!.body).toBe('Informe · 9:00 Llamar · Pan · +1')
   })
 
   test('cuenta lo que para ese día estará atrasado', () => {
     const state = stateOf([task({ id: 'hoy', date: TODAY }), task({ id: 'm', date: '2026-09-13' })], enabled)
     const [tomorrow, dayAfter] = digestEntries(state, NOW)
-    expect(tomorrow).toMatchObject({ title: 'Nada nuevo para hoy · 1 atrasada', body: '' })
-    expect(dayAfter).toMatchObject({ title: '1 tarea para hoy · 1 atrasada', body: 'm' })
+    expect(tomorrow).toMatchObject({ title: 'Nada nuevo para hoy · 1 atrasada', body: '', overdue: true })
+    expect(dayAfter).toMatchObject({ title: '1 tarea para hoy · 1 atrasada', body: 'm', overdue: true })
   })
 
   test('no pasa de una semana', () => {

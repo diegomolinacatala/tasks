@@ -28,8 +28,29 @@
   color: var(--text-3);
 }
 
-.app__settings:active {
+.app__settings:active,
+.app__sizing:active {
   background: var(--bg-press);
+}
+
+/* Modo "Aa" (importancia), a la izquierda de Ajustes */
+.app__sizing {
+  position: absolute;
+  top: calc(var(--safe-t) + 16px);
+  right: 48px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.app.is-sizing .app__sizing {
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 /* El teclado virtual empuja la barra inferior para que siga visible */

@@ -1,7 +1,7 @@
 import type { AppState, IsoDate, ReminderDraft } from '../types'
 import { isValidTime, toIso } from './date'
-import type { InboxEntry, InboxPlace, InboxTask } from './inbox'
-import { MAX_INBOX_ENTRIES, entryTaskIds } from './inbox'
+import type { InboxEntry, InboxMove, InboxPlace, InboxTask } from './inbox'
+import { MAX_INBOX_ENTRIES, entryInState } from './inbox'
 import { MAX_PLACE_NAME } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 
@@ -11,12 +11,14 @@ import { MAX_REMINDERS, normalizeReminder } from './reminders'
  */
 
 /**
- * Escrituras del estado sin las tareas de una entrada aplicada tras las que se da por resuelta:
- * la primera pudo empezar antes de aplicarla; si tampoco están en la siguiente, se descartaron
- * o se borraron enseguida y no hay que volver a aplicarla.
+ * Escrituras del estado sin una entrada aplicada (sus tareas, o lo movido en su día) tras las que
+ * se da por resuelta: la primera pudo empezar antes de aplicarla; si tampoco está en la siguiente,
+ * se deshizo o se cambió enseguida y no hay que volver a aplicarla.
  */
 const SAVES_TO_SETTLE = 2
 const MAX_TASKS_PER_ENTRY = 10
+/** Lo atrasado que se pasa a hoy de una vez. */
+const MAX_MOVED_PER_ENTRY = 500
 const MAX_ID = 100
 const MAX_TITLE = 500
 const MAX_TEXT = 500
@@ -34,11 +36,10 @@ export interface AwaitingEntry {
  * cuáles siguen esperando. Borrarlas antes de tiempo perdería la tarea si la app se cierra ahí.
  */
 export function settleSaved(awaiting: readonly AwaitingEntry[], saved: AppState): { settled: string[]; awaiting: AwaitingEntry[] } {
-  const ids = new Set(saved.tasks.map((task) => task.id))
   const settled: string[] = []
   const rest: AwaitingEntry[] = []
   for (const item of awaiting) {
-    const inSaved = entryTaskIds(item.entry).every((id) => ids.has(id))
+    const inSaved = entryInState(item.entry, saved)
     const misses = item.misses + 1
     if (inSaved || misses >= SAVES_TO_SETTLE) settled.push(item.entry.id)
     else rest.push({ ...item, misses })
@@ -86,13 +87,20 @@ function parseTask(raw: unknown): InboxTask[] {
   ]
 }
 
+function parseMove(raw: unknown): InboxMove | null {
+  if (!isObject(raw) || !isRealDate(raw.date) || !Array.isArray(raw.taskIds)) return null
+  const taskIds = [...new Set(raw.taskIds.filter(isId))].slice(0, MAX_MOVED_PER_ENTRY)
+  return taskIds.length ? { date: raw.date, taskIds } : null
+}
+
 function parseEntry(raw: unknown): InboxEntry[] {
   if (!isObject(raw) || !isId(raw.id) || typeof raw.createdAt !== 'number' || !Number.isFinite(raw.createdAt)) return []
   const places = Array.isArray(raw.places) ? raw.places.flatMap(parsePlace) : []
   const tasks = Array.isArray(raw.tasks) ? raw.tasks.flatMap(parseTask).slice(0, MAX_TASKS_PER_ENTRY) : []
   const text = typeof raw.text === 'string' ? raw.text.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT) : ''
-  const entry = { id: raw.id, createdAt: raw.createdAt, places, tasks }
-  return [text ? { ...entry, text } : entry]
+  const move = parseMove(raw.move)
+  const entry: InboxEntry = { id: raw.id, createdAt: raw.createdAt, places, tasks }
+  return [{ ...entry, ...(text ? { text } : {}), ...(move ? { move } : {}) }]
 }
 
 /** Entradas de la bandeja tal como las guarda el lado nativo. Lo mal formado se descarta. */

@@ -9,6 +9,7 @@ interface DraggableTaskProps {
   onToggle: () => void
   onOpen: () => void
   onDelete: () => void
+  onImportance: (importance: number) => void
 }
 
 /** Arrastrable sin reordenar: se usa para mover tareas de un día a otro. */

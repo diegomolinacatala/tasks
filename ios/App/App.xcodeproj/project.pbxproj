@@ -33,6 +33,9 @@
 		7A5C0000000000000000010F /* DictationServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000011 /* DictationServer.swift */; };
 		7A5C00000000000000000110 /* NotificationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000012 /* NotificationPlan.swift */; };
 		7A5C00000000000000000111 /* QuickAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000013 /* QuickAdd.swift */; };
+		7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
+		7A5C00000000000000000113 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
+		7A5C00000000000000000114 /* OverdueMover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000015 /* OverdueMover.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +93,8 @@
 		7A5C00000000000000000011 /* DictationServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationServer.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000012 /* NotificationPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPlan.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000013 /* QuickAdd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAdd.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveOverdueWidgetIntent.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000015 /* OverdueMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverdueMover.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +169,8 @@
 				7A5C00000000000000000009 /* TasksWidget.swift */,
 				7A5C0000000000000000000A /* TasksWidgetViews.swift */,
 				7A5C0000000000000000000B /* ToggleTaskIntent.swift */,
+				7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */,
+				7A5C00000000000000000015 /* OverdueMover.swift */,
 				7A5C00000000000000000008 /* WidgetStore.swift */,
 				7A5C0000000000000000000C /* Info.plist */,
 				7A5C0000000000000000000D /* TasksWidget.entitlements */,
@@ -297,6 +304,7 @@
 				7A5C0000000000000000010F /* DictationServer.swift in Sources */,
 				7A5C00000000000000000110 /* NotificationPlan.swift in Sources */,
 				7A5C00000000000000000111 /* QuickAdd.swift in Sources */,
+				7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,6 +315,8 @@
 				7A5C00000000000000000109 /* TasksWidget.swift in Sources */,
 				7A5C0000000000000000010A /* TasksWidgetViews.swift in Sources */,
 				7A5C0000000000000000010B /* ToggleTaskIntent.swift in Sources */,
+				7A5C00000000000000000113 /* MoveOverdueWidgetIntent.swift in Sources */,
+				7A5C00000000000000000114 /* OverdueMover.swift in Sources */,
 				7A5C00000000000000000108 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

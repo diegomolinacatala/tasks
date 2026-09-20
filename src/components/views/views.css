@@ -129,11 +129,22 @@
 
 .day__head {
   display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.day__select {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   align-items: baseline;
   gap: var(--sp-2);
-  width: 100%;
   padding: 12px 2px 6px;
   text-align: left;
+}
+
+.day__head .section__action {
+  margin-top: 6px;
 }
 
 .day__name {

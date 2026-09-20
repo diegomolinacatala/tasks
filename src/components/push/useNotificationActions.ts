@@ -3,6 +3,7 @@ import { haptic } from '../../lib/platform/feedback'
 import { reminderLabel, snoozeOptions } from '../../lib/reminders'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { Task } from '../../types'
+import { useTaskActions } from '../task/useTaskActions'
 import { useToast } from '../ui/Toast'
 import { useNotificationOpen } from './useNotificationOpen'
 
@@ -13,14 +14,21 @@ interface NotificationHandlers {
 }
 
 /**
- * Qué hacer al tocar un aviso: los botones "Hecha" y "+10 min" se aplican directamente;
- * tocar el aviso sin más abre la tarea para decidir.
+ * Qué hacer al tocar un aviso: los botones "Hecha", "+10 min" y "Pasar a hoy" se aplican
+ * directamente; tocar el aviso sin más abre la tarea para decidir.
  */
 export function useNotificationActions({ onOpenTask, onOpenPlace }: NotificationHandlers) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
+  const { toToday } = useTaskActions()
   const tasks = useRef(state.tasks)
+  // El aviso puede llegar antes de que se pinte el estado nuevo: siempre la última versión.
+  const moveToToday = useRef(toToday)
+
+  useEffect(() => {
+    moveToToday.current = toToday
+  }, [toToday])
 
   useEffect(() => {
     tasks.current = state.tasks
@@ -50,6 +58,8 @@ export function useNotificationActions({ onOpenTask, onOpenPlace }: Notification
     const found = taskIds.flatMap((id) => tasks.current.find((task) => task.id === id) ?? [])
     const [first] = found
 
+    // Sin tarea es el resumen diario: todo lo atrasado.
+    if (action === 'today' && !placeId) return moveToToday.current(taskIds.length ? found.map((task) => task.id) : undefined)
     if (found.length === 1 && first && action === 'done') return complete(first)
     if (found.length === 1 && first && action === 'snooze') return snooze(first)
     if (found.length === 1 && first) return onOpenTask(first.id)

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { Task } from '../types'
-import { applyOrder, byDisplay, inScope, moveTask, nextOrder, scopeKey, scopeOf } from './order'
+import { applyOrder, applyPlacements, byDisplay, inScope, moveTask, nextOrder, placementsOf, rescheduled, scopeKey, scopeOf } from './order'
 
 const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
@@ -11,6 +11,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })
@@ -108,5 +109,71 @@ describe('byDisplay', () => {
   test('las completadas caen al final del bloque', () => {
     const list = [task({ id: 'a', order: 1 }), task({ id: 'done', order: 0, done: true })]
     expect([...list].sort(byDisplay).map((t) => t.id)).toEqual(['a', 'done'])
+  })
+})
+
+describe('rescheduled', () => {
+  const TODAY = '2026-09-12'
+  const board = () => [
+    task({ id: 'ayer-1', date: '2026-09-11', order: 0 }),
+    task({ id: 'ayer-2', date: '2026-09-11', order: 1, sectionId: 'casa' }),
+    task({ id: 'ayer-hecha', date: '2026-09-11', order: 2, done: true }),
+    task({ id: 'antigua', date: '2026-09-01', order: 0 }),
+    task({ id: 'hoy-1', date: TODAY, order: 0 }),
+    task({ id: 'hoy-casa', date: TODAY, order: 0, sectionId: 'casa' }),
+  ]
+  const scope = (tasks: Task[], sectionId: string | null) => inScope(tasks, scopeKey(TODAY, sectionId)).map((t) => t.id)
+
+  test('las sube arriba de su sección de hoy, en el orden dado', () => {
+    const next = rescheduled(board(), ['antigua', 'ayer-1', 'ayer-2'], TODAY)
+    expect(scope(next, null)).toEqual(['antigua', 'ayer-1', 'hoy-1'])
+    expect(scope(next, 'casa')).toEqual(['ayer-2', 'hoy-casa'])
+  })
+
+  test('lo hecho y lo que ya es de ese día no se mueve; sin nada que mover, misma lista', () => {
+    const tasks = board()
+    expect(rescheduled(tasks, ['ayer-hecha', 'hoy-1', 'no-existe'], TODAY)).toBe(tasks)
+  })
+
+  test('repetirlo no cambia nada: ya no están atrasadas', () => {
+    const once = rescheduled(board(), ['ayer-1', 'ayer-2'], TODAY)
+    expect(rescheduled(once, ['ayer-1', 'ayer-2'], TODAY)).toBe(once)
+  })
+
+  test('no muta la lista original', () => {
+    const tasks = board()
+    rescheduled(tasks, ['ayer-1'], TODAY)
+    expect(tasks.find((t) => t.id === 'ayer-1')!.date).toBe('2026-09-11')
+  })
+})
+
+describe('placementsOf y applyPlacements', () => {
+  test('deshacer devuelve cada tarea a su día, su sección y su puesto', () => {
+    const tasks = [
+      task({ id: 'x', date: '2026-09-11', order: 0 }),
+      task({ id: 'a', date: '2026-09-11', order: 1 }),
+      task({ id: 'y', date: '2026-09-11', order: 2 }),
+      task({ id: 'b', date: '2026-09-11', order: 3 }),
+      task({ id: 'c', date: '2026-09-10', order: 0, sectionId: 'casa' }),
+      task({ id: 'hoy', date: '2026-09-12', order: 0 }),
+    ]
+    const before = placementsOf(tasks, ['b', 'c', 'a'])
+    expect(before.map((p) => [p.id, p.index])).toEqual([
+      ['c', 0],
+      ['a', 1],
+      ['b', 3],
+    ])
+
+    const restored = applyPlacements(rescheduled(tasks, ['b', 'c', 'a'], '2026-09-12'), before)
+    expect(inScope(restored, '2026-09-11::root').map((t) => t.id)).toEqual(['x', 'a', 'y', 'b'])
+    expect(inScope(restored, '2026-09-10::casa').map((t) => t.id)).toEqual(['c'])
+    expect(inScope(restored, '2026-09-12::root').map((t) => t.id)).toEqual(['hoy'])
+  })
+
+  test('ignora ids que no existen y quita la sección a lo que va sin fecha', () => {
+    const tasks = [task({ id: 'a', sectionId: 'casa' })]
+    expect(placementsOf(tasks, ['nada'])).toEqual([])
+    const [moved] = applyPlacements(tasks, [{ id: 'a', date: null, sectionId: 'casa', index: 0 }])
+    expect(moved).toMatchObject({ date: null, sectionId: null })
   })
 })

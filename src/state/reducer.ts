@@ -1,12 +1,13 @@
 import { isValidTime } from '../lib/date'
 import { createId } from '../lib/id'
-import { applyOrder, moveTask, nextOrder, scopeKey } from '../lib/order'
+import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
+import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
 import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' } })
 
@@ -54,6 +55,7 @@ export function reducer(state: AppState, action: Action): AppState {
         reminders: [],
         sectionId,
         order: nextOrder(state.tasks, scopeKey(action.date, sectionId)),
+        importance: DEFAULT_IMPORTANCE,
         createdAt: Date.now(),
         completedAt: null,
       }
@@ -90,6 +92,22 @@ export function reducer(state: AppState, action: Action): AppState {
       const title = clean(action.title)
       if (!title) return state
       return updateTask(state, action.id, (task) => (task.title === title ? task : { ...task, title }))
+    }
+
+    case 'task/importance': {
+      if (!Number.isFinite(action.importance)) return state
+      const importance = clampImportance(action.importance)
+      return updateTask(state, action.id, (task) => (task.importance === importance ? task : { ...task, importance }))
+    }
+
+    case 'tasks/reschedule': {
+      const tasks = rescheduled(state.tasks, action.ids, action.date)
+      return tasks === state.tasks ? state : { ...state, tasks }
+    }
+
+    case 'tasks/place': {
+      const known = action.placements.filter((placement) => state.tasks.some((task) => task.id === placement.id))
+      return known.length ? { ...state, tasks: applyPlacements(state.tasks, known) } : state
     }
 
     case 'task/remove':

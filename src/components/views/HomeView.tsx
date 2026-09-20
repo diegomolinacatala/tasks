@@ -27,7 +27,7 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const sensors = useDragSensors()
-  const { toggle, remove } = useTaskActions()
+  const { toggle, remove, toToday, setImportance } = useTaskActions()
   const { columns, hasOverdue, sections, activeId, activeType, handlers } = useHomeBoard(today)
   const [draftSection, setDraftSection] = useState<string | null>(null)
 
@@ -57,6 +57,7 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
         onToggle={() => toggle(id)}
         onOpen={() => onOpenTask(id)}
         onDelete={() => remove(id)}
+        onImportance={(importance) => setImportance(id, importance)}
       />
     )
   }
@@ -102,6 +103,11 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
               tone="danger"
               collapsed={state.collapsed.overdue}
               onToggle={() => dispatch({ type: 'block/toggle', block: 'overdue' })}
+              action={
+                <button type="button" className="section__action" onClick={() => toToday()}>
+                  Pasar a hoy
+                </button>
+              }
             />
             {!state.collapsed.overdue && (
               <TaskColumn columnId={columnId(OVERDUE)} taskIds={overdueIds} droppable={false}>

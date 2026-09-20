@@ -63,6 +63,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Acción de una cabecera ("Pasar a hoy"): texto en acento, como todo lo que se toca */
+.section__action {
+  flex: none;
+  padding: 6px 8px;
+  margin-right: -8px;
+  border-radius: var(--r-xs);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease);
+}
+
+.section__action:active {
+  background: var(--accent-dim);
+}
+
 .section__icon {
   flex: none;
   display: grid;

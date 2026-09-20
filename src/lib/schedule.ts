@@ -1,5 +1,6 @@
 import type { AppState, IsoDate, Reminder, Section, Task } from '../types'
 import { addDays, dayNumber, isoOfInstant, monthShort, relativeLabel, shortTime, toInstant } from './date'
+import { byImportance } from './importance'
 import { byOrder } from './order'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
 
@@ -19,6 +20,11 @@ export interface ScheduleEntry {
   body: string
   /** Lo que marcará el icono cuando llegue el aviso. */
   badge: number
+  /**
+   * Al sonar habrá algo atrasado que se puede pasar a hoy desde el propio aviso: la tarea (si es
+   * de un día anterior) o, en el resumen diario, todo lo atrasado.
+   */
+  overdue: boolean
 }
 
 /** Pendientes con fecha hasta el día indicado: hoy más lo atrasado. */
@@ -64,7 +70,8 @@ function reminderEntries(state: AppState, now: number): Omit<ScheduleEntry, 'bad
       : task.reminders.flatMap((reminder: Reminder) => {
           const at = resolveAt(task, reminder)
           if (at === null || at <= now) return []
-          return [{ id: reminder.id, taskId: task.id, at, title: task.title, body: notificationBody(task, at, state.sections) }]
+          const overdue = task.date !== null && task.date < isoOfInstant(at)
+          return [{ id: reminder.id, taskId: task.id, at, title: task.title, body: notificationBody(task, at, state.sections), overdue }]
         }),
   )
 }
@@ -91,11 +98,15 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
     ]
       .filter(Boolean)
       .join(' · ')
-    const preview = due.slice(0, DIGEST_PREVIEW).map((task) => (task.time ? `${shortTime(task.time)} ${task.title}` : task.title))
+    // Solo caben unas pocas: primero las más importantes, y a igualdad, por hora y orden.
+    const preview = [...due]
+      .sort(byImportance)
+      .slice(0, DIGEST_PREVIEW)
+      .map((task) => (task.time ? `${shortTime(task.time)} ${task.title}` : task.title))
     const rest = due.length - preview.length
     const body = [...preview, rest > 0 ? `+${rest}` : ''].filter(Boolean).join(' · ')
 
-    return [{ id: `digest-${day.replace(/-/g, '')}`, taskId: null, at, title, body }]
+    return [{ id: `digest-${day.replace(/-/g, '')}`, taskId: null, at, title, body, overdue: overdue > 0 }]
   })
 }
 

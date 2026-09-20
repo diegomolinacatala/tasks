@@ -16,6 +16,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })
@@ -29,12 +30,12 @@ const ids = (state: AppState) => widgetSnapshot(state, NOW).tasks.map((item) => 
 describe('widgetSnapshot', () => {
   test('lleva solo lo que el widget puede enseñar', () => {
     const snapshot = widgetSnapshot(
-      stateWith([task({ id: 'hoy', title: 'Comprar pan', time: '17:00', reminders: [{ id: 'r', kind: 'before', minutes: 10 }] })]),
+      stateWith([task({ id: 'hoy', title: 'Comprar pan', time: '17:00', importance: 4, reminders: [{ id: 'r', kind: 'before', minutes: 10 }] })]),
       NOW,
     )
     expect(snapshot).toEqual({
       version: 1,
-      tasks: [{ id: 'hoy', title: 'Comprar pan', date: TODAY, time: '17:00', done: false }],
+      tasks: [{ id: 'hoy', title: 'Comprar pan', date: TODAY, time: '17:00', done: false, importance: 4 }],
     })
   })
 

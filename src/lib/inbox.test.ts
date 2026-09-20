@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { emptyState } from '../state/reducer'
 import type { AppState, Place, TaskDraft } from '../types'
-import { applyInbox, entryFromDrafts, entryTaskIds, resolveEntry } from './inbox'
+import { applyInbox, entryFromDrafts, entryInState, entryTaskIds, resolveEntry } from './inbox'
 import type { InboxEntry } from './inbox'
 
 const NOW = new Date(2026, 8, 18, 10, 0).getTime()
@@ -126,6 +126,27 @@ describe('applyInbox', () => {
     expect(start.tasks).toEqual([])
   })
 
+  test('pasar a hoy (Siri, el widget): mueve lo que siga pendiente y fuera de ese día', () => {
+    const start = applyInbox(emptyState(), [
+      entry({
+        tasks: [
+          { id: 'a', title: 'a', date: '2026-09-17', time: null, reminders: [] },
+          { id: 'b', title: 'b', date: '2026-09-16', time: null, reminders: [] },
+        ],
+      }),
+    ]).state
+    const move = entry({ id: 'm', tasks: [], move: { date: '2026-09-18', taskIds: ['b', 'a', 'borrada'] } })
+    const { state, actions } = applyInbox(start, [move])
+    expect(actions).toEqual([{ type: 'tasks/reschedule', ids: ['b', 'a', 'borrada'], date: '2026-09-18' }])
+    const byId = [...state.tasks].sort((x, y) => x.id.localeCompare(y.id))
+    expect(byId.map(({ id, date, order }) => ({ id, date, order }))).toEqual([
+      { id: 'a', date: '2026-09-18', order: 1 },
+      { id: 'b', date: '2026-09-18', order: 0 },
+    ])
+    // Releerla no las vuelve a subir: ya están en ese día.
+    expect(applyInbox(state, [move]).actions).toEqual([])
+  })
+
   test('devuelve las entradas tal como se aplicaron, las de solo texto ya interpretadas', () => {
     const { entries } = applyInbox(emptyState(), [entry({ id: 'texto', tasks: [], text: 'comprar pan' })])
     expect(entries).toEqual([{ id: 'texto', createdAt: NOW, places: [], tasks: [{ id: 'texto-1', title: 'Comprar pan', date: null, time: null, reminders: [] }] }])
@@ -161,6 +182,22 @@ describe('resolveEntry: lo que el lado nativo no pudo interpretar', () => {
     const interpreted = entry({ text: 'llamar a Ana' })
     expect(resolveEntry(interpreted, [])).toBe(interpreted)
   })
+})
+
+test('entryInState: tareas creadas y lo movido en su día (o ya hecho, o borrado)', () => {
+  const state = applyInbox(emptyState(), [
+    entry({
+      tasks: [
+        { id: 'hoy', title: 'hoy', date: '2026-09-18', time: null, reminders: [] },
+        { id: 'ayer', title: 'ayer', date: '2026-09-17', time: null, reminders: [] },
+      ],
+    }),
+  ]).state
+  const moving = (taskIds: string[]) => entry({ tasks: [], move: { date: '2026-09-18', taskIds } })
+  expect(entryInState(entry({ tasks: [{ id: 'hoy', title: 'hoy', date: null, time: null, reminders: [] }] }), state)).toBe(true)
+  expect(entryInState(moving(['hoy', 'borrada']), state)).toBe(true)
+  expect(entryInState(moving(['ayer']), state)).toBe(false)
+  expect(entryInState(entry(), state)).toBe(false)
 })
 
 test('entryTaskIds', () => {

@@ -39,6 +39,8 @@
   --fs-md: 15px;
   --fs-lg: 17px;
   --fs-display: clamp(30px, 9vw, 38px);
+  /* Título de la tarea más importante: el doble de --fs-md (lib/importance.ts cuenta con ello) */
+  --fs-task-max: 30px;
 
   --dur-1: 110ms;
   --dur-2: 200ms;

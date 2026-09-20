@@ -10,19 +10,22 @@ import { isNative } from './lib/platform'
 import { useAppState, useDispatch } from './state/StoreProvider'
 import type { IsoDate, ViewId } from './types'
 import { Composer } from './components/compose/Composer'
+import { SizingContext } from './components/importance/sizing'
 import { useAddTasks } from './components/compose/useAddTasks'
 import { useNotificationActions } from './components/push/useNotificationActions'
-import { SectionSheet } from './components/section/SectionSheet'
 import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { useNativeActions } from './components/shell/useNativeActions'
-import { TaskSheet } from './components/task/TaskSheet'
-import { IconMore } from './components/ui/Icons'
+import { IconMore, IconTextSize } from './components/ui/Icons'
 import { useToast } from './components/ui/Toast'
 import { HomeView } from './components/views/HomeView'
 import { WeekView } from './components/views/WeekView'
 import './components/shell/shell.css'
 
+// Los paneles de tarea y sección van en su propio trozo: se piden en cuanto la lista está pintada,
+// no al tocar, así que abrirlos no espera a nada y la PWA arranca más ligera.
+const TaskSheet = lazy(() => import('./components/task/TaskSheet').then((module) => ({ default: module.TaskSheet })))
+const SectionSheet = lazy(() => import('./components/section/SectionSheet').then((module) => ({ default: module.SectionSheet })))
 const PlaceTasksSheet = lazy(() =>
   import('./components/places/PlaceTasksSheet').then((module) => ({ default: module.PlaceTasksSheet })),
 )
@@ -51,6 +54,8 @@ export function App() {
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [focusRequest, setFocusRequest] = useState(0)
+  // Modo "Aa": las filas enseñan su mando de importancia en lugar del asa de mover.
+  const [sizing, setSizing] = useState(false)
 
   useEffect(() => {
     // La pantalla de carga nativa espera a que haya estado que pintar.
@@ -130,7 +135,16 @@ export function App() {
   const quickLabel = inWeek ? `${dayNameShort(selectedDay)} ${dayNumber(selectedDay)}` : 'Hoy'
 
   return (
-    <div className={`app ${typing ? 'is-typing' : ''}`}>
+    <div className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''}`}>
+      <button
+        type="button"
+        className="app__sizing"
+        aria-label="Importancia"
+        aria-pressed={sizing}
+        onClick={() => setSizing((on) => !on)}
+      >
+        <IconTextSize size={19} />
+      </button>
       <button
         type="button"
         className="app__settings"
@@ -144,17 +158,19 @@ export function App() {
       </button>
 
       <main className="app__scroll">
-        {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
-        {view === 'week' && (
-          <WeekView
-            today={today}
-            anchor={weekAnchor}
-            selectedDay={selectedDay}
-            onAnchorChange={changeWeek}
-            onSelectDay={setSelectedDay}
-            onOpenTask={openTask}
-          />
-        )}
+        <SizingContext.Provider value={sizing}>
+          {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
+          {view === 'week' && (
+            <WeekView
+              today={today}
+              anchor={weekAnchor}
+              selectedDay={selectedDay}
+              onAnchorChange={changeWeek}
+              onSelectDay={setSelectedDay}
+              onOpenTask={openTask}
+            />
+          )}
+        </SizingContext.Provider>
       </main>
 
       <div className="app__bar">
@@ -169,8 +185,10 @@ export function App() {
         <BottomNav view={view} onChange={(next) => withTransition(() => setView(next))} />
       </div>
 
-      <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} />
-      <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
+      <Suspense fallback={null}>
+        <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} />
+        <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
+      </Suspense>
       {settingsLoaded && (
         <Suspense fallback={null}>
           <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />

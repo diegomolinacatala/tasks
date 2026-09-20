@@ -2,9 +2,10 @@ import Foundation
 import JavaScriptCore
 
 /**
- * `public/headless.js` (`src/headless.ts`): la lógica de la web para apuntar tareas, ejecutada con
- * JavaScriptCore cuando Siri o un atajo añaden una tarea sin abrir la app. Así el analizador, los
- * avisos y el widget se calculan con el mismo código que en la web. Todo entra y sale en JSON.
+ * `public/headless.js` (`src/headless.ts`): la lógica de la web para apuntar tareas y pasar lo
+ * atrasado a hoy, ejecutada con JavaScriptCore cuando Siri, un atajo o el widget lo piden sin abrir
+ * la app. Así el analizador, los avisos y el widget se calculan con el mismo código que en la web.
+ * Todo entra y sale en JSON.
  */
 final class HeadlessCore {
     struct Failure: LocalizedError {
@@ -13,7 +14,7 @@ final class HeadlessCore {
     }
 
     /** Contrato con `src/headless.ts`: si no coincide, el paquete es de otra versión de la app. */
-    private static let version: Int32 = 1
+    private static let version: Int32 = 2
 
     /** El manejador de excepciones de JavaScriptCore no puede lanzar: deja aquí el mensaje. */
     private final class Exceptions {
@@ -68,8 +69,17 @@ final class HeadlessCore {
 
     /** `HeadlessInput` → `HeadlessResult` (`src/lib/headless.ts`), ambos como objetos JSON. */
     func add(_ input: [String: Any]) throws -> [String: Any] {
+        try object("add", input)
+    }
+
+    /** `MoveInput` → `HeadlessResult`: lo atrasado, a hoy. */
+    func moveOverdue(_ input: [String: Any]) throws -> [String: Any] {
+        try object("move", input)
+    }
+
+    private func object(_ name: String, _ input: [String: Any]) throws -> [String: Any] {
         let json = try JSONSerialization.data(withJSONObject: input)
-        let output = try call("add", String(decoding: json, as: UTF8.self))
+        let output = try call(name, String(decoding: json, as: UTF8.self))
         guard let result = try JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any] else {
             throw Failure(message: "headless.js devolvió algo que no es un objeto.")
         }

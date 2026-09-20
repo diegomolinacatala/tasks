@@ -1,0 +1,87 @@
+/* Mando de importancia: ocupa el sitio del asa de mover mientras está el modo "Aa" */
+.knob {
+  flex: none;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  /* El mando no hace scroll: en cuanto lo tocas, manda el gesto */
+  touch-action: none;
+  cursor: ns-resize;
+  animation: knob-in var(--dur-2) var(--ease);
+}
+
+.knob__value {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: var(--r-full);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+
+.knob.is-set .knob__value {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.45);
+}
+
+.knob.is-active .knob__value {
+  color: var(--text);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  transform: scale(1.2);
+}
+
+@keyframes knob-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Escala del panel de la tarea: una escalera de números que crecen como el título */
+.scale {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.scale__step {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 9px;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  font-size: calc(var(--fs-micro) * (1 + var(--imp, 0)));
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.scale__step.is-below {
+  color: var(--text-2);
+}
+
+.scale__step.is-active {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.scale__step:active {
+  background: var(--bg-press);
+}

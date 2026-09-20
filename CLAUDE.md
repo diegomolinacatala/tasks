@@ -10,13 +10,13 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (18/09/2026)
+## Estado actual (19/09/2026)
 
 **Hecho**
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 418 de la app y 142 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 453 de la app y 142 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por segunda vez (fast-forward) el 17/09/2026. Cada push a cualquiera
   de las dos que toque la app sube una compilación a TestFlight.
@@ -39,11 +39,16 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   app"). Endpoint `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`; hasta
   entonces la app usa su analizador local.
 - TestFlight 13 (18/09/2026): los avisos por hora del iPhone suenan (antes llegaban en silencio).
+- **Pasar a hoy e importancia** (19/09/2026, rama `capacitor`, sin probar aún en el iPhone): ver
+  "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la vista semana, el
+  modo "Aa" con arrastre y la escala del panel.
 
 **Pendiente, en este orden**
 
 1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
-   atajo *Dictar tarea* con los pasos de §2.1).
+   atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy" e "Importancia". Lo más delicado: el
+   botón **A hoy** del widget corre en el proceso de la app (`LiveActivityIntent`); si no hiciera nada,
+   ver "Pasar a hoy".
 2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
@@ -112,9 +117,11 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (120,0 el
-18/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
-editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes) se carga con `import()` o `lazy`.
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,1 el
+19/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
+con `import()` o `lazy`. Los paneles de tarea y sección van en su propio trozo, pedido nada más
+pintar (`Suspense` en `App.tsx`): no esperan al toque.
 
 ## Arquitectura
 
@@ -125,7 +132,8 @@ src/
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
 │   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
-│   ├── order.ts          # scopes y reordenación
+│   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
+│   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
 │   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
 │   ├── when.ts           # piezas de parse.ts: horas, plazos y días
@@ -138,9 +146,9 @@ src/
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
 │   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
-│   ├── inbox.ts          # bandeja de lo apuntado fuera de la web: entradas y cómo aplicarlas
+│   ├── inbox.ts          # bandeja de lo hecho fuera de la web (altas, pasar a hoy) y cómo aplicarlo
 │   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
-│   ├── headless.ts       # apuntar sin abrir la app: bandeja, avisos, icono y widget de una vez
+│   ├── headless.ts       # apuntar o pasar a hoy sin abrir la app: bandeja, avisos, icono y widget
 │   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
@@ -148,10 +156,10 @@ src/
 │   ├── transition.ts     # View Transitions API con degradación
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
-└── components/           # por dominio: shell, views, task, section, compose, push, places, settings, ui, dnd
+└── components/           # por dominio: shell, views, task, importance, section, compose, push, places, settings, ui, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # extensión del widget; WidgetStore.swift se compila también en la app
+ios/App/TasksWidget/      # extensión del widget; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
@@ -196,7 +204,54 @@ Dos vistas (`ViewId`): `home` y `week`.
 2. `Hoy` — lista raíz más las secciones del usuario.
 3. `Sin fecha` — lo que no tiene día. Es donde caen las tareas nuevas por defecto.
 
-`Atrasadas` y `Sin fecha` se pliegan y ese estado se guarda en `AppState.collapsed`.
+`Atrasadas` y `Sin fecha` se pliegan y ese estado se guarda en `AppState.collapsed`. La cabecera
+de `Atrasadas` lleva **Pasar a hoy** (se ve también plegada).
+
+Arriba a la derecha, **Aa** (modo importancia) y **⋯** (Ajustes).
+
+### Pasar a hoy
+
+Lo que queda sin hacer de días anteriores pasa a hoy de un toque (como el *Reschedule* de Todoist
+o el *Postpone* de TickTick). Cada tarea va **arriba de su sección** de hoy, en el orden en que
+estaba en `Atrasadas` (lo más antiguo primero): la lista apenas se mueve bajo el dedo, solo deja de
+estar en rojo. Conserva la hora; lo hecho no se mueve (es historia).
+
+- `tasks/reschedule { ids, date }` (`rescheduled` en `order.ts`) ignora lo hecho y lo que ya es de
+  ese día, así que repetirlo no cambia nada. "Deshacer" (toast) es `tasks/place` con los sitios de
+  antes (`placementsOf`): cada tarea vuelve a su día, su sección y su puesto.
+- Dónde está: la cabecera de `Atrasadas`; cada día pasado con pendientes en `Semana` (solo los de
+  ese día); los avisos (el resumen diario con algo atrasado trae *Pasar atrasadas a hoy*, y el aviso
+  de una tarea cuyo día ya pasó, *Pasar a hoy* entre *Hecha* y *+10 min*: `ScheduleEntry.overdue`,
+  categorías `task-overdue` y `digest-overdue`); Siri y Atajos (*«Pasa lo atrasado a hoy en
+  Tasks»*, `MoveOverdueIntent`, sin abrir la app; sirve para una automatización cada mañana,
+  `docs/app-store.md` §2.2); y el botón **A hoy** del widget.
+- Fuera de la web es una entrada de la bandeja con `move: { date, taskIds }` que calcula
+  `moveOverdue` (`headless.js`) con lo atrasado del fichero de estado, la bandeja y lo marcado en el
+  widget. Queda resuelta cuando lo guardado ya las tiene en ese día (`entryInState`).
+- El botón del widget (`WidgetMoveOverdueIntent`) es un `LiveActivityIntent`: así iOS lo ejecuta en
+  el proceso de la app (arrancándola en segundo plano) y no en el del widget, que no tiene el
+  fichero de estado ni `headless.js`. Se compila en los dos objetivos; en el widget, `OverdueMover`
+  es un hueco que no llega a correr. Si en el iPhone no hiciera nada, la alternativa es la de
+  `ToggleTaskIntent`: apuntarlo en `widget-changes.json` y que la web lo aplique al volver (los
+  avisos de esas tareas se programarían al abrir la app).
+
+### Importancia
+
+`Task.importance`, del 1 (normal) al 10, se ve como **tamaño del título**: sin etiquetas, colores
+ni "urgente". Más importante = más grande, con más peso y más apretado, hasta el doble
+(`--fs-task-max`); la progresión es geométrica (`importanceScale`) para que cada punto se note
+igual. No reordena nada.
+
+- **Modo "Aa"** (arriba): cada fila cambia el asa de mover por su mando, un número del 1 al 10.
+  Arrastrarlo hacia arriba o a la derecha agranda y hacia abajo o a la izquierda encoge (18 px por
+  punto, vibra en cada uno, el título cambia en vivo); tocarlo sube uno y pasado el 10 vuelve al 1.
+  En el modo no se reordena (no hay asa). El estado del modo no se guarda.
+- **Panel de la tarea**: la escala del 1 al 10 bajo el título, cada número del tamaño que dará.
+- Lo **hecho** vuelve al tamaño normal (se conserva el valor por si se desmarca) y no lleva mando.
+- Donde no hay sitio para tamaños, la importancia elige: el widget de la pantalla de bloqueo enseña
+  las dos pendientes más importantes y el resumen diario adelanta las más importantes en su vista
+  previa. En el resto del widget los títulos crecen poco (las filas son de alto fijo).
+- Lo que llega sin importancia (copias antiguas, Siri, la bandeja) es normal (`normalizeImportance`).
 
 ### Drag & drop
 
@@ -336,8 +391,9 @@ la misma.
 - **Dictado**: igual que la PWA, pero el dispositivo se da de alta solo para dictar
   (`POST /v1/devices { voice: true }`, sin suscripción push); si el servidor lo olvida (401) se
   da de alta otra vez y se reintenta.
-- **Siri y accesos rápidos**: "Añadir tarea" ("Apunta en Tasks") no abre la app: ver "Apuntar sin
-  abrir la app". "Mi semana en Tasks", "Nueva tarea" y `UIApplicationShortcutItems` sí la abren y
+- **Siri y accesos rápidos**: "Añadir tarea" ("Apunta en Tasks") y "Pasar atrasadas a hoy" ("Pasa
+  lo atrasado a hoy en Tasks") no abren la app: ver "Apuntar sin abrir la app" y "Pasar a hoy". "Mi
+  semana en Tasks", "Nueva tarea" y `UIApplicationShortcutItems` sí la abren y
   pasan por `NativeActions`, que guarda la acción hasta que la web escucha (`retainUntilConsumed`).
   La web la valida con `parseNativeAction`.
 - **Tres toques atrás**: las apps no pueden detectarlos, solo lanzar un atajo. Para dictar, el atajo
@@ -347,8 +403,9 @@ la misma.
 - **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
   de carga que la web oculta al pintar.
 - **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
-  bloque Hoy con lo atrasado en rojo y el número del icono. Mismos colores que `tokens.css`
-  (`Palette`). Datos por el App Group, con un fichero para cada lado:
+  bloque Hoy con lo atrasado en rojo y el número del icono. Con algo atrasado, **A hoy** (ver "Pasar
+  a hoy"). Los títulos crecen con la importancia (`RowStyle.titleFont`). Mismos colores que
+  `tokens.css` (`Palette`). Datos por el App Group, con un fichero para cada lado:
   - La app escribe `widget-snapshot.json` con `widgetSnapshot` (`NativeWidget`, debounce 400 ms y
     al instante al pasar a segundo plano) y pide recargar. La foto trae lo atrasado y 7 días por
     delante: el widget tiene una entrada por medianoche y cambia de día sin abrir la app.
@@ -382,7 +439,10 @@ la misma.
 ### Apuntar sin abrir la app
 
 Siri ("Apunta en Tasks") y la acción "Añadir tarea" de Atajos crean la tarea en segundo plano,
-también con el iPhone bloqueado (`authenticationPolicy = .alwaysAllowed`).
+también con el iPhone bloqueado (`authenticationPolicy = .alwaysAllowed`). Pasar lo atrasado a hoy
+(Siri, Atajos y el widget) va por el mismo camino: `QuickAdd.moveOverdue` → `moveOverdue` de
+`headless.js` → entrada `move` en la bandeja, con avisos, icono y widget al día. Van en la misma cola
+que las altas.
 
 - **Escucha el sistema, no la app.** iOS no deja activar el micrófono desde segundo plano (Apple,
   DTS: *privacy block*); `AudioRecordingIntent` solo sirve si la sesión de audio ya se abrió con la
@@ -409,7 +469,7 @@ también con el iPhone bloqueado (`authenticationPolicy = .alwaysAllowed`).
 - `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
   `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
   puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
-  lados.
+  lados (2 desde que existe `move`).
 - Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
   del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
 - Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.
@@ -451,8 +511,10 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   tareas de ese día y las que estarán atrasadas. Se programa para los próximos 7 días con ids
   `digest-AAAAMMDD` y se recalcula en cada sincronización.
 - **Botones** "Hecha" y "+10 min" en la notificación (Android y escritorio; iOS no los
-  muestra). El SW no toca el estado: abre la app con `?action=` y `useNotificationActions`
-  lo aplica con un toast. Tocar el aviso sin botón abre la tarea con **Posponer**.
+  muestra), más "Pasar a hoy" si la tarea ya es de un día anterior; el resumen diario con algo
+  atrasado lleva "Pasar atrasadas a hoy" (`?action=today` sin tarea). El SW no toca el estado: abre
+  la app con `?action=` y `useNotificationActions` lo aplica con un toast. Tocar el aviso sin botón
+  abre la tarea con **Posponer**.
 - Número en el icono: pendientes de hoy + atrasadas (`badgeCount`), actualizado por la app
   y por cada push.
 
@@ -496,6 +558,9 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - **Sin subtareas, notas ni recurrencias** por ahora.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
+- La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
+- Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
+  Atajos).
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
 

@@ -32,6 +32,11 @@ export interface Task {
   sectionId: string | null
   /** Posición dentro de su scope (ver lib/order.ts). */
   order: number
+  /**
+   * Importancia del 1 al 10 (`lib/importance.ts`): se ve como el tamaño del título. 1 = normal.
+   * No reordena nada: el orden lo sigue decidiendo el usuario.
+   */
+  importance: number
   createdAt: number
   completedAt: number | null
 }

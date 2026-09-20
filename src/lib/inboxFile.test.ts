@@ -74,6 +74,13 @@ describe('parseInbox', () => {
     ])
   })
 
+  test('pasar a hoy: día real e ids válidos, sin repetir', () => {
+    const [parsed] = parseInbox([{ id: 'm', createdAt: NOW, move: { date: '2026-09-18', taskIds: ['a', '', 7, 'a', 'b'] } }])
+    expect(parsed).toEqual({ id: 'm', createdAt: NOW, places: [], tasks: [], move: { date: '2026-09-18', taskIds: ['a', 'b'] } })
+    const [broken] = parseInbox([{ id: 'x', createdAt: NOW, move: { date: '2026-02-30', taskIds: ['a'] } }])
+    expect(broken).not.toHaveProperty('move')
+  })
+
   test('una entrada sin id se descarta entera', () => {
     expect(parseInbox([{ ...valid, id: '' }, { ...valid, id: 'e2', createdAt: 'ayer' }])).toEqual([])
   })
@@ -101,6 +108,14 @@ describe('settleSaved', () => {
 
   test('si en la siguiente escritura siguen sin estar, se descartaron: no se vuelve a aplicar', () => {
     expect(settleSaved([awaiting('e2', 't2', 1)], savedWith())).toEqual({ settled: ['e2'], awaiting: [] })
+  })
+
+  test('pasar a hoy queda resuelto cuando lo guardado ya las tiene en ese día', () => {
+    const moved = { entry: entry({ id: 'm', tasks: [], move: { date: '2026-09-18', taskIds: ['t1'] } }), misses: 0 }
+    const before = applyInbox(emptyState(), [entry({ tasks: [{ id: 't1', title: 't1', date: '2026-09-17', time: null, reminders: [] }] })]).state
+    // La escritura pudo empezar antes de aplicarla: espera a la siguiente.
+    expect(settleSaved([moved], before)).toEqual({ settled: [], awaiting: [{ ...moved, misses: 1 }] })
+    expect(settleSaved([moved], applyInbox(before, [moved.entry]).state).settled).toEqual(['m'])
   })
 
   test('una entrada sin tareas (solo lugares) queda resuelta en la primera escritura', () => {

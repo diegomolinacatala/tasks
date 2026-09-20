@@ -17,6 +17,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   sectionId: null,
   order: 0,
   createdAt: 0,
+  importance: 1,
   completedAt: null,
   ...partial,
 })
@@ -59,6 +60,18 @@ describe('nativePlan', () => {
     const [digest] = nativePlan(state, NOW).timed
     expect(digest).toMatchObject({ extra: { taskId: '', entryId: 'digest-20260912' } })
     expect(digest!.category).toBeUndefined()
+  })
+
+  test('con algo atrasado, el resumen ofrece pasarlo a hoy', () => {
+    const state = { ...stateWith([task({ id: 'a' })]), settings: { digest: { enabled: true, time: '08:30' } } }
+    const [digest] = nativePlan(state, NOW).timed
+    expect(digest).toMatchObject({ extra: { entryId: 'digest-20260912' }, category: 'digest-overdue' })
+  })
+
+  test('el aviso de una tarea que ya quedó atrás lleva también "Pasar a hoy"', () => {
+    const at = toInstant('2026-09-12', '09:00')
+    const [notification] = nativePlan(stateWith([task({ id: 'a', reminders: [{ id: 'r', kind: 'at', at }] })]), NOW).timed
+    expect(notification!.category).toBe('task-overdue')
   })
 
   test('los avisos de lugar usan su propio rango de ids y llevan las tareas', () => {

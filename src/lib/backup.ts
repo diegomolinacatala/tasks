@@ -1,6 +1,7 @@
 import type { AppState, Place, Reminder, Section, Settings, Task } from '../types'
 import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
 import { isValidTime } from './date'
+import { normalizeImportance } from './importance'
 import { MAX_PLACES, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 
@@ -46,6 +47,8 @@ function normalizeTask(raw: unknown): Task | null {
     // Sin fecha no hay sección: las secciones agrupan dentro del día.
     sectionId: date && typeof raw.sectionId === 'string' ? raw.sectionId : null,
     order: num(raw.order),
+    // Las copias anteriores a la importancia no la traen: quedan a tamaño normal.
+    importance: normalizeImportance(raw.importance),
     createdAt: num(raw.createdAt, Date.now()),
     completedAt: typeof raw.completedAt === 'number' ? raw.completedAt : null,
   }

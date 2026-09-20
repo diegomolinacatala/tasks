@@ -2,7 +2,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { NotificationEvent } from '../nativeEvents'
 import { parseNotificationEvent } from '../nativeEvents'
 import type { NativePlan } from '../nativeSchedule'
-import { TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
+import { DIGEST_CATEGORY, OVERDUE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
 import type { PermissionStatus } from './native'
 import { TasksNative } from './native'
 
@@ -24,21 +24,21 @@ export async function requestNotificationPermission(): Promise<PermissionStatus>
 
 let actionsRegistered = false
 
+const DONE = { id: 'done', title: 'Hecha', foreground: true }
+const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
+
 /**
- * Botones "Hecha" y "+10 min". Abren la app (`foreground`): el estado vive en la web y con la
- * app en segundo plano iOS no garantiza que el WebView llegue a ejecutar nada.
+ * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy". Abren la app (`foreground`):
+ * el estado vive en la web y con la app en segundo plano iOS no garantiza que el WebView llegue a
+ * ejecutar nada.
  */
 async function registerTaskActions(): Promise<void> {
   if (actionsRegistered) return
   await LocalNotifications.registerActionTypes({
     types: [
-      {
-        id: TASK_CATEGORY,
-        actions: [
-          { id: 'done', title: 'Hecha', foreground: true },
-          { id: 'snooze', title: '+10 min', foreground: true },
-        ],
-      },
+      { id: TASK_CATEGORY, actions: [DONE, SNOOZE] },
+      { id: OVERDUE_CATEGORY, actions: [DONE, { id: 'today', title: 'Pasar a hoy', foreground: true }, SNOOZE] },
+      { id: DIGEST_CATEGORY, actions: [{ id: 'today', title: 'Pasar atrasadas a hoy', foreground: true }] },
     ],
   })
   actionsRegistered = true

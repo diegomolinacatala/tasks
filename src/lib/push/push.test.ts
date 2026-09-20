@@ -12,6 +12,7 @@ const entry = (partial: Partial<ScheduleEntry> = {}): ScheduleEntry => ({
   title: 'Llamar a Juan',
   body: 'Hoy 17:00',
   badge: 2,
+  overdue: false,
   ...partial,
 })
 
@@ -58,6 +59,8 @@ describe('message', () => {
     expect(parseContent({ title: 'x', badge: -1, taskId: '' })).toEqual({ taskId: null, title: 'x', body: '', badge: null })
     expect(parseContent({ title: 'x', at: 5 })).toMatchObject({ at: 5 })
     expect(parseContent({ title: 'x', at: '5' })).not.toHaveProperty('at')
+    expect(parseContent({ title: 'x', overdue: true })).toMatchObject({ overdue: true })
+    expect(parseContent({ title: 'x', overdue: 'sí' })).not.toHaveProperty('overdue')
     expect(parseContent({ title: '' })).toBeNull()
     expect(parseContent('x')).toBeNull()
   })
@@ -81,6 +84,7 @@ describe('message', () => {
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a' })).toBe(true)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: null })).toBe(true)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a', action: 'done' })).toBe(true)
+    expect(isOpenTaskMessage({ type: 'open-task', taskId: null, action: 'today' })).toBe(true)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 'a', action: 'borrar' })).toBe(false)
     expect(isOpenTaskMessage({ type: 'open-task', taskId: 3 })).toBe(false)
     expect(isOpenTaskMessage({ type: 'otro' })).toBe(false)
@@ -95,6 +99,7 @@ describe('sync', () => {
     expect(await scheduleFingerprint('d2', [entry()])).not.toBe(a)
     expect(await scheduleFingerprint('d1', [entry({ title: 'otro' })])).not.toBe(a)
     expect(await scheduleFingerprint('d1', [entry({ badge: 3 })])).not.toBe(a)
+    expect(await scheduleFingerprint('d1', [entry({ overdue: true })])).not.toBe(a)
   })
 
   test('encryptSchedule sube solo id, instante y contenido cifrado', async () => {
@@ -109,6 +114,12 @@ describe('sync', () => {
       badge: 2,
       at: 1_000,
     })
+  })
+
+  test('encryptSchedule marca lo atrasado solo cuando lo está', async () => {
+    const key = await createContentKey()
+    const [late] = await encryptSchedule(key, [entry({ overdue: true })])
+    expect(await decryptJson(key, late!.payload)).toMatchObject({ overdue: true })
   })
 
   test.each([

@@ -16,6 +16,7 @@ const state: AppState = {
       sectionId: 's1',
       order: 0,
       createdAt: 1,
+      importance: 1,
       completedAt: null,
     },
   ],
@@ -80,6 +81,19 @@ describe('normalizeState', () => {
   test('rellena los bloques plegados que falten en copias antiguas', () => {
     const result = normalizeState({ tasks: [], sections: [] })
     expect(result!.collapsed).toEqual({ overdue: false, backlog: false })
+  })
+
+  test('la importancia se sanea: sin ella (copias anteriores) es normal y nunca sale de 1 a 10', () => {
+    const result = normalizeState({
+      tasks: [
+        { id: 'antigua', title: 'x' },
+        { id: 'grande', title: 'x', importance: 8 },
+        { id: 'enorme', title: 'x', importance: 50 },
+        { id: 'rara', title: 'x', importance: 'mucha' },
+      ],
+      sections: [],
+    })
+    expect(result!.tasks.map((t) => t.importance)).toEqual([1, 8, 10, 1])
   })
 
   test('sella la versión de esquema actual al normalizar', () => {

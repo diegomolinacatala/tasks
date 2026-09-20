@@ -4,6 +4,7 @@ import { createId } from '../../lib/id'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findTask, sortedSections } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
+import { ImportanceScale } from '../importance/ImportanceScale'
 import { IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { ReminderPicker } from './ReminderPicker'
@@ -20,7 +21,7 @@ interface TaskSheetProps {
 export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
-  const { remove } = useTaskActions()
+  const { remove, setImportance } = useTaskActions()
   const task = findTask(state, taskId)
   // Se conserva la última tarea para poder animar el cierre del panel.
   const [shown, setShown] = useState<Task | null>(task)
@@ -90,6 +91,9 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
         onBlur={commitTitle}
         aria-label="Título de la tarea"
       />
+
+      <p className="sheet__title">Importancia</p>
+      <ImportanceScale value={shown.importance} onChange={(importance) => task && setImportance(task.id, importance)} />
 
       <p className="sheet__title">Cuándo</p>
       <div className="sheet__chips">

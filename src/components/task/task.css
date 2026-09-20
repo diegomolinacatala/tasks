@@ -68,6 +68,12 @@
   transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 
+/* Hueco del asa en las filas hechas durante el modo "Aa": las columnas no se descuadran */
+.task__slot {
+  flex: none;
+  width: 40px;
+}
+
 .task__grip:active {
   opacity: 1;
   background: var(--bg-elev-2);
@@ -75,6 +81,10 @@
 }
 
 .row {
+  /* Importancia: `--imp` va de 0 (normal) a 1 (el doble). Más grande, más peso y más apretado */
+  --title-size: calc(var(--fs-md) + (var(--fs-task-max) - var(--fs-md)) * var(--imp, 0));
+  --title-leading: calc(1.35 - 0.2 * var(--imp, 0));
+
   flex: 1;
   min-width: 0;
   display: flex;
@@ -88,7 +98,8 @@
   flex: none;
   width: 21px;
   height: 21px;
-  margin-top: 1px;
+  /* Centrado con la primera línea del título, crezca lo que crezca */
+  margin-top: max(1px, calc((var(--title-size) * var(--title-leading) - 21px) / 2));
   border-radius: var(--r-full);
   border: 1.5px solid var(--line-2);
   display: grid;
@@ -124,8 +135,10 @@
 .row__title {
   flex: 1;
   min-width: 0;
-  font-size: var(--fs-md);
-  line-height: 1.35;
+  font-size: var(--title-size);
+  font-weight: calc(400 + 250 * var(--imp, 0));
+  letter-spacing: calc(-0.025em * var(--imp, 0));
+  line-height: var(--title-leading);
   color: var(--text);
   overflow-wrap: anywhere;
   transition: color var(--dur-2) var(--ease);

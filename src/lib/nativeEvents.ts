@@ -21,7 +21,8 @@ export interface WidgetChange {
 }
 
 export interface NotificationEvent {
-  action: 'open' | 'done' | 'snooze'
+  /** `today`: pasar a hoy la tarea del aviso o, desde el resumen diario, todo lo atrasado. */
+  action: 'open' | 'done' | 'snooze' | 'today'
   /** Vacío en el resumen diario; varias en un aviso de lugar. */
   taskIds: string[]
   placeId: string | null
@@ -40,7 +41,7 @@ export function parseNativeAction(raw: unknown): NativeAction | null {
   return text ? { type: 'add', text } : null
 }
 
-const ACTIONS: Record<string, NotificationEvent['action']> = { tap: 'open', done: 'done', snooze: 'snooze' }
+const ACTIONS: Record<string, NotificationEvent['action']> = { tap: 'open', done: 'done', snooze: 'snooze', today: 'today' }
 
 /** `actionId` del plugin de notificaciones ("tap", "dismiss" o el id del botón) y el `extra` del aviso. */
 export function parseNotificationEvent(actionId: string, extra: unknown): NotificationEvent | null {

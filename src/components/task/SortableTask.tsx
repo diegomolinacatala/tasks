@@ -13,6 +13,7 @@ interface SortableTaskProps {
   onToggle: () => void
   onOpen: () => void
   onDelete: () => void
+  onImportance: (importance: number) => void
 }
 
 export function SortableTask({ task, meta, overdue, sectionId, dropDisabled, ...actions }: SortableTaskProps) {

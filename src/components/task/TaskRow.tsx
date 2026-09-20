@@ -1,4 +1,6 @@
+import type { CSSProperties } from 'react'
 import { shortTime } from '../../lib/date'
+import { importanceScale } from '../../lib/importance'
 import { nextReminderAt } from '../../lib/reminders'
 import type { Task } from '../../types'
 import { IconBell, IconCheck, IconPin } from '../ui/Icons'
@@ -7,18 +9,25 @@ interface TaskRowProps {
   task: Task
   meta?: string | null
   overdue?: boolean
+  /** Importancia que se está eligiendo con el mando; si no, la de la tarea. */
+  importance?: number
   onToggle?: () => void
   onOpen?: () => void
 }
 
-export function TaskRow({ task, meta, overdue = false, onToggle, onOpen }: TaskRowProps) {
+export function TaskRow({ task, meta, overdue = false, importance, onToggle, onOpen }: TaskRowProps) {
   const time = task.date && task.time ? shortTime(task.time) : null
   const text = [meta, time].filter(Boolean).join(' · ')
   const reminding = nextReminderAt(task, Date.now()) !== null
   const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
+  // Lo hecho ya no pide atención: vuelve al tamaño normal (la importancia se conserva).
+  const scale = task.done ? 0 : importanceScale(importance ?? task.importance)
 
   return (
-    <div className={`row ${task.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}`}>
+    <div
+      className={`row ${task.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}`}
+      style={scale ? ({ '--imp': scale } as CSSProperties) : undefined}
+    >
       <button
         type="button"
         className="row__check"

@@ -57,6 +57,11 @@ describe('parseNotificationEvent', () => {
     })
   })
 
+  test('"Pasar a hoy": en un aviso de tarea lleva la tarea; en el resumen, ninguna', () => {
+    expect(parseNotificationEvent('today', { taskId: 't1', entryId: 'r1' })).toEqual({ action: 'today', taskIds: ['t1'], placeId: null })
+    expect(parseNotificationEvent('today', { taskId: '', entryId: 'digest-20260911' })).toEqual({ action: 'today', taskIds: [], placeId: null })
+  })
+
   test('el resumen diario abre la app sin tarea', () => {
     expect(parseNotificationEvent('tap', { taskId: '', entryId: 'digest-20260911' })).toEqual({ action: 'open', taskIds: [], placeId: null })
   })

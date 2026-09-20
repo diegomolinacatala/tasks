@@ -1,3 +1,4 @@
+import type { Placement } from '../lib/order'
 import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, ReminderDraft, Task } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
@@ -25,6 +26,12 @@ export type Action =
   /** `now` viaja en la acción para que el reducer siga siendo puro. */
   | { type: 'task/snooze'; id: string; at: number; now: number }
   | { type: 'task/rename'; id: string; title: string }
+  /** Del 1 al 10: el tamaño del título. */
+  | { type: 'task/importance'; id: string; importance: number }
+  /** Pasa pendientes a ese día, arriba de su sección (lo atrasado, a hoy). Ver `rescheduled`. */
+  | { type: 'tasks/reschedule'; ids: string[]; date: IsoDate }
+  /** Devuelve tareas a un sitio concreto: deshacer un `tasks/reschedule`. */
+  | { type: 'tasks/place'; placements: Placement[] }
   | { type: 'task/remove'; id: string }
   | { type: 'task/restore'; task: Task }
   | { type: 'task/move'; id: string; date: IsoDate | null; sectionId: string | null; index?: number }

@@ -36,7 +36,7 @@ struct TasksEntry: TimelineEntry {
         return TasksEntry(date: date, tasks: [
             WidgetTask(id: "muestra-1", title: "Comprar pan", date: today, time: nil, done: false),
             WidgetTask(id: "muestra-2", title: "Llamar a Ana", date: today, time: "17:00", done: false),
-            WidgetTask(id: "muestra-3", title: "Enviar el presupuesto", date: today, time: nil, done: false),
+            WidgetTask(id: "muestra-3", title: "Enviar el presupuesto", date: today, time: nil, done: false, importance: 6),
             WidgetTask(id: "muestra-4", title: "Salir a correr", date: today, time: "20:30", done: true),
         ])
     }
