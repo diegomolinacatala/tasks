@@ -50,18 +50,18 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
     // añade la tarea, no desde la última tecla.
     const fresh = parseTask(value, Date.now(), places)
-    const { title, date, time, reminders, newPlace } = fresh
+    const { title, date, time, duration, reminders, newPlace } = fresh
     onSubmit(
       fresh.label !== null && !literal
-        ? { title, date, time, reminders, ...(newPlace ? { newPlace } : {}) }
-        : { title: value, date: null, time: null, reminders: [] },
+        ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}) }
+        : { title: value, date: null, time: null, duration: null, reminders: [] },
     )
     reset()
   }
 
   const submitQuick = () => {
     if (!ready) return
-    onSubmit({ title: value, date: quickDate, time: null, reminders: [] })
+    onSubmit({ title: value, date: quickDate, time: null, duration: null, reminders: [] })
     reset()
   }
 

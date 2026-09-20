@@ -111,6 +111,8 @@ export interface InterpretedTask {
   title: string
   date: string | null
   time: string | null
+  /** Minutos que dura ("durante una hora", "de 5 a 7"). El móvil pregunta al acabar. */
+  duration?: number
   reminders: InterpretedReminder[]
   /** "al pasar por Mercadona": el nombre tal como se dijo. El móvil lo empareja con sus lugares. */
   place?: { name: string; on: 'arrive' | 'leave' }

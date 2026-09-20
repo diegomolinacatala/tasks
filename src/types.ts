@@ -27,6 +27,11 @@ export interface Task {
   date: IsoDate | null
   /** Solo tiene efecto si hay fecha. */
   time: IsoTime | null
+  /**
+   * Cuánto dura, en minutos (`lib/duration.ts`). Solo tiene efecto con fecha y hora: al acabar
+   * llega el aviso que pregunta si ya está hecha. `null` = sin duración, sin pregunta.
+   */
+  duration: number | null
   reminders: Reminder[]
   /** Sección a la que pertenece dentro del día. `null` = raíz. */
   sectionId: string | null
@@ -46,6 +51,8 @@ export interface TaskDraft {
   title: string
   date: IsoDate | null
   time: IsoTime | null
+  /** Minutos que dura, si se dijo ("durante una hora", "de 5 a 7"). */
+  duration: number | null
   reminders: ReminderDraft[]
   /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
   newPlace?: { name: string; on: PlaceTrigger }

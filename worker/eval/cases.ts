@@ -10,6 +10,8 @@ export interface ExpectedTask {
   title: string | string[]
   date: string | null
   time: string | null | (string | null)[]
+  /** Minutos que dura la tarea. Sin esto, no debe durar nada. */
+  duration?: number
   reminders: string[]
   /** Aviso al llegar o salir de un sitio. Sin él, la tarea no debe tener lugar. */
   place?: { name: string | string[]; on: 'arrive' | 'leave' }
@@ -437,5 +439,27 @@ export const CASES: EvalCase[] = [
     id: 'reunion-hoy-pasada',
     text: 'Hoy a las 9 tenía que llamar a Rocío.',
     expected: [{ title: 'Llamar a Rocío', date: '2026-09-14', time: '09:00', reminders: ['2026-09-14 09:00'] }],
+  },
+  {
+    id: 'duracion-durante',
+    text: 'Mañana tengo gimnasio a las 8 de la tarde durante una hora.',
+    expected: [{ title: 'Gimnasio', date: '2026-09-15', time: '20:00', duration: 60, reminders: ['2026-09-15 20:00'] }],
+  },
+  {
+    id: 'duracion-tramo',
+    text: 'El miércoles tengo clase de inglés de las 6 a las 7 y media.',
+    expected: [
+      { title: ['Clase de inglés', 'Inglés'], date: '2026-09-16', time: '18:00', duration: 90, reminders: ['2026-09-16 18:00'] },
+    ],
+  },
+  {
+    id: 'duracion-hasta',
+    text: 'Tengo una comida el viernes a las dos hasta las cuatro.',
+    expected: [{ title: 'Comida', date: '2026-09-18', time: '14:00', duration: 120, reminders: ['2026-09-18 14:00'] }],
+  },
+  {
+    id: 'duracion-no-es-aviso',
+    text: 'El jueves tengo revisión del coche a las 10, avísame una hora antes.',
+    expected: [{ title: ['Revisión del coche', 'Revisión'], date: '2026-09-17', time: '10:00', reminders: ['2026-09-17 09:00'] }],
   },
 ]

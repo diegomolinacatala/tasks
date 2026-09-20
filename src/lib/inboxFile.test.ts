@@ -11,7 +11,7 @@ const entry = (partial: Partial<InboxEntry> = {}): InboxEntry => ({
   id: 'e1',
   createdAt: NOW,
   places: [],
-  tasks: [{ id: 't1', title: 'Llamar a Ana', date: '2026-09-18', time: '17:00', reminders: [{ kind: 'before', minutes: 10 }] }],
+  tasks: [{ id: 't1', title: 'Llamar a Ana', date: '2026-09-18', time: '17:00', duration: null, reminders: [{ kind: 'before', minutes: 10 }] }],
   ...partial,
 })
 
@@ -26,6 +26,7 @@ describe('parseInbox', () => {
         title: '  Llamar a Ana ',
         date: '2026-09-18',
         time: '17:00',
+        duration: null,
         reminders: [
           { kind: 'before', minutes: 10 },
           { kind: 'at', at: NOW + 60_000 },
@@ -55,16 +56,16 @@ describe('parseInbox', () => {
         ...valid,
         places: [{ id: 'p1', name: '' }, { id: '', name: 'Sin id' }, { id: 'p2', name: 'Gimnasio' }],
         tasks: [
-          { id: 't1', title: '', date: null, time: null, reminders: [] },
-          { id: 't2', title: 'Día imposible', date: '2026-02-30', time: null, reminders: [] },
-          { id: 't3', title: 'Hora rara', date: '2026-09-18', time: '25:00', reminders: [{ kind: 'before', minutes: -5 }, { kind: 'nada' }] },
+          { id: 't1', title: '', date: null, time: null, duration: null, reminders: [] },
+          { id: 't2', title: 'Día imposible', date: '2026-02-30', time: null, duration: null, reminders: [] },
+          { id: 't3', title: 'Hora rara', date: '2026-09-18', time: '25:00', duration: null, reminders: [{ kind: 'before', minutes: -5 }, { kind: 'nada' }] },
         ],
       },
     ])
     expect(parsed?.places).toEqual([{ id: 'p2', name: 'Gimnasio' }])
     expect(parsed?.tasks).toEqual([
-      { id: 't2', title: 'Día imposible', date: null, time: null, reminders: [] },
-      { id: 't3', title: 'Hora rara', date: '2026-09-18', time: null, reminders: [] },
+      { id: 't2', title: 'Día imposible', date: null, time: null, duration: null, reminders: [] },
+      { id: 't3', title: 'Hora rara', date: '2026-09-18', time: null, duration: null, reminders: [] },
     ])
   })
 
@@ -93,11 +94,11 @@ describe('parseInbox', () => {
 
 describe('settleSaved', () => {
   const awaiting = (id: string, taskId: string, misses = 0) => ({
-    entry: entry({ id, tasks: [{ id: taskId, title: taskId, date: null, time: null, reminders: [] }] }),
+    entry: entry({ id, tasks: [{ id: taskId, title: taskId, date: null, time: null, duration: null, reminders: [] }] }),
     misses,
   })
   const savedWith = (...ids: string[]): AppState =>
-    applyInbox(emptyState(), [entry({ tasks: ids.map((id) => ({ id, title: id, date: null, time: null, reminders: [] })) })]).state
+    applyInbox(emptyState(), [entry({ tasks: ids.map((id) => ({ id, title: id, date: null, time: null, duration: null, reminders: [] })) })]).state
 
   test('en cuanto sus tareas están en lo guardado, se puede borrar de la bandeja', () => {
     expect(settleSaved([awaiting('e1', 't1'), awaiting('e2', 't2')], savedWith('t1'))).toEqual({
@@ -112,7 +113,7 @@ describe('settleSaved', () => {
 
   test('pasar a hoy queda resuelto cuando lo guardado ya las tiene en ese día', () => {
     const moved = { entry: entry({ id: 'm', tasks: [], move: { date: '2026-09-18', taskIds: ['t1'] } }), misses: 0 }
-    const before = applyInbox(emptyState(), [entry({ tasks: [{ id: 't1', title: 't1', date: '2026-09-17', time: null, reminders: [] }] })]).state
+    const before = applyInbox(emptyState(), [entry({ tasks: [{ id: 't1', title: 't1', date: '2026-09-17', time: null, duration: null, reminders: [] }] })]).state
     // La escritura pudo empezar antes de aplicarla: espera a la siguiente.
     expect(settleSaved([moved], before)).toEqual({ settled: [], awaiting: [{ ...moved, misses: 1 }] })
     expect(settleSaved([moved], applyInbox(before, [moved.entry]).state).settled).toEqual(['m'])

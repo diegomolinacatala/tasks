@@ -5,6 +5,7 @@ import { isNotificationAction, isOpenTaskMessage } from '../../lib/push/message'
 
 const PARAM = 'task'
 const ACTION_PARAM = 'action'
+const ASK_PARAM = 'ask'
 
 /**
  * Tocar un aviso. PWA: por URL si la app estaba cerrada, o por mensaje del service worker si
@@ -36,21 +37,26 @@ export function useNotificationOpen(onEvent: (event: NotificationEvent) => void)
     const taskId = url.searchParams.get(PARAM)
     const action = url.searchParams.get(ACTION_PARAM)
     // Sin tarea solo cuenta "Pasar a hoy" del resumen diario; lo demás necesita una tarea.
-    const fromWeb = (id: string | null, raw: string | null | undefined): NotificationEvent | null => {
-      if (id) return { action: isNotificationAction(raw) ? raw : 'open', taskIds: [id], placeId: null }
+    const fromWeb = (id: string | null, raw: string | null | undefined, ask: boolean): NotificationEvent | null => {
+      if (id) {
+        const opened = { action: isNotificationAction(raw) ? raw : ('open' as const), taskIds: [id], placeId: null }
+        return ask ? { ...opened, ask: true } : opened
+      }
       return raw === 'today' ? { action: 'today', taskIds: [], placeId: null } : null
     }
-    const opened = fromWeb(taskId, action)
+    const opened = fromWeb(taskId, action, url.searchParams.get(ASK_PARAM) === '1')
     if (taskId || action) {
       url.searchParams.delete(PARAM)
       url.searchParams.delete(ACTION_PARAM)
+      url.searchParams.delete(ASK_PARAM)
       window.history.replaceState(null, '', url.pathname + url.search + url.hash)
     }
     if (opened) callback.current(opened)
 
     if (!('serviceWorker' in navigator)) return
     const onMessage = (event: MessageEvent) => {
-      const message = isOpenTaskMessage(event.data) ? fromWeb(event.data.taskId, event.data.action) : null
+      const data = isOpenTaskMessage(event.data) ? event.data : null
+      const message = data ? fromWeb(data.taskId, data.action, data.ask === true) : null
       if (message) callback.current(message)
     }
     navigator.serviceWorker.addEventListener('message', onMessage)

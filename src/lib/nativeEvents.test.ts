@@ -91,3 +91,18 @@ describe('parseWidgetChanges', () => {
     expect(parseWidgetChanges(undefined)).toEqual([])
   })
 })
+
+describe('aviso de cierre', () => {
+  test('lo marca para poder repetir la pregunta dentro de la app', () => {
+    expect(parseNotificationEvent('tap', { taskId: 'r', entryId: 'ask-r', ask: '1' })).toEqual({
+      action: 'open',
+      taskIds: ['r'],
+      placeId: null,
+      ask: true,
+    })
+  })
+
+  test('«Todavía no» llega como `again`', () => {
+    expect(parseNotificationEvent('again', { taskId: 'r', entryId: 'ask-r', ask: '1' })?.action).toBe('again')
+  })
+})

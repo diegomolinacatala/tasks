@@ -13,6 +13,8 @@ const MAX_TITLE = 200
 const MAX_PLACE_NAME = 60
 const MAX_BEFORE_MINUTES = 30 * 24 * 60
 const MAX_IN_MINUTES = 7 * 24 * 60
+/** `MAX_DURATION` del móvil: más de medio día deja de ser un rato acotado. */
+const MAX_DURATION_MINUTES = 12 * 60
 const MAX_TOKENS = 1200
 const DAY_MS = 24 * 60 * 60 * 1000
 /** Fechas aceptadas: desde ayer (zonas horarias) hasta ~2 años vista. */
@@ -43,6 +45,7 @@ export const SCHEMA = {
           title: { type: 'string' },
           date: nullable('string'),
           time: nullable('string'),
+          durationMinutes: nullable('integer'),
           reminders: {
             type: 'array',
             items: {
@@ -60,7 +63,19 @@ export const SCHEMA = {
           placeName: nullable('string'),
           placeOn: nullable('string'),
         },
-        required: ['tema', 'cuando', 'avisos', 'lugar', 'title', 'date', 'time', 'reminders', 'placeName', 'placeOn'],
+        required: [
+          'tema',
+          'cuando',
+          'avisos',
+          'lugar',
+          'title',
+          'date',
+          'time',
+          'durationMinutes',
+          'reminders',
+          'placeName',
+          'placeOn',
+        ],
         additionalProperties: false,
       },
     },
@@ -132,8 +147,10 @@ export function sanitizeTasks(raw: unknown, context: InterpretContext): Interpre
       return [reminder]
     })
     const place = placeOf(item)
+    const duration = isMinutes(item.durationMinutes, MAX_DURATION_MINUTES) && item.durationMinutes > 0 ? item.durationMinutes : null
     const base = { title: title.charAt(0).toUpperCase() + title.slice(1), date, time, reminders }
-    return [place ? { ...base, place } : base]
+    const withDuration = duration === null ? base : { ...base, duration }
+    return [place ? { ...withDuration, place } : withDuration]
   })
 }
 

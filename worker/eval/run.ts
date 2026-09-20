@@ -56,6 +56,8 @@ function diff(expected: ExpectedTask, actual: ParsedTask | undefined): string[] 
   }
   if (actual.date !== expected.date) errors.push(`fecha ${actual.date} ≠ ${expected.date}`)
   if (!options(expected.time).includes(actual.time)) errors.push(`hora ${actual.time} ≠ ${options(expected.time)[0]}`)
+  const duration = expected.duration ?? null
+  if (actual.duration !== duration) errors.push(`duración ${actual.duration} ≠ ${duration}`)
   const got = instants(actual)
   const want = [...expected.reminders].sort()
   if (got.join('|') !== want.join('|')) errors.push(`avisos [${got.join(', ')}] ≠ [${want.join(', ')}]`)
@@ -72,7 +74,7 @@ function diff(expected: ExpectedTask, actual: ParsedTask | undefined): string[] 
   return errors
 }
 
-type Field = 'title' | 'date' | 'time' | 'reminders' | 'place'
+type Field = 'title' | 'date' | 'time' | 'duration' | 'reminders' | 'place'
 
 function grade(item: EvalCase, actual: ParsedTask[]) {
   const attempts = [item.expected, ...(item.alternatives ?? [])].map((expected) => gradeAgainst(expected, actual))
@@ -82,7 +84,7 @@ function grade(item: EvalCase, actual: ParsedTask[]) {
 function gradeAgainst(expectedTasks: ExpectedTask[], actual: ParsedTask[]) {
   const errors: string[] = []
   if (actual.length !== expectedTasks.length) errors.push(`${actual.length} tareas ≠ ${expectedTasks.length}`)
-  const fields: Record<Field, boolean> = { title: true, date: true, time: true, reminders: true, place: true }
+  const fields: Record<Field, boolean> = { title: true, date: true, time: true, duration: true, reminders: true, place: true }
   expectedTasks.forEach((expected, index) => {
     const matched = actual.find((task) => options(expected.title).some((t) => fold(t) === fold(task.title))) ?? actual[index]
     const taskErrors = diff(expected, matched)
@@ -90,6 +92,7 @@ function gradeAgainst(expectedTasks: ExpectedTask[], actual: ParsedTask[]) {
       if (error.startsWith('título') || error.startsWith('falta')) fields.title = false
       if (error.startsWith('fecha')) fields.date = false
       if (error.startsWith('hora')) fields.time = false
+      if (error.startsWith('duración')) fields.duration = false
       if (error.startsWith('avisos') || error.startsWith('falta')) fields.reminders = false
       if (error.startsWith('lugar') || error.startsWith('falta')) fields.place = false
     }
@@ -126,7 +129,7 @@ function report(rows: { item: EvalCase; grade: Grade; note: string }[], label: s
   const total = rows.length
   const count = (pick: (result: Grade) => boolean) => rows.filter((row) => pick(row.grade)).length
   console.log(`\n${label}: ${count((r) => r.ok)}/${total} correctas`)
-  for (const field of ['title', 'date', 'time', 'reminders', 'place'] as const) {
+  for (const field of ['title', 'date', 'time', 'duration', 'reminders', 'place'] as const) {
     console.log(`    ${field.padEnd(10)} ${count((r) => r.fields[field])}/${total}`)
   }
 }

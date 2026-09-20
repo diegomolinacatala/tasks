@@ -173,3 +173,26 @@ describe('parseInterpretContext', () => {
     expect(parseInterpretContext(undefined)).toBeNull()
   })
 })
+
+describe('duración', () => {
+  const withDuration = (durationMinutes: unknown) =>
+    sanitizeTasks({ tasks: [task({ title: 'Reunión', date: TODAY, time: '17:30', durationMinutes })] }, context)[0]
+
+  test('los minutos que dura llegan al móvil', () => {
+    expect(withDuration(60)).toMatchObject({ title: 'Reunión', duration: 60 })
+  })
+
+  test('sin duración el campo no viaja', () => {
+    expect(withDuration(null)).not.toHaveProperty('duration')
+  })
+
+  test('lo que no es un rato de minutos se descarta', () => {
+    for (const value of ['60', 0, -30, 13 * 60, 1.5]) expect(withDuration(value)).not.toHaveProperty('duration')
+  })
+
+  test('el esquema obliga al modelo a contestarla', () => {
+    const item = SCHEMA.properties.tasks.items
+    expect(item.properties).toHaveProperty('durationMinutes')
+    expect(item.required).toContain('durationMinutes')
+  })
+})

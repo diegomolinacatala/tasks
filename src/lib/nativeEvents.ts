@@ -21,11 +21,16 @@ export interface WidgetChange {
 }
 
 export interface NotificationEvent {
-  /** `today`: pasar a hoy la tarea del aviso o, desde el resumen diario, todo lo atrasado. */
-  action: 'open' | 'done' | 'snooze' | 'today'
+  /**
+   * `today`: pasar a hoy la tarea del aviso o, desde el resumen diario, todo lo atrasado.
+   * `again`: "Todavía no" en el aviso de cierre; la tarea se alarga y vuelve a preguntar.
+   */
+  action: 'open' | 'done' | 'snooze' | 'today' | 'again'
   /** Vacío en el resumen diario; varias en un aviso de lugar. */
   taskIds: string[]
   placeId: string | null
+  /** El aviso preguntaba si la tarea ya estaba hecha. */
+  ask?: true
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
@@ -41,7 +46,13 @@ export function parseNativeAction(raw: unknown): NativeAction | null {
   return text ? { type: 'add', text } : null
 }
 
-const ACTIONS: Record<string, NotificationEvent['action']> = { tap: 'open', done: 'done', snooze: 'snooze', today: 'today' }
+const ACTIONS: Record<string, NotificationEvent['action']> = {
+  tap: 'open',
+  done: 'done',
+  snooze: 'snooze',
+  today: 'today',
+  again: 'again',
+}
 
 /** `actionId` del plugin de notificaciones ("tap", "dismiss" o el id del botón) y el `extra` del aviso. */
 export function parseNotificationEvent(actionId: string, extra: unknown): NotificationEvent | null {
@@ -50,7 +61,7 @@ export function parseNotificationEvent(actionId: string, extra: unknown): Notifi
   const placeId = typeof extra.placeId === 'string' && extra.placeId ? extra.placeId : null
   const ids = placeId ? extra.taskIds : extra.taskId
   const taskIds = typeof ids === 'string' ? ids.split(',').filter(Boolean) : []
-  return { action, taskIds, placeId }
+  return { action, taskIds, placeId, ...(extra.ask === '1' ? { ask: true as const } : {}) }
 }
 
 /** `changes` de `TasksNative.widgetChanges()`: lo que no tenga forma de cambio se descarta. */

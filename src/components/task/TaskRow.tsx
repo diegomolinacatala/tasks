@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { shortTime } from '../../lib/date'
+import { timeRange } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
 import { nextReminderAt } from '../../lib/reminders'
 import type { Task } from '../../types'
@@ -16,8 +16,8 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, meta, overdue = false, importance, onToggle, onOpen }: TaskRowProps) {
-  const time = task.date && task.time ? shortTime(task.time) : null
-  const text = [meta, time].filter(Boolean).join(' · ')
+  // Con duración, el tramo entero: `17:30–18:30`.
+  const text = [meta, timeRange(task)].filter(Boolean).join(' · ')
   const reminding = nextReminderAt(task, Date.now()) !== null
   const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
   // Lo hecho ya no pide atención: vuelve al tamaño normal (la importancia se conserva).

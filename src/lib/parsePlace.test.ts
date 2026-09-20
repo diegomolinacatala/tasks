@@ -22,6 +22,7 @@ describe('lugares guardados', () => {
       title: 'comprar pan',
       date: null,
       time: null,
+      duration: null,
       reminders: [{ kind: 'place', placeId: 'm', on: 'arrive' }],
       label: 'Al llegar a Mercadona',
     })
@@ -90,6 +91,7 @@ describe('lugares nuevos', () => {
       title: 'Comprar pan',
       date: null,
       time: null,
+      duration: null,
       reminders: [],
       label: 'Al llegar a Mercadona',
       newPlace: { name: 'Mercadona', on: 'arrive' },
@@ -124,6 +126,7 @@ describe('sin lugares en esta plataforma', () => {
       title: 'comprar pan al pasar por mercadona',
       date: null,
       time: null,
+      duration: null,
       reminders: [],
       label: null,
     })

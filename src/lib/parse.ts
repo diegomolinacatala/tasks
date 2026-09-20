@@ -1,5 +1,6 @@
 import type { IsoDate, IsoTime, Place, PlaceTrigger, ReminderDraft, TaskDraft } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, startOfWeek, timeOfInstant, toInstant } from './date'
+import { MAX_DURATION, MIN_DURATION, durationFromEnd, durationLabel, spanLabel } from './duration'
 import type { NormalizedText } from './normalize'
 import { normalizeText, originalSpan } from './normalize'
 import { placePhraseRegex, readPlacePhrase } from './placePhrase'
@@ -67,6 +68,14 @@ const RE_WEEKDAY_NUMBER = word(`(?:el )?(${WEEKDAY}) (\\d{1,2})(?! ?(?:de |:|\\.
  * portal o un número de factura ("aparcar en el 5").
  */
 const RE_DAY_OF_MONTH = word('(?:antes )?(?:del|el) dia (\\d{1,2})|antes del (\\d{1,2})|el (\\d{1,2})(?= a (?:las?|primera) | por la )')
+/** "durante una hora", "de 45 minutos", "que dura hora y media": cuánto ocupa la tarea. */
+const RE_DURATION = word(`(?:(?:que )?(?:durante|duran|dura)|de) (?:${AMOUNT_SOURCE})`)
+/** "una hora de duración". */
+const RE_DURATION_OF = word(`(?:${AMOUNT_SOURCE}) de duracion`)
+/** "de 17:30 a 18:30", "de las 5 a las 7": a qué hora empieza y a cuál acaba. */
+const RE_SPAN = word(`(?:de|desde) (las |la )?${TIME_SOURCE} (?:a|hasta) (las |la )?${TIME_SOURCE}`)
+/** "hasta las 19:00": la hora de acabar; la de empezar es la de la tarea. */
+const RE_UNTIL = word(`hasta (?:las |la )${TIME_SOURCE}`)
 const RE_TIME = word(TIME_SOURCE)
 const RE_PART = word('(por la|esta) (manana|tarde|noche)|(?:a|al) (mediodia)|a (primera hora)')
 const RE_DAY_WORD = word('pasado manana|manana|hoy')
@@ -74,6 +83,20 @@ const RE_WEEKDAY = word(`(?:el |este |el proximo |proximo )?(${WEEKDAY})(?: que 
 
 /** Aviso a una hora concreta que depende del día de la tarea (`daysBefore`) o tiene el suyo. */
 type PendingAt = { time: IsoTime; daysBefore: number } | { time: IsoTime; date: IsoDate }
+
+/** Una duración es un rato del día: "de tres días" no lo es y se queda en el título. */
+function durationAmount(groups: readonly (string | undefined)[]): number | null {
+  const minutes = amountOf(groups)
+  if (minutes === null) return null
+  const rounded = Math.round(minutes)
+  return rounded >= MIN_DURATION && rounded <= MAX_DURATION ? rounded : null
+}
+
+/**
+ * Hora dentro de un tramo ("de 5 a 7"): el propio tramo ya dice que son horas, así que se
+ * resuelve como si llevara "a las" delante, con su misma regla de tarde ("a las 5" es 17:00).
+ */
+const spanHour = (groups: readonly (string | undefined)[]) => resolveHour(['a las ', ...groups.slice(1)])
 
 class Scanner {
   readonly spans: Span[] = []
@@ -121,7 +144,14 @@ class Scanner {
   }
 }
 
-const literal = (input: string): ParsedTask => ({ title: input.trim(), date: null, time: null, reminders: [], label: null })
+const literal = (input: string): ParsedTask => ({
+  title: input.trim(),
+  date: null,
+  time: null,
+  duration: null,
+  reminders: [],
+  label: null,
+})
 
 /**
  * Extrae fecha, hora y avisos de un texto en español. Si no queda título, lo deja literal.
@@ -186,6 +216,22 @@ export function parseTask(input: string, now: number, places: readonly Place[] |
     pending.push({ time, daysBefore: 0 })
   }
 
+  // Cuánto dura, después de los avisos ("una hora antes" es un aviso, no una duración) y antes
+  // de la hora, para que un tramo se quede con sus dos horas en vez de dejar solo la primera.
+  const span = scanner.first(RE_SPAN, (match) => {
+    const from = match.slice(2, 12)
+    const to = match.slice(13, 23)
+    // "de 5 a 7" son horas si alguna lleva "las" o si por sí sola ya se lee como hora ("17:30").
+    const marked = Boolean(match[1] ?? match[12]) || resolveHour(from) !== null || resolveHour(to) !== null
+    const start = marked ? spanHour(from) : null
+    const end = marked ? spanHour(to) : null
+    return start && end ? { start, end } : null
+  })
+  const until = span ? null : scanner.first(RE_UNTIL, (match) => spanHour(match.slice(1)))
+  const spokenDuration =
+    scanner.first(RE_DURATION_OF, (match) => durationAmount(match.slice(1))) ??
+    scanner.first(RE_DURATION, (match) => durationAmount(match.slice(1)))
+
   const explicitDate =
     scanner.first(RE_NEXT_WEEK_DAY, ([, name, other]) => {
       const weekday = WEEKDAYS.indexOf(name ?? other ?? '')
@@ -206,7 +252,7 @@ export function parseTask(input: string, now: number, places: readonly Place[] |
     return { key, time: PART_OF_DAY[key] ?? null, today: kind === 'esta' }
   })
   // "esta noche a las nueve": la franja decide si la hora es de mañana o de tarde.
-  const time = scanner.first(RE_TIME, (match) => resolveHour(match.slice(1), part?.key)) ?? part?.time ?? null
+  const time = span ? span.start : (scanner.first(RE_TIME, (match) => resolveHour(match.slice(1), part?.key)) ?? part?.time ?? null)
   const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
   const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
@@ -217,6 +263,10 @@ export function parseTask(input: string, now: number, places: readonly Place[] |
   let date = explicitDate ?? namedDay ?? weekday ?? offsetDate ?? (part?.today ? today : null)
   // Una hora sin día que ya pasó hoy se entiende para mañana.
   if (time && !date) date = toInstant(today, time) > now ? today : addDays(today, 1)
+
+  let duration = spokenDuration
+  if (span) duration = durationFromEnd(span.start, span.end)
+  else if (until && time) duration = durationFromEnd(time, until)
 
   const atReminders = pending.flatMap((reminder): ReminderDraft[] => {
     if ('date' in reminder) return [{ kind: 'at', at: toInstant(reminder.date, reminder.time) }]
@@ -235,10 +285,11 @@ export function parseTask(input: string, now: number, places: readonly Place[] |
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-  const label = draftLabel(date, time, reminders, isDefault, now, known)
-  if (!placePhrase || placePhrase.place) return { title, date, time, reminders, label }
+  const draft = { title, date, time, duration, reminders }
+  const label = draftLabel(draft, isDefault, now, known)
+  if (!placePhrase || placePhrase.place) return { ...draft, label }
   const newPlace = { name: placePhrase.name, on: placePhrase.on }
-  return { title, date, time, reminders, label: withPlaceLabel(label, newPlace), newPlace }
+  return { ...draft, label: withPlaceLabel(label, newPlace), newPlace }
 }
 
 /**
@@ -259,19 +310,20 @@ export function parseSpoken(input: string, now: number, places: readonly Place[]
 export const withPlaceLabel = (label: string, place: { name: string; on: PlaceTrigger }) =>
   [label, placeTriggerLabel(place.name, place.on)].filter(Boolean).join(' · ')
 
-/** `Mañana 17:00 · 1 h antes · 30 min antes`. `isDefault`: el único aviso es el automático "a la hora". */
+/** `Mañana 17:00–18:00 · 1 h antes`. `isDefault`: el único aviso es el automático "a la hora". */
 export function draftLabel(
-  date: IsoDate | null,
-  time: IsoTime | null,
-  reminders: ReminderDraft[],
+  draft: Pick<TaskDraft, 'date' | 'time' | 'duration' | 'reminders'>,
   isDefault: boolean,
   now: number,
   places: readonly Place[] = [],
 ): string {
+  const { date, time, duration, reminders } = draft
   const today = isoOfInstant(now)
   const parts: string[] = []
   if (date) parts.push(relativeLabel(date, today))
-  if (time) parts.push(shortTime(time))
+  if (time) parts.push(spanLabel(time, duration))
+  // Sin hora la duración no tiene de dónde colgar, pero sí dice algo: "Reunión · 2 h".
+  else if (duration !== null) parts.push(durationLabel(duration))
 
   const extras = isDefault
     ? []

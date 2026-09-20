@@ -34,7 +34,7 @@ describe('buildPrompt', () => {
   const messages = buildPrompt('llamar a Ana', context)
 
   test('reglas y calendario, ejemplos como conversación y la frase al final', () => {
-    expect(messages.map((m) => m.role)).toEqual(['system', ...Array(6).fill(['user', 'assistant']).flat(), 'user'])
+    expect(messages.map((m) => m.role)).toEqual(['system', ...Array(7).fill(['user', 'assistant']).flat(), 'user'])
     expect(messages[0]!.content).toContain('Ahora es lunes 2026-09-14, a las 10:30')
     expect(messages[0]!.content).toContain('lunes 2026-09-14 (hoy)')
     expect(messages.at(-1)!.content).toBe('llamar a Ana')

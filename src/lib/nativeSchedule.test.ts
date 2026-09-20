@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { AppState, Place, Task } from '../types'
 import { toInstant } from './date'
-import { MAX_PENDING, PLACE_ID_BASE, isPlaceNotification, nativePlan, numericId, planFingerprint } from './nativeSchedule'
+import { ASK_CATEGORY, MAX_PENDING, PLACE_ID_BASE, isPlaceNotification, nativePlan, numericId, planFingerprint } from './nativeSchedule'
 import { emptyState } from '../state/reducer'
 
 const TODAY = '2026-09-11'
@@ -13,6 +13,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   done: false,
   date: TODAY,
   time: null,
+  duration: null,
   reminders: [],
   sectionId: null,
   order: 0,
@@ -122,5 +123,19 @@ describe('planFingerprint', () => {
     expect(planFingerprint(nativePlan(state, NOW))).toBe(planFingerprint(plan))
     const renamed = stateWith([task({ id: 'a', title: 'otro', reminders: [{ id: 'r', kind: 'at', at: NOW + MINUTE }] })])
     expect(planFingerprint(nativePlan(renamed, NOW))).not.toBe(planFingerprint(plan))
+  })
+})
+
+describe('aviso de cierre', () => {
+  test('lleva su propia categoría de botones y la marca para la web', () => {
+    const state = stateWith([task({ id: 'r', title: 'Reunión', time: '17:30', duration: 60 })])
+    const [timed] = nativePlan(state, NOW).timed
+    expect(timed).toMatchObject({
+      title: 'Reunión',
+      body: '¿Has acabado? · 17:30–18:30',
+      at: toInstant(TODAY, '18:30'),
+      category: ASK_CATEGORY,
+      extra: { taskId: 'r', entryId: 'ask-r', ask: '1' },
+    })
   })
 })

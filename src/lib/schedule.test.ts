@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { AppState, Task } from '../types'
 import { toInstant } from './date'
-import { DIGEST_DAYS, badgeCount, digestEntries, notificationBody, upcomingSchedule } from './schedule'
+import { DIGEST_DAYS, badgeCount, checkInEntries, digestEntries, notificationBody, upcomingSchedule } from './schedule'
 
 const TODAY = '2026-09-11'
 const NOW = toInstant(TODAY, '10:00')
@@ -12,6 +12,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   done: false,
   date: TODAY,
   time: null,
+  duration: null,
   reminders: [],
   sectionId: null,
   order: 0,
@@ -166,5 +167,34 @@ describe('digestEntries', () => {
   test('no pasa de una semana', () => {
     const tasks = Array.from({ length: 10 }, (_, i) => task({ id: `t${i}`, date: `2026-09-${String(12 + i).padStart(2, '0')}` }))
     expect(digestEntries(stateOf(tasks, { enabled: true, time: '23:00' }), NOW).length).toBeLessThanOrEqual(DIGEST_DAYS)
+  })
+})
+
+describe('checkInEntries: preguntar al acabar', () => {
+  const meeting = (partial: Partial<Task> = {}) =>
+    task({ id: 'r', title: 'Reunión con Jorge', time: '17:30', duration: 60, ...partial })
+
+  test('una tarea que dura pregunta a la hora de acabar', () => {
+    const [entry] = checkInEntries(stateOf([meeting()]), NOW)
+    expect(entry).toEqual({
+      id: 'ask-r',
+      taskId: 'r',
+      at: toInstant(TODAY, '18:30'),
+      title: 'Reunión con Jorge',
+      body: '¿Has acabado? · 17:30–18:30',
+      overdue: false,
+      ask: true,
+    })
+  })
+
+  test('sin duración, hecha o con el final ya pasado no se pregunta nada', () => {
+    expect(checkInEntries(stateOf([meeting({ duration: null })]), NOW)).toEqual([])
+    expect(checkInEntries(stateOf([meeting({ done: true })]), NOW)).toEqual([])
+    expect(checkInEntries(stateOf([meeting({ time: '08:00' })]), NOW)).toEqual([])
+  })
+
+  test('entra en la agenda que se sube, en su sitio por hora', () => {
+    const state = stateOf([meeting({ reminders: [{ id: 'r1', kind: 'before', minutes: 0 }] })])
+    expect(upcomingSchedule(state, NOW).map((entry) => entry.id)).toEqual(['r1', 'ask-r'])
   })
 })

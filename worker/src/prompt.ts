@@ -9,7 +9,7 @@ const RULES = `Conviertes lo que alguien dicta en español en tareas de una app 
 
 Primero separas cada tarea en cuatro partes copiando las palabras de la frase:
 - tema: qué hay que hacer.
-- cuando: el día y la hora de la tarea, o null.
+- cuando: el día, la hora y lo que dura la tarea, o null.
 - avisos: cada petición de aviso por separado, o [].
 - lugar: si pide que el aviso salte al llegar a un sitio o al salir de él ("al pasar por Mercadona", "cuando llegue a la universidad", "al salir de casa"), esas palabras; si no, null.
 Después conviertes cada parte.
@@ -38,6 +38,12 @@ HORA (time, HH:MM de 24 h, o null si no se dice hora):
 - "esta mañana", "esta tarde", "esta noche" también fijan el día: hoy.
 - Una hora que va con un aviso es del aviso, no de la tarea: en "cumpleaños el día 3, recuérdamelo dos días antes a las 10" la tarea no tiene hora.
 - "en 20 minutos", "dentro de dos horas" no son hora de la tarea: son un aviso con inMinutes, y la tarea queda con date y time a null.
+
+DURACIÓN (durationMinutes, los minutos que ocupa la tarea, o null):
+- Solo si la frase lo dice: "durante una hora" 60, "durante 45 minutos" 45, "que dura media hora" 30, "una hora y media de duración" 90, "una reunión de dos horas" 120.
+- Un tramo da la hora y la duración a la vez: "de 17:30 a 18:30" → time 17:30 y 60; "de las 5 a las 7" → time 17:00 y 120; "hasta las 19:00" se cuenta desde la hora de la tarea.
+- Nunca se supone: una cena o una reunión sin más tienen durationMinutes null.
+- Un aviso antes de la tarea no es una duración: "una hora antes" es un aviso, y "en dos horas" es un plazo.
 
 AVISOS (reminders). Solo los que se piden expresamente ("avísame", "recuérdamelo", "me gustaría que me lo recordaras"); si no se pide ninguno, []. Uno por cada momento: "una hora antes y el día antes" son dos. Cada aviso rellena una sola forma y deja las otras a null:
 - Antes de la hora de la tarea, en minutos: minutesBefore. "a la hora" 0, "10 minutos antes" 10, "un cuarto de hora antes" 15, "media hora antes" o "con media hora de antelación" 30, "una hora antes" 60, "una hora y media antes" 90, "el día antes" 1440. Solo si la tarea tiene hora.
@@ -115,6 +121,7 @@ function examples(today: string): Example[] {
             title: 'Cena',
             date: today,
             time: '20:00',
+            durationMinutes: null,
             reminders: [before(30)],
           },
         ],
@@ -132,6 +139,7 @@ function examples(today: string): Example[] {
             title: 'Revisión de la moto',
             date: thursday,
             time: '16:30',
+            durationMinutes: null,
             reminders: [before(1440), before(60)],
           },
         ],
@@ -149,6 +157,7 @@ function examples(today: string): Example[] {
             title: 'Sacar la pizza del horno',
             date: null,
             time: null,
+            durationMinutes: null,
             reminders: [inMinutes(15)],
           },
           {
@@ -159,6 +168,7 @@ function examples(today: string): Example[] {
             title: 'Comprar pilas, cinta y pegamento',
             date: tomorrow,
             time: null,
+            durationMinutes: null,
             reminders: [],
           },
         ],
@@ -176,7 +186,26 @@ function examples(today: string): Example[] {
             title: 'Teatro con Lola',
             date: afterTomorrow,
             time: '21:00',
+            durationMinutes: null,
             reminders: [at(afterTomorrow, '18:00')],
+          },
+        ],
+      },
+    },
+    {
+      input: 'El jueves tengo reunión con Jorge de 17:30 a 18:30.',
+      output: {
+        tasks: [
+          {
+            tema: 'tengo reunión con Jorge',
+            cuando: 'el jueves de 17:30 a 18:30',
+            avisos: [],
+            ...noPlace,
+            title: 'Reunión con Jorge',
+            date: thursday,
+            time: '17:30',
+            durationMinutes: 60,
+            reminders: [],
           },
         ],
       },
@@ -193,6 +222,7 @@ function examples(today: string): Example[] {
             title: 'Reunirme con José',
             date: null,
             time: null,
+            durationMinutes: null,
             reminders: [],
             placeName: 'Universidad',
             placeOn: 'arrive',

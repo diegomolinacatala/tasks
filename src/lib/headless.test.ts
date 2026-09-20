@@ -19,6 +19,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   done: false,
   date: TODAY,
   time: null,
+  duration: null,
   reminders: [],
   sectionId: null,
   order: 0,
@@ -51,10 +52,10 @@ describe('addFromText', () => {
   test('usa lo que entendió la IA del servidor', () => {
     const result = run({
       text: 'bueno, hoy tengo una cena a las 20:00, recuérdamelo media hora antes',
-      interpreted: [{ title: 'Cena', date: TODAY, time: '20:00', reminders: [{ kind: 'before', minutes: 30 }] }],
+      interpreted: [{ title: 'Cena', date: TODAY, time: '20:00', duration: null, reminders: [{ kind: 'before', minutes: 30 }] }],
     })
     expect(result.entry?.tasks).toEqual([
-      { id: 'id-1', title: 'Cena', date: TODAY, time: '20:00', reminders: [{ kind: 'before', minutes: 30 }] },
+      { id: 'id-1', title: 'Cena', date: TODAY, time: '20:00', duration: null, reminders: [{ kind: 'before', minutes: 30 }] },
     ])
     // Comas y no "·": Siri lo lee en voz alta.
     expect(result.message).toBe('Apuntada: Cena, hoy 20:00, 30 min antes.')
@@ -63,7 +64,7 @@ describe('addFromText', () => {
   test('sin IA, el analizador local del móvil', () => {
     const result = run({ text: 'Llamar a Miguel mañana a las 17:00' })
     expect(result.entry?.tasks).toEqual([
-      { id: 'id-1', title: 'Llamar a Miguel', date: addDays(TODAY, 1), time: '17:00', reminders: [{ kind: 'before', minutes: 0 }] },
+      { id: 'id-1', title: 'Llamar a Miguel', date: addDays(TODAY, 1), time: '17:00', duration: null, reminders: [{ kind: 'before', minutes: 0 }] },
     ])
     expect(result.message).toBe('Apuntada: Llamar a Miguel, mañana 17:00.')
   })
@@ -76,8 +77,8 @@ describe('addFromText', () => {
     const result = run({
       text: 'comprar pan y llamar a Ana',
       interpreted: [
-        { title: 'Comprar pan', date: null, time: null, reminders: [] },
-        { title: 'Llamar a Ana', date: null, time: null, reminders: [] },
+        { title: 'Comprar pan', date: null, time: null, duration: null, reminders: [] },
+        { title: 'Llamar a Ana', date: null, time: null, duration: null, reminders: [] },
       ],
     })
     expect(result.entry?.tasks.map((item) => item.title)).toEqual(['Comprar pan', 'Llamar a Ana'])
@@ -97,7 +98,7 @@ describe('addFromText', () => {
 
   test('el plan, el número del icono y el widget cuentan ya con la tarea nueva', () => {
     const result = run({
-      interpreted: [{ title: 'Dentista', date: TODAY, time: '17:00', reminders: [{ kind: 'before', minutes: 15 }] }],
+      interpreted: [{ title: 'Dentista', date: TODAY, time: '17:00', duration: null, reminders: [{ kind: 'before', minutes: 15 }] }],
       text: 'dentista a las 5',
     })
     expect(result.plan?.timed).toMatchObject([{ at: toInstant(TODAY, '16:45'), title: 'Dentista', extra: { taskId: 'id-1' } }])
@@ -110,11 +111,11 @@ describe('addFromText', () => {
       id: 'e0',
       createdAt: NOW - 1000,
       places: [],
-      tasks: [{ id: 'antes', title: 'Antes', date: TODAY, time: '18:00', reminders: [{ kind: 'before', minutes: 0 }] }],
+      tasks: [{ id: 'antes', title: 'Antes', date: TODAY, time: '18:00', duration: null, reminders: [{ kind: 'before', minutes: 0 }] }],
     }
     const result = run({
       text: 'comprar pan hoy',
-      state: JSON.parse(JSON.stringify(saved([task({ id: 'hecha-en-widget', time: '19:00', reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })]))),
+      state: JSON.parse(JSON.stringify(saved([task({ id: 'hecha-en-widget', time: '19:00', duration: null, reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })]))),
       inbox: [pending],
       widgetChanges: [{ taskId: 'hecha-en-widget', done: true }],
     })
@@ -154,7 +155,7 @@ describe('moveOverdue', () => {
 
   test('el widget y los avisos ya las tienen en hoy; el número del icono no cambia', () => {
     const result = move({
-      state: stateOf([task({ id: 'llamar', date: YESTERDAY, time: '17:00', reminders: [{ id: 'r', kind: 'before', minutes: 15 }] })]),
+      state: stateOf([task({ id: 'llamar', date: YESTERDAY, time: '17:00', duration: null, reminders: [{ id: 'r', kind: 'before', minutes: 15 }] })]),
     })
     expect(result.message).toBe('1 tarea pasada a hoy.')
     expect(result.widget?.tasks).toMatchObject([{ id: 'llamar', date: TODAY }])

@@ -47,7 +47,7 @@ async function showFromPush(text: string): Promise<void> {
   // `actions` y `timestamp` no están en los tipos de TS pero sí en los navegadores que los admiten.
   const options: NotificationOptions & { actions?: { action: NotificationAction; title: string }[]; timestamp?: number } = {
     body: content.body,
-    data: { taskId: content.taskId },
+    data: { taskId: content.taskId, ask: content.ask === true },
     icon: `${BASE}icons/icon-192.png`,
     ...(content.at ? { timestamp: content.at } : {}),
     ...(actions.length ? { actions } : {}),
@@ -66,23 +66,25 @@ const DONE: Button = { action: 'done', title: 'Hecha' }
 const SNOOZE: Button = { action: 'snooze', title: '+10 min' }
 
 /**
- * Tarea: "Hecha" y "+10 min", y "Pasar a hoy" si ya es de un día anterior (delante de posponer:
- * donde solo caben dos, manda). Resumen diario con algo atrasado: pasarlo todo a hoy.
+ * Aviso de cierre: "Sí, hecha" y "Todavía no", nada más. Tarea: "Hecha" y "+10 min", y "Pasar a
+ * hoy" si ya es de un día anterior (delante de posponer: donde solo caben dos, manda). Resumen
+ * diario con algo atrasado: pasarlo todo a hoy.
  */
 function actionsFor(content: NotificationContent): Button[] {
+  if (content.ask) return [{ action: 'done', title: 'Sí, hecha' }, { action: 'again', title: 'Todavía no' }]
   if (content.taskId) return content.overdue ? [DONE, { action: 'today', title: 'Pasar a hoy' }, SNOOZE] : [DONE, SNOOZE]
   return content.overdue ? [{ action: 'today', title: 'Pasar atrasadas a hoy' }] : []
 }
 
 /** La app aplica la acción: el estado de las tareas solo vive en la página. */
-async function openTask(taskId: string | null, action: NotificationAction | null): Promise<void> {
+async function openTask(taskId: string | null, action: NotificationAction | null, ask: boolean): Promise<void> {
   const scope = new URL(BASE, self.location.origin).href
   const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
   // La ventana de la app, no otra pestaña del mismo origen; mejor la que ya está a la vista.
   const inScope = windows.filter((item) => item.url.startsWith(scope))
   const client = inScope.find((item) => item.focused) ?? inScope[0]
   if (client) {
-    const message: OpenTaskMessage = { type: 'open-task', taskId, action }
+    const message: OpenTaskMessage = { type: 'open-task', taskId, action, ...(ask ? { ask: true } : {}) }
     // El mensaje sale aunque el sistema no deje enfocar: la acción no puede perderse por eso.
     client.postMessage(message)
     await client.focus().catch(() => undefined)
@@ -92,15 +94,14 @@ async function openTask(taskId: string | null, action: NotificationAction | null
   if (taskId) url.searchParams.set('task', taskId)
   // Sin tarea, solo "Pasar a hoy" del resumen diario tiene sentido.
   if (action && (taskId || action === 'today')) url.searchParams.set('action', action)
+  // Sin botón: al abrir la tarea se repite la pregunta, para acabar en un toque.
+  if (ask && taskId && !action) url.searchParams.set('ask', '1')
   await self.clients.openWindow(url.href)
 }
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const data: unknown = event.notification.data
-  const taskId =
-    typeof data === 'object' && data !== null && typeof (data as { taskId?: unknown }).taskId === 'string'
-      ? (data as { taskId: string }).taskId
-      : null
-  event.waitUntil(openTask(taskId, isNotificationAction(event.action) ? event.action : null))
+  const data = (typeof event.notification.data === 'object' ? event.notification.data : null) as Record<string, unknown> | null
+  const taskId = typeof data?.taskId === 'string' ? data.taskId : null
+  event.waitUntil(openTask(taskId, isNotificationAction(event.action) ? event.action : null, data?.ask === true))
 })

@@ -15,12 +15,17 @@ export type Action =
       date: IsoDate | null
       sectionId: string | null
       time?: IsoTime | null
+      duration?: number | null
       reminders?: ReminderDraft[]
       /** Id fijado por quien crea la tarea, para poder deshacer. */
       id?: string
     }
   | { type: 'task/toggle'; id: string }
   | { type: 'task/setTime'; id: string; time: IsoTime | null }
+  /** Minutos que dura; al acabar se pregunta si ya está hecha. `null` = sin duración. */
+  | { type: 'task/setDuration'; id: string; duration: number | null }
+  /** "Todavía no": alarga la tarea para que vuelva a preguntar dentro de un rato. */
+  | { type: 'task/extend'; id: string; now: number }
   | { type: 'reminder/add'; taskId: string; reminder: ReminderDraft }
   | { type: 'reminder/remove'; taskId: string; reminderId: string }
   /** `now` viaja en la acción para que el reducer siga siendo puro. */

@@ -23,6 +23,7 @@ export function seedState(): AppState {
     done: false,
     date,
     time: null,
+    duration: null,
     reminders: [],
     sectionId: null,
     order,

@@ -1,6 +1,7 @@
 import type { AppState, Place, Reminder, Section, Settings, Task } from '../types'
 import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
 import { isValidTime } from './date'
+import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
 import { MAX_PLACES, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
@@ -43,6 +44,8 @@ function normalizeTask(raw: unknown): Task | null {
     done: raw.done === true,
     date,
     time: isValidTime(raw.time) ? raw.time : null,
+    // Las copias anteriores a la duración no la traen: quedan sin aviso de cierre.
+    duration: normalizeDuration(raw.duration),
     reminders: normalizeReminders(raw.reminders),
     // Sin fecha no hay sección: las secciones agrupan dentro del día.
     sectionId: date && typeof raw.sectionId === 'string' ? raw.sectionId : null,

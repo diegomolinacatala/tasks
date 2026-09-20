@@ -1,5 +1,6 @@
 import type { IsoDate, Place, PlaceTrigger, ReminderDraft } from '../types'
 import { addDays, isValidTime, isoOfInstant, toInstant, toIso } from './date'
+import { normalizeDuration } from './duration'
 import type { ParsedTask } from './parse'
 import { draftLabel, withPlaceLabel } from './parse'
 import { MAX_PLACE_NAME, findPlace } from './places'
@@ -67,15 +68,17 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
     const firstAt = reminders.find((reminder) => reminder.kind === 'at')
     if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
 
+    const duration = normalizeDuration(item.duration)
     const spokenPlace = places === null ? null : placeOf(item.place)
     const saved = spokenPlace ? findPlace(places ?? [], spokenPlace.name) : null
     if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
     const isDefault = time !== null && reminders.length === 0 && !spokenPlace
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-    const label = draftLabel(date, time, reminders, isDefault, now, places ?? [])
-    if (!spokenPlace || saved) return [{ title, date, time, reminders, label }]
-    return [{ title, date, time, reminders, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]
+    const draft = { title, date, time, duration, reminders }
+    const label = draftLabel(draft, isDefault, now, places ?? [])
+    if (!spokenPlace || saved) return [{ ...draft, label }]
+    return [{ ...draft, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]
   })
 
   return drafts.length ? drafts : null

@@ -12,6 +12,7 @@ const state: AppState = {
       done: false,
       date: '2026-09-11',
       time: null,
+      duration: null,
       reminders: [],
       sectionId: 's1',
       order: 0,
@@ -172,5 +173,19 @@ describe('migración v4 → v5: lugares', () => {
     })
     expect(result!.places.map((place) => place.name)).toEqual(['Mercadona'])
     expect(result!.tasks[0]!.reminders.map((reminder) => reminder.id)).toEqual(['r1'])
+  })
+})
+
+describe('duración', () => {
+  test('una copia anterior a la duración se importa sin ella', () => {
+    const state = normalizeState({ tasks: [{ id: 'a', title: 'Reunión', date: '2026-09-11', time: '17:30' }], sections: [] })
+    expect(state!.tasks[0]!.duration).toBeNull()
+  })
+
+  test('se conserva saneada', () => {
+    const raw = (duration: unknown) => ({ tasks: [{ id: 'a', title: 'A', duration }], sections: [] })
+    expect(normalizeState(raw(45))!.tasks[0]!.duration).toBe(45)
+    expect(normalizeState(raw(99_999))!.tasks[0]!.duration).toBe(720)
+    expect(normalizeState(raw('60'))!.tasks[0]!.duration).toBeNull()
   })
 })

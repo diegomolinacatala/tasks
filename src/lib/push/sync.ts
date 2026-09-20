@@ -8,7 +8,10 @@ import { contentOf } from './message'
  * contenido en claro para no repetir subidas idénticas.
  */
 export async function scheduleFingerprint(deviceId: string, entries: readonly ScheduleEntry[]): Promise<string> {
-  const canonical = JSON.stringify([deviceId, entries.map((e) => [e.id, e.taskId, e.at, e.title, e.body, e.badge, e.overdue])])
+  const canonical = JSON.stringify([
+    deviceId,
+    entries.map((e) => [e.id, e.taskId, e.at, e.title, e.body, e.badge, e.overdue, e.ask]),
+  ])
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -27,6 +30,7 @@ export function encryptSchedule(key: CryptoKey, entries: readonly ScheduleEntry[
           badge: entry.badge,
           at: entry.at,
           ...(entry.overdue ? { overdue: true } : {}),
+          ...(entry.ask ? { ask: true } : {}),
         }),
       ),
     })),

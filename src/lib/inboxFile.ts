@@ -1,5 +1,6 @@
 import type { AppState, IsoDate, ReminderDraft } from '../types'
 import { isValidTime, toIso } from './date'
+import { normalizeDuration } from './duration'
 import type { InboxEntry, InboxMove, InboxPlace, InboxTask } from './inbox'
 import { MAX_INBOX_ENTRIES, entryInState } from './inbox'
 import { MAX_PLACE_NAME } from './places'
@@ -82,6 +83,7 @@ function parseTask(raw: unknown): InboxTask[] {
       title,
       date: isRealDate(raw.date) ? raw.date : null,
       time: isValidTime(raw.time) ? raw.time : null,
+      duration: normalizeDuration(raw.duration),
       reminders,
     },
   ]

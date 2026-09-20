@@ -1,4 +1,5 @@
 import { isValidTime } from '../lib/date'
+import { extendedDuration, normalizeDuration } from '../lib/duration'
 import { createId } from '../lib/id'
 import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
@@ -7,7 +8,7 @@ import { snoozed, withReminder } from '../lib/reminders'
 import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' } })
 
@@ -52,6 +53,7 @@ export function reducer(state: AppState, action: Action): AppState {
         done: false,
         date: action.date,
         time: isValidTime(action.time) ? action.time : null,
+        duration: normalizeDuration(action.duration),
         reminders: [],
         sectionId,
         order: nextOrder(state.tasks, scopeKey(action.date, sectionId)),
@@ -67,6 +69,17 @@ export function reducer(state: AppState, action: Action): AppState {
       if (action.time !== null && !isValidTime(action.time)) return state
       return updateTask(state, action.id, (task) => (task.time === action.time ? task : { ...task, time: action.time }))
     }
+
+    case 'task/setDuration': {
+      const duration = action.duration === null ? null : normalizeDuration(action.duration)
+      return updateTask(state, action.id, (task) => (task.duration === duration ? task : { ...task, duration }))
+    }
+
+    case 'task/extend':
+      return updateTask(state, action.id, (task) => {
+        const duration = extendedDuration(task, action.now)
+        return duration === null ? task : { ...task, duration }
+      })
 
     case 'reminder/add':
       return updateTask(state, action.taskId, (task) => withReminder(task, action.reminder, createId()))

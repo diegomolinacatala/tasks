@@ -10,6 +10,8 @@ export interface NotificationContent {
   at?: number
   /** Hay algo atrasado que se puede pasar a hoy desde el aviso (ver `ScheduleEntry.overdue`). */
   overdue?: boolean
+  /** Aviso de cierre: pregunta si la tarea ya está hecha (ver `ScheduleEntry.ask`). */
+  ask?: boolean
 }
 
 const MAX_TITLE = 120
@@ -36,6 +38,7 @@ export function parseContent(raw: unknown): NotificationContent | null {
       typeof value.badge === 'number' && Number.isInteger(value.badge) && value.badge >= 0 ? value.badge : null,
     ...(typeof value.at === 'number' && Number.isFinite(value.at) ? { at: value.at } : {}),
     ...(value.overdue === true ? { overdue: true } : {}),
+    ...(value.ask === true ? { ask: true } : {}),
   }
 }
 
@@ -52,16 +55,18 @@ export function parsePushData(text: string): string | null {
 }
 
 /** Botones de la notificación. iOS no los muestra; Android y escritorio sí. */
-export type NotificationAction = 'done' | 'snooze' | 'today'
+export type NotificationAction = 'done' | 'snooze' | 'today' | 'again'
 
 export const isNotificationAction = (value: unknown): value is NotificationAction =>
-  value === 'done' || value === 'snooze' || value === 'today'
+  value === 'done' || value === 'snooze' || value === 'today' || value === 'again'
 
 /** Mensaje del service worker a la página cuando ya estaba abierta. */
 export interface OpenTaskMessage {
   type: 'open-task'
   taskId: string | null
   action: NotificationAction | null
+  /** El aviso preguntaba si la tarea ya estaba hecha: al abrirla se vuelve a preguntar. */
+  ask?: boolean
 }
 
 export function isOpenTaskMessage(value: unknown): value is OpenTaskMessage {

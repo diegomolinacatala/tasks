@@ -13,6 +13,7 @@ describe('draftsFromInterpreted', () => {
         title: 'Reunión',
         date: '2026-09-15',
         time: '17:00',
+        duration: null,
         reminders: [
           { kind: 'before', minutes: 60 },
           { kind: 'before', minutes: 30 },
@@ -24,6 +25,7 @@ describe('draftsFromInterpreted', () => {
         title: 'Reunión',
         date: '2026-09-15',
         time: '17:00',
+        duration: null,
         reminders: [
           { kind: 'before', minutes: 60 },
           { kind: 'before', minutes: 30 },
@@ -35,8 +37,8 @@ describe('draftsFromInterpreted', () => {
 
   test('varias tareas en una frase', () => {
     const raw = [
-      { title: 'Llamar a mamá', date: '2026-09-14', time: null, reminders: [] },
-      { title: 'Gimnasio', date: '2026-09-14', time: '19:00', reminders: [] },
+      { title: 'Llamar a mamá', date: '2026-09-14', time: null, duration: null, reminders: [] },
+      { title: 'Gimnasio', date: '2026-09-14', time: '19:00', duration: null, reminders: [] },
     ]
     const drafts = draftsFromInterpreted(raw, NOW)!
     expect(drafts.map((d) => d.title)).toEqual(['Llamar a mamá', 'Gimnasio'])
@@ -51,6 +53,7 @@ describe('draftsFromInterpreted', () => {
         title: 'Basura',
         date: '2026-09-14',
         time: null,
+        duration: null,
         reminders: [
           { kind: 'at', date: '2026-09-14', time: '21:30' },
           { kind: 'at', date: '2026-09-14', time: '08:00' },
@@ -61,25 +64,26 @@ describe('draftsFromInterpreted', () => {
   })
 
   test('sin día pero con aviso a hora concreta, la tarea es para el día del aviso', () => {
-    const raw = [{ title: 'Mirar el horno', date: null, time: null, reminders: [{ kind: 'at', date: '2026-09-14', time: '10:30' }] }]
+    const raw = [{ title: 'Mirar el horno', date: null, time: null, duration: null, reminders: [{ kind: 'at', date: '2026-09-14', time: '10:30' }] }]
     expect(draftsFromInterpreted(raw, NOW)![0]).toMatchObject({ date: '2026-09-14', label: 'Hoy 10:30' })
   })
 
   test('hora sin día: hoy si no ha pasado, si no mañana', () => {
-    const later = draftsFromInterpreted([{ title: 'A', date: null, time: '12:00', reminders: [] }], NOW)!
-    const earlier = draftsFromInterpreted([{ title: 'B', date: null, time: '09:00', reminders: [] }], NOW)!
+    const later = draftsFromInterpreted([{ title: 'A', date: null, time: '12:00', duration: null, reminders: [] }], NOW)!
+    const earlier = draftsFromInterpreted([{ title: 'B', date: null, time: '09:00', duration: null, reminders: [] }], NOW)!
     expect(later[0]!.date).toBe('2026-09-14')
     expect(earlier[0]!.date).toBe('2026-09-15')
   })
 
   test('un lugar guardado se convierte en aviso de lugar', () => {
     const places = [{ id: 'm', name: 'Mercadona', location: null, radius: 150 }]
-    const raw = [{ title: 'Comprar pan', date: null, time: null, reminders: [], place: { name: 'mercadona', on: 'arrive' } }]
+    const raw = [{ title: 'Comprar pan', date: null, time: null, duration: null, reminders: [], place: { name: 'mercadona', on: 'arrive' } }]
     expect(draftsFromInterpreted(raw, NOW, places)).toEqual([
       {
         title: 'Comprar pan',
         date: null,
         time: null,
+        duration: null,
         reminders: [{ kind: 'place', placeId: 'm', on: 'arrive' }],
         label: 'Al llegar a Mercadona',
       },
@@ -87,12 +91,13 @@ describe('draftsFromInterpreted', () => {
   })
 
   test('un lugar sin guardar se propone para crearlo y quita el aviso «a la hora»', () => {
-    const raw = [{ title: 'Ver a José', date: null, time: '12:00', reminders: [], place: { name: 'Universidad', on: 'arrive' } }]
+    const raw = [{ title: 'Ver a José', date: null, time: '12:00', duration: null, reminders: [], place: { name: 'Universidad', on: 'arrive' } }]
     expect(draftsFromInterpreted(raw, NOW)).toEqual([
       {
         title: 'Ver a José',
         date: '2026-09-14',
         time: '12:00',
+        duration: null,
         reminders: [],
         label: 'Hoy 12:00 · Al llegar a Universidad',
         newPlace: { name: 'Universidad', on: 'arrive' },
@@ -101,17 +106,17 @@ describe('draftsFromInterpreted', () => {
   })
 
   test('un lugar mal formado se ignora', () => {
-    const raw = [{ title: 'A', date: null, time: null, reminders: [], place: { name: 'Casa', on: 'cerca' } }]
-    expect(draftsFromInterpreted(raw, NOW)![0]).toEqual({ title: 'A', date: null, time: null, reminders: [], label: '' })
+    const raw = [{ title: 'A', date: null, time: null, duration: null, reminders: [], place: { name: 'Casa', on: 'cerca' } }]
+    expect(draftsFromInterpreted(raw, NOW)![0]).toEqual({ title: 'A', date: null, time: null, duration: null, reminders: [], label: '' })
   })
 
   test('sanea lo inválido y devuelve null si no queda nada', () => {
     const raw = [
-      { title: 'Ok', date: '2026-02-31', time: '7:00', reminders: [{ kind: 'before', minutes: 30 }, 'x', { kind: 'otro' }] },
-      { title: '  ', date: null, time: null, reminders: [] },
+      { title: 'Ok', date: '2026-02-31', time: '7:00', duration: null, reminders: [{ kind: 'before', minutes: 30 }, 'x', { kind: 'otro' }] },
+      { title: '  ', date: null, time: null, duration: null, reminders: [] },
       'basura',
     ]
-    expect(draftsFromInterpreted(raw, NOW)).toEqual([{ title: 'Ok', date: null, time: null, reminders: [], label: '' }])
+    expect(draftsFromInterpreted(raw, NOW)).toEqual([{ title: 'Ok', date: null, time: null, duration: null, reminders: [], label: '' }])
     expect(draftsFromInterpreted([], NOW)).toBeNull()
     expect(draftsFromInterpreted(null, NOW)).toBeNull()
     expect(draftsFromInterpreted({ tasks: [] }, NOW)).toBeNull()
@@ -125,10 +130,23 @@ describe('analizador local como respaldo', () => {
       title: 'Reunión',
       date: '2026-09-15',
       time: '17:00',
+      duration: null,
       reminders: [
         { kind: 'before', minutes: 60 },
         { kind: 'before', minutes: 30 },
       ],
     })
+  })
+})
+
+describe('duración', () => {
+  test('la que dice la IA se aplica y se ve en la etiqueta', () => {
+    const raw = [{ title: 'Reunión', date: '2026-09-15', time: '17:00', duration: 60, reminders: [] }]
+    expect(draftsFromInterpreted(raw, NOW)![0]).toMatchObject({ duration: 60, label: 'Mañana 17:00–18:00' })
+  })
+
+  test('una duración imposible se descarta sin perder la tarea', () => {
+    const raw = [{ title: 'Reunión', date: '2026-09-15', time: '17:00', duration: 'larga', reminders: [] }]
+    expect(draftsFromInterpreted(raw, NOW)![0]).toMatchObject({ title: 'Reunión', duration: null })
   })
 })

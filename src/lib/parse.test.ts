@@ -12,7 +12,7 @@ describe('sin nada que detectar', () => {
   test.each(['comprar 5 manzanas', 'leer 20 páginas', 'mañanero', 'hoyo en el jardín', 'estudiar 2h'])(
     '«%s» queda literal',
     (input) => {
-      expect(parse(input)).toEqual({ title: input, date: null, time: null, reminders: [], label: null })
+      expect(parse(input)).toEqual({ title: input, date: null, time: null, duration: null, reminders: [], label: null })
     },
   )
 
@@ -104,6 +104,7 @@ describe('horas', () => {
       title: 'llamar a Juan',
       date: '2026-09-12',
       time: '17:00',
+      duration: null,
       reminders: [{ kind: 'before', minutes: 0 }],
       label: 'Mañana 17:00',
     })
@@ -180,6 +181,71 @@ describe('dentro de un rato', () => {
   })
 })
 
+describe('cuánto dura', () => {
+  test.each([
+    ['reunión con Jorge mañana a las 17:30 durante una hora', 60],
+    ['gimnasio hoy a las 18:00 durante 45 minutos', 45],
+    ['tender mañana a las 12, que dura media hora', 30],
+    ['reunión mañana a las 9 de una hora y media de duración', 90],
+    ['reunión mañana a las 10 de 2 horas', 120],
+  ])('«%s» dura %i min', (input, duration) => {
+    expect(parse(input).duration).toBe(duration)
+  })
+
+  test('un tramo fija la hora de empezar y lo que dura', () => {
+    expect(parse('reunión mañana de 17:30 a 18:30')).toMatchObject({
+      title: 'reunión',
+      time: '17:30',
+      duration: 60,
+      label: 'Mañana 17:30–18:30',
+    })
+  })
+
+  test('«de las 5 a las 7» son horas de la tarde, como «a las 5»', () => {
+    expect(parse('clase el lunes de las 5 a las 7')).toMatchObject({ time: '17:00', duration: 120 })
+  })
+
+  test('un tramo que cruza la medianoche sigue contando', () => {
+    expect(parse('turno de noche de 22:00 a 6:00')).toMatchObject({ time: '22:00', duration: 480 })
+  })
+
+  test('«hasta» cierra la hora que ya tenía la tarea', () => {
+    expect(parse('comer mañana a las 14:00 hasta las 15:30')).toMatchObject({ time: '14:00', duration: 90 })
+  })
+
+  test('con hora y duración se avisa a la hora, además de preguntar al acabar', () => {
+    expect(parse('siesta hoy a las 16:00 durante 20 minutos').reminders).toEqual([{ kind: 'before', minutes: 0 }])
+  })
+
+  test('una duración convive con los avisos pedidos', () => {
+    expect(parse('reunión mañana a las 9 que dura 20 minutos, avísame 10 minutos antes')).toMatchObject({
+      title: 'reunión',
+      duration: 20,
+      reminders: [{ kind: 'before', minutes: 10 }],
+    })
+  })
+
+  test('sin hora la duración se queda, y la etiqueta la enseña sola', () => {
+    expect(parse('examen el jueves de 3 horas')).toMatchObject({ time: null, duration: 180, label: 'jue 17 sept 3 h' })
+  })
+
+  test.each([
+    ['un aviso antes no es una duración', 'yoga el martes a las 19, recuérdamelo una hora antes'],
+    ['la antelación tampoco', 'yoga el martes a las 19 y que me avises con una hora de antelación'],
+    ['ni un plazo desde ahora', 'sacar la ropa dentro de 2 horas'],
+  ])('%s', (_name, input) => {
+    expect(parse(input).duration).toBeNull()
+  })
+
+  test.each([
+    ['más de un día no es un rato: se queda en el título', 'curso de 3 días'],
+    ['dos números sueltos no son un tramo de horas', 'comprar de 5 a 7 manzanas'],
+    ['un complemento con "de" no es una duración', 'clase de inglés el martes a las 18:00'],
+  ])('%s', (_name, input) => {
+    expect(parse(input).duration).toBeNull()
+  })
+})
+
 describe('limpieza del título', () => {
   test('quita conectores sueltos y comas colgantes', () => {
     expect(parse('llamar a Juan, mañana').title).toBe('llamar a Juan')
@@ -197,6 +263,7 @@ describe('frases dictadas', () => {
       title: 'llamar a miguel',
       date: '2026-09-11',
       time: '17:00',
+      duration: null,
       reminders: [{ kind: 'before', minutes: 10 }],
       label: 'Hoy 17:00 · 10 min antes',
     })
@@ -206,6 +273,7 @@ describe('frases dictadas', () => {
     expect(parse('Llamar a Miguel hoy a las 17:00 horas y recuérdamelo 10 minutos antes.')).toMatchObject({
       title: 'Llamar a Miguel',
       time: '17:00',
+      duration: null,
       reminders: [{ kind: 'before', minutes: 10 }],
     })
   })
@@ -214,6 +282,7 @@ describe('frases dictadas', () => {
     expect(parse('llamar a miguel hoy a las cinco de la tarde y avísame diez minutos antes')).toMatchObject({
       title: 'llamar a miguel',
       time: '17:00',
+      duration: null,
       reminders: [{ kind: 'before', minutes: 10 }],
     })
     expect(parse('dentista mañana a las once y media')).toMatchObject({ title: 'dentista', time: '11:30' })
@@ -238,6 +307,7 @@ describe('frases dictadas', () => {
       title: 'entregar informe',
       date: '2026-09-12',
       time: '12:00',
+      duration: null,
       reminders: [{ kind: 'at', at: toInstant('2026-09-12', '09:00') }],
       label: 'Mañana 12:00 · Mañana 9:00',
     })
@@ -248,6 +318,7 @@ describe('frases dictadas', () => {
       title: 'sacar la basura',
       date: '2026-09-11',
       time: null,
+      duration: null,
       reminders: [{ kind: 'at', at: toInstant('2026-09-11', '21:30') }],
     })
   })
@@ -282,6 +353,7 @@ describe('dictado: tema, fecha y avisos por separado', () => {
       title: 'Cena',
       date: '2026-09-11',
       time: '20:00',
+      duration: null,
       reminders: [before(30)],
       label: 'Hoy 20:00 · 30 min antes',
     })
@@ -303,11 +375,13 @@ describe('dictado: tema, fecha y avisos por separado', () => {
       title: 'renovar el seguro',
       date: '2026-09-30',
       time: null,
+      duration: null,
       reminders: [at('2026-09-27', '09:00')],
     })
     expect(parse('excursión el domingo a las 8:00, avísame la víspera a las 21:00')).toMatchObject({
       date: '2026-09-13',
       time: '08:00',
+      duration: null,
       reminders: [at('2026-09-12', '21:00')],
     })
   })
@@ -400,7 +474,7 @@ describe('dictado: tema, fecha y avisos por separado', () => {
 })
 
 function literal(title: string) {
-  return { title, date: null, time: null, reminders: [], label: null }
+  return { title, date: null, time: null, duration: null, reminders: [], label: null }
 }
 
 describe('parseSpoken', () => {
@@ -420,6 +494,7 @@ describe('parseSpoken', () => {
     expect(parseSpoken('¿Puedes recordarme a las 5 llamar a Ana?', NOW)).toMatchObject({
       title: 'Llamar a Ana',
       time: null,
+      duration: null,
       reminders: [{ kind: 'at', at: toInstant('2026-09-11', '17:00') }],
     })
   })

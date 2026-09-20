@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { toInstant } from '../lib/date'
 import { inScope, placementsOf } from '../lib/order'
 import type { AppState, Task } from '../types'
 import type { Action } from './actions'
@@ -460,5 +461,42 @@ describe('lugares', () => {
     )
     expect(state.places).toEqual([])
     expect(state.tasks[0]!.reminders.map((reminder) => reminder.kind)).toEqual(['at'])
+  })
+})
+
+describe('duración', () => {
+  const withMeeting = (duration: number | null = null) =>
+    run(emptyState(), { type: 'task/add', title: 'Reunión', date: TODAY, sectionId: null, time: '17:30', duration })
+
+  const only = (state: AppState) => state.tasks[0]!
+
+  test('se guarda al crear la tarea y se sanea', () => {
+    expect(only(withMeeting(60)).duration).toBe(60)
+    expect(only(withMeeting()).duration).toBeNull()
+    expect(only(withMeeting(1)).duration).toBe(5)
+  })
+
+  test('se pone y se quita desde el panel', () => {
+    const start = withMeeting()
+    const { id } = only(start)
+    const set = run(start, { type: 'task/setDuration', id, duration: 90 })
+    expect(only(set).duration).toBe(90)
+    expect(only(run(set, { type: 'task/setDuration', id, duration: null })).duration).toBeNull()
+  })
+
+  test('poner la misma duración no cambia el estado', () => {
+    const state = withMeeting(60)
+    expect(run(state, { type: 'task/setDuration', id: only(state).id, duration: 60 })).toBe(state)
+  })
+
+  test('«Todavía no» alarga la tarea para volver a preguntar', () => {
+    const state = withMeeting(60)
+    const now = toInstant(TODAY, '18:30')
+    expect(only(run(state, { type: 'task/extend', id: only(state).id, now })).duration).toBe(75)
+  })
+
+  test('alargar una tarea sin duración no hace nada', () => {
+    const state = withMeeting()
+    expect(run(state, { type: 'task/extend', id: only(state).id, now: Date.now() })).toBe(state)
   })
 })

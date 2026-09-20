@@ -1,5 +1,6 @@
 import type { AppState, IsoDate, Reminder, Section, Task } from '../types'
 import { addDays, dayNumber, isoOfInstant, monthShort, relativeLabel, shortTime, toInstant } from './date'
+import { taskEnd, timeRange } from './duration'
 import { byImportance } from './importance'
 import { byOrder } from './order'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
@@ -9,6 +10,9 @@ const SOON_MINUTES = 60
 /** Días por delante para los que se programa el resumen diario. */
 export const DIGEST_DAYS = 7
 const DIGEST_PREVIEW = 3
+/** Prefijo del id del aviso de cierre. Los ids de recordatorio son base36: nunca chocan. */
+const CHECK_IN_PREFIX = 'ask-'
+const CHECK_IN_QUESTION = '¿Has acabado?'
 
 export interface ScheduleEntry {
   /** Id del recordatorio o `digest-AAAAMMDD`: único y estable entre sincronizaciones. */
@@ -25,6 +29,8 @@ export interface ScheduleEntry {
    * de un día anterior) o, en el resumen diario, todo lo atrasado.
    */
   overdue: boolean
+  /** Aviso de cierre: pregunta si la tarea ya está hecha, con "Sí" y "Todavía no". */
+  ask?: true
 }
 
 /** Pendientes con fecha hasta el día indicado: hoy más lo atrasado. */
@@ -76,6 +82,19 @@ function reminderEntries(state: AppState, now: number): Omit<ScheduleEntry, 'bad
   )
 }
 
+/**
+ * Un aviso al acabar cada tarea que dura: "¿Has acabado?", con "Sí" y "Todavía no". No es un
+ * recordatorio guardado, sale de la duración: quitarla lo quita, y cambiar hora o duración lo mueve.
+ */
+export function checkInEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
+  return state.tasks.flatMap((task) => {
+    const end = task.done ? null : taskEnd(task)
+    if (end === null || end <= now) return []
+    const body = [CHECK_IN_QUESTION, timeRange(task)].filter(Boolean).join(' · ')
+    return [{ id: `${CHECK_IN_PREFIX}${task.id}`, taskId: task.id, at: end, title: task.title, body, overdue: false, ask: true as const }]
+  })
+}
+
 /** Lo del día primero por hora y luego por el orden de la lista. */
 const byTimeThenOrder = (a: Task, b: Task) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99') || byOrder(a, b)
 
@@ -112,7 +131,7 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
 
 /** Todo lo que debe sonar a partir de ahora, del más cercano al más lejano. */
 export function upcomingSchedule(state: AppState, now: number, max = MAX_SCHEDULE): ScheduleEntry[] {
-  return [...digestEntries(state, now), ...reminderEntries(state, now)]
+  return [...digestEntries(state, now), ...reminderEntries(state, now), ...checkInEntries(state, now)]
     .sort((a, b) => a.at - b.at)
     .slice(0, max)
     .map((entry) => ({ ...entry, badge: badgeCount(state.tasks, entry.at) }))

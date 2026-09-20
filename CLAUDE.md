@@ -16,7 +16,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 453 de la app y 142 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 499 de la app y 146 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por segunda vez (fast-forward) el 17/09/2026. Cada push a cualquiera
   de las dos que toque la app sube una compilación a TestFlight.
@@ -43,13 +43,22 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   iPhone): ver "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la
   vista semana, el modo "Aa" con arrastre y la escala del panel. La web pública sale cuando
   `capacitor` se una a `main`.
+- **Duración y aviso de cierre** (20/09/2026, sin probar aún en el iPhone): ver "Duración y aviso
+  de cierre". Probado en el navegador (PWA): la píldora del compositor con el tramo, el panel de
+  Duración con atajos y "Hasta…", el tramo en la fila, tocar el aviso (`?ask=1`) y tachar desde su
+  toast, y "Todavía no" (`?action=again`) alargando la tarea. Para que el dictado por IA devuelva
+  duraciones hay que desplegar el Worker; hasta entonces el móvil usa su analizador local, que ya
+  las entiende.
 
 **Pendiente, en este orden**
 
 1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
-   atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy" e "Importancia". Lo más delicado: el
-   botón **A hoy** del widget corre en el proceso de la app (`LiveActivityIntent`); si no hiciera nada,
-   ver "Pasar a hoy".
+   atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
+   Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
+   (`LiveActivityIntent`); si no hiciera nada, ver "Pasar a hoy". Del aviso de cierre, mirar si
+   **Sí, hecha** y **Todavía no** salen al mantener pulsada la notificación (la categoría
+   `task-ask` solo queda registrada si la app se ha abierto alguna vez) y si tacharla desde ahí
+   deja la tarea bien al volver.
 2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
@@ -118,11 +127,12 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,1 el
-19/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,3 el
+20/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
 editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
-con `import()` o `lazy`. Los paneles de tarea y sección van en su propio trozo, pedido nada más
-pintar (`Suspense` en `App.tsx`): no esperan al toque.
+con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
+pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
+toque.
 
 ## Arquitectura
 
@@ -135,13 +145,14 @@ src/
 │   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
+│   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
 │   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
 │   ├── when.ts           # piezas de parse.ts: horas, plazos y días
 │   ├── title.ts          # título limpio: muletillas, "tengo que acudir a una cena" → "Cena"
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
-│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, badge
+│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, badge
 │   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
 │   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
@@ -254,6 +265,33 @@ igual. No reordena nada.
   previa. En el resto del widget los títulos crecen poco (las filas son de alto fijo).
 - Lo que llega sin importancia (copias antiguas, Siri, la bandeja) es normal (`normalizeImportance`).
 
+### Duración y aviso de cierre
+
+Tachar una tarea obliga a abrir la app, y esa es la fricción que sobra. Con `Task.duration`
+(minutos, `lib/duration.ts`), al acabar llega un aviso que lo pregunta: **«Reunión con Jorge /
+¿Has acabado? · 17:30–18:30»**, con **Sí, hecha** y **Todavía no**. Así se tacha desde la propia
+notificación, sin entrar.
+
+- **El aviso no se guarda**: sale de la duración (`checkInEntries` en `schedule.ts`, id `ask-<id>`),
+  así que quitar la duración lo quita y cambiar la hora o la duración lo mueve. No cuenta para el
+  tope de 20 recordatorios ni aparece en la lista de avisos de la tarea.
+- **Solo con fecha y hora**, como la hora solo cuenta con fecha. De 5 min a 12 h (`MAX_DURATION`):
+  más de medio día deja de ser un rato acotado y preguntar no dice nada. Con hora y duración
+  siguen siendo dos avisos: el de "a la hora" al empezar y la pregunta al acabar (como Structured).
+- **«Todavía no» alarga la tarea** (`task/extend`, `extendedDuration`): el final pasa a 15 min
+  desde *ahora*, no desde el final previsto, así que responder tarde no deja la siguiente pregunta
+  en el pasado. Como efecto, el tramo guardado acaba reflejando lo que de verdad duró.
+- **Tocar el aviso sin botón** abre la app y repite la pregunta en un toast con **Sí**: en iOS los
+  botones de una notificación piden mantener pulsado, y así la salida sigue siendo un toque. La
+  marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
+- Se escribe hablando o tecleando: "durante una hora", "que dura media hora", "una reunión de dos
+  horas", "de 17:30 a 18:30", "de las 5 a las 7", "hasta las 19:00". Un tramo fija hora y duración
+  a la vez. Lo que no se dice no dura: nunca se supone.
+- En el panel, **Duración** va debajo de Hora: atajos (15 min, 30 min, 1 h, 2 h), `Hasta…` para la
+  hora exacta de acabar, y una línea que dice a qué hora será la pregunta. La fila enseña el tramo
+  (`17:30–18:30`) en lugar de la hora suelta.
+- Categoría de botones `task-ask` en el iPhone; en la PWA, acciones `done` y `again` del push.
+
 ### Drag & drop
 
 - **El arrastre solo se activa desde el asa** (`task__grip`, `section__grip`), con
@@ -279,10 +317,11 @@ El asa detiene la propagación del `pointerdown` para no disparar también el de
 ### Alta de tareas
 
 El compositor crea **sin fecha** por defecto (Enter o el `+`). `parseTask` reconoce día,
-hora y plazos en español ("mañana a las 5", "el lunes", "15/10", "en 30 min"): si detecta
-algo lo aplica y enseña una píldora; tocarla deja el texto literal. Con hora → aviso a la
-hora; con "en X min/horas" → aviso absoluto. Un número suelto nunca es una hora
-("comprar 5 manzanas"). Sin nada detectado aparece el atajo de un toque a hoy —o al día
+hora, plazos y duración en español ("mañana a las 5", "el lunes", "15/10", "en 30 min",
+"durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora; tocarla
+deja el texto literal. Con hora → aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
+suelto nunca es una hora ("comprar 5 manzanas") ni una duración ("comprar de 5 a 7 manzanas": un
+tramo necesita "las" o minutos). Sin nada detectado aparece el atajo de un toque a hoy —o al día
 seleccionado en la vista semana—.
 
 También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes", "avísame a
@@ -302,8 +341,10 @@ toast enseña lo entendido con "Deshacer".
 - **Interpretación con IA**: junto al audio va la fecha y hora local del móvil. El Worker pasa
   el texto a Nemotron 3 120B (Workers AI) con salida forzada por esquema JSON. Para cada tarea
   el modelo copia primero los tres fragmentos de la frase (`tema`, `cuando`, `avisos`) y luego
-  los convierte en título, día, hora y recordatorios: "bueno, hoy tengo que acudir a una cena a
-  las 20:00, me gustaría que me lo recordaras media hora antes" → `Cena`, hoy, 20:00, 30 min antes.
+  los convierte en título, día, hora, duración y recordatorios: "bueno, hoy tengo que acudir a una
+  cena a las 20:00, me gustaría que me lo recordaras media hora antes" → `Cena`, hoy, 20:00, 30 min
+  antes; "el jueves tengo reunión con Jorge de 17:30 a 18:30" → `Reunión con Jorge`, jueves, 17:30,
+  60 min (`durationMinutes`), que es lo que hace saltar la pregunta al acabar.
   - `prompt.ts`: reglas del título (evento sin verbo de ir: "Cena", "Boda de Carlos"; acción en
     infinitivo: "Llamar a Miguel"), calendario de tres semanas agrupado por semanas y ejemplos
     resueltos con las fechas del día.
@@ -315,8 +356,8 @@ toast enseña lo entendido con "Deshacer".
   - Lugar: el modelo copia también el fragmento `lugar` y devuelve solo el nombre dicho
     (`placeName`, `placeOn`). El móvil lo empareja con sus lugares guardados: la lista nunca
     se envía al servidor.
-  - El modelo se eligió con `npm run eval` (66 frases, ahora 71 con las de lugar) entre los del plan
-    gratuito: Nemotron acertó 46/48 con ~1,2 s; Qwen 3.8 y Gemma 4 aciertan parecido pero tardan
+  - El modelo se eligió con `npm run eval` (66 frases, ahora 75 con las de lugar y duración) entre
+    los del plan gratuito: Nemotron acertó 46/48 con ~1,2 s; Qwen 3.8 y Gemma 4 aciertan parecido pero tardan
     hasta 15–50 s en algunas frases, y Llama 3.3 se quedaba en 37–40/48. Cualquier cambio en el
     prompt se mide con el banco antes y después, y cada fallo nuevo se añade como caso.
   - Cuota: el plan gratuito de Workers AI da 10.000 neuronas al día, compartidas entre la app y
@@ -327,7 +368,8 @@ toast enseña lo entendido con "Deshacer".
   frases salvo varias tareas a la vez. Quita muletillas y verbos de ir (`title.ts`), y reconoce
   "un cuarto de hora antes", "con media hora de antelación", "el día antes a las 8",
   "recuérdamelo por la mañana", "y otra vez a las…", "el 22", "el jueves 24", "la semana que
-  viene, el martes", "a primera hora" y "a las 20.00".
+  viene, el martes", "a primera hora", "a las 20.00" y las duraciones ("durante una hora",
+  "que dura media hora", "de las 5 a las 7", "hasta las 19:00").
 - **Sin avisos** usa la Web Speech API del navegador si la hay (`voice/speech.ts`), siempre con
   el analizador local.
 - El audio no se guarda ni se registra; el Worker descarta las alucinaciones típicas de
@@ -346,7 +388,8 @@ toast enseña lo entendido con "Deshacer".
   llegado (una tarea para mañana no avisa hoy).
 
 Posponer (`task/snooze`) descarta los `at` que ya sonaron y añade uno nuevo. Máximo 20 por
-tarea.
+tarea. Aparte de estos, una tarea con duración tiene su aviso al acabar, que no se guarda:
+ver "Duración y aviso de cierre".
 
 ### Lugares
 
@@ -513,9 +556,10 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   `digest-AAAAMMDD` y se recalcula en cada sincronización.
 - **Botones** "Hecha" y "+10 min" en la notificación (Android y escritorio; iOS no los
   muestra), más "Pasar a hoy" si la tarea ya es de un día anterior; el resumen diario con algo
-  atrasado lleva "Pasar atrasadas a hoy" (`?action=today` sin tarea). El SW no toca el estado: abre
-  la app con `?action=` y `useNotificationActions` lo aplica con un toast. Tocar el aviso sin botón
-  abre la tarea con **Posponer**.
+  atrasado lleva "Pasar atrasadas a hoy" (`?action=today` sin tarea), y el aviso de cierre,
+  "Sí, hecha" y "Todavía no" (`done` y `again`). El SW no toca el estado: abre la app con
+  `?action=` y `useNotificationActions` lo aplica con un toast. Tocar el aviso sin botón abre la
+  tarea con **Posponer**, salvo el de cierre (`?ask=1`), que repite la pregunta en un toast.
 - Número en el icono: pendientes de hoy + atrasadas (`badgeCount`), actualizado por la app
   y por cada push.
 
@@ -560,6 +604,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
+- La duración existe para poder preguntar al acabar, no para planificar el día: no hay calendario,
+  ni bloques de tiempo, ni se avisa de solapes. Lo que no se dice no dura.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
   Atajos).
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.

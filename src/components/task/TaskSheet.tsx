@@ -7,6 +7,7 @@ import type { IsoDate, Task } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
 import { IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
+import { DurationPicker } from './DurationPicker'
 import { ReminderPicker } from './ReminderPicker'
 import { SnoozeBar } from './SnoozeBar'
 import { useTaskActions } from './useTaskActions'
@@ -140,6 +141,8 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
           </div>
         </>
       )}
+
+      {shown.date !== null && shown.time !== null && <DurationPicker task={{ ...shown, time: shown.time }} />}
 
       <ReminderPicker task={shown} />
 

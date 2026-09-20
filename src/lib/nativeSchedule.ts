@@ -18,8 +18,14 @@ export const TASK_CATEGORY = 'task'
 export const OVERDUE_CATEGORY = 'task-overdue'
 /** Resumen diario con algo atrasado: "Pasar atrasadas a hoy". */
 export const DIGEST_CATEGORY = 'digest-overdue'
+/** Aviso al acabar una tarea que dura: "Sí, hecha" y "Todavía no". */
+export const ASK_CATEGORY = 'task-ask'
 
-export type NotificationCategory = typeof TASK_CATEGORY | typeof OVERDUE_CATEGORY | typeof DIGEST_CATEGORY
+export type NotificationCategory =
+  | typeof TASK_CATEGORY
+  | typeof OVERDUE_CATEGORY
+  | typeof DIGEST_CATEGORY
+  | typeof ASK_CATEGORY
 /** Evento de `window` que obliga a reprogramar todo aunque el plan no haya cambiado. */
 export const RESCHEDULE_EVENT = 'tasks:reschedule'
 
@@ -28,8 +34,8 @@ export interface TimedNotification {
   at: number
   title: string
   body: string
-  /** Solo texto: viaja por el `userInfo` de iOS. `taskId` vacío = resumen diario. */
-  extra: { taskId: string; entryId: string }
+  /** Solo texto: viaja por el `userInfo` de iOS. `taskId` vacío = resumen diario; `ask` = "1". */
+  extra: { taskId: string; entryId: string; ask?: string }
   category?: NotificationCategory
 }
 
@@ -75,6 +81,7 @@ export const isPlaceNotification = (id: number) => id >= PLACE_ID_BASE
 
 /** Botones del aviso: los de tarea, con "Pasar a hoy" si es atrasada; el resumen, solo si hay atrasadas. */
 function categoryOf(entry: ScheduleEntry): NotificationCategory | undefined {
+  if (entry.ask) return ASK_CATEGORY
   if (entry.taskId) return entry.overdue ? OVERDUE_CATEGORY : TASK_CATEGORY
   return entry.overdue ? DIGEST_CATEGORY : undefined
 }
@@ -88,7 +95,8 @@ export function nativePlan(state: AppState, now: number): NativePlan {
   const timed = entries.map((entry): TimedNotification => {
     const id = numericId(entry.id, 1, PLACE_ID_BASE - 1, timedIds)
     timedIds.add(id)
-    const base = { id, at: entry.at, title: entry.title, body: entry.body, extra: { taskId: entry.taskId ?? '', entryId: entry.id } }
+    const extra = { taskId: entry.taskId ?? '', entryId: entry.id, ...(entry.ask ? { ask: '1' } : {}) }
+    const base = { id, at: entry.at, title: entry.title, body: entry.body, extra }
     const category = categoryOf(entry)
     return category ? { ...base, category } : base
   })

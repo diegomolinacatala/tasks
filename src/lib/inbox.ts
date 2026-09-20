@@ -28,6 +28,8 @@ export interface InboxTask {
   title: string
   date: IsoDate | null
   time: IsoTime | null
+  /** Minutos que dura; ausente en lo apuntado antes de que existiera la duración. */
+  duration?: number | null
   reminders: ReminderDraft[]
 }
 
@@ -75,7 +77,7 @@ export function entryFromDrafts(drafts: readonly TaskDraft[], places: readonly P
       }
       reminders = [...reminders, { kind: 'place', placeId, on: draft.newPlace.on }]
     }
-    return { id: newId(), title: draft.title, date: draft.date, time: draft.time, reminders }
+    return { id: newId(), title: draft.title, date: draft.date, time: draft.time, duration: draft.duration, reminders }
   })
 
   return { id: newId(), createdAt: now, places: [...created.values()], tasks }
@@ -140,7 +142,16 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
         const placeId = placeIds.get(reminder.placeId) ?? reminder.placeId
         return current.places.some((item) => item.id === placeId) ? [{ ...reminder, placeId }] : []
       })
-      apply({ type: 'task/add', id: task.id, title: task.title, date: task.date, time: task.time, reminders, sectionId: null })
+      apply({
+        type: 'task/add',
+        id: task.id,
+        title: task.title,
+        date: task.date,
+        time: task.time,
+        duration: task.duration,
+        reminders,
+        sectionId: null,
+      })
     }
 
     // Solo lo que siga pendiente y fuera de ese día: releer la entrada no vuelve a subirlas arriba.

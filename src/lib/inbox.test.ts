@@ -12,6 +12,7 @@ const draft = (partial: Partial<TaskDraft> = {}): TaskDraft => ({
   title: 'Comprar pan',
   date: null,
   time: null,
+  duration: null,
   reminders: [],
   ...partial,
 })
@@ -26,7 +27,7 @@ const entry = (partial: Partial<InboxEntry> = {}): InboxEntry => ({
   id: 'e1',
   createdAt: NOW,
   places: [],
-  tasks: [{ id: 't1', title: 'Llamar a Ana', date: '2026-09-18', time: '17:00', reminders: [{ kind: 'before', minutes: 10 }] }],
+  tasks: [{ id: 't1', title: 'Llamar a Ana', date: '2026-09-18', time: '17:00', duration: null, reminders: [{ kind: 'before', minutes: 10 }] }],
   ...partial,
 })
 
@@ -35,7 +36,7 @@ const withPlaces = (...places: Place[]): AppState => ({ ...emptyState(), places 
 describe('entryFromDrafts', () => {
   test('da un id a cada tarea y conserva lo que se entendió', () => {
     const result = entryFromDrafts(
-      [draft({ date: '2026-09-19', time: '09:00', reminders: [{ kind: 'before', minutes: 0 }] })],
+      [draft({ date: '2026-09-19', time: '09:00', duration: null, reminders: [{ kind: 'before', minutes: 0 }] })],
       [],
       sequence(),
       NOW,
@@ -44,7 +45,7 @@ describe('entryFromDrafts', () => {
       id: 'id-2',
       createdAt: NOW,
       places: [],
-      tasks: [{ id: 'id-1', title: 'Comprar pan', date: '2026-09-19', time: '09:00', reminders: [{ kind: 'before', minutes: 0 }] }],
+      tasks: [{ id: 'id-1', title: 'Comprar pan', date: '2026-09-19', time: '09:00', duration: null, reminders: [{ kind: 'before', minutes: 0 }] }],
     })
   })
 
@@ -70,7 +71,7 @@ describe('applyInbox', () => {
     const { actions } = applyInbox(emptyState(), [
       entry({
         places: [{ id: 'p1', name: 'Mercadona' }],
-        tasks: [{ id: 't1', title: 'Leche', date: null, time: null, reminders: [{ kind: 'place', placeId: 'p1', on: 'arrive' }] }],
+        tasks: [{ id: 't1', title: 'Leche', date: null, time: null, duration: null, reminders: [{ kind: 'place', placeId: 'p1', on: 'arrive' }] }],
       }),
     ])
     expect(actions.map((action) => action.type)).toEqual(['place/add', 'task/add'])
@@ -93,7 +94,7 @@ describe('applyInbox', () => {
     const { state } = applyInbox(withPlaces(place('app', 'Mercadona')), [
       entry({
         places: [{ id: 'fuera', name: 'mercadona' }],
-        tasks: [{ id: 't1', title: 'Leche', date: null, time: null, reminders: [{ kind: 'place', placeId: 'fuera', on: 'arrive' }] }],
+        tasks: [{ id: 't1', title: 'Leche', date: null, time: null, duration: null, reminders: [{ kind: 'place', placeId: 'fuera', on: 'arrive' }] }],
       }),
     ])
     expect(state.places.map((item) => item.id)).toEqual(['app'])
@@ -102,7 +103,7 @@ describe('applyInbox', () => {
 
   test('un aviso de un lugar que ya no existe se descarta', () => {
     const { state } = applyInbox(emptyState(), [
-      entry({ tasks: [{ id: 't1', title: 'Leche', date: null, time: null, reminders: [{ kind: 'place', placeId: 'borrado', on: 'arrive' }] }] }),
+      entry({ tasks: [{ id: 't1', title: 'Leche', date: null, time: null, duration: null, reminders: [{ kind: 'place', placeId: 'borrado', on: 'arrive' }] }] }),
     ])
     expect(state.tasks[0]?.reminders).toEqual([])
   })
@@ -113,7 +114,7 @@ describe('applyInbox', () => {
       entry({
         id: 'e2',
         places: [{ id: 'p2', name: 'gimnasio' }],
-        tasks: [{ id: 't2', title: 'Toalla', date: null, time: null, reminders: [{ kind: 'place', placeId: 'p2', on: 'leave' }] }],
+        tasks: [{ id: 't2', title: 'Toalla', date: null, time: null, duration: null, reminders: [{ kind: 'place', placeId: 'p2', on: 'leave' }] }],
       }),
     ])
     expect(state.places.map((item) => item.id)).toEqual(['p1'])
@@ -130,8 +131,8 @@ describe('applyInbox', () => {
     const start = applyInbox(emptyState(), [
       entry({
         tasks: [
-          { id: 'a', title: 'a', date: '2026-09-17', time: null, reminders: [] },
-          { id: 'b', title: 'b', date: '2026-09-16', time: null, reminders: [] },
+          { id: 'a', title: 'a', date: '2026-09-17', time: null, duration: null, reminders: [] },
+          { id: 'b', title: 'b', date: '2026-09-16', time: null, duration: null, reminders: [] },
         ],
       }),
     ]).state
@@ -149,7 +150,7 @@ describe('applyInbox', () => {
 
   test('devuelve las entradas tal como se aplicaron, las de solo texto ya interpretadas', () => {
     const { entries } = applyInbox(emptyState(), [entry({ id: 'texto', tasks: [], text: 'comprar pan' })])
-    expect(entries).toEqual([{ id: 'texto', createdAt: NOW, places: [], tasks: [{ id: 'texto-1', title: 'Comprar pan', date: null, time: null, reminders: [] }] }])
+    expect(entries).toEqual([{ id: 'texto', createdAt: NOW, places: [], tasks: [{ id: 'texto-1', title: 'Comprar pan', date: null, time: null, duration: null, reminders: [] }] }])
   })
 })
 
@@ -159,7 +160,7 @@ describe('resolveEntry: lo que el lado nativo no pudo interpretar', () => {
   test('se interpreta con la hora a la que se dijo, no con la de abrir la app', () => {
     const resolved = resolveEntry(textEntry('llamar a Ana mañana a las 17:00'), [])
     expect(resolved.tasks).toEqual([
-      { id: 'x-1', title: 'Llamar a Ana', date: '2026-09-19', time: '17:00', reminders: [{ kind: 'before', minutes: 0 }] },
+      { id: 'x-1', title: 'Llamar a Ana', date: '2026-09-19', time: '17:00', duration: null, reminders: [{ kind: 'before', minutes: 0 }] },
     ])
   })
 
@@ -188,13 +189,13 @@ test('entryInState: tareas creadas y lo movido en su día (o ya hecho, o borrado
   const state = applyInbox(emptyState(), [
     entry({
       tasks: [
-        { id: 'hoy', title: 'hoy', date: '2026-09-18', time: null, reminders: [] },
-        { id: 'ayer', title: 'ayer', date: '2026-09-17', time: null, reminders: [] },
+        { id: 'hoy', title: 'hoy', date: '2026-09-18', time: null, duration: null, reminders: [] },
+        { id: 'ayer', title: 'ayer', date: '2026-09-17', time: null, duration: null, reminders: [] },
       ],
     }),
   ]).state
   const moving = (taskIds: string[]) => entry({ tasks: [], move: { date: '2026-09-18', taskIds } })
-  expect(entryInState(entry({ tasks: [{ id: 'hoy', title: 'hoy', date: null, time: null, reminders: [] }] }), state)).toBe(true)
+  expect(entryInState(entry({ tasks: [{ id: 'hoy', title: 'hoy', date: null, time: null, duration: null, reminders: [] }] }), state)).toBe(true)
   expect(entryInState(moving(['hoy', 'borrada']), state)).toBe(true)
   expect(entryInState(moving(['ayer']), state)).toBe(false)
   expect(entryInState(entry(), state)).toBe(false)
