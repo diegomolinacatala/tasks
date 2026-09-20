@@ -39,9 +39,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   app"). Endpoint `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`; hasta
   entonces la app usa su analizador local.
 - TestFlight 13 (18/09/2026): los avisos por hora del iPhone suenan (antes llegaban en silencio).
-- **Pasar a hoy e importancia** (19/09/2026, rama `capacitor`, sin probar aún en el iPhone): ver
-  "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la vista semana, el
-  modo "Aa" con arrastre y la escala del panel.
+- **Pasar a hoy e importancia** (20/09/2026, rama `capacitor`, TestFlight 14, sin probar aún en el
+  iPhone): ver "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la
+  vista semana, el modo "Aa" con arrastre y la escala del panel. La web pública sale cuando
+  `capacitor` se una a `main`.
 
 **Pendiente, en este orden**
 
