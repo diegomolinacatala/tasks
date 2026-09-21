@@ -43,7 +43,7 @@ DURACIÓN (durationMinutes, los minutos que ocupa la tarea, o null):
 - Solo si la frase lo dice: "durante una hora" 60, "durante 45 minutos" 45, "que dura media hora" 30, "una hora y media de duración" 90, "una reunión de dos horas" 120.
 - Un tramo da la hora y la duración a la vez: "de 17:30 a 18:30" → time 17:30 y 60; "de las 5 a las 7" → time 17:00 y 120; "hasta las 19:00" se cuenta desde la hora de la tarea.
 - Nunca se supone: una cena o una reunión sin más tienen durationMinutes null.
-- Un aviso antes de la tarea no es una duración: "una hora antes" es un aviso, y "en dos horas" es un plazo.
+- Los avisos no son duración: "una hora antes" es un aviso con minutesBefore y "en dos horas", uno con inMinutes.
 
 AVISOS (reminders). Solo los que se piden expresamente ("avísame", "recuérdamelo", "me gustaría que me lo recordaras"); si no se pide ninguno, []. Uno por cada momento: "una hora antes y el día antes" son dos. Cada aviso rellena una sola forma y deja las otras a null:
 - Antes de la hora de la tarea, en minutos: minutesBefore. "a la hora" 0, "10 minutos antes" 10, "un cuarto de hora antes" 15, "media hora antes" o "con media hora de antelación" 30, "una hora antes" 60, "una hora y media antes" 90, "el día antes" 1440. Solo si la tarea tiene hora.
