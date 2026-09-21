@@ -10,7 +10,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (19/09/2026)
+## Estado actual (21/09/2026)
 
 **Hecho**
 
@@ -18,8 +18,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
   ficha de la App Store. Tests: 499 de la app y 146 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
-- `capacitor` unida a `main` por segunda vez (fast-forward) el 17/09/2026. Cada push a cualquiera
-  de las dos que toque la app sube una compilación a TestFlight.
+- `capacitor` unida a `main` por tercera vez (fast-forward) el 21/09/2026: la web pública y el
+  Worker llevan ya todo lo de abajo. Cada push a cualquiera de las dos que toque la app sube una
+  compilación a TestFlight.
 - **El CI despliega el Worker** desde `main`: secreto `CLOUDFLARE_API_TOKEN` y variable
   `CLOUDFLARE_ACCOUNT_ID` configurados y comprobados con "Run workflow" el 17/09/2026. A mano sigue
   valiendo `npm --prefix worker run deploy` desde `main` (wrangler está autenticado en el portátil).
@@ -34,21 +35,21 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Probado en el iPhone (17/09/2026): la app a grandes rasgos («funciona medio decente», sin lista
   de fallos), el widget, Siri ("añade una tarea en Tasks"), los tres toques atrás y el aviso al
   salir de un lugar con la app cerrada a la fuerza. Todo funciona.
-- **Apuntar sin abrir la app** (18/09/2026, rama `capacitor`, TestFlight 12, sin probar aún en el
-  iPhone): Siri y la acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la
-  app"). Endpoint `POST /v1/interpret` en el Worker, que se despliega al llegar a `main`; hasta
-  entonces la app usa su analizador local.
+- **Apuntar sin abrir la app** (18/09/2026, TestFlight 12, sin probar aún en el iPhone): Siri y la
+  acción "Añadir tarea" de Atajos ya no abren la app (ver "Apuntar sin abrir la app"). Endpoint
+  `POST /v1/interpret` en el Worker, desplegado el 21/09/2026.
 - TestFlight 13 (18/09/2026): los avisos por hora del iPhone suenan (antes llegaban en silencio).
-- **Pasar a hoy e importancia** (20/09/2026, rama `capacitor`, TestFlight 14, sin probar aún en el
-  iPhone): ver "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la
-  vista semana, el modo "Aa" con arrastre y la escala del panel. La web pública sale cuando
-  `capacitor` se una a `main`.
-- **Duración y aviso de cierre** (20/09/2026, sin probar aún en el iPhone): ver "Duración y aviso
-  de cierre". Probado en el navegador (PWA): la píldora del compositor con el tramo, el panel de
-  Duración con atajos y "Hasta…", el tramo en la fila, tocar el aviso (`?ask=1`) y tachar desde su
-  toast, y "Todavía no" (`?action=again`) alargando la tarea. Para que el dictado por IA devuelva
-  duraciones hay que desplegar el Worker; hasta entonces el móvil usa su analizador local, que ya
-  las entiende.
+- **Pasar a hoy e importancia** (20/09/2026, TestFlight 14, sin probar aún en el iPhone): ver
+  "Pasar a hoy" e "Importancia". Probado en el navegador (PWA): mover, deshacer, la vista semana,
+  el modo "Aa" con arrastre y la escala del panel.
+- **Duración y aviso de cierre** (20/09/2026, TestFlight 15, sin probar aún en el iPhone): ver
+  "Duración y aviso de cierre". Probado en el navegador (PWA): la píldora del compositor con el
+  tramo, el panel de Duración con atajos y "Hasta…", el tramo en la fila, tocar el aviso (`?ask=1`)
+  y tachar desde su toast, y "Todavía no" (`?action=again`) alargando la tarea. El Worker con el
+  prompt de duraciones está desplegado, pero el banco con la IA real (`npm run eval -- --all`) aún
+  no se ha pasado tras el cambio: solo el local (72/75, los 3 fallos de siempre).
+- TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. Es la que hay que
+  instalar para probar.
 
 **Pendiente, en este orden**
 
