@@ -205,6 +205,12 @@ describe('cuánto dura', () => {
     expect(parse('clase el lunes de las 5 a las 7')).toMatchObject({ time: '17:00', duration: 120 })
   })
 
+  test('la franja del final vale también para el inicio si el tramo sigue hacia delante', () => {
+    expect(parse('cena con Ana el viernes de 9 a 11 de la noche')).toMatchObject({ time: '21:00', duration: 120 })
+    expect(parse('reunión mañana de 7 a 8 pm')).toMatchObject({ time: '19:00', duration: 60 })
+    expect(parse('trabajar mañana de 10 a 2 de la tarde')).toMatchObject({ time: '10:00', duration: 240 })
+  })
+
   test('un tramo que cruza la medianoche sigue contando', () => {
     expect(parse('turno de noche de 22:00 a 6:00')).toMatchObject({ time: '22:00', duration: 480 })
   })

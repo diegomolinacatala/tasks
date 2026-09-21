@@ -96,7 +96,16 @@ function durationAmount(groups: readonly (string | undefined)[]): number | null 
  * Hora dentro de un tramo ("de 5 a 7"): el propio tramo ya dice que son horas, así que se
  * resuelve como si llevara "a las" delante, con su misma regla de tarde ("a las 5" es 17:00).
  */
-const spanHour = (groups: readonly (string | undefined)[]) => resolveHour(['a las ', ...groups.slice(1)])
+const spanHour = (groups: readonly (string | undefined)[], hint?: string) =>
+  resolveHour(['a las ', ...groups.slice(1)], hint)
+
+/** Franja dicha al final del tramo ("de 9 a 11 de la noche"): puede valer también para el inicio. */
+function spanHint(groups: readonly (string | undefined)[]): string | undefined {
+  const [, , , , , , , part, noon, meridiem] = groups
+  if (part ?? noon) return part ?? noon
+  if (meridiem) return meridiem === 'pm' ? 'tarde' : 'manana'
+  return undefined
+}
 
 class Scanner {
   readonly spans: Span[] = []
@@ -223,8 +232,13 @@ export function parseTask(input: string, now: number, places: readonly Place[] |
     const to = match.slice(13, 23)
     // "de 5 a 7" son horas si alguna lleva "las" o si por sí sola ya se lee como hora ("17:30").
     const marked = Boolean(match[1] ?? match[12]) || resolveHour(from) !== null || resolveHour(to) !== null
-    const start = marked ? spanHour(from) : null
-    const end = marked ? spanHour(to) : null
+    if (!marked) return null
+    const end = spanHour(to)
+    // "de 9 a 11 de la noche" empieza a las 21:00; "de 10 a 2 de la tarde", a las 10:00: la franja
+    // del final solo pasa al inicio si el tramo sigue yendo hacia delante.
+    const hint = spanHint(to)
+    const hinted = hint ? spanHour(from, hint) : null
+    const start = hinted && end && hinted < end ? hinted : spanHour(from)
     return start && end ? { start, end } : null
   })
   const until = span ? null : scanner.first(RE_UNTIL, (match) => spanHour(match.slice(1)))
