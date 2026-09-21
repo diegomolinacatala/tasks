@@ -173,6 +173,19 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
       arriba agranda el título (vibra en cada punto) y hacia abajo lo encoge; tocarlo sube uno. En el
       panel de la tarea, la escala del 1 al 10. Al completarla vuelve al tamaño normal.
 - [ ] Widget: las importantes salen más grandes; en la pantalla de bloqueo, las dos más importantes.
+- [ ] **Aviso de cierre** (desde la 15): abrir la app una vez (registra los botones). Escribir
+      *«prueba hoy a las HH:MM durante 5 minutos»* con una hora dentro de dos o tres minutos: la
+      píldora dice *Hoy HH:MM–HH:MM* y la fila, el tramo. En el panel, *Duración* con *5 min* no
+      existe como atajo: sale **Hasta HH:MM** marcado y debajo *A las … te pregunto si has acabado*.
+- [ ] Al acabar llega *«prueba / ¿Has acabado? · HH:MM–HH:MM»*. Mantenerlo pulsado: **Sí, hecha** y
+      **Todavía no**. *Sí, hecha* abre la app con la tarea tachada y *Deshacer*.
+- [ ] Repetirlo y pulsar **Todavía no**: el tramo se alarga hasta 15 min desde ese momento y, a esa
+      hora, vuelve la pregunta.
+- [ ] Repetirlo y **tocar** el aviso sin mantenerlo: se abre la app con *¿Has acabado prueba?* y
+      **Sí** abajo; tocarlo la tacha.
+- [ ] Con la app cerrada a la fuerza: *Sí, hecha* desde el aviso sigue tachándola al abrir.
+- [ ] Siri: *«Oye Siri, apunta en Tasks»* → *«reunión con Jorge mañana de 5 a 6»*: responde
+      *«Apuntada: Reunión con Jorge, mañana 17:00–18:00»*.
 - [ ] Exportar copia: se abre la hoja de compartir.
 - [ ] Cerrar la app a la fuerza y volver: las tareas siguen ahí.
 
@@ -249,6 +262,12 @@ Toca el micrófono y dilo de corrido: «recuérdame al llegar a la universidad q
 RECORDATORIOS
 Tantos como quieras por tarea: a la hora, antes, a una hora concreta. Márcala hecha o pospónla desde la propia notificación.
 
+AL ACABAR, UNA PREGUNTA
+Dile cuánto dura —«gimnasio a las 7 durante una hora», «reunión de 5 a 6»— y al terminar te pregunta si has acabado. Un toque en «Sí» y queda tachada, sin abrir la app.
+
+TU DÍA DE UN VISTAZO
+Lo importante se ve más grande. Lo que se quedó sin hacer ayer pasa a hoy de un toque, desde la app, el widget o Siri.
+
 SIRI Y ATAJOS
 «Oye Siri, apunta en Tasks» y dilo de corrido, sin abrir la app y con el iPhone bloqueado. Con un atajo, también desde tocar atrás, el botón de acción o la pantalla de bloqueo.
 
@@ -256,8 +275,13 @@ PRIVADA
 Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publicidad, sin analítica.
 ```
 
-**Capturas**: Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Si tu iPhone es de otro
-tamaño, App Store Connect indica qué medidas acepta al subirlas.
+**Capturas**: Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Ya están hechas en
+[`docs/capturas/`](capturas/), a ese tamaño exacto y en el orden en que se suben (las tres primeras
+son las que salen en la búsqueda): el día, la duración con su pregunta, el aviso al llegar a un
+sitio, «¿Has acabado?», escribir como se habla, la semana y el modo importancia. Son la app real
+con tareas de ejemplo; se regeneran con `scripts/app-store-shots.mjs` (instrucciones dentro) cuando
+cambie la interfaz. La letra es Inter, lo más parecido a San Francisco que se puede usar fuera de
+Apple; si se prefieren con la del iPhone, hacerlas en él (botón lateral + subir volumen).
 
 ## 4. Privacidad en App Store Connect
 
@@ -297,10 +321,8 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 
 - Probada en el iPhone (§2).
 - Rama `capacitor` unida con `main`: despliega el Worker (dictado) y publica la URL de privacidad.
-  Después sale una compilación nueva: es la que se envía.
-- Capturas del iPhone (botón lateral + subir volumen), de 3 a 10. Tamaños aceptados: 6,9"
-  (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5" (1284 × 2778 o 1242 × 2688). Otros tamaños
-  hay que redimensionarlos antes de subirlos.
+  Después sale una compilación nueva: es la que se envía. Hecho el 21/09/2026: la 16.
+- Capturas: las siete de `docs/capturas/` (§3), en ese orden.
 
 ### En App Store Connect → la app → pestaña **Distribución**
 

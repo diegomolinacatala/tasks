@@ -16,7 +16,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 499 de la app y 146 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 500 de la app y 146 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por tercera vez (fast-forward) el 21/09/2026: la web pública y el
   Worker llevan ya todo lo de abajo. Cada push a cualquiera de las dos que toque la app sube una
@@ -45,11 +45,17 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Duración y aviso de cierre** (20/09/2026, TestFlight 15, sin probar aún en el iPhone): ver
   "Duración y aviso de cierre". Probado en el navegador (PWA): la píldora del compositor con el
   tramo, el panel de Duración con atajos y "Hasta…", el tramo en la fila, tocar el aviso (`?ask=1`)
-  y tachar desde su toast, y "Todavía no" (`?action=again`) alargando la tarea. El Worker con el
-  prompt de duraciones está desplegado, pero el banco con la IA real (`npm run eval -- --all`) aún
-  no se ha pasado tras el cambio: solo el local (72/75, los 3 fallos de siempre).
+  y tachar desde su toast, y "Todavía no" (`?action=again`) alargando la tarea.
+- **Banco del dictado con la IA real** tras el prompt de duraciones (21/09/2026), en dos mitades
+  para no agotar la cuota del día: la primera, 39/40 con las 4 de duración bien y ninguna duración
+  inventada en las demás. El único fallo, `presupuesto` ("en una hora" sin "avísame"), falla igual
+  con el prompt anterior: las reglas de AVISOS piden que el aviso se pida expresamente y las de HORA
+  dicen que "en X" es un aviso con `inMinutes`. Arreglarlo toca AVISOS y pide el banco entero.
+  Local: 72/75, los 3 fallos de siempre.
 - TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. Es la que hay que
   instalar para probar.
+- **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: siete a 1320 × 2868, en orden de
+  subida, generadas con la app real y `scripts/app-store-shots.mjs`.
 
 **Pendiente, en este orden**
 
@@ -63,10 +69,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
-3. Capturas para la App Store: iPhone de 6,9" (1320 × 2868, 1290 × 2796 o 1260 × 2736) o 6,5"
-   (1284 × 2778 o 1242 × 2688). No se sabe qué iPhone tiene el usuario; si no es de esos tamaños,
-   redimensionarlas con un script.
-4. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main`.
+3. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main` y
+   las capturas de `docs/capturas/`. Pide la cuenta de Apple del usuario y un teléfono de contacto.
 
 **Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
 reprogramar avisos.
@@ -107,7 +111,7 @@ npm run db:init:query           # crea las tablas en remoto si --file falla por 
 npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {...}", "push no enviado"
 npm run eval -- --local         # banco de frases dictadas contra el analizador local (gratis)
 npm run eval -- cena vuelo      # esos casos contra Workers AI real (EVAL_MODEL=@cf/... para otro modelo)
-npm run eval -- --all           # todos: ~9.000 neuronas, casi la cuota gratuita del día (ver Dictado)
+npm run eval -- --all           # todos: ~10.500 neuronas, más que la cuota gratuita de un día: mejor en dos mitades, una tras las 00:00 UTC (ver Dictado)
 ```
 
 Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs` más
@@ -128,8 +132,8 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,3 el
-20/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,4 el
+21/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
 editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
 con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
 pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
@@ -174,9 +178,11 @@ ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppInten
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
 ios/App/TasksWidget/      # extensión del widget; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
+docs/capturas/            # capturas de la App Store (1320 × 2868), en orden de subida
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
+scripts/app-store-shots.mjs # capturas de la App Store con Edge sin ventana (instrucciones dentro)
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
@@ -287,7 +293,9 @@ notificación, sin entrar.
   marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
 - Se escribe hablando o tecleando: "durante una hora", "que dura media hora", "una reunión de dos
   horas", "de 17:30 a 18:30", "de las 5 a las 7", "hasta las 19:00". Un tramo fija hora y duración
-  a la vez. Lo que no se dice no dura: nunca se supone.
+  a la vez, y la franja del final vale para el inicio si el tramo sigue hacia delante ("de 9 a 11
+  de la noche" es 21:00–23:00; "de 10 a 2 de la tarde", 10:00–14:00). Lo que no se dice no dura:
+  nunca se supone.
 - En el panel, **Duración** va debajo de Hora: atajos (15 min, 30 min, 1 h, 2 h), `Hasta…` para la
   hora exacta de acabar, y una línea que dice a qué hora será la pregunta. La fila enseña el tramo
   (`17:30–18:30`) en lugar de la hora suelta.
