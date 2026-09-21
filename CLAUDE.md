@@ -52,8 +52,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   con el prompt anterior: las reglas de AVISOS piden que el aviso se pida expresamente y las de HORA
   dicen que "en X" es un aviso con `inMinutes`. Arreglarlo toca AVISOS y pide el banco entero.
   Local: 72/75, los 3 fallos de siempre.
-- TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. Es la que hay que
-  instalar para probar.
+- TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. La 17 (`capacitor`) y la
+  18 (`main`), el mismo commit, traen además el tramo con franja ("de 9 a 11 de la noche"). La 18
+  es la que hay que instalar para probar y la que se envía a revisión.
 - **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: siete a 1320 × 2868, en orden de
   subida, generadas con la app real y `scripts/app-store-shots.mjs`.
 

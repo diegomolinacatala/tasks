@@ -321,7 +321,8 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 
 - Probada en el iPhone (§2).
 - Rama `capacitor` unida con `main`: despliega el Worker (dictado) y publica la URL de privacidad.
-  Después sale una compilación nueva: es la que se envía. Hecho el 21/09/2026: la 16.
+  Después sale una compilación nueva: es la que se envía. Hecho el 21/09/2026: la más reciente
+  desde `main` es la 18.
 - Capturas: las siete de `docs/capturas/` (§3), en ese orden.
 
 ### En App Store Connect → la app → pestaña **Distribución**
