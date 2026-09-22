@@ -16,7 +16,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 500 de la app y 146 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 506 de la app y 146 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por tercera vez (fast-forward) el 21/09/2026: la web pública y el
   Worker llevan ya todo lo de abajo. Cada push a cualquiera de las dos que toque la app sube una
@@ -57,8 +57,23 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   es la que hay que instalar para probar y la que se envía a revisión.
 - **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: siete a 1320 × 2868, en orden de
   subida, generadas con la app real y `scripts/app-store-shots.mjs`.
+- **Enviada a revisión** (21/09/2026, 23:29): la 1.0 con la compilación 18 y publicación manual.
+  Ficha, privacidad, precio (gratis, 175 países) y capturas de 6,9" puestas en App Store Connect.
+- **Rechazada** (22/09/2026) con *2.1 Information Needed*, lo habitual en una cuenta nueva: Apple
+  pide un vídeo en un iPhone y seis respuestas (propósito, cómo probar, servicios externos e IA,
+  regiones…). Antes de responder se añadió el **permiso del dictado** (ver "Dictado"), por la norma
+  5.1.2(i) sobre compartir datos con una IA de terceros. Respuesta, notas en inglés y guion del vídeo
+  en `docs/app-store.md` §5 y §7.
 
 **Pendiente, en este orden**
+
+0. Responder al rechazo siguiendo `docs/app-store.md` §7: el usuario graba el vídeo con la compilación
+   nueva (la primera tras la 18), pega las notas y la respuesta, cambia la compilación y reenvía.
+   Luego, revisión de Apple (hasta 48 h). Al quedar *Pendiente de publicación del desarrollador*, pulsar
+   **Publicar esta versión**. Si la rechazan, el motivo está en el *Centro de resoluciones*. Declarar
+   en **Negocio** que no es comerciante (DSA) si no se ha hecho: sin eso no sale en la UE.
+   En cuanto se apruebe, subir `MARKETING_VERSION` a 1.1 antes del siguiente push: App Store Connect
+   rechaza compilaciones nuevas de una versión aprobada (también fallaría la ejecución programada).
 
 1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
@@ -133,8 +148,8 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,4 el
-21/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,7 el
+22/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
 editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
 con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
 pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
@@ -363,6 +378,12 @@ toast enseña lo entendido con "Deshacer".
     `inMinutes` y el Worker lo pasa a hora local.
   - Se valida en el Worker y otra vez en el móvil (`lib/interpret.ts`). Si la IA falla, tarda más
     de 8 s o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
+  - **Permiso**: nada dicho sale del dispositivo sin `settings.dictation` (App Store, norma
+    5.1.2(i): IA de terceros). La primera vez que se toca el micrófono, `DictationConsent` (trozo
+    aparte) dice adónde va el audio y pide **Permitir**, que graba en ese mismo toque (iOS solo abre
+    el audio dentro de un gesto). Siri sin permiso usa el analizador local (`sharesDictation`, que
+    `QuickAdd` consulta antes de llamar al servidor). Se retira en Ajustes → *Dictado*. Es del
+    dispositivo: importar una copia (`state/import`) no lo trae ni lo quita.
   - Lugar: el modelo copia también el fragmento `lugar` y devuelve solo el nombre dicho
     (`placeName`, `placeOn`). El móvil lo empareja con sus lugares guardados: la lista nunca
     se envía al servidor.
@@ -504,8 +525,9 @@ que las altas.
   "Añadir tarea") hace de botón en tocar atrás, botón de acción, pantalla de bloqueo, centro de
   control y widget de Atajos (pasos en `docs/app-store.md` §2.1).
 - **Flujo** (`QuickAdd.swift`): el intent corre en el proceso de la app, sin WebView →
-  `HeadlessCore` carga `public/headless.js` en JavaScriptCore → `DictationServer` pide la
-  interpretación a la IA (`POST /v1/interpret`, 6 s como mucho; si no, el analizador local) →
+  `HeadlessCore` carga `public/headless.js` en JavaScriptCore → con el permiso del dictado,
+  `DictationServer` pide la interpretación a la IA (`POST /v1/interpret`, 6 s como mucho; sin
+  permiso o si no responde, el analizador local) →
   `addFromText` (`src/lib/headless.ts`) con el fichero de estado, la bandeja y lo marcado en el
   widget → la entrada va a la bandeja y se aplican el plan de avisos (`NotificationPlanner`, con el
   mismo formato que el plugin de notificaciones para que los toques lleguen a la web), el número
@@ -523,7 +545,7 @@ que las altas.
 - `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
   `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
   puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
-  lados (2 desde que existe `move`).
+  lados (3 desde que existe `consent`).
 - Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
   del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
 - Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.
@@ -606,6 +628,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   abrir la app) se ejecuta con JavaScriptCore, no se reescribe en Swift.
 - **La web es la única que escribe el estado.** Lo que nace fuera (widget, Siri) se apunta aparte y
   la web lo aplica al cargar o al volver a primer plano.
+- **El Worker sirve a todas las versiones instaladas.** Se despliega al momento y la gente no
+  actualiza a la vez: sus rutas y respuestas cambian solo de forma compatible hacia atrás.
 - **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
   claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON

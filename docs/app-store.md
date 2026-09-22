@@ -260,7 +260,7 @@ DICTADO
 Toca el micrófono y dilo de corrido: «recuérdame al llegar a la universidad que tengo que reunirme con José».
 
 RECORDATORIOS
-Tantos como quieras por tarea: a la hora, antes, a una hora concreta. Márcala hecha o pospónla desde la propia notificación.
+Tantos como quieras por tarea: a la hora, antes, a una hora concreta. Márcala hecha o posponla desde la propia notificación.
 
 AL ACABAR, UNA PREGUNTA
 Dile cuánto dura —«gimnasio a las 7 durante una hora», «reunión de 5 a 6»— y al terminar te pregunta si has acabado. Un toque en «Sí» y queda tachada, sin abrir la app.
@@ -301,14 +301,37 @@ sistema), así que TestFlight no pregunta por la exportación.
 
 ## 5. Notas para la revisión de Apple
 
+En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
+Notas** (máximo 4000 caracteres; estas son unas 3500). Son lo mismo que pidió Apple en el rechazo del
+22/09/2026 (§7), sin el vídeo.
+
 ```
-No requiere cuenta ni inicio de sesión.
+No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Permitir" = Allow.
 
-Avisos por lugar: Ajustes (icono ··· arriba a la derecha) → Lugares → Añadir lugar → buscar un sitio o «Usar mi ubicación actual». Después, en cualquier tarea → Recordatorios → + Añadir → elegir el lugar. iOS muestra la notificación al entrar en el radio. La app solo pide ubicación «mientras se usa»: la vigilancia de la región la hace el sistema (UNLocationNotificationTrigger).
+PURPOSE AND AUDIENCE
+A simple daily to-do list for Spanish-speaking iPhone users who want to jot tasks down quickly and be reminded at the right time or place, without signing up or setting anything up. You write or say a task the way you would say it and the app sets the day, time and reminder.
 
-Dictado: botón de micrófono con la barra de texto vacía. El audio se transcribe en nuestro servidor y no se guarda.
+HOW TO TEST
+- Add: in the "Añadir tarea" bar at the bottom type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
+- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder; in "Semana" (bottom bar) drag a task to another day.
+- Tap a task to edit date, time, duration, reminders and importance. "Aa" (top right) is importance mode: drag the number on a task up or down; more important tasks get a larger title.
+- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
+- Location reminders: Ajustes → Lugares → Añadir lugar → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
+- Dictation: with the bar empty, tap the microphone. The first time, a sheet explains that the audio is sent to our server and processed by Cloudflare Workers AI, and asks for permission ("Permitir"); then iOS asks for the microphone. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
+- Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
+- Ajustes → Datos: export or import a JSON backup.
 
-Siri: «Apunta en Tasks» y, cuando pregunte, «llamar a Ana mañana a las 5». La tarea se crea en segundo plano, sin abrir la app, con su aviso programado. Para interpretar la frase se envía el texto (no el audio: lo transcribe Siri) a nuestro servidor, que no lo guarda.
+EXTERNAL SERVICES
+- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user allows it in the app; it can be withdrawn in Ajustes → Dictado. Without that permission nothing is sent and Siri input is parsed on the device.
+- The backend keeps only a random device ID and a hash of its token, for rate limiting.
+- Apple Maps (MapKit search), iOS local notifications and region monitoring.
+- No analytics, advertising, tracking, third-party SDKs, payments or authentication services.
+
+REGIONAL DIFFERENCES
+None: the app works the same in every region. Its interface and language parsing are in Spanish.
+
+REGULATED INDUSTRY OR THIRD-PARTY MATERIAL
+Not applicable.
 ```
 
 Si la revisión alega la norma 4.2 (funcionalidad mínima de una web empaquetada), responde señalando
@@ -329,14 +352,17 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 
 1. **Información de la app** (columna izquierda): subtítulo, categoría *Productividad*,
    **Clasificación por edades → Configurar** (todo *Ninguno/No* → 4+), *Derechos de contenido*:
-   no usa contenido de terceros → **Guardar**. El estado de comerciante (UE) no está aquí: es de la
+   no usa contenido de terceros → **Guardar** arriba a la derecha (la primera vez la categoría no se
+   guardó y *Añadir a revisión* lo reclamó). El estado de comerciante (UE) no está aquí: es de la
    cuenta, en **Negocio → Acuerdos → Cumplimiento → Digital Services Act**.
 2. **Privacidad de la app**: URL de la política → **Guardar**; *Recopilación de datos* →
    **Empezar** → *Sí* → solo **Identificadores → ID de dispositivo** → uso *Funcionalidad de la
    app*, vinculado *No*, rastreo *No* → **Guardar** → **Publicar** (arriba a la derecha).
 3. **Precios y disponibilidad**: precio 0 (gratis), países → **Guardar**.
 4. **1.0 Preparar para el envío** (bajo *iOS App*):
-   - Capturas de pantalla, descripción, palabras clave y URL de soporte (§3).
+   - Capturas de pantalla, descripción, palabras clave y URL de soporte (§3). La página enseña el
+     hueco de 6,5", que no acepta las de 6,9": se suben con **Ver todos los tamaños en "Gestor de
+     recursos multimedia"** → *6,9"*, y el de 6,5" queda *Usando Pantalla de 6,9"*.
    - **Compilación → Añadir compilación** → la más reciente.
    - Copyright: `2026 Diego Molina Catalá`.
    - **Información para la revisión**: desmarcar *Se requiere iniciar sesión*; nombre, teléfono y
@@ -349,3 +375,115 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 
 Versiones posteriores: subir `MARKETING_VERSION` en `ios/App/App.xcodeproj/project.pbxproj` (1.1…),
 esperar la compilación y repetir el punto 4 con la versión nueva.
+
+## 7. Rechazo del 22/09/2026: 2.1 *Information Needed*
+
+Apple rechazó la 1.0 (compilación 18) con *Guideline 2.1 – Information Needed*: es lo que pide a toda
+cuenta nueva sin historial. No señaló ningún fallo; quiere un **vídeo grabado en un iPhone** con la
+última versión de iOS y las respuestas a seis preguntas, en una respuesta en App Store Connect y
+también en las **Notas** de la revisión (§5).
+
+Como el punto 4 pide nombrar los servicios de IA, antes de responder se añadió el permiso explícito
+que exige la norma 5.1.2(i) para compartir datos con una IA de terceros: la primera vez que se toca el
+micrófono, un panel explica adónde va el audio y pide **Permitir**; sin permiso no sale nada del
+iPhone (Siri usa el analizador local). Se retira en Ajustes → *Dictado*. La política de privacidad
+lo cuenta. Va en la compilación siguiente a la 18, que es la que se envía y la que sale en el vídeo.
+
+### 7.1 Grabar el vídeo (tú, en el iPhone)
+
+**Antes**
+
+1. *Ajustes → General → Actualización de software*: si hay una versión de iOS nueva, instalarla
+   (Apple pide la última).
+2. *TestFlight* → Tasks → **Actualizar** a la compilación nueva.
+3. Recomendado, para que el vídeo enseñe los permisos y no tus tareas: en Tasks, **···** →
+   *Exportar copia* → *Guardar en Archivos*. Borrar la app (mantener pulsado el icono → *Eliminar
+   app*) e instalarla otra vez desde TestFlight. Después de grabar: **···** → *Importar copia*.
+4. Si el Centro de control no tiene el botón de grabar: deslizar desde la esquina superior derecha →
+   **+** arriba a la izquierda → **Añadir un control** → buscar **Grabación de pantalla**.
+5. Mirar la hora y pensar una **dos o tres minutos por delante** (en el guion, `HH:MM`).
+
+**Guion** (unos 3 minutos; el micrófono de la grabación puede ir apagado)
+
+1. En la pantalla de inicio: Centro de control → **Grabar pantalla** → cuenta atrás → cerrar el
+   Centro de control.
+2. Tocar el icono de **Tasks** (el vídeo tiene que empezar abriendo la app).
+3. En *Añadir tarea*: `Llamar a Ana hoy a las HH:MM` → sale la píldora con la hora → **Intro**.
+   Aparece el permiso de notificaciones → **Permitir**.
+4. Escribir `Comprar pan` → tocar la píldora **Hoy**.
+5. Deslizar *Comprar pan* a la derecha (hecha). Escribir `Prueba`, **Intro**, deslizarla a la
+   izquierda (borrada) → **Deshacer**.
+6. Tocar *Llamar a Ana*: enseñar el panel (hora, duración, recordatorios, importancia) y cerrarlo
+   deslizando hacia abajo.
+7. **Aa** arriba → arrastrar hacia arriba el número de una tarea (se agranda) → **Aa** otra vez.
+8. **Semana** abajo → enseñar la semana → **Tareas**.
+9. **···** → *Lugares* → *Añadir lugar* → en *Buscar en Mapas*, un sitio cercano (p. ej.
+   `Mercadona`) → permiso de ubicación → **Permitir al usar la app** → tocar un resultado → cerrar el
+   panel deslizándolo hacia abajo (se guarda solo) → cerrar Ajustes.
+10. Escribir `Comprar leche al pasar por Mercadona` (el nombre del lugar guardado) → píldora *Al
+    llegar a…* → **Intro**.
+11. Con la barra vacía, **micrófono** → panel *Dictado* → **Permitir** → permiso del micrófono →
+    **Permitir** → decir *«cena hoy a las nueve y recuérdamelo media hora antes»* → sale la tarea.
+12. Ir a la pantalla de inicio y esperar al aviso de *Llamar a Ana* a las `HH:MM` → mantenerlo
+    pulsado → **Hecha** → se abre Tasks con la tarea tachada.
+13. Opcional: *«Oye Siri, apunta en Tasks»* → *«comprar fruta mañana»* → Siri responde *Apuntada*.
+14. Parar: tocar el indicador rojo arriba a la izquierda → **Detener**. El vídeo queda en *Fotos*.
+
+**Pasarlo al portátil**: cable USB → en el iPhone, **Confiar** → Explorador de archivos → *Apple
+iPhone* → *Internal Storage* → *DCIM* → la carpeta más reciente → el `.MOV` más nuevo. Si no se deja,
+subirlo a Google Drive desde la app de Drive y bajarlo en el portátil.
+
+### 7.2 Responder y reenviar (tú, en App Store Connect)
+
+1. **Distribución** → *1.0 Rechazado* → en *Información para la revisión*, **Notas**: borrar lo que
+   haya y pegar el bloque del §5. Si hay **Archivo adjunto**, subir ahí también el vídeo.
+2. En **Compilación**: quitar la 18 (icono **−** o papelera junto a ella) → **Añadir compilación** →
+   la nueva → **Listo**. Si pregunta por el cifrado: *Ninguno de los algoritmos mencionados*.
+3. **Guardar** (arriba a la derecha).
+4. Columna izquierda → **Revisión de apps** → el envío *21 sep, 23:29* → abajo, **Responder al
+   equipo de revisión de apps** → pegar la respuesta del §7.3 cambiando `[MODELO]`, `[VERSIÓN]` y
+   `[N]` por los tuyos → adjuntar el `.MOV` (si no deja por tamaño: subirlo a Google Drive,
+   *Compartir → Cualquier persona con el enlace*, y poner el enlace en lugar de *Attached*) →
+   **Enviar**.
+5. Arriba a la derecha, **Volver a enviar a revisión de apps**.
+
+### 7.3 Respuesta para Apple
+
+```
+Hello, and thank you for reviewing Tasks.
+
+Below is the information you requested. It has also been added to the Notes field of App Review Information.
+
+1. SCREEN RECORDING
+Attached. It was recorded on an [MODELO] running iOS [VERSIÓN] with build 1.0 ([N]), the build now selected for review. It starts by launching the app from the Home Screen and shows the typical flow: adding tasks by typing in natural language (with the notification permission prompt), completing and deleting with swipes, the task details, importance mode, the week view, saving a place and adding a location reminder (with the location permission prompt), dictation (with our consent sheet and the microphone permission prompt), and a reminder notification with its actions.
+The app has no account registration, login or account deletion (there are no accounts), no user-generated content shared with other people, and no paid content or in-app purchases.
+
+2. PURPOSE AND TARGET AUDIENCE
+Tasks is a simple daily to-do list for Spanish-speaking iPhone users who want to jot tasks down quickly and be reminded at the right time or place, without signing up or setting anything up. It removes the friction of typical to-do apps: you write or say a task the way you would say it, for example "llamar a Ana mañana a las 5" (call Ana tomorrow at 5), and the app sets the day, the time and the reminder. Tasks and places are stored only on the device.
+
+3. HOW TO ACCESS THE MAIN FEATURES
+No login, credentials or sample files are needed. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Permitir" = Allow.
+- Add: in the "Añadir tarea" bar at the bottom type "llamar a Ana mañana a las 5" and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
+- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder; in "Semana" (bottom bar) drag a task to another day.
+- Tap a task to edit date, time, duration, reminders and importance. "Aa" (top right) is importance mode: drag the number on a task up or down; more important tasks get a larger title.
+- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
+- Location reminders: Ajustes → Lugares → Añadir lugar → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
+- Dictation: with the bar empty, tap the microphone. The first time, a sheet explains that the audio is sent to our server and processed by Cloudflare Workers AI, and asks for permission ("Permitir"); then iOS asks for the microphone. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
+- Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
+- Ajustes → Datos: export or import a JSON backup.
+
+4. EXTERNAL SERVICES
+- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with OpenAI Whisper and the text is interpreted with NVIDIA Nemotron, both running on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use this data to train models. This happens only after the user explicitly allows it in the app, and the permission can be withdrawn in Ajustes → Dictado. Without it nothing is sent and Siri input is parsed on the device.
+- The backend keeps only a random device ID and a hash of its access token, for rate limiting.
+- Apple Maps (MapKit local search) to find places; iOS local notifications and region monitoring for reminders.
+- No analytics, advertising, tracking, third-party SDKs, payment or authentication services.
+
+5. REGIONAL DIFFERENCES
+None. The app works the same in every region where it is available. Its interface and language parsing are in Spanish.
+
+6. REGULATED INDUSTRY OR PROTECTED THIRD-PARTY MATERIAL
+Not applicable: the app does not operate in a regulated industry and does not include third-party protected material.
+
+Thank you,
+Diego Molina Catalá
+```
