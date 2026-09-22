@@ -67,12 +67,14 @@ function normalizeSection(raw: unknown): Section | null {
 
 function normalizeSettings(raw: unknown): Settings {
   const defaults = defaultSettings()
-  const digest = isObject(raw) && isObject(raw.digest) ? raw.digest : {}
+  const settings = isObject(raw) ? raw : {}
+  const digest = isObject(settings.digest) ? settings.digest : {}
   return {
     digest: {
       enabled: digest.enabled === true,
       time: isValidTime(digest.time) ? digest.time : defaults.digest.time,
     },
+    dictation: settings.dictation === true,
   }
 }
 

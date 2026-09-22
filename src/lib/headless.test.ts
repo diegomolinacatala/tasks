@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { emptyState } from '../state/reducer'
 import type { AppState, Task } from '../types'
 import { addDays, toInstant } from './date'
-import { addFromText, moveOverdue, voiceContext } from './headless'
+import { addFromText, moveOverdue, sharesDictation, voiceContext } from './headless'
 import type { HeadlessInput } from './headless'
 import type { InboxEntry } from './inbox'
 
@@ -46,6 +46,15 @@ const run = (partial: Partial<HeadlessInput> = {}) => addFromText(input(partial)
 
 test('voiceContext: día y hora locales, como los manda la app al dictar', () => {
   expect(voiceContext(NOW)).toEqual({ today: TODAY, now: '10:00' })
+})
+
+test('sharesDictation: solo con el permiso dado en la app sale la frase hacia la IA del servidor', () => {
+  const granted: AppState = { ...saved(), settings: { ...saved().settings, dictation: true } }
+  expect(sharesDictation(JSON.parse(JSON.stringify(granted)))).toBe(true)
+  expect(sharesDictation(JSON.parse(JSON.stringify(saved())))).toBe(false)
+  // Sin fichero de estado (la app no se ha abierto) no hay permiso que valga.
+  expect(sharesDictation(null)).toBe(false)
+  expect(sharesDictation({ tasks: 'roto' })).toBe(false)
 })
 
 describe('addFromText', () => {

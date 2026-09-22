@@ -54,5 +54,8 @@ export type Action =
   | { type: 'place/remove'; id: string }
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
+  | { type: 'settings/dictation'; allowed: boolean }
   | { type: 'state/replace'; state: AppState }
+  /** Importar una copia: como `state/replace`, salvo el permiso del dictado, que es de este dispositivo. */
+  | { type: 'state/import'; state: AppState }
   | { type: 'state/clear' }

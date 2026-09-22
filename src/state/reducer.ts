@@ -8,9 +8,9 @@ import { snoozed, withReminder } from '../lib/reminders'
 import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
-export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' } })
+export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false })
 
 export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
@@ -270,8 +270,16 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, settings: { ...state.settings, digest } }
     }
 
+    case 'settings/dictation':
+      if (state.settings.dictation === action.allowed) return state
+      return { ...state, settings: { ...state.settings, dictation: action.allowed } }
+
     case 'state/replace':
       return action.state
+
+    // El permiso del dictado se da en este dispositivo: una copia de otro no lo trae ni lo quita.
+    case 'state/import':
+      return { ...action.state, settings: { ...action.state.settings, dictation: state.settings.dictation } }
 
     case 'state/clear':
       return emptyState()

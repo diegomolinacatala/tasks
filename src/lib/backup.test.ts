@@ -24,7 +24,7 @@ const state: AppState = {
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
   places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   collapsed: { overdue: false, backlog: true },
-  settings: { digest: { enabled: false, time: '08:30' } },
+  settings: { digest: { enabled: false, time: '08:30' }, dictation: false },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -99,6 +99,14 @@ describe('normalizeState', () => {
 
   test('sella la versión de esquema actual al normalizar', () => {
     expect(normalizeState({ schemaVersion: 1, tasks: [], sections: [] })!.schemaVersion).toBe(SCHEMA_VERSION)
+  })
+
+  test('el permiso del dictado solo cuenta si es exactamente true (copias antiguas: sin permiso)', () => {
+    const settings = (dictation: unknown) => normalizeState({ tasks: [], sections: [], settings: { dictation } })!.settings
+    expect(normalizeState({ schemaVersion: 7, tasks: [], sections: [] })!.settings.dictation).toBe(false)
+    expect(settings(true).dictation).toBe(true)
+    expect(settings('true').dictation).toBe(false)
+    expect(settings(true).digest).toEqual({ enabled: false, time: '08:30' })
   })
 
   test('devuelve null si faltan las colecciones', () => {

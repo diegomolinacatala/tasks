@@ -14,7 +14,7 @@ final class HeadlessCore {
     }
 
     /** Contrato con `src/headless.ts`: si no coincide, el paquete es de otra versión de la app. */
-    private static let version: Int32 = 2
+    private static let version: Int32 = 3
 
     /** El manejador de excepciones de JavaScriptCore no puede lanzar: deja aquí el mensaje. */
     private final class Exceptions {
@@ -56,6 +56,17 @@ final class HeadlessCore {
             return nil
         }
         return URL(string: text)
+    }
+
+    /** Si se dio permiso en la app para mandar lo dictado al servidor. Sin fichero de estado, no. */
+    func sharesDictation(state: Any?) -> Bool {
+        guard
+            let state, !(state is NSNull),
+            JSONSerialization.isValidJSONObject(state),
+            let json = try? JSONSerialization.data(withJSONObject: state),
+            let answer = try? call("consent", String(decoding: json, as: UTF8.self))
+        else { return false }
+        return answer == "true"
     }
 
     /** `{ today, now }` locales para la IA del servidor. */

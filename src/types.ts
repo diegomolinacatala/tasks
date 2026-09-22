@@ -93,6 +93,11 @@ export interface DigestSettings {
 
 export interface Settings {
   digest: DigestSettings
+  /**
+   * Permiso para enviar lo dictado (el audio, o el texto de Siri) a la IA del servidor. Sin él, nada
+   * de lo dicho sale del dispositivo: Siri usa el analizador local y el micrófono pregunta antes.
+   */
+  dictation: boolean
 }
 
 export interface AppState {

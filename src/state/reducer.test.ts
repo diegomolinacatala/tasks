@@ -322,6 +322,38 @@ describe('state/replace', () => {
     const imported = withTasks('importada')
     expect(reducer(emptyState(), { type: 'state/replace', state: imported })).toEqual(imported)
   })
+
+  test('al cargar lo guardado conserva el permiso del dictado', () => {
+    const saved = reducer(withTasks('guardada'), { type: 'settings/dictation', allowed: true })
+    expect(reducer(emptyState(), { type: 'state/replace', state: saved }).settings.dictation).toBe(true)
+  })
+})
+
+describe('state/import', () => {
+  test('el permiso del dictado es de este dispositivo: importar una copia no lo cambia', () => {
+    const allowed = reducer(emptyState(), { type: 'settings/dictation', allowed: true })
+    const fromElsewhere = withTasks('importada')
+    const imported = reducer(allowed, { type: 'state/import', state: fromElsewhere })
+    expect(imported.tasks.map((task) => task.title)).toEqual(['importada'])
+    expect(imported.settings.dictation).toBe(true)
+    const granted = reducer(fromElsewhere, { type: 'settings/dictation', allowed: true })
+    expect(reducer(emptyState(), { type: 'state/import', state: granted }).settings.dictation).toBe(false)
+  })
+})
+
+describe('settings/dictation', () => {
+  test('sin permiso por defecto; se da y se retira', () => {
+    expect(emptyState().settings.dictation).toBe(false)
+    const allowed = reducer(emptyState(), { type: 'settings/dictation', allowed: true })
+    expect(allowed.settings.dictation).toBe(true)
+    expect(reducer(allowed, { type: 'settings/dictation', allowed: false }).settings.dictation).toBe(false)
+  })
+
+  test('repetirlo no cambia nada y no toca el resumen diario', () => {
+    const allowed = reducer(emptyState(), { type: 'settings/dictation', allowed: true })
+    expect(reducer(allowed, { type: 'settings/dictation', allowed: true })).toBe(allowed)
+    expect(allowed.settings.digest).toEqual(emptyState().settings.digest)
+  })
 })
 
 describe('task/add con hora y recordatorios', () => {

@@ -50,6 +50,12 @@ export interface HeadlessResult {
   widget: WidgetSnapshot | null
 }
 
+/**
+ * Si la frase de Siri puede ir a la IA del servidor: solo con el permiso dado en la app
+ * (`settings.dictation`). Sin fichero de estado no hay permiso, y se usa el analizador local.
+ */
+export const sharesDictation = (state: unknown): boolean => normalizeState(state)?.settings.dictation === true
+
 /** Fecha y hora locales para que la IA resuelva "mañana" o "a las 5", como al dictar en la app. */
 export const voiceContext = (now: number) => ({ today: isoOfInstant(now), now: timeOfInstant(now) })
 

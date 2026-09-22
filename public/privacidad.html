@@ -57,11 +57,12 @@
   <body>
     <main>
       <h1>Privacidad</h1>
-      <p class="date">Tasks · actualizada el 18 de septiembre de 2026</p>
+      <p class="date">Tasks · actualizada el 22 de septiembre de 2026</p>
 
       <p>
         Tasks no tiene cuentas, publicidad ni analítica. <strong>No recopilamos datos personales</strong> y no
-        vendemos ni compartimos nada con terceros.
+        vendemos nada a nadie. Lo único que sale de tu dispositivo con tu contenido es lo que dictas, y solo si lo
+        permites: ver <a href="#dictado">Dictado</a>.
       </p>
 
       <h2>Tus tareas y lugares</h2>
@@ -100,14 +101,25 @@
         anonimizada de la IP y la fecha de último uso. Un dispositivo que no se usa en 180 días se borra solo.
       </p>
 
-      <h2>Dictado</h2>
+      <h2 id="dictado">Dictado</h2>
       <p>
-        Si dictas una tarea, el audio y la fecha y hora de tu dispositivo se envían a nuestro servidor para
-        transcribirlo e interpretarlo con modelos de Cloudflare Workers AI. Si la apuntas con Siri o con Atajos,
-        el iPhone ya la ha transcrito y solo se envía el texto, con la fecha y hora, para interpretarlo. El audio y
-        el texto se procesan al momento y <strong>no se guardan ni se registran</strong>. La lista de tus lugares no
-        se envía: el nombre que dices se empareja con tus lugares en el propio dispositivo.
+        La primera vez que tocas el micrófono, la app te pregunta si permites enviar lo que dictas. Sin ese
+        permiso no se envía nada: el micrófono no graba y lo que apuntas con Siri lo entiende el propio iPhone.
       </p>
+      <p>
+        Con el permiso, el audio y la fecha y hora de tu dispositivo se envían a nuestro servidor para
+        transcribirlo e interpretarlo con modelos de IA de <strong>Cloudflare Workers AI</strong> (Whisper para
+        transcribir y Nemotron para entender la frase). Si la apuntas con Siri o con Atajos, el iPhone ya la ha
+        transcrito y solo se envía el texto, con la fecha y hora. El audio y el texto se procesan al momento y
+        <strong>no se guardan ni se registran</strong>. La lista de tus lugares no se envía: el nombre que dices se
+        empareja con tus lugares en el propio dispositivo.
+      </p>
+      <p>
+        Cloudflare, que aloja el servidor, trata esos datos solo para darnos el servicio: según sus condiciones,
+        no los guarda ni los usa para entrenar modelos ni para nada más
+        (<a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/">uso de datos de Workers AI</a>).
+      </p>
+      <p>Puedes retirar el permiso cuando quieras en Ajustes → Dictado → <em>No enviar la voz</em>.</p>
 
       <h2>Micrófono</h2>
       <p>El micrófono solo se usa mientras dictas, cuando tú lo activas.</p>

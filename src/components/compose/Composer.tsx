@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { parseTask } from '../../lib/parse'
 import type { IsoDate, Place, TaskDraft } from '../../types'
@@ -6,6 +6,11 @@ import { IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus } from '../u
 import { VoiceBar } from './VoiceBar'
 import { useVoice } from './useVoice'
 import './composer.css'
+
+// Se pide una sola vez por dispositivo: no merece estar en el paquete principal.
+const DictationConsent = lazy(() =>
+  import('./DictationConsent').then((module) => ({ default: module.DictationConsent })),
+)
 
 interface ComposerProps {
   /** Atajo de un toque: añade con fecha en vez de dejarla en blanco. */
@@ -93,46 +98,53 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
   }
 
   return (
-    <form className="composer" onSubmit={submit}>
-      <button type="submit" className={`composer__mark ${ready ? 'is-ready' : ''}`} aria-label="Añadir">
-        <IconPlus size={15} />
-      </button>
-      <input
-        ref={input}
-        className="composer__input"
-        value={value}
-        placeholder="Añadir tarea"
-        aria-label="Añadir tarea"
-        enterKeyHint="done"
-        autoComplete="off"
-        onChange={(event) => {
-          setValue(event.target.value)
-          if (!event.target.value.trim()) setLiteral(false)
-        }}
-        onKeyDown={onKeyDown}
-      />
-      {!ready && (
-        <button type="button" className="composer__mic" aria-label="Dictar tarea" onClick={voice.start}>
-          <IconMic size={19} />
+    <>
+      <form className="composer" onSubmit={submit}>
+        <button type="submit" className={`composer__mark ${ready ? 'is-ready' : ''}`} aria-label="Añadir">
+          <IconPlus size={15} />
         </button>
+        <input
+          ref={input}
+          className="composer__input"
+          value={value}
+          placeholder="Añadir tarea"
+          aria-label="Añadir tarea"
+          enterKeyHint="done"
+          autoComplete="off"
+          onChange={(event) => {
+            setValue(event.target.value)
+            if (!event.target.value.trim()) setLiteral(false)
+          }}
+          onKeyDown={onKeyDown}
+        />
+        {!ready && (
+          <button type="button" className="composer__mic" aria-label="Dictar tarea" onClick={voice.start}>
+            <IconMic size={19} />
+          </button>
+        )}
+        {detected && (
+          <button
+            type="button"
+            className={`composer__parsed ${literal ? 'is-off' : ''}`}
+            aria-pressed={!literal}
+            aria-label={literal ? `Usar ${parsed.label}` : `Ignorar ${parsed.label}`}
+            onClick={() => setLiteral((current) => !current)}
+          >
+            {placed ? <IconPin size={12} strokeWidth={2} /> : parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
+            {parsed.label}
+          </button>
+        )}
+        {ready && !detected && (
+          <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quickLabel}`}>
+            {quickLabel}
+          </button>
+        )}
+      </form>
+      {voice.asking && (
+        <Suspense fallback={null}>
+          <DictationConsent open onAllow={voice.allow} onClose={voice.dismiss} />
+        </Suspense>
       )}
-      {detected && (
-        <button
-          type="button"
-          className={`composer__parsed ${literal ? 'is-off' : ''}`}
-          aria-pressed={!literal}
-          aria-label={literal ? `Usar ${parsed.label}` : `Ignorar ${parsed.label}`}
-          onClick={() => setLiteral((current) => !current)}
-        >
-          {placed ? <IconPin size={12} strokeWidth={2} /> : parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
-          {parsed.label}
-        </button>
-      )}
-      {ready && !detected && (
-        <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quickLabel}`}>
-          {quickLabel}
-        </button>
-      )}
-    </form>
+    </>
   )
 }

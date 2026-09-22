@@ -5,6 +5,7 @@ import type { Capture } from '../../lib/voice/capture'
 import { createAudioContext, startCapture } from '../../lib/voice/capture'
 import { speechSupported, startSpeech } from '../../lib/voice/speech'
 import { TARGET_RATE, bytesToBase64, encodeWav, resample } from '../../lib/voice/wav'
+import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
 import { useToast } from '../ui/Toast'
 
@@ -41,6 +42,10 @@ function errorMessage(error: unknown): string {
 export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const push = usePush()
   const toast = useToast()
+  const allowed = useAppState().settings.dictation
+  const dispatch = useDispatch()
+  /** Pidiendo permiso para mandar el audio al servidor: nada sale del móvil sin él. */
+  const [asking, setAsking] = useState(false)
   const [phase, setPhase] = useState<VoicePhase>('idle')
   const [level, setLevel] = useState(0)
   const [partial, setPartial] = useState('')
@@ -138,7 +143,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   const start = useCallback(() => {
     if (phase !== 'idle') return
-    if (push.canTranscribe) return record()
+    if (push.canTranscribe) return allowed ? record() : setAsking(true)
     if (speechSupported()) return dictate()
     toast({
       message:
@@ -146,12 +151,20 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
           ? 'El dictado no está disponible en este navegador.'
           : 'Activa los avisos en Ajustes para dictar tareas.',
     })
-  }, [dictate, phase, push.canTranscribe, push.status, record, toast])
+  }, [allowed, dictate, phase, push.canTranscribe, push.status, record, toast])
 
+  /** Graba en el mismo toque de "Permitir": iOS solo abre el audio dentro de un gesto. */
+  const allow = useCallback(() => {
+    dispatch({ type: 'settings/dictation', allowed: true })
+    setAsking(false)
+    record()
+  }, [dispatch, record])
+
+  const dismiss = useCallback(() => setAsking(false), [])
   const stop = useCallback(() => session.current?.stop(), [])
   const cancel = useCallback(() => session.current?.cancel(), [])
 
   useEffect(() => () => session.current?.cancel(), [])
 
-  return { phase, level, partial, start, stop, cancel }
+  return { phase, level, partial, start, stop, cancel, asking, allow, dismiss }
 }

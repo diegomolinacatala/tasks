@@ -15,10 +15,16 @@ const fail = (message) => {
   process.exit(1)
 }
 
-if (!core || typeof core.add !== 'function' || typeof core.move !== 'function' || typeof core.context !== 'function') {
-  fail('no expone TasksHeadless.add/move/context')
+if (
+  !core ||
+  typeof core.add !== 'function' ||
+  typeof core.move !== 'function' ||
+  typeof core.context !== 'function' ||
+  typeof core.consent !== 'function'
+) {
+  fail('no expone TasksHeadless.add/move/context/consent')
 }
-if (core.version !== 2) fail(`versión inesperada del contrato: ${core.version}`)
+if (core.version !== 3) fail(`versión inesperada del contrato: ${core.version}`)
 if (typeof core.api !== 'string') fail('falta la URL del servidor (aunque sea vacía)')
 
 const now = Date.now()
@@ -31,6 +37,8 @@ if (result.entry?.tasks?.[0]?.title !== 'Llamar a Miguel') fail(`no entiende una
 if (!Array.isArray(result.plan?.timed) || result.plan.timed.length !== 1) fail('no programa el aviso de la tarea')
 if (!result.message.startsWith('Apuntada:')) fail(`mensaje inesperado: ${result.message}`)
 if (!/^\{"today":"\d{4}-\d{2}-\d{2}","now":"\d{2}:\d{2}"\}$/.test(core.context(now))) fail('contexto de voz mal formado')
+if (core.consent(JSON.stringify(state)) !== 'false') fail('sin permiso, la frase no puede ir al servidor')
+if (core.consent(JSON.stringify({ ...state, settings: { dictation: true } })) !== 'true') fail('no lee el permiso del dictado')
 
 const overdue = { id: 'ayer', title: 'Pagar la luz', done: false, date: '2000-01-01', time: null, reminders: [], sectionId: null, order: 0 }
 const moved = JSON.parse(core.move(JSON.stringify({ now, state: { ...state, tasks: [overdue] }, inbox: [], widgetChanges: [] })))

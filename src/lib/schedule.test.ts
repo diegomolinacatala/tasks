@@ -28,7 +28,7 @@ const stateOf = (tasks: Task[], digest = { enabled: false, time: '08:30' }): App
   sections: [{ id: 's1', name: 'Trabajo', order: 0, collapsed: false }],
   places: [],
   collapsed: { overdue: false, backlog: false },
-  settings: { digest },
+  settings: { digest, dictation: false },
 })
 
 describe('notificationBody', () => {

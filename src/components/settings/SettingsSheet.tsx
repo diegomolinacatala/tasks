@@ -5,6 +5,7 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
+import { DictationBlock } from './DictationBlock'
 import { NotificationsBlock } from './NotificationsBlock'
 
 const PlacesBlock = lazy(() => import('../places/PlacesBlock').then((module) => ({ default: module.PlacesBlock })))
@@ -44,7 +45,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
   const importBackup = async (file: File) => {
     try {
-      dispatch({ type: 'state/replace', state: parseBackup(await file.text()) })
+      dispatch({ type: 'state/import', state: parseBackup(await file.text()) })
       toast({ message: 'Copia importada.' })
       onClose()
     } catch (error) {
@@ -71,6 +72,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           <PlacesBlock />
         </Suspense>
       )}
+      <DictationBlock />
 
       <p className="sheet__title">Datos</p>
       <p className="sheet__note">

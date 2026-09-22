@@ -46,13 +46,14 @@ enum QuickAdd {
 
     private static func interpretAndSave(_ text: String, now: Int64) async throws -> String {
         let core = try HeadlessCore()
-        let interpreted = await interpret(text, core: core, now: now)
+        let state = stateFile()
+        let interpreted = await interpret(text, core: core, state: state, now: now)
         let inbox = try InboxStore.entries()
         let result = try core.add([
             "now": NSNumber(value: now),
             "text": text,
             "interpreted": interpreted ?? NSNull(),
-            "state": stateFile() ?? NSNull(),
+            "state": state ?? NSNull(),
             "inbox": inbox,
             "widgetChanges": WidgetStore.pendingDone(),
         ])
@@ -102,8 +103,11 @@ enum QuickAdd {
     }
 
     /** Las tareas que entiende la IA del servidor, o `nil` para usar el analizador del iPhone. */
-    private static func interpret(_ text: String, core: HeadlessCore, now: Int64) async -> Any? {
-        guard let api = core.api, let context = try? core.voiceContext(now: now) else { return nil }
+    private static func interpret(_ text: String, core: HeadlessCore, state: Any?, now: Int64) async -> Any? {
+        // Sin el permiso dado en la app, la frase no sale del iPhone: la entiende el analizador local.
+        guard core.sharesDictation(state: state), let api = core.api, let context = try? core.voiceContext(now: now) else {
+            return nil
+        }
         let server = DictationServer(base: api)
         let data = await withDeadline(interpretSeconds) {
             try await server.interpret(text, context: context)

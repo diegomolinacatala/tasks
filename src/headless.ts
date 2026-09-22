@@ -3,14 +3,17 @@
  * WebView (`ios/App/App/HeadlessCore.swift`). Allí no hay navegador: ni `window`, ni `fetch`, ni
  * `console`. Todo entra y sale como JSON en texto. `scripts/check-headless.mjs` lo comprueba.
  */
-import { addFromText, moveOverdue, voiceContext } from './lib/headless'
+import { addFromText, moveOverdue, sharesDictation, voiceContext } from './lib/headless'
 import { createId } from './lib/id'
 
 /** Contrato con el lado nativo: sube si cambia la forma de lo que entra o sale. */
-export const version = 2
+export const version = 3
 
 /** Servidor del dictado de esta compilación; vacío si no lo tiene. */
 export const api = import.meta.env.VITE_PUSH_API ?? ''
+
+/** Fichero de estado → `"true"` si se dio permiso para mandar lo dictado al servidor. */
+export const consent = (state: string): string => String(sharesDictation(JSON.parse(state)))
 
 /** `{ today, now }` para la IA del servidor. */
 export const context = (now: number): string => JSON.stringify(voiceContext(now))
