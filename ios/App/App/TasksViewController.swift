@@ -5,5 +5,8 @@ import UIKit
 class TasksViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(TasksNativePlugin())
+        if let router = bridge?.notificationRouter {
+            NotificationResponder.shared.attach(router)
+        }
     }
 }

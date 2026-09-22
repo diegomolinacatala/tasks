@@ -205,3 +205,42 @@ test('entryTaskIds', () => {
   expect(entryTaskIds(entry())).toEqual(['t1'])
 })
 
+
+describe('respuesta al aviso de cierre', () => {
+  const meeting = entry({ tasks: [{ id: 'reunion', title: 'Reunión', date: '2026-09-18', time: '09:00', duration: 60, reminders: [] }] })
+  const start = applyInbox(emptyState(), [meeting]).state
+  const reply = (ask: InboxEntry['ask']) => entry({ id: 'r', tasks: [], ask })
+
+  test('"Sí, hecha" la tacha, y releer la entrada no la desmarca', () => {
+    const done = reply({ taskId: 'reunion', reply: 'done' })
+    const { state, actions } = applyInbox(start, [done])
+    expect(actions).toEqual([{ type: 'task/toggle', id: 'reunion' }])
+    expect(state.tasks[0]?.done).toBe(true)
+    expect(entryInState(done, start)).toBe(false)
+    expect(entryInState(done, state)).toBe(true)
+    expect(applyInbox(state, [done]).actions).toEqual([])
+  })
+
+  test('"Todavía no" deja la duración alargada, y releerla no suma otro rato', () => {
+    const again = reply({ taskId: 'reunion', reply: 'again', duration: 75 })
+    const { state, actions } = applyInbox(start, [again])
+    expect(actions).toEqual([{ type: 'task/setDuration', id: 'reunion', duration: 75 }])
+    expect(state.tasks[0]?.duration).toBe(75)
+    expect(entryInState(again, state)).toBe(true)
+    expect(applyInbox(state, [again]).actions).toEqual([])
+  })
+
+  test('lo que pasó después manda: tachada, borrada o sin duración, no hay nada que aplicar', () => {
+    const again = reply({ taskId: 'reunion', reply: 'again', duration: 75 })
+    const done = applyInbox(start, [reply({ taskId: 'reunion', reply: 'done' })]).state
+    expect(applyInbox(done, [again]).actions).toEqual([])
+    expect(applyInbox(emptyState(), [again]).actions).toEqual([])
+    const noDuration = { ...start, tasks: start.tasks.map((task) => ({ ...task, duration: null })) }
+    expect(entryInState(again, noDuration)).toBe(true)
+  })
+
+  test('no se interpreta como una entrada de solo texto', () => {
+    const done = { ...reply({ taskId: 'reunion', reply: 'done' }), text: 'algo' }
+    expect(resolveEntry(done, [])).toBe(done)
+  })
+})

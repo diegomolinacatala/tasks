@@ -33,6 +33,7 @@
 		7A5C0000000000000000010F /* DictationServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000011 /* DictationServer.swift */; };
 		7A5C00000000000000000110 /* NotificationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000012 /* NotificationPlan.swift */; };
 		7A5C00000000000000000111 /* QuickAdd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000013 /* QuickAdd.swift */; };
+		7A5C00000000000000000702 /* NotificationResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000701 /* NotificationResponder.swift */; };
 		7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
 		7A5C00000000000000000113 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
 		7A5C00000000000000000114 /* OverdueMover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000015 /* OverdueMover.swift */; };
@@ -93,6 +94,7 @@
 		7A5C00000000000000000011 /* DictationServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationServer.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000012 /* NotificationPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPlan.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000013 /* QuickAdd.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAdd.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000701 /* NotificationResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationResponder.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveOverdueWidgetIntent.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000015 /* OverdueMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverdueMover.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -145,6 +147,7 @@
 				7A5C00000000000000000004 /* NativeActions.swift */,
 				7A5C00000000000000000005 /* AppIntents.swift */,
 				7A5C00000000000000000013 /* QuickAdd.swift */,
+				7A5C00000000000000000701 /* NotificationResponder.swift */,
 				7A5C0000000000000000000F /* HeadlessCore.swift */,
 				7A5C00000000000000000010 /* InboxStore.swift */,
 				7A5C00000000000000000011 /* DictationServer.swift */,
@@ -304,6 +307,7 @@
 				7A5C0000000000000000010F /* DictationServer.swift in Sources */,
 				7A5C00000000000000000110 /* NotificationPlan.swift in Sources */,
 				7A5C00000000000000000111 /* QuickAdd.swift in Sources */,
+				7A5C00000000000000000702 /* NotificationResponder.swift in Sources */,
 				7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

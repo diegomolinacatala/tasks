@@ -19,12 +19,13 @@ if (
   !core ||
   typeof core.add !== 'function' ||
   typeof core.move !== 'function' ||
+  typeof core.answer !== 'function' ||
   typeof core.context !== 'function' ||
   typeof core.consent !== 'function'
 ) {
-  fail('no expone TasksHeadless.add/move/context/consent')
+  fail('no expone TasksHeadless.add/move/answer/context/consent')
 }
-if (core.version !== 3) fail(`versión inesperada del contrato: ${core.version}`)
+if (core.version !== 4) fail(`versión inesperada del contrato: ${core.version}`)
 if (typeof core.api !== 'string') fail('falta la URL del servidor (aunque sea vacía)')
 
 const now = Date.now()
@@ -44,5 +45,22 @@ const overdue = { id: 'ayer', title: 'Pagar la luz', done: false, date: '2000-01
 const moved = JSON.parse(core.move(JSON.stringify({ now, state: { ...state, tasks: [overdue] }, inbox: [], widgetChanges: [] })))
 if (moved.entry?.move?.taskIds?.[0] !== 'ayer') fail(`no pasa lo atrasado a hoy: ${JSON.stringify(moved)}`)
 if (moved.widget?.tasks?.[0]?.date !== moved.entry.move.date) fail('la foto del widget no refleja lo pasado a hoy')
+
+const started = new Date(now - 60 * 60_000)
+const pad = (value) => String(value).padStart(2, '0')
+const meeting = {
+  ...overdue,
+  id: 'reunion',
+  title: 'Reunión',
+  date: `${started.getFullYear()}-${pad(started.getMonth() + 1)}-${pad(started.getDate())}`,
+  time: `${pad(started.getHours())}:${pad(started.getMinutes())}`,
+  duration: 30,
+}
+const ask = (reply) => JSON.parse(core.answer(JSON.stringify({ now, taskId: 'reunion', reply, state: { ...state, tasks: [meeting] }, inbox: [], widgetChanges: [] })))
+if (ask('done').entry?.ask?.reply !== 'done') fail(`no tacha desde el aviso de cierre: ${JSON.stringify(ask('done'))}`)
+const again = ask('again')
+if (!(again.entry?.ask?.duration > 30) || !again.plan?.timed?.some((item) => item.category === 'task-ask')) {
+  fail(`"Todavía no" no alarga la tarea ni vuelve a preguntar: ${JSON.stringify(again)}`)
+}
 
 console.log(`headless.js listo (${readFileSync(path).length} bytes${core.api ? '' : ', sin servidor de dictado'})`)

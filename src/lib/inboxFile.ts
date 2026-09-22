@@ -1,7 +1,7 @@
 import type { AppState, IsoDate, ReminderDraft } from '../types'
 import { isValidTime, toIso } from './date'
 import { normalizeDuration } from './duration'
-import type { InboxEntry, InboxMove, InboxPlace, InboxTask } from './inbox'
+import type { InboxAsk, InboxEntry, InboxMove, InboxPlace, InboxTask } from './inbox'
 import { MAX_INBOX_ENTRIES, entryInState } from './inbox'
 import { MAX_PLACE_NAME } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
@@ -95,14 +95,22 @@ function parseMove(raw: unknown): InboxMove | null {
   return taskIds.length ? { date: raw.date, taskIds } : null
 }
 
+function parseAsk(raw: unknown): InboxAsk | null {
+  if (!isObject(raw) || !isId(raw.taskId)) return null
+  if (raw.reply === 'done') return { taskId: raw.taskId, reply: 'done' }
+  const duration = normalizeDuration(raw.duration)
+  return raw.reply === 'again' && duration !== null ? { taskId: raw.taskId, reply: 'again', duration } : null
+}
+
 function parseEntry(raw: unknown): InboxEntry[] {
   if (!isObject(raw) || !isId(raw.id) || typeof raw.createdAt !== 'number' || !Number.isFinite(raw.createdAt)) return []
   const places = Array.isArray(raw.places) ? raw.places.flatMap(parsePlace) : []
   const tasks = Array.isArray(raw.tasks) ? raw.tasks.flatMap(parseTask).slice(0, MAX_TASKS_PER_ENTRY) : []
   const text = typeof raw.text === 'string' ? raw.text.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT) : ''
   const move = parseMove(raw.move)
+  const ask = parseAsk(raw.ask)
   const entry: InboxEntry = { id: raw.id, createdAt: raw.createdAt, places, tasks }
-  return [{ ...entry, ...(text ? { text } : {}), ...(move ? { move } : {}) }]
+  return [{ ...entry, ...(text ? { text } : {}), ...(move ? { move } : {}), ...(ask ? { ask } : {}) }]
 }
 
 /** Entradas de la bandeja tal como las guarda el lado nativo. Lo mal formado se descarta. */

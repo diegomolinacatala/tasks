@@ -1,12 +1,13 @@
 import type { Action } from '../state/actions'
 import { reducer } from '../state/reducer'
-import type { AppState, IsoDate, IsoTime, Place, ReminderDraft, TaskDraft } from '../types'
+import type { AppState, IsoDate, IsoTime, Place, ReminderDraft, Task, TaskDraft } from '../types'
 import { parseSpoken } from './parse'
 import { findPlace, placeKey } from './places'
 
 /**
- * Bandeja de lo que se hace fuera de la web (Siri, Atajos, el botón "A hoy" del widget) mientras la
- * app no está delante: altas de tareas y pasar lo atrasado a hoy. El lado nativo apunta cada cosa
+ * Bandeja de lo que se hace fuera de la web (Siri, Atajos, el botón "A hoy" del widget, los botones
+ * del aviso de cierre) mientras la app no está delante: altas de tareas, pasar lo atrasado a hoy y
+ * responder si una tarea ha acabado. El lado nativo apunta cada cosa
  * como una entrada y la web la aplica al cargar o al volver a primer plano: así la web sigue siendo
  * la única que escribe el estado. Aplicar es idempotente (por id, y lo ya movido no se vuelve a
  * mover), así que una entrada puede leerse más de una vez sin duplicar nada. El fichero en sí:
@@ -46,12 +47,21 @@ export interface InboxEntry {
   text?: string
   /** Pasar esas tareas (lo que estaba atrasado) a ese día. Va sola: sin tareas ni lugares. */
   move?: InboxMove
+  /** Respuesta desde el aviso de cierre ("¿Has acabado?"). Va sola: sin tareas ni lugares. */
+  ask?: InboxAsk
 }
 
 export interface InboxMove {
   date: IsoDate
   taskIds: string[]
 }
+
+/**
+ * `done`: "Sí, hecha". `again`: "Todavía no", con la duración ya alargada (`extendedDuration` a la
+ * hora de responder). Se guarda el resultado y no la orden de alargar: releer la entrada no vuelve
+ * a sumar otro rato.
+ */
+export type InboxAsk = { taskId: string; reply: 'done' } | { taskId: string; reply: 'again'; duration: number }
 
 export interface InboxApplied {
   state: AppState
@@ -98,7 +108,20 @@ export function entryInState(entry: InboxEntry, state: AppState): boolean {
       const task = byId.get(id)
       return !task || task.done || task.date === move.date
     })
-  return moved && entryTaskIds(entry).every((id) => byId.has(id))
+  return moved && answered(entry.ask, byId.get(entry.ask?.taskId ?? '')) && entryTaskIds(entry).every((id) => byId.has(id))
+}
+
+/** Lo que haya pasado luego (borrarla, quitarle la duración, alargarla más) también vale. */
+function answered(ask: InboxAsk | undefined, task: Task | undefined): boolean {
+  if (!ask || !task || task.done) return true
+  return ask.reply === 'again' && (task.duration === null || task.duration >= ask.duration)
+}
+
+/** La acción que deja la tarea como dice la respuesta, o `null` si ya lo está. */
+function answerAction(ask: InboxAsk, state: AppState): Action | null {
+  const task = state.tasks.find((item) => item.id === ask.taskId)
+  if (answered(ask, task)) return null
+  return ask.reply === 'done' ? { type: 'task/toggle', id: ask.taskId } : { type: 'task/setDuration', id: ask.taskId, duration: ask.duration }
 }
 
 /**
@@ -106,7 +129,7 @@ export function entryInState(entry: InboxEntry, state: AppState): boolean {
  * siguiente a dictarlo, no a abrir la app) y con ids derivados del suyo: releerla no duplica.
  */
 export function resolveEntry(entry: InboxEntry, places: readonly Place[]): InboxEntry {
-  if (entry.text === undefined || entry.tasks.length || entry.places.length || entry.move) return entry
+  if (entry.text === undefined || entry.tasks.length || entry.places.length || entry.move || entry.ask) return entry
   const draft = parseSpoken(entry.text, entry.createdAt, places)
   let count = 0
   const resolved = entryFromDrafts(draft.title ? [draft] : [], places, () => `${entry.id}-${++count}`, entry.createdAt)
@@ -159,6 +182,9 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
       const action: Action = { type: 'tasks/reschedule', ids: entry.move.taskIds, date: entry.move.date }
       if (reducer(current, action) !== current) apply(action)
     }
+
+    const answer = entry.ask ? answerAction(entry.ask, current) : null
+    if (answer) apply(answer)
   }
 
   return { state: current, actions, entries: applied }

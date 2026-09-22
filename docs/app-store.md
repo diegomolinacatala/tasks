@@ -178,12 +178,16 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
       píldora dice *Hoy HH:MM–HH:MM* y la fila, el tramo. En el panel, *Duración* con *5 min* no
       existe como atajo: sale **Hasta HH:MM** marcado y debajo *A las … te pregunto si has acabado*.
 - [ ] Al acabar llega *«prueba / ¿Has acabado? · HH:MM–HH:MM»*. Mantenerlo pulsado: **Sí, hecha** y
-      **Todavía no**. *Sí, hecha* abre la app con la tarea tachada y *Deshacer*.
-- [ ] Repetirlo y pulsar **Todavía no**: el tramo se alarga hasta 15 min desde ese momento y, a esa
-      hora, vuelve la pregunta.
+      **Todavía no**. *Sí, hecha* **no abre la app**: el aviso se va, el número del icono baja y el
+      widget la enseña tachada. Al abrir la app, la tarea está tachada.
+- [ ] Repetirlo y pulsar **Todavía no** (tampoco abre la app): a los 15 min vuelve la pregunta, y en
+      la app el tramo acaba 15 min después de cuando se respondió.
+- [ ] Lo mismo con el **iPhone bloqueado**: desde la pantalla de bloqueo, mantener pulsado el aviso y
+      pulsar **Sí, hecha**; no pide Face ID.
 - [ ] Repetirlo y **tocar** el aviso sin mantenerlo: se abre la app con *¿Has acabado prueba?* y
       **Sí** abajo; tocarlo la tacha.
-- [ ] Con la app cerrada a la fuerza: *Sí, hecha* desde el aviso sigue tachándola al abrir.
+- [ ] Con la app cerrada a la fuerza: *Sí, hecha* desde el aviso la tacha igual (icono y widget al
+      momento) y al abrir sigue tachada.
 - [ ] Siri: *«Oye Siri, apunta en Tasks»* → *«reunión con Jorge mañana de 5 a 6»*: responde
       *«Apuntada: Reunión con Jorge, mañana 17:00–18:00»*.
 - [ ] Exportar copia: se abre la hoja de compartir.

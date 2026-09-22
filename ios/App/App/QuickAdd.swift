@@ -3,10 +3,10 @@ import UserNotifications
 import WidgetKit
 
 /**
- * Apuntar una tarea o pasar lo atrasado a hoy sin abrir la app (Siri, Atajos, el widget). El estado
- * vive en la web, que aquí no corre: el cambio va a la bandeja (la web lo aplica al cargar o al
- * volver) y, entretanto, `headless.js` dice cómo dejar los avisos, el número del icono y el widget
- * con la misma lógica que la web.
+ * Apuntar una tarea, pasar lo atrasado a hoy o responder al aviso de cierre sin abrir la app (Siri,
+ * Atajos, el widget, los botones del aviso). El estado vive en la web, que aquí no corre: el cambio
+ * va a la bandeja (la web lo aplica al cargar o al volver) y, entretanto, `headless.js` dice cómo
+ * dejar los avisos, el número del icono y el widget con la misma lógica que la web.
  */
 enum QuickAdd {
     /** Lo que Siri o el atajo enseñan si algo falla. */
@@ -100,6 +100,62 @@ enum QuickAdd {
             // Sin `headless.js` no se sabe qué está atrasado: mejor no tocar nada.
             throw Failure(localizedStringResource: "No se ha podido pasar a hoy. Hazlo desde Tasks.")
         }
+    }
+
+    /** Lo que tarda en volver la pregunta si no se puede alargar la tarea (`AGAIN_MINUTES`). */
+    private static let againSeconds = 15.0 * 60
+
+    /** "Sí, hecha" (`done`) o "Todavía no" (`again`) desde el aviso de cierre, sin abrir la app. */
+    static func answer(_ reply: String, to request: UNNotificationRequest) async {
+        guard let taskId = (request.content.userInfo["cap_extra"] as? [String: Any])?["taskId"] as? String else { return }
+        _ = try? await queue.run { await QuickAdd.answerNow(reply, taskId: taskId, request: request) }
+    }
+
+    private static func answerNow(_ reply: String, taskId: String, request: UNNotificationRequest) async {
+        let now = Int64((Date().timeIntervalSince1970 * 1000).rounded())
+        do {
+            let result = try HeadlessCore().answer([
+                "now": NSNumber(value: now),
+                "taskId": taskId,
+                "reply": reply,
+                "state": stateFile() ?? NSNull(),
+                "inbox": try InboxStore.entries(),
+                "widgetChanges": WidgetStore.pendingDone(),
+            ])
+            // Ya estaba hecha, se borró o ya no dura: no hay nada que cambiar.
+            guard let entry = result["entry"] as? [String: Any] else { return }
+            try InboxStore.append(entry)
+            await refresh(with: result)
+            notifyWeb()
+        } catch {
+            await answerWithoutCore(reply, taskId: taskId, request: request, now: now)
+        }
+    }
+
+    /**
+     * Sin `headless.js` no se sabe cuánto alargar ni cómo quedan los avisos. "Sí, hecha" se apunta
+     * igual (la web la tacha al abrirse) y se quitan sus avisos; "Todavía no" repite la pregunta.
+     */
+    private static func answerWithoutCore(_ reply: String, taskId: String, request: UNNotificationRequest, now: Int64) async {
+        let center = UNUserNotificationCenter.current()
+        guard reply == "done" else {
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: againSeconds, repeats: false)
+            try? await center.add(UNNotificationRequest(identifier: request.identifier, content: request.content, trigger: trigger))
+            return
+        }
+        let entry: [String: Any] = [
+            "id": UUID().uuidString,
+            "createdAt": NSNumber(value: now),
+            "places": [Any](),
+            "tasks": [Any](),
+            "ask": ["taskId": taskId, "reply": "done"],
+        ]
+        guard (try? InboxStore.append(entry)) != nil else { return }
+        let ids = await center.pendingNotificationRequests()
+            .filter { ($0.content.userInfo["cap_extra"] as? [String: Any])?["taskId"] as? String == taskId }
+            .map(\.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+        notifyWeb()
     }
 
     /** Las tareas que entiende la IA del servidor, o `nil` para usar el analizador del iPhone. */

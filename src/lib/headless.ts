@@ -3,7 +3,8 @@ import { overdueTasks } from '../state/selectors'
 import type { AppState } from '../types'
 import { normalizeState } from './backup'
 import { isoOfInstant, timeOfInstant } from './date'
-import type { InboxEntry } from './inbox'
+import { extendedDuration } from './duration'
+import type { InboxAsk, InboxEntry } from './inbox'
 import { applyInbox, entryFromDrafts } from './inbox'
 import { parseInbox } from './inboxFile'
 import { draftsFromInterpreted } from './interpret'
@@ -17,10 +18,10 @@ import type { WidgetSnapshot } from './widget'
 import { widgetSnapshot, widgetToggles } from './widget'
 
 /**
- * Apuntar una tarea o pasar lo atrasado a hoy sin abrir la app (Siri, Atajos, el widget). Lo ejecuta
- * el lado nativo con JavaScriptCore (`src/headless.ts`): es la misma lógica que la web, sin React ni
- * navegador. No escribe nada; dice qué entrada añadir a la bandeja y cómo dejar los avisos, el icono
- * y el widget contando con ella.
+ * Apuntar una tarea, pasar lo atrasado a hoy o responder al aviso de cierre sin abrir la app (Siri,
+ * Atajos, el widget, los botones del aviso). Lo ejecuta el lado nativo con JavaScriptCore
+ * (`src/headless.ts`): es la misma lógica que la web, sin React ni navegador. No escribe nada; dice
+ * qué entrada añadir a la bandeja y cómo dejar los avisos, el icono y el widget contando con ella.
  */
 
 export interface HeadlessInput {
@@ -125,4 +126,37 @@ export function moveOverdue(input: MoveInput, newId: () => string): HeadlessResu
     badge: badgeCount(next.tasks, now),
     widget: widgetSnapshot(next, now),
   }
+}
+
+/** Responder al aviso de cierre: la tarea y el botón. */
+export type AskInput = MoveInput & { taskId: unknown; reply: unknown }
+
+const nothing = (message: string): HeadlessResult => ({ entry: null, message, plan: null, badge: null, widget: null })
+
+/**
+ * "Sí, hecha" o "Todavía no" desde el aviso de cierre, sin abrir la app. "Todavía no" vuelve a
+ * programar la pregunta, con la tarea alargada como lo haría la app (`task/extend`).
+ */
+export function answerAsk(input: AskInput, newId: () => string): HeadlessResult {
+  const saved = normalizeState(input.state)
+  if (!saved) return nothing('Abre Tasks para responder.')
+  const { now, taskId, reply } = input
+  if (reply !== 'done' && reply !== 'again') return nothing('Respuesta desconocida.')
+
+  const state = projected(saved, input.inbox, input.widgetChanges)
+  const task = state.tasks.find((item) => item.id === taskId)
+  if (!task || task.done) return nothing('No hay nada que cambiar.')
+
+  let ask: InboxAsk
+  if (reply === 'done') ask = { taskId: task.id, reply }
+  else {
+    const duration = extendedDuration(task, now)
+    if (duration === null) return nothing('No hay nada que cambiar.')
+    ask = { taskId: task.id, reply, duration }
+  }
+
+  const entry: InboxEntry = { id: newId(), createdAt: now, places: [], tasks: [], ask }
+  const next = applyInbox(state, [entry]).state
+  const message = reply === 'done' ? `Hecha: ${task.title}.` : `Alargada: ${task.title}.`
+  return { entry, message, plan: nativePlan(next, now), badge: badgeCount(next.tasks, now), widget: widgetSnapshot(next, now) }
 }

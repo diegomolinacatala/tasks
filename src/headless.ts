@@ -3,11 +3,11 @@
  * WebView (`ios/App/App/HeadlessCore.swift`). Allí no hay navegador: ni `window`, ni `fetch`, ni
  * `console`. Todo entra y sale como JSON en texto. `scripts/check-headless.mjs` lo comprueba.
  */
-import { addFromText, moveOverdue, sharesDictation, voiceContext } from './lib/headless'
+import { addFromText, answerAsk, moveOverdue, sharesDictation, voiceContext } from './lib/headless'
 import { createId } from './lib/id'
 
 /** Contrato con el lado nativo: sube si cambia la forma de lo que entra o sale. */
-export const version = 3
+export const version = 4
 
 /** Servidor del dictado de esta compilación; vacío si no lo tiene. */
 export const api = import.meta.env.VITE_PUSH_API ?? ''
@@ -23,3 +23,6 @@ export const add = (input: string): string => JSON.stringify(addFromText(JSON.pa
 
 /** `MoveInput` → `HeadlessResult`: pasar lo atrasado a hoy. */
 export const move = (input: string): string => JSON.stringify(moveOverdue(JSON.parse(input), createId))
+
+/** `AskInput` → `HeadlessResult`: "Sí, hecha" o "Todavía no" desde el aviso de cierre. */
+export const answer = (input: string): string => JSON.stringify(answerAsk(JSON.parse(input), createId))

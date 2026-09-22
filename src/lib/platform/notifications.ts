@@ -28,9 +28,10 @@ const DONE = { id: 'done', title: 'Hecha', foreground: true }
 const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
 
 /**
- * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy"; al acabar una tarea que dura,
- * "Sí, hecha" y "Todavía no". Abren la app (`foreground`): el estado vive en la web y con la app en
- * segundo plano iOS no garantiza que el WebView llegue a ejecutar nada.
+ * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy": abren la app (`foreground`),
+ * porque el estado vive en la web y con la app en segundo plano iOS no garantiza que el WebView
+ * llegue a ejecutar nada. Los del aviso de cierre, "Sí, hecha" y "Todavía no", no la abren ni piden
+ * desbloquear: los resuelve el lado nativo con `headless.js` (`NotificationResponder.swift`).
  */
 async function registerTaskActions(): Promise<void> {
   if (actionsRegistered) return
@@ -42,8 +43,8 @@ async function registerTaskActions(): Promise<void> {
       {
         id: ASK_CATEGORY,
         actions: [
-          { id: 'done', title: 'Sí, hecha', foreground: true },
-          { id: 'again', title: 'Todavía no', foreground: true },
+          { id: 'done', title: 'Sí, hecha' },
+          { id: 'again', title: 'Todavía no' },
         ],
       },
     ],

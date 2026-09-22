@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { emptyState } from '../state/reducer'
 import type { AppState, Task } from '../types'
 import { addDays, toInstant } from './date'
-import { addFromText, moveOverdue, sharesDictation, voiceContext } from './headless'
-import type { HeadlessInput } from './headless'
+import { addFromText, answerAsk, moveOverdue, sharesDictation, voiceContext } from './headless'
+import type { AskInput, HeadlessInput } from './headless'
 import type { InboxEntry } from './inbox'
 
 const TODAY = '2026-09-18'
@@ -189,5 +189,49 @@ describe('moveOverdue', () => {
       widget: null,
     })
     expect(move({ state: null })).toMatchObject({ entry: null, message: 'Abre Tasks para ver lo atrasado.', plan: null })
+  })
+})
+
+describe('answerAsk', () => {
+  // Empezó a las 9:00 y duraba una hora: a las 10:00 llega "¿Has acabado?".
+  const meeting = task({ id: 'reunion', title: 'Reunión con Jorge', time: '09:00', duration: 60 })
+  const stateOf = (tasks: Task[]) => JSON.parse(JSON.stringify(saved(tasks)))
+  const answer = (reply: unknown, partial: Partial<AskInput> = {}) =>
+    answerAsk({ now: NOW, taskId: 'reunion', reply, state: stateOf([meeting]), inbox: [], widgetChanges: [], ...partial }, sequence())
+
+  test('"Sí, hecha": la apunta en la bandeja y el icono y el widget ya la tienen tachada', () => {
+    const result = answer('done')
+    expect(result.entry).toEqual({ id: 'id-1', createdAt: NOW, places: [], tasks: [], ask: { taskId: 'reunion', reply: 'done' } })
+    expect(result.message).toBe('Hecha: Reunión con Jorge.')
+    expect(result.badge).toBe(0)
+    expect(result.widget?.tasks).toMatchObject([{ id: 'reunion', done: true }])
+    expect(result.plan?.timed).toEqual([])
+  })
+
+  test('"Todavía no": alarga la tarea 15 min desde ahora y vuelve a preguntar entonces', () => {
+    const result = answer('again')
+    expect(result.entry?.ask).toEqual({ taskId: 'reunion', reply: 'again', duration: 75 })
+    expect(result.plan?.timed).toMatchObject([{ at: toInstant(TODAY, '10:15'), category: 'task-ask', extra: { taskId: 'reunion' } }])
+    expect(result.badge).toBe(1)
+  })
+
+  test('responder tarde cuenta desde ahora, no desde el final previsto', () => {
+    const result = answer('again', { now: toInstant(TODAY, '10:40') })
+    expect(result.entry?.ask).toMatchObject({ duration: 115 })
+  })
+
+  test('cuenta con lo que ya hay en la bandeja: dos "Todavía no" seguidos alargan dos veces', () => {
+    const first = answer('again')
+    const second = answer('again', { now: toInstant(TODAY, '10:15'), inbox: [first.entry] })
+    expect(second.entry?.ask).toMatchObject({ duration: 90 })
+  })
+
+  test('sin nada que cambiar no apunta nada', () => {
+    const none = { entry: null, plan: null, badge: null, widget: null }
+    expect(answer('done', { state: stateOf([{ ...meeting, done: true }]) })).toMatchObject(none)
+    expect(answer('done', { taskId: 'borrada' })).toMatchObject(none)
+    expect(answer('again', { state: stateOf([{ ...meeting, duration: null }]) })).toMatchObject(none)
+    expect(answer('borrar')).toMatchObject(none)
+    expect(answer('done', { state: null })).toMatchObject({ ...none, message: 'Abre Tasks para responder.' })
   })
 })

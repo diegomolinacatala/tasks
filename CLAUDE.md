@@ -84,8 +84,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
    (`LiveActivityIntent`); si no hiciera nada, ver "Pasar a hoy". Del aviso de cierre, mirar si
    **Sí, hecha** y **Todavía no** salen al mantener pulsada la notificación (la categoría
-   `task-ask` solo queda registrada si la app se ha abierto alguna vez) y si tacharla desde ahí
-   deja la tarea bien al volver.
+   `task-ask` se registra al abrir la app: hay que abrirla una vez tras instalar) y, desde la
+   compilación con `NotificationResponder`, que respondan **sin abrir la app**, también con el
+   iPhone bloqueado. Si no hicieran nada, sospechar del delegado (que Capacitor lo recoloque).
 2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
@@ -320,6 +321,15 @@ notificación, sin entrar.
   hora exacta de acabar, y una línea que dice a qué hora será la pregunta. La fila enseña el tramo
   (`17:30–18:30`) en lugar de la hora suelta.
 - Categoría de botones `task-ask` en el iPhone; en la PWA, acciones `done` y `again` del push.
+- **En el iPhone los botones no abren la app** ni piden desbloquear (sin `foreground`): iOS la arranca
+  en segundo plano, sin WebView, y `NotificationResponder.swift` (delegado de notificaciones, puesto
+  en `AppDelegate` y recolocado delante del de Capacitor al cargar) lo resuelve con `QuickAdd.answer`
+  → `answerAsk` de `headless.js` → entrada `ask` en la bandeja (`{ taskId, reply: 'done' }` o
+  `{ reply: 'again', duration }` con la duración ya alargada, para que releerla no sume otro rato),
+  más avisos, icono y widget al día; "Todavía no" deja así programada la siguiente pregunta. El resto
+  de toques pasa al `NotificationRouter` de Capacitor (los que llegan antes de que exista, se
+  guardan). Sin `headless.js`, "Sí, hecha" se apunta igual y quita sus avisos, y "Todavía no" repite
+  el mismo aviso a los 15 min.
 
 ### Drag & drop
 
@@ -549,7 +559,7 @@ que las altas.
 - `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
   `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
   puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
-  lados (3 desde que existe `consent`).
+  lados (4 desde que existe `answer`).
 - Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
   del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
 - Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.

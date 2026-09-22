@@ -14,7 +14,7 @@ final class HeadlessCore {
     }
 
     /** Contrato con `src/headless.ts`: si no coincide, el paquete es de otra versión de la app. */
-    private static let version: Int32 = 3
+    private static let version: Int32 = 4
 
     /** El manejador de excepciones de JavaScriptCore no puede lanzar: deja aquí el mensaje. */
     private final class Exceptions {
@@ -86,6 +86,11 @@ final class HeadlessCore {
     /** `MoveInput` → `HeadlessResult`: lo atrasado, a hoy. */
     func moveOverdue(_ input: [String: Any]) throws -> [String: Any] {
         try object("move", input)
+    }
+
+    /** `AskInput` → `HeadlessResult`: "Sí, hecha" o "Todavía no" desde el aviso de cierre. */
+    func answer(_ input: [String: Any]) throws -> [String: Any] {
+        try object("answer", input)
     }
 
     private func object(_ name: String, _ input: [String: Any]) throws -> [String: Any] {

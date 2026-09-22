@@ -82,6 +82,15 @@ describe('parseInbox', () => {
     expect(broken).not.toHaveProperty('move')
   })
 
+  test('respuesta al aviso de cierre: "Sí, hecha" o "Todavía no" con una duración válida', () => {
+    const base = { id: 'e', createdAt: 1, places: [], tasks: [] }
+    expect(parseInbox([{ ...base, ask: { taskId: 't', reply: 'done' } }])[0]?.ask).toEqual({ taskId: 't', reply: 'done' })
+    expect(parseInbox([{ ...base, ask: { taskId: 't', reply: 'again', duration: 75 } }])[0]?.ask).toEqual({ taskId: 't', reply: 'again', duration: 75 })
+    expect(parseInbox([{ ...base, ask: { taskId: 't', reply: 'again' } }])[0]?.ask).toBeUndefined()
+    expect(parseInbox([{ ...base, ask: { taskId: 't', reply: 'borrar' } }])[0]?.ask).toBeUndefined()
+    expect(parseInbox([{ ...base, ask: { reply: 'done' } }])[0]?.ask).toBeUndefined()
+  })
+
   test('una entrada sin id se descarta entera', () => {
     expect(parseInbox([{ ...valid, id: '' }, { ...valid, id: 'e2', createdAt: 'ayer' }])).toEqual([])
   })
