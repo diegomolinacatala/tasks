@@ -46,11 +46,15 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   "Duración y aviso de cierre". Probado en el navegador (PWA): la píldora del compositor con el
   tramo, el panel de Duración con atajos y "Hasta…", el tramo en la fila, tocar el aviso (`?ask=1`)
   y tachar desde su toast, y "Todavía no" (`?action=again`) alargando la tarea.
-- **Banco del dictado con la IA real** tras el prompt de duraciones (21/09/2026), en dos mitades
-  para no agotar la cuota del día: la primera, 39/40 con las 4 de duración bien y ninguna duración
-  inventada en las demás. El único fallo, `presupuesto` ("en una hora" sin "avísame"), falla igual
-  con el prompt anterior: las reglas de AVISOS piden que el aviso se pida expresamente y las de HORA
-  dicen que "en X" es un aviso con `inMinutes`. Arreglarlo toca AVISOS y pide el banco entero.
+- **Banco del dictado con la IA real** tras el prompt de duraciones, en dos mitades para no agotar
+  la cuota del día (21 y 22/09/2026): **73/75**, duración 75/75 (las 4 de duración bien y ninguna
+  inventada en las demás). Fallos:
+  - `presupuesto` ("en una hora" sin "avísame") falla igual con el prompt anterior: las reglas de
+    AVISOS piden que el aviso se pida expresamente y las de HORA dicen que "en X" es un aviso con
+    `inMinutes`. Arreglarlo toca AVISOS y pide el banco entero.
+  - `abuelos` ("al mediodía", "el sábado por la noche") salió 12:00 y 20:00 una vez; repetido con
+    el mismo prompt pasa dos de dos, y con el anterior, una de una. Es variación del modelo, no una
+    regla que falle: si vuelve a salir, mirar las franjas del prompt.
   Local: 72/75, los 3 fallos de siempre.
 - TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. La 17 (`capacitor`) y la
   18 (`main`), el mismo commit, traen además el tramo con franja ("de 9 a 11 de la noche"). La 18
