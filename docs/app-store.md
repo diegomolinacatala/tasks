@@ -239,7 +239,7 @@ No abre la app: el widget, el número del icono y los avisos quedan al día solo
 | Subtítulo | Avisos por hora y al llegar |
 | Categoría | Productividad |
 | Edad | 4+ |
-| URL de soporte | https://github.com/diegomolinacatala/tasks/issues |
+| URL de soporte | https://diegomolinacatala.github.io/tasks/soporte.html |
 | URL de privacidad | https://diegomolinacatala.github.io/tasks/privacidad.html |
 | Precio | Gratis, sin compras dentro de la app |
 | Estado DSA (UE) | No comerciante |
@@ -307,10 +307,10 @@ sistema), así que TestFlight no pregunta por la exportación.
 
 En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
 Notas** (máximo 4000 caracteres; estas son unas 3500). Son lo mismo que pidió Apple en el rechazo del
-22/09/2026 (§7), sin el vídeo.
+22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
 
 ```
-No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Permitir" = Allow.
+No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Continuar" = Continue.
 
 PURPOSE AND AUDIENCE
 A simple daily to-do list for Spanish-speaking iPhone users who want to jot tasks down quickly and be reminded at the right time or place, without signing up or setting anything up. You write or say a task the way you would say it and the app sets the day, time and reminder.
@@ -321,12 +321,12 @@ HOW TO TEST
 - Tap a task to edit date, time, duration, reminders and importance. "Aa" (top right) is importance mode: drag the number on a task up or down; more important tasks get a larger title.
 - Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
 - Location reminders: Ajustes → Lugares → Añadir lugar → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
-- Dictation: with the bar empty, tap the microphone. The first time, a sheet explains that the audio is sent to our server and processed by Cloudflare Workers AI, and asks for permission ("Permitir"); then iOS asks for the microphone. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
+- Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
 - Ajustes → Datos: export or import a JSON backup.
 
 EXTERNAL SERVICES
-- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user allows it in the app; it can be withdrawn in Ajustes → Dictado. Without that permission nothing is sent and Siri input is parsed on the device.
+- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user has seen that notice and granted microphone access; it can be turned off in Ajustes → Dictado. Otherwise nothing is sent and Siri input is parsed on the device.
 - The backend keeps only a random device ID and a hash of its token, for rate limiting.
 - Apple Maps (MapKit search), iOS local notifications and region monitoring.
 - No analytics, advertising, tracking, third-party SDKs, payments or authentication services.
@@ -364,7 +364,7 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
    app*, vinculado *No*, rastreo *No* → **Guardar** → **Publicar** (arriba a la derecha).
 3. **Precios y disponibilidad**: precio 0 (gratis), países → **Guardar**.
 4. **1.0 Preparar para el envío** (bajo *iOS App*):
-   - Capturas de pantalla, descripción, palabras clave y URL de soporte (§3). La página enseña el
+   - Capturas de pantalla, descripción, palabras clave y URL de soporte (§3; GitHub Issues no vale: §8). La página enseña el
      hueco de 6,5", que no acepta las de 6,9": se suben con **Ver todos los tamaños en "Gestor de
      recursos multimedia"** → *6,9"*, y el de 6,5" queda *Usando Pantalla de 6,9"*.
    - **Compilación → Añadir compilación** → la más reciente.
@@ -487,6 +487,55 @@ None. The app works the same in every region where it is available. Its interfac
 
 6. REGULATED INDUSTRY OR PROTECTED THIRD-PARTY MATERIAL
 Not applicable: the app does not operate in a regulated industry and does not include third-party protected material.
+
+Thank you,
+Diego Molina Catalá
+```
+
+## 8. Rechazo del 23/09/2026: 5.1.1(iv) y 1.5
+
+Apple revisó la compilación 20 (en un iPad Air, con la app de iPhone ampliada) y señaló dos cosas:
+
+- **5.1.1(iv), permiso del micrófono.** El panel del dictado salía antes de la petición del micrófono
+  con **Permitir** y **Ahora no**. Apple no admite que un aviso previo pida permiso por su cuenta ni que
+  deje aplazar la petición del sistema: pide un botón tipo *Continuar* y que siempre lleve a ella.
+  Ahora el panel tiene solo **Continuar**, no se cierra de otra forma (ni tocando fuera ni deslizando)
+  y lleva directo al permiso de iOS, que es quien decide. El permiso del dictado queda dado cuando iOS
+  concede el micrófono; si lo deniega, no se envía nada, el panel vuelve la próxima vez y un aviso
+  *Sin acceso al micrófono* lleva a **Ajustes** (lo que sugiere Apple). El texto de iOS
+  (`NSMicrophoneUsageDescription`) nombra también la IA de Cloudflare, para cumplir la 5.1.2(i).
+- **1.5, URL de soporte.** GitHub Issues no cuenta como web de soporte (pide cuenta y no tiene
+  información). Ahora es `https://diegomolinacatala.github.io/tasks/soporte.html`: correo de contacto
+  (`diegomolinacatala+tasks@gmail.com`), preguntas frecuentes en español, un resumen en inglés y la
+  política de privacidad. La política también da ya ese correo.
+
+### 8.1 Responder y reenviar (tú, en App Store Connect)
+
+1. Esperar a que la compilación nueva (la primera después de la 20) salga en *TestFlight* sin el
+   aviso *Procesando*. Llega un correo de Apple cuando está lista.
+2. **Distribución** → columna izquierda, **1.0 Rechazado** (bajo *App para iOS*):
+   - **URL de soporte**: borrar la de GitHub y pegar `https://diegomolinacatala.github.io/tasks/soporte.html`.
+   - **Compilación**: pasar el ratón por la 20 → **−** (o la papelera) → **Añadir compilación** → la
+     nueva → **Listo**. Si pregunta por el cifrado: *Ninguno de los algoritmos mencionados*.
+   - **Información para la revisión → Notas**: borrar lo que haya y pegar el bloque del §5.
+   - **Guardar** (arriba a la derecha).
+3. Columna izquierda → **Revisión de apps** → el envío del *martes, 11:14* → abajo del todo, en el
+   mensaje de Apple, **Responder** → pegar la respuesta del §8.2 cambiando `[N]` por el número de la
+   compilación nueva → **Enviar**.
+4. Arriba a la derecha, **Volver a enviar a revisión de apps**.
+
+### 8.2 Respuesta para Apple
+
+```
+Hello, and thank you for the detailed feedback.
+
+Both issues are resolved in build 1.0 ([N]), which is now selected for review.
+
+Guideline 5.1.1(iv) - Microphone permission
+The notice shown before the microphone permission request no longer has "Permitir" (Allow) or "Ahora no" (Not now). Its only button is "Continuar" (Continue) and it cannot be dismissed in any other way, so the user always proceeds to the iOS microphone permission request, where they decide. The notice only explains where the audio goes (our server and Cloudflare Workers AI), which guideline 5.1.2(i) requires us to disclose; the microphone purpose string says the same. If microphone access is denied, nothing is sent, dictation stays off and the app shows a message with a button that opens the app's page in Settings. Typing tasks works without the microphone.
+
+Guideline 1.5 - Support URL
+The Support URL is now https://diegomolinacatala.github.io/tasks/soporte.html, a support page with a contact email address, frequently asked questions (in Spanish, with a summary in English) and a link to the privacy policy.
 
 Thank you,
 Diego Molina Catalá

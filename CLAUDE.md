@@ -10,13 +10,13 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (21/09/2026)
+## Estado actual (24/09/2026)
 
 **Hecho**
 
 - App de iPhone completa: avisos locales, lugares, Siri, accesos rápidos, vibración, fichero de
   estado, widget, acción "Nueva tarea" de Atajos, CI hacia TestFlight, política de privacidad y
-  ficha de la App Store. Tests: 506 de la app y 146 del Worker; la PWA probada en el navegador sin
+  ficha de la App Store. Tests: 516 de la app y 146 del Worker; la PWA probada en el navegador sin
   cambios de comportamiento.
 - `capacitor` unida a `main` por tercera vez (fast-forward) el 21/09/2026: la web pública y el
   Worker llevan ya todo lo de abajo. Cada push a cualquiera de las dos que toque la app sube una
@@ -68,11 +68,16 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   regiones…). Antes de responder se añadió el **permiso del dictado** (ver "Dictado"), por la norma
   5.1.2(i) sobre compartir datos con una IA de terceros. Respuesta, notas en inglés y guion del vídeo
   en `docs/app-store.md` §5 y §7.
+- **Rechazada otra vez** (23/09/2026, compilación 20) por dos cosas concretas, ya corregidas el
+  24/09/2026: **5.1.1(iv)**, el panel del dictado pedía permiso por su cuenta (*Permitir* / *Ahora
+  no*) antes del del micrófono: ahora solo tiene **Continuar** y lleva siempre al de iOS; y **1.5**,
+  GitHub Issues no vale como URL de soporte: ahora es `public/soporte.html`, con el correo
+  `diegomolinacatala+tasks@gmail.com`. Pasos y respuesta en `docs/app-store.md` §8.
 
 **Pendiente, en este orden**
 
-0. Responder al rechazo siguiendo `docs/app-store.md` §7: el usuario graba el vídeo con la compilación
-   nueva (la primera tras la 18), pega las notas y la respuesta, cambia la compilación y reenvía.
+0. Responder al segundo rechazo siguiendo `docs/app-store.md` §8.1: el usuario cambia la URL de
+   soporte, la compilación (la primera tras la 20) y las notas, responde con §8.2 y reenvía.
    Luego, revisión de Apple (hasta 48 h). Al quedar *Pendiente de publicación del desarrollador*, pulsar
    **Publicar esta versión**. Si la rechazan, el motivo está en el *Centro de resoluciones*. Declarar
    en **Negocio** que no es comerciante (DSA) si no se ha hecho: sin eso no sale en la UE.
@@ -201,6 +206,7 @@ ios/App/TasksWidget/      # extensión del widget; WidgetStore y MoveOverdueWidg
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 docs/capturas/            # capturas de la App Store (1320 × 2868), en orden de subida
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
+public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store)
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
 scripts/app-store-shots.mjs # capturas de la App Store con Edge sin ventana (instrucciones dentro)
@@ -394,8 +400,12 @@ toast enseña lo entendido con "Deshacer".
     de 8 s o no devuelve nada válido, se usa `parseSpoken` sobre el texto.
   - **Permiso**: nada dicho sale del dispositivo sin `settings.dictation` (App Store, norma
     5.1.2(i): IA de terceros). La primera vez que se toca el micrófono, `DictationConsent` (trozo
-    aparte) dice adónde va el audio y pide **Permitir**, que graba en ese mismo toque (iOS solo abre
-    el audio dentro de un gesto). Siri sin permiso usa el analizador local (`sharesDictation`, que
+    aparte) dice adónde va el audio con un solo botón, **Continuar**, que graba en ese mismo toque
+    (iOS solo abre el audio dentro de un gesto) y así lanza el permiso del micrófono. El panel no se
+    cierra de otra forma: Apple (norma 5.1.1(iv)) rechaza un aviso previo que pida permiso por su
+    cuenta ("Permitir") o deje aplazar el del sistema ("Ahora no"). `settings.dictation` se guarda
+    cuando iOS concede el micrófono; si lo niega, un toast lleva a Ajustes y el panel vuelve la
+    próxima vez. Siri sin permiso usa el analizador local (`sharesDictation`, que
     `QuickAdd` consulta antes de llamar al servidor). Se retira en Ajustes → *Dictado*. Es del
     dispositivo: importar una copia (`state/import`) no lo trae ni lo quita.
   - Lugar: el modelo copia también el fragmento `lugar` y devuelve solo el nombre dicho

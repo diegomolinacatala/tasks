@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>Soporte · Tasks</title>
+    <style>
+      :root {
+        --bg: #000;
+        --text: #ededf0;
+        --text-2: #98989f;
+        --accent: #6e8bff;
+        --line: rgba(255, 255, 255, 0.07);
+        --card: #111114;
+      }
+      body {
+        margin: 0;
+        padding: max(32px, env(safe-area-inset-top)) 20px 48px;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-2);
+        margin: 36px 0 8px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      h3 {
+        font-size: 17px;
+        margin: 20px 0 4px;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      .date {
+        color: var(--text-2);
+        margin: 0 0 24px;
+      }
+      .contact {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        margin: 0 0 12px;
+      }
+      .contact a {
+        font-size: 18px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      .contact p:last-child {
+        margin: 6px 0 0;
+        color: var(--text-2);
+        font-size: 15px;
+      }
+      a {
+        color: var(--accent);
+      }
+      strong {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Soporte</h1>
+      <p class="date">Tasks: tareas y lugares · para iPhone</p>
+
+      <p>
+        Tasks es una lista de tareas del día, sin cuentas: escribes o dices la tarea como la dirías y la app pone el
+        día, la hora y el aviso. Si algo no funciona, tienes una duda o quieres proponer algo, escríbenos.
+      </p>
+
+      <div class="contact">
+        <a href="mailto:diegomolinacatala+tasks@gmail.com?subject=Tasks">diegomolinacatala+tasks<wbr />@gmail.com</a>
+        <p>Cuéntanos qué pasa, el modelo de iPhone y la versión de iOS. Una captura ayuda mucho. Respondemos en unos días.</p>
+      </div>
+
+      <h2>Preguntas frecuentes</h2>
+
+      <h3>¿Dónde se guardan mis tareas?</h3>
+      <p>
+        Solo en tu iPhone. No hay cuentas ni sincronización. Para pasarlas a otro dispositivo: en Tasks, botón
+        <strong>···</strong> → <strong>Exportar copia</strong>, y en el otro, <strong>Importar copia</strong>. Si
+        borras la app, se borran sus tareas.
+      </p>
+
+      <h3>No me llegan los avisos</h3>
+      <p>
+        Ajustes del iPhone → <strong>Tasks</strong> → <strong>Notificaciones</strong> → activa
+        <strong>Permitir notificaciones</strong>. Revisa también que no esté activo un modo de Concentración que
+        silencie Tasks.
+      </p>
+
+      <h3>No me avisa al llegar a un sitio</h3>
+      <p>
+        El lugar tiene que tener ubicación (en Tasks, <strong>···</strong> → <strong>Lugares</strong>) y Tasks
+        necesita la ubicación <strong>Al usar la app</strong>: Ajustes del iPhone → <strong>Tasks</strong> →
+        <strong>Ubicación</strong>. El aviso lo da el propio iPhone y puede tardar unos minutos en detectar que has
+        llegado.
+      </p>
+
+      <h3>El micrófono no funciona</h3>
+      <p>
+        Ajustes del iPhone → <strong>Tasks</strong> → activa <strong>Micrófono</strong>. El dictado necesita
+        conexión a internet. Si ves «Dictado agotado por hoy», se ha alcanzado el límite diario del servicio y
+        vuelve a funcionar al día siguiente; mientras, puedes escribir la tarea.
+      </p>
+
+      <h3>No quiero que mi voz salga del iPhone</h3>
+      <p>
+        En Tasks, <strong>···</strong> → <strong>Dictado</strong> → <strong>No enviar la voz</strong>. Escribir
+        tareas y apuntarlas con Siri siguen funcionando sin enviar nada. Más detalles en la
+        <a href="privacidad.html">política de privacidad</a>.
+      </p>
+
+      <h3>¿Cómo la uso con Siri?</h3>
+      <p>
+        Di <strong>«Oye Siri, apunta en Tasks»</strong> y después la tarea. Se apunta sin abrir la app. También
+        están en la app Atajos: <strong>Añadir tarea</strong> y <strong>Pasar atrasadas a hoy</strong>.
+      </p>
+
+      <h2 lang="en">Support in English</h2>
+      <div lang="en">
+        <p>
+          Tasks is a simple daily to-do list for iPhone with no accounts. Tasks and places are stored only on your
+          device. For questions, problems or suggestions, email
+          <a href="mailto:diegomolinacatala+tasks@gmail.com?subject=Tasks">diegomolinacatala+tasks@gmail.com</a>
+          with your iPhone model and iOS version. We usually reply within a few days.
+        </p>
+        <p>
+          Notifications, location and microphone access can be changed in the iPhone Settings app → Tasks.
+          Dictation sends audio to our server only after you continue past the notice shown the first time you tap
+          the microphone and allow microphone access; you can turn it off in Tasks → ··· → Dictado → No enviar la
+          voz. See the <a href="privacidad.html">privacy policy</a>.
+        </p>
+      </div>
+
+      <h2>Privacidad</h2>
+      <p>
+        Sin publicidad, sin analítica y sin registro. Qué sale del iPhone y por qué:
+        <a href="privacidad.html">política de privacidad</a>.
+      </p>
+    </main>
+  </body>
+</html>
