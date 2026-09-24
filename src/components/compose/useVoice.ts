@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { nextUtcMidnight, shortTime, timeOfInstant } from '../../lib/date'
+import { isNative } from '../../lib/platform'
 import { PushApiError } from '../../lib/push/api'
 import type { Capture } from '../../lib/voice/capture'
 import { createAudioContext, startCapture } from '../../lib/voice/capture'
@@ -22,10 +23,12 @@ interface Session {
   cancel: () => void
 }
 
+function micDenied(error: unknown): boolean {
+  return error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+}
+
 function errorMessage(error: unknown): string {
-  if (error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) {
-    return 'Permite el acceso al micrófono para dictar.'
-  }
+  if (micDenied(error)) return 'Permite el acceso al micrófono para dictar.'
   if (error instanceof DOMException && error.name === 'NotFoundError') return 'No se encuentra ningún micrófono.'
   // 503: el servidor ha gastado la cuota diaria de Workers AI, que se renueva a las 00:00 UTC.
   if (error instanceof PushApiError && error.status === 503) {
@@ -44,7 +47,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const toast = useToast()
   const allowed = useAppState().settings.dictation
   const dispatch = useDispatch()
-  /** Pidiendo permiso para mandar el audio al servidor: nada sale del móvil sin él. */
+  /** Contando adónde va el audio antes de que el sistema pida el micrófono: nada sale del móvil sin eso. */
   const [asking, setAsking] = useState(false)
   const [phase, setPhase] = useState<VoicePhase>('idle')
   const [level, setLevel] = useState(0)
@@ -70,13 +73,30 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     [onText, toast],
   )
 
-  const record = useCallback(() => {
+  /** En el iPhone, sin micrófono no hay dictado: el aviso lleva a Ajustes, que es donde se da. */
+  const fail = useCallback(
+    (error: unknown) => {
+      if (isNative && micDenied(error)) {
+        toast({
+          message: 'Sin acceso al micrófono.',
+          actionLabel: 'Ajustes',
+          onAction: () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings()),
+        })
+        return
+      }
+      toast({ message: errorMessage(error) })
+    },
+    [toast],
+  )
+
+  /** `granted`: se llama cuando el sistema ya ha dado el micrófono y empieza a grabar. */
+  const record = useCallback((granted?: () => void) => {
     // El contexto de audio se crea antes de cualquier await: iOS lo exige dentro del gesto.
     let context: AudioContext
     try {
       context = createAudioContext()
     } catch (error) {
-      toast({ message: errorMessage(error) })
+      fail(error)
       return
     }
 
@@ -103,6 +123,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
           capture.cancel()
           return
         }
+        granted?.()
         const audio = await capture.result
         if (audio.status === 'cancelled' || controller.signal.aborted) return
         if (audio.status === 'silent') {
@@ -119,13 +140,13 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
         if (!controller.signal.aborted) deliver(text, tasks)
       } catch (error) {
         if (timedOut) toast({ message: 'El dictado está tardando demasiado. Prueba otra vez.' })
-        else if (!controller.signal.aborted) toast({ message: errorMessage(error) })
+        else if (!controller.signal.aborted) fail(error)
       } finally {
         clearTimeout(timer)
         finish(current)
       }
     })()
-  }, [deliver, finish, push, toast])
+  }, [deliver, fail, finish, push, toast])
 
   const dictate = useCallback(() => {
     try {
@@ -153,18 +174,19 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     })
   }, [allowed, dictate, phase, push.canTranscribe, push.status, record, toast])
 
-  /** Graba en el mismo toque de "Permitir": iOS solo abre el audio dentro de un gesto. */
-  const allow = useCallback(() => {
-    dispatch({ type: 'settings/dictation', allowed: true })
+  /**
+   * Graba en el mismo toque de "Continuar": iOS solo abre el audio dentro de un gesto. El permiso
+   * queda dado cuando el sistema concede el micrófono; si lo niega, el aviso vuelve la próxima vez.
+   */
+  const proceed = useCallback(() => {
     setAsking(false)
-    record()
+    record(() => dispatch({ type: 'settings/dictation', allowed: true }))
   }, [dispatch, record])
 
-  const dismiss = useCallback(() => setAsking(false), [])
   const stop = useCallback(() => session.current?.stop(), [])
   const cancel = useCallback(() => session.current?.cancel(), [])
 
   useEffect(() => () => session.current?.cancel(), [])
 
-  return { phase, level, partial, start, stop, cancel, asking, allow, dismiss }
+  return { phase, level, partial, start, stop, cancel, asking, proceed }
 }

@@ -8,7 +8,8 @@ const CLOSE_DRAG_PX = 90
 
 interface SheetProps {
   open: boolean
-  onClose: () => void
+  /** Sin él, el panel solo se cierra desde dentro: sin asa, sin tocar fuera y sin Escape. */
+  onClose?: () => void
   title: string
   children: ReactNode
 }
@@ -43,7 +44,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onClose?.()
     }
     document.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
@@ -67,27 +68,35 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   }
 
   const onHandleUp = () => {
-    if (dragged.current > CLOSE_DRAG_PX) onClose()
+    if (dragged.current > CLOSE_DRAG_PX) onClose?.()
     drag(0)
   }
 
   return createPortal(
     <div className={`sheet ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-      <button type="button" className="sheet__scrim" aria-label="Cerrar" onClick={onClose} />
+      {onClose ? (
+        <button type="button" className="sheet__scrim" aria-label="Cerrar" onClick={onClose} />
+      ) : (
+        <div className="sheet__scrim" />
+      )}
       <div
         ref={panel}
         className="sheet__panel"
         style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
       >
-        <div
-          className="sheet__grab"
-          onPointerDown={onHandleDown}
-          onPointerMove={onHandleMove}
-          onPointerUp={onHandleUp}
-          onPointerCancel={onHandleUp}
-        >
-          <span />
-        </div>
+        {onClose ? (
+          <div
+            className="sheet__grab"
+            onPointerDown={onHandleDown}
+            onPointerMove={onHandleMove}
+            onPointerUp={onHandleUp}
+            onPointerCancel={onHandleUp}
+          >
+            <span />
+          </div>
+        ) : (
+          <div className="sheet__top" />
+        )}
         <div className="sheet__body">{children}</div>
       </div>
     </div>,

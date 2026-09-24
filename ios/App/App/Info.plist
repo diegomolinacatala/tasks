@@ -51,7 +51,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Para avisarte al llegar o salir de tus lugares y buscar sitios cerca de ti.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Para dictar tareas con la voz. El audio se transcribe en nuestro servidor y no se guarda.</string>
+	<string>Para dictar tareas con la voz. El audio se envía a nuestro servidor, lo procesan modelos de IA de Cloudflare (Workers AI) y no se guarda.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -48,6 +48,10 @@
   cursor: grab;
 }
 
+.sheet__top {
+  height: var(--sp-4);
+}
+
 .sheet__grab span {
   width: 36px;
   height: 4px;

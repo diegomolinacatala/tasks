@@ -7,7 +7,7 @@ import { VoiceBar } from './VoiceBar'
 import { useVoice } from './useVoice'
 import './composer.css'
 
-// Se pide una sola vez por dispositivo: no merece estar en el paquete principal.
+// Se enseña una sola vez por dispositivo: no merece estar en el paquete principal.
 const DictationConsent = lazy(() =>
   import('./DictationConsent').then((module) => ({ default: module.DictationConsent })),
 )
@@ -142,7 +142,7 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
       </form>
       {voice.asking && (
         <Suspense fallback={null}>
-          <DictationConsent open onAllow={voice.allow} onClose={voice.dismiss} />
+          <DictationConsent open onContinue={voice.proceed} />
         </Suspense>
       )}
     </>
