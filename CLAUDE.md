@@ -10,7 +10,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (24/09/2026)
+## Estado actual (25/09/2026)
 
 **Hecho**
 
@@ -73,12 +73,12 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   no*) antes del del micrófono: ahora solo tiene **Continuar** y lleva siempre al de iOS; y **1.5**,
   GitHub Issues no vale como URL de soporte: ahora es `public/soporte.html`, con el correo
   `diegomolinacatala+tasks@gmail.com`. Pasos y respuesta en `docs/app-store.md` §8.
+- **Reenviada** (25/09/2026, 13:30) con la compilación 24 (`main`), la URL de soporte nueva, las
+  notas del §5 y la respuesta del §8.2: *Esperando revisión*.
 
 **Pendiente, en este orden**
 
-0. Responder al segundo rechazo siguiendo `docs/app-store.md` §8.1: el usuario cambia la URL de
-   soporte, la compilación (la primera tras la 20) y las notas, responde con §8.2 y reenvía.
-   Luego, revisión de Apple (hasta 48 h). Al quedar *Pendiente de publicación del desarrollador*, pulsar
+0. Esperar la revisión de Apple (hasta 48 h) de la compilación 24. Al quedar *Pendiente de publicación del desarrollador*, pulsar
    **Publicar esta versión**. Si la rechazan, el motivo está en el *Centro de resoluciones*. Declarar
    en **Negocio** que no es comerciante (DSA) si no se ha hecho: sin eso no sale en la UE.
    En cuanto se apruebe, subir `MARKETING_VERSION` a 1.1 antes del siguiente push: App Store Connect
