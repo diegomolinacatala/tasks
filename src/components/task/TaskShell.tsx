@@ -59,8 +59,11 @@ export function TaskShell({
   }
 
   return (
-    <li ref={setNodeRef} className={`task ${isDragging ? 'is-dragging' : ''}`} style={style}>
-      <div className="task__affordance" aria-hidden="true">
+    <li ref={setNodeRef} className={`task ${isDragging ? 'is-dragging' : ''}`} style={style} data-flip={task.id}>
+      <div
+        className={`task__affordance ${swipe.offset > 0 ? 'is-done' : ''} ${swipe.offset < 0 ? 'is-delete' : ''}`}
+        aria-hidden="true"
+      >
         <span className="task__act task__act--done" style={{ opacity: swipe.offset > 0 ? progress : 0 }}>
           <IconCheck size={18} />
         </span>

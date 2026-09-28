@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { dayNameLong, dayNumber, monthShort, relativeLabel } from '../../lib/date'
+import { dayNameLong, dayNumber, monthLong, relativeLabel } from '../../lib/date'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { progressOf, tasksOn } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
@@ -76,11 +76,12 @@ export function HomeView({ today, onOpenTask, onOpenSection }: HomeViewProps) {
         <p className="view__kicker">{dayNameLong(today)}</p>
         <div className="view__headline">
           <h1 className="view__title">
-            {dayNumber(today)} <span className="view__title-dim">{monthShort(today)}</span>
+            {dayNumber(today)} <span className="view__title-dim">{monthLong(today)}</span>
           </h1>
           {progress.total > 0 && (
-            <p className="view__stat">
-              {progress.done}/{progress.total}
+            <p className="view__stat" aria-label={`${progress.done} de ${progress.total} hechas`}>
+              {progress.done}
+              <span className="view__stat-total">/{progress.total}</span>
             </p>
           )}
         </div>

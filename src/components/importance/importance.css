@@ -28,13 +28,13 @@
 
 .knob.is-set .knob__value {
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.45);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 .knob.is-active .knob__value {
-  color: var(--text);
-  background: var(--accent-dim);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--on-primary);
+  background: var(--primary);
+  box-shadow: none;
   transform: scale(1.2);
 }
 
@@ -78,8 +78,8 @@
 }
 
 .scale__step.is-active {
-  color: var(--accent);
-  background: var(--accent-dim);
+  color: var(--on-primary);
+  background: var(--primary);
 }
 
 .scale__step:active {

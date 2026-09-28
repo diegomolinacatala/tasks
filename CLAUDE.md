@@ -80,10 +80,20 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Aprobada y publicada** (27/09/2026, 17:29): la 1.0 (compilación 24) está en la App Store, gratis,
   también en la UE (el estado de comerciante está bien: sale en España, Francia y Alemania).
   `MARKETING_VERSION` subido a 1.1 el 28/09/2026, porque la 1.0 ya no admite compilaciones nuevas.
+- **Rediseño "old money"** (28/09/2026, sin commitear ni probar aún en el iPhone): papel marfil,
+  tinta azul marino, coñac y oro viejo; fechas y titulares en New York (serif del sistema); icono
+  nuevo; arranque en frío sin saltos (ver "Arranque"); filas que se deslizan al reordenarse; capturas
+  de la App Store nuevas. Probado en el navegador. Además, **arreglado** que al elegir una hora a mano
+  se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
 
 **Pendiente, en este orden**
 
-1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
+1. Probar el rediseño en el iPhone: abrir la app **cerrada del todo** (la pantalla de carga no debe
+   saltar ni parpadear al dar paso a la app), el icono (también el oscuro de iOS 18), el widget en
+   claro y en oscuro, y elegir horas con la rueda (inicio, "Hasta…", "Otra…" y el resumen diario).
+   iOS guarda en caché la pantalla de carga: si sale la antigua, reiniciar el iPhone. Después, subir
+   las capturas nuevas y enviar la 1.1 (`docs/app-store.md` §3 y §9).
+2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
    (`LiveActivityIntent`); si no hiciera nada, ver "Pasar a hoy". Del aviso de cierre, mirar si
@@ -91,7 +101,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    `task-ask` se registra al abrir la app: hay que abrirla una vez tras instalar) y, desde la
    compilación con `NotificationResponder`, que respondan **sin abrir la app**, también con el
    iPhone bloqueado. Si no hicieran nada, sospechar del delegado (que Capacitor lo recoloque).
-2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
+3. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
 
@@ -127,7 +137,8 @@ npm run typecheck  # tsc de la app y del service worker (tsconfig.sw.json)
 npm run build      # typecheck + build de producción a dist/
 npm run build:native  # typecheck + web para la app (dist-native/) + headless.js + cap sync ios
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
-npm run icons      # regenera public/icons/* y el icono y la pantalla de carga de iOS
+npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
+node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (antes, npm run build)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
 
@@ -160,8 +171,8 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas. El bundle de la PWA debe seguir por debajo de ~120 kB gzip (119,7 el
-22/09/2026): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
+sin fuentes externas (la serif es la del sistema). El bundle de la PWA debe seguir en ~120 kB gzip
+(120,2 el 28/09/2026, tras el rediseño): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
 editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
 con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
 pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
@@ -199,6 +210,8 @@ src/
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
 │   ├── transition.ts     # View Transitions API con degradación
+│   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app
+│   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio: shell, views, task, importance, section, compose, push, places, settings, ui, dnd
@@ -211,7 +224,9 @@ public/privacidad.html    # política de privacidad (URL que pide la App Store)
 public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store)
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
-scripts/app-store-shots.mjs # capturas de la App Store con Edge sin ventana (instrucciones dentro)
+scripts/brand.mjs         # la marca (señal a pluma) en SVG: icono, favicon, pantalla de carga y #boot
+scripts/edge.mjs          # Edge sin ventana por CDP y PNG sin dependencias (iconos y capturas)
+scripts/app-store-shots.mjs # capturas de la App Store; plantillas en store-frames.mjs y store-widgets.mjs
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
@@ -256,6 +271,28 @@ Dos vistas (`ViewId`): `home` y `week`.
 de `Atrasadas` lleva **Pasar a hoy** (se ve también plegada).
 
 Arriba a la derecha, **Aa** (modo importancia) y **⋯** (Ajustes).
+
+### Arranque
+
+Los primeros segundos no deben saltar: cada relevo es invisible y la entrada, suave.
+
+1. **Pantalla de carga nativa** (`LaunchScreen.storyboard`): papel marfil y la señal
+   (`LaunchMark`, 92 pt, @1x/@2x/@3x) en el centro exacto de la pantalla, con restricciones de
+   Auto Layout. Antes era una imagen de 2732 px escalada con *aspect fill*: de ahí el logo "bugueado".
+   El plugin SplashScreen la mantiene encima del WebView (`launchAutoHide: false`).
+2. **`#boot` en `index.html`**: la misma pantalla, pintada antes que el JS (CSS en línea, la señal
+   inyectada desde `brand.mjs` por el plugin `tasks-boot-mark` de `vite.config.ts`). Un script en
+   línea quita la carga nativa en cuanto `#boot` está pintado (`Capacitor.nativePromise`), sin
+   esperar al paquete: como son iguales al píxel, no se nota. `showApp` la quita igualmente por si
+   acaso.
+3. Si la app tarda más de 450 ms, la señal cede el sitio a un **esqueleto** de la pantalla (cabecera,
+   filas y barra que laten).
+4. Con el estado pintado, `finishBoot` (`lib/boot.ts`) funde `#boot` y la app entra escalonada
+   (`.is-entering` en `shell.css`: cabecera, bloques y barra suben unos píxeles). Se puede tocar
+   desde el primer momento.
+
+En un iPhone normal la señal da paso a la app en unos 200 ms y el esqueleto no llega a verse. La
+vista semana, si se abre antes de cargarse su trozo, enseña su propio esqueleto (`Skeleton`).
 
 ### Pasar a hoy
 
@@ -375,6 +412,14 @@ También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes",
 las 9", "el día antes") y números en palabras: `normalize.ts` los pasa a dígitos guardando de
 qué parte del original viene cada carácter, para recortar bien el título. Si la frase pide
 avisos concretos, no se añade el de "a la hora".
+
+### Elegir fecha u hora a mano (`PickerChip`)
+
+Las píldoras de fecha y hora (Otro día, Elegir hora, Hasta…, Otra…, el resumen diario) abren el
+selector nativo con un `<input>` oculto. **Nunca guardar en `onChange`**: iOS lanza `input` con
+cada giro de la rueda, y guardar ahí fijaba valores de paso (un recordatorio con la primera hora por
+la que pasaba; un "Hasta…" anterior al inicio que se recortaba a 12 h y hacía saltar la rueda). Lo
+elegido queda en borrador y se guarda al cerrar el selector (`blur`, o al desmontar).
 
 ### Dictado
 
@@ -501,12 +546,14 @@ la misma.
   *Dictar tarea* ("Dictar texto" + "Añadir tarea"). Para escribir, `ComposeTaskIntent` ("Nueva
   tarea", sin frase de Siri para no chocar con la de añadir), que abre la app con el teclado: envía
   `compose`, igual que el acceso rápido del icono.
-- **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado clara y pantalla
-  de carga que la web oculta al pintar.
+- **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado en tinta
+  (`Style.Light`, `UIStatusBarStyleDarkContent`) y apariencia clara forzada (`UIUserInterfaceStyle`
+  `Light`): la app no tiene modo oscuro. La pantalla de carga, en "Arranque".
 - **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
   bloque Hoy con lo atrasado en rojo y el número del icono. Con algo atrasado, **A hoy** (ver "Pasar
   a hoy"). Los títulos crecen con la importancia (`RowStyle.titleFont`). Mismos colores que
-  `tokens.css` (`Palette`). Datos por el App Group, con un fichero para cada lado:
+  `tokens.css` (`Palette`) y la cifra en New York; a diferencia de la app, en modo oscuro del
+  iPhone pasa a azul noche. Datos por el App Group, con un fichero para cada lado:
   - La app escribe `widget-snapshot.json` con `widgetSnapshot` (`NativeWidget`, debounce 400 ms y
     al instante al pasar a segundo plano) y pide recargar. La foto trae lo atrasado y 7 días por
     delante: el widget tiene una entrada por medianoche y cambia de día sin abrir la app.
@@ -623,11 +670,21 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
 
 ## Estilo visual
 
-Negro puro, siempre oscuro. Tipografía del sistema, jerarquía por tamaño y peso, un solo
-acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
+"Old money": papelería de casa antigua. Siempre claro. Papel marfil (`--bg`), tinta azul marino
+(`--text`), coñac (`--accent`) para lo interactivo y lo completado, azul marino macizo
+(`--primary`) para lo elegido y la acción principal, y oro viejo (`--gold`) solo para filetes.
 
-- Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.**
-- `--danger` significa una sola cosa: atrasado. No se usa de adorno.
+- Letra: fechas, bloques (Atrasadas, Hoy, Sin fecha), títulos de panel y vacíos en **New York**
+  (`--font-serif`: `ui-serif`, la serif del sistema, sin descargar nada); el resto, San Francisco.
+  Secciones y etiquetas en versalitas espaciadas.
+- Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.** Contrastes
+  comprobados: tinta 13:1, secundario 6,5:1, coñac 5:1 sobre el papel.
+- `--danger` (ladrillo) significa una sola cosa: atrasado (o borrar). No se usa de adorno.
+- Movimiento: completar rellena el círculo con rebote (`--ease-pop`), dibuja la marca y tacha a
+  pluma; las filas se deslizan a su sitio (`lib/flip.ts`); los paneles suben con la curva de iOS y
+  bajan más deprisa; los avisos entran y salen.
+- La marca (señal a pluma en tinta, doble filete de oro en el icono) sale de `scripts/brand.mjs`:
+  cambiarla ahí y `npm run icons`.
 - CSS por componente, junto al componente. Clases en kebab-case estilo BEM ligero.
 - Animar solo `transform` y `opacity`.
 - Respetar `prefers-reduced-motion` y las safe areas (`--safe-t`, `--safe-b`, `--kb`).
@@ -670,6 +727,8 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
   Atajos).
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
+- Siempre claro, sin modo oscuro en la app (el widget sí se adapta): el papel marfil es la identidad,
+  y así la pantalla de carga nativa siempre coincide con la web.
 
 ## Despliegue
 

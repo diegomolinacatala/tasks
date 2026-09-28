@@ -1,28 +1,43 @@
+/* La barra de escribir: una tarjeta de papel posada sobre la lista */
 .composer {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  height: var(--composer-h);
-  padding: 0 18px;
-  border-top: 1px solid var(--line);
-  background: var(--bg);
+  height: calc(var(--composer-h) - 16px);
+  margin: 8px 12px;
+  padding: 0 8px 0 13px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-2) var(--ease);
+}
+
+.composer:focus-within {
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--accent-line);
 }
 
 .composer__mark {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 21px;
-  height: 21px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--r-full);
   color: var(--text-3);
   border: 1.5px dashed var(--line-2);
-  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+  transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
 }
 
 .composer__mark.is-ready {
-  color: var(--accent);
-  border-color: rgba(110, 139, 255, 0.5);
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
   border-style: solid;
+}
+
+.composer__mark:active {
+  transform: scale(0.88);
 }
 
 .composer__input {
@@ -36,26 +51,28 @@
   color: var(--text-3);
 }
 
+/* Atajo de un toque ("Hoy"): la acción principal, en azul marino */
 .composer__quick {
   flex: none;
-  padding: 7px 13px;
+  padding: 8px 14px;
   border-radius: var(--r-full);
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
-  animation: quick-in var(--dur-2) var(--ease);
+  animation: quick-in var(--dur-2) var(--ease-out);
+  transition: transform var(--dur-1) var(--ease);
 }
 
 .composer__quick:active {
-  background: rgba(110, 139, 255, 0.28);
+  transform: scale(0.95);
 }
 
 @keyframes quick-in {
   from {
     opacity: 0;
-    transform: translateX(6px);
+    transform: translateX(6px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -69,6 +86,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  max-width: 55%;
   padding: 7px 12px;
   border-radius: var(--r-full);
   background: var(--accent-dim);
@@ -76,8 +94,10 @@
   font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
-  border: 1px solid transparent;
-  animation: quick-in var(--dur-2) var(--ease);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid var(--accent-line);
+  animation: quick-in var(--dur-2) var(--ease-out);
   transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 
@@ -96,23 +116,36 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-right: -8px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--r-full);
   color: var(--text-2);
-  transition: color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+    transform var(--dur-1) var(--ease);
 }
 
 .composer__mic:active {
   color: var(--accent);
+  background: var(--accent-dim);
   transform: scale(0.9);
 }
 
 /* Dictado en curso: la barra entera pasa a ser el indicador */
 .composer--voice {
   gap: var(--sp-2);
-  padding: 0 10px;
+  padding: 0 6px;
+  animation: voice-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes voice-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .composer__voice-btn {
@@ -132,8 +165,8 @@
 }
 
 .composer__voice-btn--done {
-  color: var(--bg);
-  background: var(--accent);
+  color: var(--on-primary);
+  background: var(--primary);
 }
 
 .voice {

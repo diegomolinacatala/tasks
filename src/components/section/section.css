@@ -23,6 +23,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
+  min-height: 32px;
   padding: 4px 0;
   text-align: left;
 }
@@ -32,7 +33,7 @@
   place-items: center;
   width: 20px;
   height: 20px;
-  margin-left: -4px;
+  margin-left: 2px;
   color: var(--text-3);
   transition: transform var(--dur-2) var(--ease);
 }
@@ -41,10 +42,11 @@
   transform: rotate(-90deg);
 }
 
+/* Secciones del usuario: versalitas espaciadas, por debajo de los bloques */
 .section__name {
   font-size: var(--fs-micro);
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-2);
   white-space: nowrap;
@@ -52,42 +54,70 @@
   text-overflow: ellipsis;
 }
 
+.section__count {
+  margin-left: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bloques fijos (Atrasadas, Hoy, Sin fecha): titulares en serif, como capítulos de una agenda */
+.section__head--block {
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+
+.section__head--block .section__name {
+  font-family: var(--font-serif);
+  font-size: var(--fs-block);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.section__head--block .section__count {
+  margin-left: 6px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-style: italic;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
 .is-danger .section__name,
 .is-danger .section__count {
   color: var(--danger);
 }
 
-.section__count {
-  font-size: var(--fs-micro);
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Acción de una cabecera ("Pasar a hoy"): texto en acento, como todo lo que se toca */
 .section__action {
   flex: none;
-  padding: 6px 8px;
-  margin-right: -8px;
-  border-radius: var(--r-xs);
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
   font-size: var(--fs-xs);
   font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--accent);
+  background: var(--accent-dim);
   white-space: nowrap;
-  transition: background var(--dur-1) var(--ease);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
 }
 
 .section__action:active {
-  background: var(--accent-dim);
+  background: var(--accent-line);
+  transform: scale(0.96);
 }
 
 .section__icon {
   flex: none;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   color: var(--text-3);
-  border-radius: var(--r-xs);
+  border-radius: var(--r-full);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
 }
 
 .section__icon:active {
@@ -96,7 +126,7 @@
 }
 
 .section__grip {
-  opacity: 0.5;
+  opacity: 0.55;
   touch-action: none;
   cursor: grab;
 }
@@ -114,19 +144,22 @@
 }
 
 .column.is-over {
-  background: rgba(110, 139, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.3);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
+/* Vacíos en cursiva serif: una nota al margen, no un error */
 .column__empty {
-  padding: 13px 2px;
-  font-size: var(--fs-sm);
+  padding: 12px 2px 14px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-style: italic;
   color: var(--text-3);
 }
 
 .section-overlay {
   padding: 10px 14px;
   border-radius: var(--r-sm);
-  background: var(--bg-elev-2);
+  background: var(--bg-elev);
   box-shadow: var(--shadow-lift);
 }

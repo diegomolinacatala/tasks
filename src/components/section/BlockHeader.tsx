@@ -15,11 +15,13 @@ interface BlockHeaderProps {
 export function BlockHeader({ label, count, tone = 'default', collapsed, onToggle, action }: BlockHeaderProps) {
   const content = (
     <>
-      <span className="section__chevron" aria-hidden="true">
-        {onToggle ? <IconChevronDown size={16} /> : null}
-      </span>
       <span className="section__name">{label}</span>
       {count ? <span className="section__count">{count}</span> : null}
+      {onToggle ? (
+        <span className="section__chevron" aria-hidden="true">
+          <IconChevronDown size={16} />
+        </span>
+      ) : null}
     </>
   )
 

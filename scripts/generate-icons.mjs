@@ -1,183 +1,51 @@
-// Genera los PNG del manifiesto sin dependencias: SDF + supersampling + encoder PNG mínimo.
-import { deflateSync } from 'node:zlib'
+// Iconos y señal de la pantalla de carga a partir de la marca (`brand.mjs`), pintados con Edge sin
+// ventana. Los PNG se reescriben al salir de Edge: el del icono sin canal alfa (lo exige Apple).
+//
+//   npm run icons
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LAUNCH_MARK_PT, faviconSvg, iconSvg, markSvg } from './brand.mjs'
+import { decodePng, encodePng, launch, renderHtml } from './edge.mjs'
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons')
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const WEB = join(ROOT, 'public', 'icons')
+const ASSETS = join(ROOT, 'ios', 'App', 'App', 'Assets.xcassets')
 
-const BG = [0, 0, 0]
-const RING = [31, 31, 36]
-const ACCENT = [110, 139, 255]
-const SAMPLES = 3
+const page = (svg, size) =>
+  `<!doctype html><html><head><style>html,body{margin:0;background:transparent}svg{display:block;width:${size}px;height:${size}px}</style></head><body>${svg}</body></html>`
 
-const clamp01 = (value) => Math.min(1, Math.max(0, value))
+const session = await launch()
 
-function roundedRect(px, py, cx, cy, half, radius) {
-  const qx = Math.abs(px - cx) - (half - radius)
-  const qy = Math.abs(py - cy) - (half - radius)
-  const outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0))
-  return outside + Math.min(Math.max(qx, qy), 0) - radius
+async function write(path, svg, size, { opaque = true, scale = 1 } = {}) {
+  const png = await renderHtml(session, page(svg, size), { width: size, height: size, scale, transparent: !opaque })
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, encodePng(decodePng(png), opaque))
+  console.log(path.slice(ROOT.length + 1).replace(/\\/g, '/'))
 }
 
-function capsule(px, py, ax, ay, bx, by, radius) {
-  const pax = px - ax
-  const pay = py - ay
-  const bax = bx - ax
-  const bay = by - ay
-  const h = clamp01((pax * bax + pay * bay) / (bax * bax + bay * bay))
-  return Math.hypot(pax - bax * h, pay - bay * h) - radius
-}
+try {
+  // PWA
+  await write(join(WEB, 'icon-192.png'), iconSvg(), 192)
+  await write(join(WEB, 'icon-512.png'), iconSvg(), 512)
+  // "maskable": Android recorta un círculo; el dibujo cabe en el 80 % central.
+  await write(join(WEB, 'icon-maskable-512.png'), iconSvg({ inset: 0.8 }), 512)
+  await write(join(WEB, 'apple-touch-icon.png'), iconSvg(), 180)
+  writeFileSync(join(WEB, 'favicon.svg'), faviconSvg())
+  console.log('public/icons/favicon.svg')
 
-function over(base, color, alpha) {
-  return [
-    base[0] + (color[0] - base[0]) * alpha,
-    base[1] + (color[1] - base[1]) * alpha,
-    base[2] + (color[2] - base[2]) * alpha,
-  ]
-}
+  // iPhone: un solo icono de 1024 px por apariencia (Xcode saca el resto)
+  await write(join(ASSETS, 'AppIcon.appiconset', 'AppIcon-512@2x.png'), iconSvg(), 1024)
+  await write(join(ASSETS, 'AppIcon.appiconset', 'AppIcon-dark.png'), iconSvg({ night: true }), 1024)
 
-function render(size, glyphScale) {
-  const pixels = Buffer.alloc(size * size * 4)
-  const c = size / 2
-  const half = (size * glyphScale) / 2
-  const radius = half * 0.3
-  const stroke = size * 0.035
-  const tick = size * 0.052
-
-  // Check inscrito en el cuadrado
-  const ax = c - half * 0.42
-  const ay = c + half * 0.02
-  const mx = c - half * 0.1
-  const my = c + half * 0.38
-  const bx = c + half * 0.45
-  const by = c - half * 0.36
-
-  // Fuera del cuadro del glifo todo es fondo: en la pantalla de carga (2732 px) ahorra casi todo el cálculo.
-  const reach = half + stroke * 2
-  pixels.fill(255)
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      if (Math.abs(x + 0.5 - c) > reach || Math.abs(y + 0.5 - c) > reach) {
-        const offset = (y * size + x) * 4
-        pixels[offset] = BG[0]
-        pixels[offset + 1] = BG[1]
-        pixels[offset + 2] = BG[2]
-        continue
-      }
-      let ring = 0
-      let mark = 0
-
-      for (let sy = 0; sy < SAMPLES; sy += 1) {
-        for (let sx = 0; sx < SAMPLES; sx += 1) {
-          const px = x + (sx + 0.5) / SAMPLES
-          const py = y + (sy + 0.5) / SAMPLES
-          const dRing = Math.abs(roundedRect(px, py, c, c, half, radius)) - stroke / 2
-          const dMark = Math.min(
-            capsule(px, py, ax, ay, mx, my, tick / 2),
-            capsule(px, py, mx, my, bx, by, tick / 2),
-          )
-          if (dRing < 0) ring += 1
-          if (dMark < 0) mark += 1
-        }
-      }
-
-      const total = SAMPLES * SAMPLES
-      let color = over(BG, RING, ring / total)
-      color = over(color, ACCENT, mark / total)
-
-      const offset = (y * size + x) * 4
-      pixels[offset] = Math.round(color[0])
-      pixels[offset + 1] = Math.round(color[1])
-      pixels[offset + 2] = Math.round(color[2])
-      pixels[offset + 3] = 255
-    }
+  // Señal de la pantalla de carga, con fondo transparente, a 1x, 2x y 3x
+  for (const scale of [1, 2, 3]) {
+    const suffix = scale === 1 ? '' : `@${scale}x`
+    await write(join(ASSETS, 'LaunchMark.imageset', `launch-mark${suffix}.png`), markSvg({ size: LAUNCH_MARK_PT }), LAUNCH_MARK_PT, {
+      opaque: false,
+      scale,
+    })
   }
-
-  return pixels
-}
-
-const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
-  let c = n
-  for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-  return c >>> 0
-})
-
-function crc32(buffer) {
-  let crc = 0xffffffff
-  for (const byte of buffer) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8)
-  return (crc ^ 0xffffffff) >>> 0
-}
-
-function chunk(type, data) {
-  const length = Buffer.alloc(4)
-  length.writeUInt32BE(data.length)
-  const body = Buffer.concat([Buffer.from(type, 'ascii'), data])
-  const crc = Buffer.alloc(4)
-  crc.writeUInt32BE(crc32(body))
-  return Buffer.concat([length, body, crc])
-}
-
-/** `opaque`: PNG sin canal alfa. Apple rechaza el icono de la App Store si lo lleva, aunque sea 255. */
-function encodePng(size, pixels, opaque = false) {
-  const channels = opaque ? 3 : 4
-  const header = Buffer.alloc(13)
-  header.writeUInt32BE(size, 0)
-  header.writeUInt32BE(size, 4)
-  header[8] = 8 // bit depth
-  header[9] = opaque ? 2 : 6 // RGB : RGBA
-  const stride = size * channels
-  const raw = Buffer.alloc((stride + 1) * size)
-  for (let y = 0; y < size; y += 1) {
-    const row = y * (stride + 1)
-    raw[row] = 0
-    for (let x = 0; x < size; x += 1) {
-      const from = (y * size + x) * 4
-      pixels.copy(raw, row + 1 + x * channels, from, from + channels)
-    }
-  }
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', header),
-    chunk('IDAT', deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0)),
-  ])
-}
-
-const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="#000"/>
-  <rect x="12.5" y="12.5" width="39" height="39" rx="12" fill="none" stroke="#1f1f24" stroke-width="2.5"/>
-  <path d="M23 32.5 30 40 43 24" fill="none" stroke="#6e8bff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-`
-
-mkdirSync(OUT, { recursive: true })
-
-const targets = [
-  ['icon-192.png', 192, 0.74],
-  ['icon-512.png', 512, 0.74],
-  ['icon-maskable-512.png', 512, 0.56],
-  ['apple-touch-icon.png', 180, 0.74],
-]
-
-for (const [name, size, scale] of targets) {
-  writeFileSync(join(OUT, name), encodePng(size, render(size, scale)))
-  console.log(`icons/${name}`)
-}
-
-writeFileSync(join(OUT, 'favicon.svg'), FAVICON)
-console.log('icons/favicon.svg')
-
-// App nativa: icono único de 1024 px (Xcode genera el resto) y pantalla de carga negra con el
-// glifo pequeño en el centro; se escala con aspect fill, así que 0.1 del lado ≈ 85 pt en un iPhone.
-const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'ios', 'App', 'App', 'Assets.xcassets')
-const nativeTargets = [
-  [join('AppIcon.appiconset', 'AppIcon-512@2x.png'), 1024, 0.74],
-  [join('Splash.imageset', 'splash-2732x2732.png'), 2732, 0.1],
-]
-
-for (const [name, size, scale] of nativeTargets) {
-  mkdirSync(dirname(join(ASSETS, name)), { recursive: true })
-  writeFileSync(join(ASSETS, name), encodePng(size, render(size, scale), true))
-  console.log(`ios/${name.replace(/\\/g, '/')}`)
+} finally {
+  session.close()
 }

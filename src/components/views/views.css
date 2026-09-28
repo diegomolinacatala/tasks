@@ -3,15 +3,17 @@
 }
 
 .view__head {
-  padding: calc(var(--safe-t) + 20px) 0 16px;
+  padding: calc(var(--safe-t) + 22px) 0 18px;
 }
 
+/* Día de la semana en versalitas espaciadas, como un membrete grabado */
 .view__kicker {
-  margin: 0 0 3px;
+  margin: 0 0 6px;
   font-size: var(--fs-micro);
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--accent);
 }
 
 .view__headline {
@@ -22,71 +24,98 @@
 }
 
 .view__title {
+  min-width: 0;
   font-size: var(--fs-display);
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--text);
+  font-variant-numeric: lining-nums;
 }
 
 .view__title--sm {
-  font-size: 26px;
-  letter-spacing: -0.03em;
+  font-size: 32px;
+  letter-spacing: -0.02em;
 }
 
+/* El mes, en cursiva y más pequeño: la cifra manda */
 .view__title-dim {
-  color: var(--text-3);
-  font-weight: 500;
+  font-size: 0.56em;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
 }
 
 .view__stat {
+  flex: none;
   margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
+.view__stat-total {
+  color: var(--text-3);
+}
+
+/* Filete doble: una línea fina y el avance del día encima, en coñac */
 .view__progress {
-  margin-top: 16px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--line);
+  position: relative;
+  margin-top: 18px;
+  height: 3px;
   overflow: hidden;
 }
 
+.view__progress::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0 auto;
+  height: 1px;
+  background: var(--line-2);
+}
+
 .view__progress span {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 100%;
-  height: 100%;
+  border-radius: var(--r-full);
   background: var(--accent);
   transform-origin: left center;
-  transition: transform var(--dur-3) var(--ease);
+  transition: transform var(--dur-4) var(--ease-out);
 }
 
 .block {
-  margin-top: var(--sp-4);
+  margin-top: var(--sp-5);
 }
 
 .block:first-of-type {
-  margin-top: var(--sp-2);
+  margin-top: var(--sp-3);
 }
 
 .view__add-section {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 16px 2px;
+  min-height: 44px;
+  padding: 10px 2px;
   font-size: var(--fs-sm);
   color: var(--text-3);
+  transition: color var(--dur-1) var(--ease);
 }
 
 .view__add-section:active {
-  color: var(--text-2);
+  color: var(--accent);
 }
 
 .view__section-input {
   width: 100%;
   padding: 14px 2px;
   color: var(--text);
+}
+
+.view__section-input::placeholder {
+  color: var(--text-3);
 }
 
 /* Vista semana */
@@ -100,19 +129,22 @@
 .week__nav button {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-xs);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
 }
 
 .week__nav button:active {
   background: var(--bg-press);
+  transform: scale(0.94);
 }
 
 .week__today {
   width: auto !important;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--accent);
 }
 
@@ -123,8 +155,8 @@
 }
 
 .day.is-over {
-  background: rgba(110, 139, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(110, 139, 255, 0.28);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 .day__head {
@@ -139,7 +171,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--sp-2);
-  padding: 12px 2px 6px;
+  padding: 14px 2px 6px;
   text-align: left;
 }
 
@@ -148,25 +180,24 @@
 }
 
 .day__name {
+  min-width: 30px;
   font-size: var(--fs-micro);
-  letter-spacing: 0.09em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-3);
 }
 
-.is-today .day__name {
-  color: var(--accent);
-}
-
 .day__num {
-  font-size: var(--fs-md);
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
   color: var(--text-2);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
+.is-today .day__name,
 .is-today .day__num {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .is-overdue .day__name,
@@ -175,13 +206,39 @@
   color: var(--danger);
 }
 
+/* El día elegido (a donde va el atajo de la barra): subrayado fino, como marcado a pluma */
+.day__num {
+  position: relative;
+}
+
+.day__num::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -3px;
+  height: 1.5px;
+  border-radius: var(--r-full);
+  background: currentColor;
+  transform: scaleX(0);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
 .is-selected .day__num {
+  color: var(--text);
+}
+
+.is-selected .day__num::after {
+  transform: scaleX(1);
+}
+
+.is-today.is-selected .day__num {
   color: var(--accent);
 }
 
 .day__count {
   margin-left: auto;
-  font-size: var(--fs-micro);
+  font-size: var(--fs-xs);
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -196,6 +253,6 @@
   min-height: 14px;
 }
 
-.day__list .task + .task .row {
+.day__list .task + .task .task__surface {
   border-top: 1px solid var(--line);
 }

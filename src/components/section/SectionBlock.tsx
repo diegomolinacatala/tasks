@@ -35,11 +35,11 @@ export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, chil
           aria-expanded={!section.collapsed}
           onClick={onToggle}
         >
-          <span className="section__chevron" aria-hidden="true">
-            <IconChevronDown size={16} />
-          </span>
           <span className="section__name">{section.name}</span>
           {pending > 0 && <span className="section__count">{pending}</span>}
+          <span className="section__chevron" aria-hidden="true">
+            <IconChevronDown size={14} />
+          </span>
         </button>
 
         <button type="button" className="section__icon" aria-label={`Opciones de ${section.name}`} onClick={onOpen}>

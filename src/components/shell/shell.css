@@ -15,42 +15,39 @@
   padding: 0 18px;
 }
 
-.app__settings {
+.app__settings,
+.app__sizing {
   position: absolute;
-  top: calc(var(--safe-t) + 16px);
-  right: 10px;
+  top: calc(var(--safe-t) + 14px);
   z-index: 20;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-xs);
-  color: var(--text-3);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+
+.app__settings {
+  right: 8px;
+}
+
+/* Modo "Aa" (importancia), a la izquierda de Ajustes */
+.app__sizing {
+  right: 50px;
 }
 
 .app__settings:active,
 .app__sizing:active {
   background: var(--bg-press);
-}
-
-/* Modo "Aa" (importancia), a la izquierda de Ajustes */
-.app__sizing {
-  position: absolute;
-  top: calc(var(--safe-t) + 16px);
-  right: 48px;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-xs);
-  color: var(--text-3);
-  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+  transform: scale(0.92);
 }
 
 .app.is-sizing .app__sizing {
-  color: var(--accent);
-  background: var(--accent-dim);
+  color: var(--on-primary);
+  background: var(--primary);
 }
 
 /* El teclado virtual empuja la barra inferior para que siga visible */
@@ -88,19 +85,123 @@
   justify-content: center;
   gap: 3px;
   color: var(--text-3);
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.03em;
   transition: color var(--dur-1) var(--ease);
+}
+
+.nav__tab svg {
+  transition: transform var(--dur-2) var(--ease-pop), color var(--dur-1) var(--ease);
 }
 
 .nav__tab.is-active {
   color: var(--text);
+  font-weight: 600;
 }
 
 .nav__tab.is-active svg {
   color: var(--accent);
 }
 
-.nav__tab:active {
-  background: var(--bg-elev);
+.nav__tab:active svg {
+  transform: scale(0.88);
+}
+
+/* Entrada tras el arranque (lib/boot.ts): mientras #boot se funde, la cabecera, los bloques y la
+   barra suben unos píxeles, escalonados. Se puede tocar desde el primer momento. */
+.is-entering .view__head {
+  animation: app-enter var(--dur-4) var(--ease-out) 90ms both;
+}
+
+.is-entering .view > .block {
+  animation: app-enter var(--dur-4) var(--ease-out) 170ms both;
+}
+
+.is-entering .view > .block + .block {
+  animation-delay: 230ms;
+}
+
+.is-entering .view > .block + .block + .block {
+  animation-delay: 290ms;
+}
+
+.is-entering .app__bar {
+  animation: app-rise var(--dur-4) var(--ease-out) 200ms both;
+}
+
+.is-entering .app__settings,
+.is-entering .app__sizing {
+  animation: app-fade var(--dur-3) var(--ease) 260ms both;
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes app-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes app-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Esqueleto de lo que aún no ha llegado (la vista semana si se abre antes de cargarse) */
+.skeleton {
+  padding-top: calc(var(--safe-t) + 22px);
+  animation: app-fade var(--dur-3) var(--ease) 120ms both;
+}
+
+.skeleton__bar {
+  display: block;
+  height: 12px;
+  border-radius: var(--r-xs);
+  background: var(--line);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton__bar--kicker {
+  width: 64px;
+  height: 11px;
+  margin-bottom: 10px;
+}
+
+.skeleton__bar--title {
+  width: 52%;
+  height: 32px;
+  margin-bottom: 30px;
+}
+
+.skeleton__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: 48px;
+  border-top: 1px solid var(--line);
+}
+
+.skeleton__dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+}
+
+.skeleton__row:nth-child(odd) .skeleton__bar {
+  animation-delay: 120ms;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
 }

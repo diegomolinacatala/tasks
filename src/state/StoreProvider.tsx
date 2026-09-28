@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { Dispatch, ReactNode } from 'react'
+import { captureLayout, changesLayout, playLayout } from '../lib/flip'
 import { createPersister, loadState } from '../lib/persistence'
 import type { AppState } from '../types'
 import type { Action } from './actions'
@@ -10,9 +11,20 @@ const StateContext = createContext<AppState | null>(null)
 const DispatchContext = createContext<Dispatch<Action> | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, null, emptyState)
+  const [state, rawDispatch] = useReducer(reducer, null, emptyState)
   const [hydrated, setHydrated] = useState(false)
   const persister = useRef(createPersister()).current
+
+  // Lo que mueve filas se anota antes y se anima después de pintar (lib/flip.ts): así completar,
+  // borrar o pasar a hoy desliza la lista desde cualquier sitio que despache la acción.
+  const dispatch = useCallback<Dispatch<Action>>((action) => {
+    if (changesLayout(action.type)) captureLayout()
+    rawDispatch(action)
+  }, [])
+
+  useLayoutEffect(() => {
+    playLayout()
+  }, [state])
 
   useEffect(() => {
     let cancelled = false

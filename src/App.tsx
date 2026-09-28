@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { finishBoot } from './lib/boot'
 import { dayNameShort, dayNumber, weekDays } from './lib/date'
 import { withTransition } from './lib/transition'
 import { useToday } from './hooks/useToday'
@@ -17,6 +18,7 @@ import { BottomNav } from './components/shell/BottomNav'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { useNativeActions } from './components/shell/useNativeActions'
 import { IconMore, IconTextSize } from './components/ui/Icons'
+import { Skeleton } from './components/ui/Skeleton'
 import { useToast } from './components/ui/Toast'
 import { HomeView } from './components/views/HomeView'
 import './components/shell/shell.css'
@@ -60,7 +62,8 @@ export function App() {
   const [sizing, setSizing] = useState(false)
 
   useEffect(() => {
-    // La pantalla de carga nativa espera a que haya estado que pintar.
+    // Ya hay estado pintado: se funde el arranque (#boot) y la app entra.
+    finishBoot()
     if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
     // La vista semana, ya pintada la lista: tocar "Semana" no espera a la red.
     void loadWeekView()
@@ -165,7 +168,7 @@ export function App() {
         <SizingContext.Provider value={sizing}>
           {view === 'home' && <HomeView today={today} onOpenTask={openTask} onOpenSection={setSectionId} />}
           {view === 'week' && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<Skeleton />}>
               <WeekView
                 today={today}
                 anchor={weekAnchor}

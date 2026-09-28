@@ -59,6 +59,9 @@ export const dayNumber = (iso: IsoDate) => String(fromIso(iso).getDate())
 /** `sep` */
 export const monthShort = (iso: IsoDate) => strip(fmt(iso, { month: 'short' }))
 
+/** `septiembre` */
+export const monthLong = (iso: IsoDate) => fmt(iso, { month: 'long' })
+
 /** `jueves, 11 sep` */
 export function fullLabel(iso: IsoDate): string {
   return `${dayNameLong(iso)}, ${dayNumber(iso)} ${monthShort(iso)}`

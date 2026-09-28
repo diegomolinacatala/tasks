@@ -3,19 +3,192 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f4efe6" />
     <meta name="description" content="Tareas del día. Local, offline, sin cuentas." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Tasks" />
     <link rel="icon" href="%BASE_URL%icons/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
     <title>Tasks</title>
+    <!--
+      Arranque. #boot es la copia exacta de LaunchScreen.storyboard (papel marfil y la señal de
+      92 px en el centro de la pantalla): se pinta antes que el JS y la app de iPhone quita su
+      pantalla de carga encima sin que se note. Si la carga tarda, a los 450 ms la señal cede el
+      sitio al esqueleto de la pantalla. Al estar lista, `finishBoot` (src/lib/boot.ts) funde todo.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f4efe6;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #f4efe6;
+        pointer-events: none;
+      }
+      .boot-mark {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 92px;
+        height: 92px;
+        margin: -46px 0 0 -46px;
+        animation: boot-mark-away 320ms cubic-bezier(0.5, 0, 0.75, 0) 450ms both;
+      }
+      .boot-skeleton {
+        position: absolute;
+        inset: 0;
+        padding: calc(env(safe-area-inset-top, 0px) + 22px) 18px 0;
+        opacity: 0;
+        animation: boot-fade-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+      }
+      .sk {
+        display: block;
+        border-radius: 6px;
+        background: rgba(78, 58, 34, 0.09);
+        animation: boot-pulse 1.6s ease-in-out infinite;
+      }
+      .sk-kicker {
+        width: 64px;
+        height: 11px;
+        margin-bottom: 10px;
+      }
+      .sk-title {
+        width: 58%;
+        height: 40px;
+        border-radius: 8px;
+      }
+      .sk-rule {
+        height: 1px;
+        margin: 22px 0 30px;
+        background: rgba(78, 58, 34, 0.14);
+        animation: none;
+      }
+      .sk-block {
+        width: 54px;
+        height: 18px;
+        margin-bottom: 14px;
+      }
+      .sk-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 48px;
+        border-top: 1px solid rgba(78, 58, 34, 0.08);
+      }
+      .sk-row:first-of-type {
+        border-top: 0;
+      }
+      .sk-dot {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+      }
+      .sk-line {
+        height: 12px;
+      }
+      .sk-row:nth-of-type(2) .sk {
+        animation-delay: 90ms;
+      }
+      .sk-row:nth-of-type(3) .sk {
+        animation-delay: 180ms;
+      }
+      .sk-row:nth-of-type(4) .sk {
+        animation-delay: 270ms;
+      }
+      .sk-row:nth-of-type(5) .sk {
+        animation-delay: 360ms;
+      }
+      .sk-bar {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 64px);
+        height: 48px;
+        border-radius: 14px;
+        background: #fbf8f2;
+        box-shadow: 0 1px 2px rgba(58, 42, 22, 0.06), 0 8px 24px rgba(58, 42, 22, 0.08),
+          inset 0 0 0 1px rgba(78, 58, 34, 0.11);
+      }
+      /* Lista: todo se funde a la vez; la app entra por debajo (.is-entering en shell.css) */
+      #boot.is-done {
+        opacity: 0;
+        transition: opacity 380ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms;
+      }
+      .boot-mark svg {
+        display: block;
+      }
+      #boot.is-done .boot-mark svg {
+        animation: boot-mark-away 280ms cubic-bezier(0.5, 0, 0.75, 0) both;
+      }
+      @keyframes boot-mark-away {
+        to {
+          opacity: 0;
+          transform: scale(0.86);
+        }
+      }
+      @keyframes boot-fade-in {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes boot-pulse {
+        50% {
+          opacity: 0.45;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-mark,
+        .boot-mark svg,
+        .boot-skeleton,
+        .sk {
+          animation: none;
+        }
+        #boot.is-done {
+          transition-duration: 1ms;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" aria-hidden="true">
+      <div class="boot-mark">
+        <svg viewBox="0 0 100 100" width="92" height="92"><path fill="#1b2540" d="%TASKS_MARK%" /></svg>
+      </div>
+      <div class="boot-skeleton">
+        <i class="sk sk-kicker"></i>
+        <i class="sk sk-title"></i>
+        <i class="sk sk-rule"></i>
+        <i class="sk sk-block"></i>
+        <div class="sk-row"><i class="sk sk-dot"></i><i class="sk sk-line" style="width: 46%"></i></div>
+        <div class="sk-row"><i class="sk sk-dot"></i><i class="sk sk-line" style="width: 68%"></i></div>
+        <div class="sk-row"><i class="sk sk-dot"></i><i class="sk sk-line" style="width: 38%"></i></div>
+        <div class="sk-row"><i class="sk sk-dot"></i><i class="sk sk-line" style="width: 57%"></i></div>
+        <div class="sk-row"><i class="sk sk-dot"></i><i class="sk sk-line" style="width: 30%"></i></div>
+        <i class="sk-bar"></i>
+      </div>
+    </div>
     <div id="root"></div>
+    <script>
+      // App de iPhone: #boot ya está pintado y es igual que la pantalla de carga nativa, así que se
+      // quita sin esperar al JS de la app. Si esto fallara, `showApp` la quita al cargar.
+      ;(function () {
+        var cap = window.Capacitor
+        if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            cap.nativePromise('SplashScreen', 'hide', { fadeOutDuration: 120 }).catch(function () {})
+          })
+        })
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

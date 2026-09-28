@@ -39,7 +39,9 @@ export function TaskRow({ task, meta, overdue = false, importance, onToggle, onO
         <IconCheck size={13} strokeWidth={2.5} />
       </button>
       <button type="button" className="row__main" onClick={onOpen}>
-        <span className="row__title">{task.title}</span>
+        <span className="row__title">
+          <span className="row__text">{task.title}</span>
+        </span>
         {(text || reminding || placed) && (
           <span className="row__meta">
             {reminding && <IconBell size={11} strokeWidth={2} />}

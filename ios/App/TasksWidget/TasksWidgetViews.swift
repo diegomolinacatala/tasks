@@ -1,24 +1,43 @@
 import AppIntents
 import SwiftUI
+import UIKit
 import WidgetKit
 
-/** Los tokens de `src/styles/tokens.css`: negro puro, un solo acento y rojo solo para lo atrasado. */
+/**
+ * Los tokens de `src/styles/tokens.css`: papel marfil, tinta azul marino, coñac para lo hecho y
+ * ladrillo solo para lo atrasado. La app es siempre clara; el widget, que vive en la pantalla de
+ * inicio, se pasa a azul noche si el iPhone está en modo oscuro.
+ */
 enum Palette {
-    static let background = Color.black
-    static let text = hex(0xEDEDF0)
-    static let text2 = hex(0x98989F)
-    static let text3 = hex(0x5C5C64)
-    static let line = Color.white.opacity(0.07)
-    static let line2 = Color.white.opacity(0.13)
-    static let accent = hex(0x6E8BFF)
-    static let accentDim = hex(0x6E8BFF).opacity(0.16)
-    static let danger = hex(0xFF5A52)
+    static let background = dynamic(0xF4EFE6, night: 0x141B2E)
+    static let text = dynamic(0x1B2540, night: 0xEFE8DA)
+    static let text2 = dynamic(0x5A544A, night: 0xB3AA9A)
+    static let text3 = dynamic(0x7D7466, night: 0x8A8374)
+    static let line = dynamic(0x4E3A22, night: 0xEFE8DA, alpha: 0.11, nightAlpha: 0.09)
+    static let line2 = dynamic(0x4E3A22, night: 0xEFE8DA, alpha: 0.2, nightAlpha: 0.18)
+    static let accent = dynamic(0x8A5A2C, night: 0xD2A26E)
+    static let accentDim = dynamic(0x8A5A2C, night: 0xD2A26E, alpha: 0.12, nightAlpha: 0.18)
+    /** El marfil sobre el coñac: la marca de "hecha". */
+    static let onAccent = dynamic(0xF7F2E8, night: 0x141B2E)
+    static let danger = dynamic(0x9E3B2E, night: 0xE07A68)
 
-    private static func hex(_ value: UInt32) -> Color {
-        Color(
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255
+    private static func dynamic(
+        _ day: UInt32,
+        night: UInt32,
+        alpha: CGFloat = 1,
+        nightAlpha: CGFloat = 1
+    ) -> Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? color(night, nightAlpha) : color(day, alpha)
+        })
+    }
+
+    private static func color(_ value: UInt32, _ alpha: CGFloat) -> UIColor {
+        UIColor(
+            red: CGFloat((value >> 16) & 0xFF) / 255,
+            green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255,
+            alpha: alpha
         )
     }
 }
@@ -285,7 +304,7 @@ struct TaskRow: View {
     }
 }
 
-/** El círculo de las filas de la app: borde tenue, rojo si está atrasada y acento con marca si está hecha. */
+/** El círculo de las filas de la app: borde tenue, ladrillo si está atrasada y relleno de coñac si está hecha. */
 struct CheckCircle: View {
     let done: Bool
     let overdue: Bool
@@ -293,31 +312,30 @@ struct CheckCircle: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .strokeBorder(stroke, lineWidth: 1.5)
             if done {
+                Circle()
+                    .fill(Palette.accent)
                 Image(systemName: "checkmark")
-                    .font(.system(size: size * 0.5, weight: .bold))
-                    .foregroundStyle(Palette.accent)
+                    .font(.system(size: size * 0.46, weight: .bold))
+                    .foregroundStyle(Palette.onAccent)
+            } else {
+                Circle()
+                    .strokeBorder(overdue ? Palette.danger.opacity(0.5) : Palette.line2, lineWidth: 1.5)
             }
         }
         .frame(width: size, height: size)
         .widgetAccentable(done)
     }
-
-    private var stroke: Color {
-        if done { return Palette.accent.opacity(0.55) }
-        return overdue ? Palette.danger.opacity(0.5) : Palette.line2
-    }
 }
 
+/** La cifra de pendientes en serif (New York), como la fecha de la cabecera de la app. */
 struct CountLabel: View {
     let count: Int
     let size: CGFloat
 
     var body: some View {
         Text(String(count))
-            .font(.system(size: size, weight: .semibold))
+            .font(.system(size: size, weight: .regular, design: .serif))
             .monospacedDigit()
             .foregroundStyle(count == 0 ? Palette.text3 : Palette.text)
             .contentTransition(.numericText())
@@ -331,8 +349,8 @@ struct DayLabel: View {
     var body: some View {
         Text("HOY")
             .font(.system(size: 11, weight: .semibold))
-            .tracking(1)
-            .foregroundStyle(Palette.text2)
+            .tracking(1.4)
+            .foregroundStyle(Palette.accent)
     }
 }
 

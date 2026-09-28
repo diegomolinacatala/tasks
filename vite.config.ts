@@ -1,9 +1,17 @@
 import { defineConfig } from 'vitest/config'
+import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { checkPath } from './scripts/brand.mjs'
 
 // El repo se publica en https://<user>.github.io/tasks/ -> base obligatoria.
 const BASE = '/tasks/'
+
+/** La señal del #boot sale del mismo trazo que el icono y la pantalla de carga nativa. */
+const bootMark = (): Plugin => ({
+  name: 'tasks-boot-mark',
+  transformIndexHtml: (html) => html.replace('%TASKS_MARK%', checkPath()),
+})
 
 // `--mode native`: la web que empaqueta Capacitor. Se sirve desde capacitor://localhost,
 // así que va con rutas relativas y sin service worker (WKWebView no lo usa).
@@ -11,6 +19,7 @@ export default defineConfig(({ mode }) => ({
   base: mode === 'native' ? './' : BASE,
   plugins: [
     react(),
+    bootMark(),
     VitePWA({
       disable: mode === 'native',
       // SW propio: además de precachear, recibe los push y abre la tarea al tocar el aviso.
@@ -28,8 +37,8 @@ export default defineConfig(({ mode }) => ({
         scope: BASE,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#000000',
-        theme_color: '#000000',
+        background_color: '#f4efe6',
+        theme_color: '#f4efe6',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -59,6 +68,8 @@ export default defineConfig(({ mode }) => ({
         'src/state/StoreProvider.tsx',
         'src/lib/persistence.ts',
         'src/lib/transition.ts',
+        'src/lib/flip.ts',
+        'src/lib/boot.ts',
         'src/lib/push/client.ts',
         'src/lib/push/keystore.ts',
         'src/lib/voice/capture.ts',

@@ -11,14 +11,15 @@
 
 /* Hueco que deja la tarea mientras viaja */
 .task.is-dragging {
-  background: rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 0 0 1px var(--line-2);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 .task.is-dragging .task__surface {
   opacity: 0;
 }
 
+/* Lo que asoma al deslizar: coñac para hecha, ladrillo para borrar. `--swipe` va de 0 a 1 */
 .task__affordance {
   position: absolute;
   inset: 0;
@@ -27,6 +28,14 @@
   justify-content: space-between;
   padding: 0 18px;
   pointer-events: none;
+}
+
+.task__affordance.is-done {
+  background: var(--accent-dim);
+}
+
+.task__affordance.is-delete {
+  background: var(--danger-dim);
 }
 
 .task__act {
@@ -60,7 +69,7 @@
   display: grid;
   place-items: center;
   color: var(--text-3);
-  opacity: 0.5;
+  opacity: 0.45;
   border-radius: var(--r-xs);
   /* El asa no hace scroll: en cuanto la tocas, manda el arrastre */
   touch-action: none;
@@ -76,7 +85,7 @@
 
 .task__grip:active {
   opacity: 1;
-  background: var(--bg-elev-2);
+  background: var(--bg-press);
   cursor: grabbing;
 }
 
@@ -90,36 +99,73 @@
   display: flex;
   align-items: flex-start;
   gap: var(--sp-3);
-  min-height: 46px;
-  padding: 11px 0;
+  min-height: 48px;
+  padding: 12px 0;
 }
 
+/* El círculo se rellena de coñac con un pequeño rebote y la marca se escribe encima */
 .row__check {
+  position: relative;
   flex: none;
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
   /* Centrado con la primera línea del título, crezca lo que crezca */
-  margin-top: max(1px, calc((var(--title-size) * var(--title-leading) - 21px) / 2));
+  margin-top: max(0px, calc((var(--title-size) * var(--title-leading) - 22px) / 2));
   border-radius: var(--r-full);
   border: 1.5px solid var(--line-2);
   display: grid;
   place-items: center;
-  color: transparent;
-  transition: border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
-    transform var(--dur-1) var(--ease);
+  color: var(--on-primary);
+  transition: border-color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+/* Área de toque de 44 px sin agrandar el círculo */
+.row__check::after {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+
+.row__check::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform var(--dur-2) var(--ease-in);
+}
+
+.row__check svg {
+  position: relative;
+}
+
+.row__check path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset var(--dur-1) var(--ease);
 }
 
 .row__check:active {
-  transform: scale(0.88);
+  transform: scale(0.86);
 }
 
 .is-done .row__check {
-  border-color: rgba(110, 139, 255, 0.55);
-  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.is-done .row__check::before {
+  transform: scale(1);
+  transition: transform var(--dur-3) var(--ease-pop);
+}
+
+.is-done .row__check path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--dur-3) var(--ease-out) 90ms;
 }
 
 .is-overdue .row__check {
-  border-color: rgba(255, 90, 82, 0.5);
+  border-color: var(--danger-line);
 }
 
 .row__main {
@@ -144,14 +190,26 @@
   transition: color var(--dur-2) var(--ease);
 }
 
+/* Tachado a pluma: la línea recorre el título (también en varias líneas) al completar */
+.row__text {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 55%;
+  background-size: 0% 1.5px;
+  transition: background-size var(--dur-1) var(--ease);
+}
+
 .is-overdue .row__title {
   color: var(--danger);
 }
 
 .is-done .row__title {
   color: var(--text-3);
-  text-decoration: line-through;
-  text-decoration-color: var(--text-3);
+}
+
+.is-done .row__text {
+  background-size: 100% 1.5px;
+  transition: background-size var(--dur-3) var(--ease-out) 60ms;
 }
 
 .row__meta {
@@ -162,19 +220,20 @@
   font-size: var(--fs-xs);
   color: var(--text-3);
   letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 .is-overdue .row__meta {
   color: var(--danger);
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
-/* Copia que sigue al dedo mientras se arrastra */
+/* Copia que sigue al dedo mientras se arrastra: una tarjeta de papel levantada */
 .task-overlay {
   border-radius: var(--r-sm);
-  background: var(--bg-elev-2);
+  background: var(--bg-elev);
   box-shadow: var(--shadow-lift);
   padding: 0 14px;
   cursor: grabbing;
-  transform: scale(1.02) rotate(-0.5deg);
+  transform: scale(1.02) rotate(-0.6deg);
 }

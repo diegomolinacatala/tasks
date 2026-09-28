@@ -10,6 +10,7 @@ import {
   timeOfInstant,
   toInstant,
   fromIso,
+  monthLong,
   monthShort,
   rangeLabel,
   relativeLabel,
@@ -81,6 +82,13 @@ describe('relativeLabel', () => {
 
   test('para fechas lejanas usa día y mes', () => {
     expect(relativeLabel('2026-09-18', '2026-09-11')).toMatch(/18/)
+  })
+})
+
+describe('monthLong', () => {
+  test('el mes entero y en minúscula, como se escribe en una fecha', () => {
+    expect(monthLong('2026-09-28')).toBe('septiembre')
+    expect(monthLong('2026-01-01')).toBe('enero')
   })
 })
 

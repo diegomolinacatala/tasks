@@ -282,11 +282,21 @@ Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publi
 
 **Capturas**: Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Ya están hechas en
 [`docs/capturas/`](capturas/), a ese tamaño exacto y en el orden en que se suben (las tres primeras
-son las que salen en la búsqueda): el día, la duración con su pregunta, el aviso al llegar a un
-sitio, «¿Has acabado?», escribir como se habla, la semana y el modo importancia. Son la app real
-con tareas de ejemplo; se regeneran con `scripts/app-store-shots.mjs` (instrucciones dentro) cuando
-cambie la interfaz. La letra es Inter, lo más parecido a San Francisco que se puede usar fuera de
-Apple; si se prefieren con la del iPhone, hacerlas en él (botón lateral + subir volumen).
+son las que salen en la búsqueda):
+
+1. `1-hoy`: «Tu día, en orden.» (papel)
+2. `2-lugares`: «Te avisa al llegar.» (azul noche)
+3. `3-has-acabado`: «Te pregunta si has acabado.» (arena)
+4. `4-escribir`: «Escribe como hablas.»
+5. `5-importancia`: «Lo importante, más grande.»
+6. `6-semana`: «Tu semana, de un vistazo.»
+7. `7-widget`: «Siempre a mano.» (widgets y Siri)
+
+Cada una es la app real con tareas de ejemplo dentro de un iPhone, con titular y un detalle que sale
+del marco (el aviso, la píldora de lo entendido, los widgets). Se regeneran cuando cambie la
+interfaz con `npm run build` y `node scripts/app-store-shots.mjs` (usa Edge sin ventana; las
+plantillas están en `scripts/store-frames.mjs`). La letra es Inter y Source Serif 4, lo más parecido
+a San Francisco y New York que se puede usar fuera de Apple.
 
 ## 4. Privacidad en App Store Connect
 
@@ -577,7 +587,10 @@ otra, **···** → *Exportar copia* → *Guardar en Archivos*.
    `MARKETING_VERSION`) → **Crear**. La versión nueva copia de la anterior las capturas, la
    descripción, las palabras clave, las URL y la información para la revisión.
 2. **Novedades de esta versión** (obligatorio en una actualización): una o dos frases con lo nuevo. Es
-   lo que se lee en la App Store.
+   lo que se lee en la App Store. Para la 1.1: *«Diseño nuevo, en papel marfil y tinta azul marino,
+   con icono nuevo y una apertura más cuidada. Corregido: al elegir una hora a mano podía guardarse
+   otra.»* Si cambian las capturas, en esa misma página **Capturas de pantalla** → borrar las
+   antiguas del tamaño de 6,9" y arrastrar las siete de `docs/capturas/` en orden.
 3. **Compilación** → **Añadir compilación** → la **1.1 (N)** probada → **Listo**.
 4. Solo si hace falta: si cambia lo que se recoge (§4), **Privacidad de la app** y
    `PrivacyInfo.xcprivacy`; si hay algo nuevo que Apple necesite saber para probarlo, las **Notas** (§5).
