@@ -1,9 +1,9 @@
 # App de iPhone: TestFlight y App Store
 
-Todo lo que hace falta para pasar de la rama `capacitor` a la app instalada y, cuando se quiera,
-publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de GitHub.
+Todo lo que hace falta para pasar de la rama `capacitor` a la app instalada, publicarla y sacar
+actualizaciones. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de GitHub.
 
-| Paso | Estado (17/09/2026) |
+| Paso | Estado (28/09/2026) |
 |---|---|
 | 1.1–1.4 Identificador, app, clave y secretos | Hecho. App **Tasks: tareas y lugares**, Apple ID `6812776586`, Team ID `APD54YM4F3` |
 | 1.5 Compilación en TestFlight | Hecho. La 9 trae el widget, la 10 la acción de Atajos y la 12 apuntar sin abrir la app (§2.1) y la 13 el sonido de los avisos por hora |
@@ -11,7 +11,8 @@ publicada. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o de Gi
 | 1.7 App Group del widget | Hecho |
 | 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |
 | Unir `capacitor` con `main` | Hecho (17/09/2026). El Worker se despliega solo desde `main` |
-| 6 Publicar en la App Store | Pendiente (faltan capturas) |
+| 6 Publicar en la App Store | Hecho. En la App Store desde el 27/09/2026: la 1.0 con la compilación 24, tras dos rechazos (§7 y §8) |
+| 9 Actualizaciones | Versión en curso: 1.1 |
 
 ## 1. Primera compilación en TestFlight
 
@@ -377,8 +378,7 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
    desarrollador* → **Publicar esta versión**. Si la rechazan, el motivo llega al *Centro de
    resoluciones*: se corrige, se sube otra compilación y se reenvía.
 
-Versiones posteriores: subir `MARKETING_VERSION` en `ios/App/App.xcodeproj/project.pbxproj` (1.1…),
-esperar la compilación y repetir el punto 4 con la versión nueva.
+Versiones posteriores: §9.
 
 ## 7. Rechazo del 22/09/2026: 2.1 *Information Needed*
 
@@ -540,3 +540,50 @@ The Support URL is now https://diegomolinacatala.github.io/tasks/soporte.html, a
 Thank you,
 Diego Molina Catalá
 ```
+
+## 9. Actualizaciones
+
+La 1.0 está en la App Store desde el 27/09/2026 (compilación 24):
+https://apps.apple.com/es/app/tasks-tareas-y-lugares/id6812776586. La app lleva la web dentro
+(`dist-native/`), así que un cambio en `src/`, `ios/` o `public/` solo llega a quien la instaló con una
+versión nueva y su revisión. Lo demás sigue igual:
+
+- Un push a `main` publica la web al momento y, si toca la app, sube una compilación a TestFlight, que
+  solo ves tú.
+- El Worker se despliega al momento y atiende también a la versión de la App Store que cada uno tenga
+  instalada: sus cambios, siempre compatibles hacia atrás.
+
+### 9.1 Número de versión
+
+`MARKETING_VERSION` (`ios/App/App.xcodeproj/project.pbxproj`, cuatro veces: app y widget, Debug y
+Release) es la versión que se publica y tiene que ser mayor que la última aprobada: App Store Connect
+rechaza las compilaciones de una versión ya aprobada y el CI falla al subir (`ITMS-90186`,
+`ITMS-90062`), también la ejecución programada del día 1. Por eso, **en cuanto Apple apruebe una
+versión, se sube** (1.1 → 1.2…) antes del siguiente push que toque la app. Ahora es la 1.1.
+
+### 9.2 Probar la compilación (tú, en el iPhone)
+
+1. Tras el push, *Actions* → **iOS** en verde; entre 5 y 30 minutos después TestFlight enseña
+   **1.1 (N)**.
+2. *TestFlight* → Tasks → **Actualizar**, y probar.
+
+En el iPhone solo cabe una: la de TestFlight (punto naranja junto al nombre) sustituye a la de la App
+Store, y al revés. Las tareas suelen conservarse, pero Apple no lo garantiza: antes de cambiar de una a
+otra, **···** → *Exportar copia* → *Guardar en Archivos*.
+
+### 9.3 Enviar a revisión (tú, en App Store Connect)
+
+1. **Distribución** → columna izquierda, **+** junto a *App para iOS* → versión `1.1` (la misma que
+   `MARKETING_VERSION`) → **Crear**. La versión nueva copia de la anterior las capturas, la
+   descripción, las palabras clave, las URL y la información para la revisión.
+2. **Novedades de esta versión** (obligatorio en una actualización): una o dos frases con lo nuevo. Es
+   lo que se lee en la App Store.
+3. **Compilación** → **Añadir compilación** → la **1.1 (N)** probada → **Listo**.
+4. Solo si hace falta: si cambia lo que se recoge (§4), **Privacidad de la app** y
+   `PrivacyInfo.xcprivacy`; si hay algo nuevo que Apple necesite saber para probarlo, las **Notas** (§5).
+5. **Publicación de la versión**: *automáticamente* (sale en cuanto la aprueben; *manualmente* si
+   se quiere elegir el día). Si aparece la publicación por fases, desactivada: a todos a la vez.
+6. **Guardar** → **Añadir para revisión** → **Enviar a App Review**. Llega un correo en cada cambio
+   de estado; una actualización suele revisarse en menos de un día.
+7. Aprobada: subir `MARKETING_VERSION` a la siguiente (§9.1). Quien tenga activadas las
+   actualizaciones automáticas la recibe sola.

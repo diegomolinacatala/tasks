@@ -6,11 +6,13 @@ con Capacitor (TestFlight / App Store). Un Worker mínimo de Cloudflare envía l
 la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 - Producción web: https://diegomolinacatala.github.io/tasks/
-- App de iPhone: `io.github.diegomolinacatala.tasks`. Pasos de TestFlight y ficha de la App Store en `docs/app-store.md`.
+- App de iPhone: `io.github.diegomolinacatala.tasks`, en la App Store desde el 27/09/2026:
+  https://apps.apple.com/es/app/tasks-tareas-y-lugares/id6812776586. Pasos de TestFlight, ficha de
+  la App Store y cómo publicar una actualización en `docs/app-store.md`.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (25/09/2026)
+## Estado actual (28/09/2026)
 
 **Hecho**
 
@@ -75,14 +77,11 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   `diegomolinacatala+tasks@gmail.com`. Pasos y respuesta en `docs/app-store.md` §8.
 - **Reenviada** (25/09/2026, 13:30) con la compilación 24 (`main`), la URL de soporte nueva, las
   notas del §5 y la respuesta del §8.2: *Esperando revisión*.
+- **Aprobada y publicada** (27/09/2026, 17:29): la 1.0 (compilación 24) está en la App Store, gratis,
+  también en la UE (el estado de comerciante está bien: sale en España, Francia y Alemania).
+  `MARKETING_VERSION` subido a 1.1 el 28/09/2026, porque la 1.0 ya no admite compilaciones nuevas.
 
 **Pendiente, en este orden**
-
-0. Esperar la revisión de Apple (hasta 48 h) de la compilación 24. Al quedar *Pendiente de publicación del desarrollador*, pulsar
-   **Publicar esta versión**. Si la rechazan, el motivo está en el *Centro de resoluciones*. Declarar
-   en **Negocio** que no es comerciante (DSA) si no se ha hecho: sin eso no sale en la UE.
-   En cuanto se apruebe, subir `MARKETING_VERSION` a 1.1 antes del siguiente push: App Store Connect
-   rechaza compilaciones nuevas de una versión aprobada (también fallaría la ejecución programada).
 
 1. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
@@ -95,8 +94,11 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 2. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
-3. Enviar a revisión siguiendo `docs/app-store.md` §6, con la última compilación desde `main` y
-   las capturas de `docs/capturas/`. Pide la cuenta de Apple del usuario y un teléfono de contacto.
+
+Cualquier cambio de la app llega a la App Store con una versión nueva: `docs/app-store.md` §9. En
+cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.1 → 1.2…) antes del siguiente push que toque
+la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
+ejecución programada).
 
 **Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
 reprogramar avisos.
@@ -691,9 +693,10 @@ acento (`--accent`, azul lavanda) reservado a lo interactivo y a lo completado.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.0).
-    Para publicar una versión nueva en la App Store hay que subir `MARKETING_VERSION` en
-    `project.pbxproj`.
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.1,
+    cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
+    última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
+    Pasos de una actualización en `docs/app-store.md` §9.
   - Tras subir, Apple procesa 5–30 min y avisa por correo de problemas del binario (`ITMS-…`).
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Usa el secret `CLOUDFLARE_API_TOKEN` (plantilla *Edit Cloudflare
