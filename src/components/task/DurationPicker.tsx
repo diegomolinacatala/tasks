@@ -2,6 +2,7 @@ import { shortTime } from '../../lib/date'
 import { DURATION_PRESETS, durationFromEnd, durationLabel, endClock } from '../../lib/duration'
 import { useDispatch } from '../../state/StoreProvider'
 import type { IsoTime, Task } from '../../types'
+import { PickerChip } from '../ui/PickerChip'
 
 interface DurationPickerProps {
   /** Solo se pinta con hora: sin ella no hay desde cuándo contar ni cuándo preguntar. */
@@ -36,19 +37,17 @@ export function DurationPicker({ task }: DurationPickerProps) {
             {durationLabel(minutes)}
           </button>
         ))}
-        <label className={`chip ${end && !isPreset ? 'is-active' : ''}`}>
+        <PickerChip
+          type="time"
+          className={`chip ${end && !isPreset ? 'is-active' : ''}`}
+          value={end ?? ''}
+          onCommit={(value) => {
+            // Acabar a la hora de empezar sería un toque en falso: daría la vuelta al reloj.
+            if (value && value !== task.time) set(durationFromEnd(task.time, value))
+          }}
+        >
           {end && !isPreset ? `Hasta ${shortTime(end)}` : 'Hasta…'}
-          <input
-            type="time"
-            className="sr-only"
-            value={end ?? ''}
-            onChange={(event) => {
-              // Acabar a la hora de empezar sería un toque en falso: daría la vuelta al reloj.
-              const value = event.target.value
-              if (value && value !== task.time) set(durationFromEnd(task.time, value))
-            }}
-          />
-        </label>
+        </PickerChip>
       </div>
       {end && !task.done && <p className="sheet__note">A las {shortTime(end)} te pregunto si has acabado.</p>}
     </>

@@ -7,6 +7,8 @@ import type { PlaceTrigger, Reminder, Task } from '../../types'
 import { usePlaceEditor } from '../places/PlaceEditor'
 import { usePush } from '../push/PushProvider'
 import { IconBell, IconClose, IconPin } from '../ui/Icons'
+import { PickerChip } from '../ui/PickerChip'
+import { useToast } from '../ui/Toast'
 
 interface ReminderPickerProps {
   task: Task
@@ -20,6 +22,7 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
   const { places } = useAppState()
   const dispatch = useDispatch()
   const openPlace = usePlaceEditor()
+  const toast = useToast()
   const [adding, setAdding] = useState(false)
   const [trigger, setTrigger] = useState<PlaceTrigger>('arrive')
   const now = Date.now()
@@ -29,7 +32,10 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
     const match = LOCAL_DATETIME.exec(value)
     if (!match?.[1] || !match[2]) return
     const at = toInstant(match[1], match[2])
-    if (at <= Date.now()) return
+    if (at <= Date.now()) {
+      toast({ message: 'Esa hora ya ha pasado.' })
+      return
+    }
     dispatch({ type: 'reminder/add', taskId: task.id, reminder: { kind: 'at', at } })
     setAdding(false)
   }
@@ -95,14 +101,9 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
         ))}
 
         {adding && (
-          <label className="chip chip--option">
+          <PickerChip type="datetime-local" className="chip chip--option" value="" onCommit={addAt}>
             Otra…
-            <input
-              type="datetime-local"
-              className="sr-only"
-              onChange={(event) => addAt(event.target.value)}
-            />
-          </label>
+          </PickerChip>
         )}
       </div>
 

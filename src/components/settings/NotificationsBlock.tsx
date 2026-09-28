@@ -4,6 +4,7 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { isNative } from '../../lib/platform'
 import { usePush } from '../push/PushProvider'
 import { IconBell, IconBellOff } from '../ui/Icons'
+import { PickerChip } from '../ui/PickerChip'
 
 export function NotificationsBlock() {
   const push = usePush()
@@ -58,20 +59,17 @@ export function NotificationsBlock() {
             >
               No
             </button>
-            <label
+            <PickerChip
+              type="time"
               className={`chip ${digest.enabled ? 'is-active' : ''}`}
-              onClick={() => dispatch({ type: 'settings/digest', enabled: true })}
+              value={digest.time}
+              onOpen={() => dispatch({ type: 'settings/digest', enabled: true })}
+              onCommit={(time) => {
+                if (time) dispatch({ type: 'settings/digest', enabled: true, time })
+              }}
             >
               {digest.enabled ? `Cada día a las ${shortTime(digest.time)}` : 'Cada mañana'}
-              <input
-                type="time"
-                className="sr-only"
-                value={digest.time}
-                onChange={(event) => {
-                  if (event.target.value) dispatch({ type: 'settings/digest', enabled: true, time: event.target.value })
-                }}
-              />
-            </label>
+            </PickerChip>
           </div>
 
           <button type="button" className="sheet__row" disabled={push.busy} onClick={() => void push.disable()}>

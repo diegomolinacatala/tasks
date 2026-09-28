@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { addDays, relativeLabel, shortTime, todayIso } from '../../lib/date'
 import { createId } from '../../lib/id'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
@@ -6,6 +6,7 @@ import { findTask, sortedSections } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
 import { IconTrash } from '../ui/Icons'
+import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
 import { DurationPicker } from './DurationPicker'
 import { ReminderPicker } from './ReminderPicker'
@@ -39,6 +40,16 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
   useEffect(() => {
     if (task) setShown(task)
   }, [task])
+
+  // El título ocupa las líneas que tenga, ni una más: el filete de debajo va pegado al texto.
+  const titleInput = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const input = titleInput.current
+    if (!input) return
+    input.style.height = 'auto'
+    // Con `border-box` la altura incluye el filete, que `scrollHeight` no cuenta.
+    input.style.height = `${input.scrollHeight + input.offsetHeight - input.clientHeight}px`
+  }, [title, shown?.id])
 
   if (!shown) return null
 
@@ -85,8 +96,9 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
       {fromNotification && !shown.done && <SnoozeBar task={shown} onDone={close} />}
 
       <textarea
+        ref={titleInput}
         className="sheet__input"
-        rows={2}
+        rows={1}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         onBlur={commitTitle}
@@ -111,15 +123,14 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
         <button type="button" className={`chip ${shown.date === null ? 'is-active' : ''}`} onClick={() => moveTo(null)}>
           Sin fecha
         </button>
-        <label className={`chip ${isCustomDate ? 'is-active' : ''}`}>
+        <PickerChip
+          type="date"
+          className={`chip ${isCustomDate ? 'is-active' : ''}`}
+          value={shown.date ?? ''}
+          onCommit={(value) => moveTo(value || null)}
+        >
           {isCustomDate && shown.date ? relativeLabel(shown.date, today) : 'Otro día'}
-          <input
-            type="date"
-            className="sr-only"
-            value={shown.date ?? ''}
-            onChange={(event) => moveTo(event.target.value || null)}
-          />
-        </label>
+        </PickerChip>
       </div>
 
       {shown.date !== null && (
@@ -129,15 +140,14 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
             <button type="button" className={`chip ${shown.time === null ? 'is-active' : ''}`} onClick={() => setTime(null)}>
               Sin hora
             </button>
-            <label className={`chip ${shown.time ? 'is-active' : ''}`}>
+            <PickerChip
+              type="time"
+              className={`chip ${shown.time ? 'is-active' : ''}`}
+              value={shown.time ?? ''}
+              onCommit={(value) => setTime(value || null)}
+            >
               {shown.time ? shortTime(shown.time) : 'Elegir hora'}
-              <input
-                type="time"
-                className="sr-only"
-                value={shown.time ?? ''}
-                onChange={(event) => setTime(event.target.value || null)}
-              />
-            </label>
+            </PickerChip>
           </div>
         </>
       )}
