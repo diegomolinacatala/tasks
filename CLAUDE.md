@@ -87,7 +87,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   oro viejo; fechas y titulares en New York (serif del sistema); icono nuevo; arranque en frío sin
   saltos (ver "Arranque"); filas que se deslizan al reordenarse. Además, **arreglado** que al elegir
   una hora a mano se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
-- **Estructura nueva** (29/09/2026, sin commitear ni probar aún en el iPhone; Swift sin compilar):
+- **Estructura nueva** (29/09/2026, en la rama `capacitor`, **TestFlight 28** con la versión 1.2; el
+  Swift compila en el CI; sin probar aún en el iPhone ni unida a `main`, así que la web pública sigue
+  con la interfaz anterior):
   cuatro pestañas (**Bandeja**, **Agenda**, **Lugares**, **Ajustes**, ver "Pantallas"); la Agenda al
   estilo de Structured (día arriba, tira de la semana deslizable, horario con cápsulas por duración,
   tiempo libre y la marca de ahora); **rutinas** (lo que se repite, con racha y widget de la pantalla
