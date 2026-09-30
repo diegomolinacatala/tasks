@@ -102,8 +102,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   el navegador (PWA y `npm run dev`), en claro y en oscuro. **Capturas nuevas** en `docs/capturas/`:
   ocho (agenda, rutinas con el widget de bloqueo, lugares, "¿has acabado?", escribir, importancia,
   modo oscuro y widgets), con el reloj de la página fijado a las 11:20.
-- **Emoji, barra de escribir, mes y bienvenida** (30/09/2026, en `capacitor`; sin probar aún en el
-  iPhone ni unida a `main`): las rutinas llevan **emoji** (ver
+- **Emoji, barra de escribir, mes y bienvenida** (30/09/2026, commit `14fe2f2` en `capacitor`,
+  **TestFlight 29**; el Swift compila en el CI; sin probar aún en el iPhone ni unida a `main`): las
+  rutinas llevan **emoji** (ver
   "Rutinas"), que sale en la fila, el horario y los widgets en lugar de las iniciales; la **barra de
   escribir** es una píldora flotante que al tocarla aparta las pestañas y enseña los destinos (ver
   "Alta de tareas"); la tira de la semana **se despliega en el mes** (ver "Pantallas"); y la primera
@@ -113,8 +114,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. De lo del 30/09/2026: **comprobar que el CI compila el Swift** (`WidgetRoutine.emoji`,
-   `RoutineEmoji`, `RoutineEntity.init`) y probar en el iPhone: tocar la barra
+0. De lo del 30/09/2026 (TestFlight 29), probar en el iPhone: tocar la barra
    de escribir (que las pestañas se quiten en el acto y la tarjeta suba con el teclado), tirar de la
    tira hacia abajo y pasar de mes, una rutina con emoji en el widget de bloqueo y en el de inicio, y
    la bienvenida (borrar la app e instalarla, o Ajustes → *Ver la bienvenida*). Las capturas de
