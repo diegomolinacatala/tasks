@@ -5,7 +5,7 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findTask, sortedSections } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
-import { IconTrash } from '../ui/Icons'
+import { IconRepeat, IconTrash } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
 import { DurationPicker } from './DurationPicker'
@@ -18,9 +18,11 @@ interface TaskSheetProps {
   /** Abierta desde un aviso: se ofrece posponer arriba del todo. */
   fromNotification?: boolean
   onClose: () => void
+  /** "Convertir en rutina": lo que se repite no es una tarea. */
+  onMakeRoutine: (task: Task) => void
 }
 
-export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskSheetProps) {
+export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRoutine }: TaskSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const { remove, setImportance } = useTaskActions()
@@ -201,6 +203,18 @@ export function TaskSheet({ taskId, fromNotification = false, onClose }: TaskShe
       )}
 
       <p className="sheet__title">Acciones</p>
+      <button
+        type="button"
+        className="sheet__row"
+        onClick={() => {
+          if (!task) return
+          commitTitle()
+          onMakeRoutine({ ...task, title: title.trim() || task.title })
+        }}
+      >
+        <IconRepeat size={18} />
+        Convertir en rutina
+      </button>
       <button
         type="button"
         className="sheet__row sheet__row--danger"

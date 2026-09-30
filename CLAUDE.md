@@ -80,19 +80,36 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Aprobada y publicada** (27/09/2026, 17:29): la 1.0 (compilación 24) está en la App Store, gratis,
   también en la UE (el estado de comerciante está bien: sale en España, Francia y Alemania).
   `MARKETING_VERSION` subido a 1.1 el 28/09/2026, porque la 1.0 ya no admite compilaciones nuevas.
-- **Rediseño "old money"** (28/09/2026, sin commitear ni probar aún en el iPhone): papel marfil,
-  tinta azul marino, coñac y oro viejo; fechas y titulares en New York (serif del sistema); icono
-  nuevo; arranque en frío sin saltos (ver "Arranque"); filas que se deslizan al reordenarse; capturas
-  de la App Store nuevas. Probado en el navegador. Además, **arreglado** que al elegir una hora a mano
-  se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
+- **Rediseño "old money"** (28/09/2026, commit `a49c254`): papel marfil, tinta azul marino, coñac y
+  oro viejo; fechas y titulares en New York (serif del sistema); icono nuevo; arranque en frío sin
+  saltos (ver "Arranque"); filas que se deslizan al reordenarse. Además, **arreglado** que al elegir
+  una hora a mano se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
+- **Estructura nueva** (29/09/2026, sin commitear ni probar aún en el iPhone; Swift sin compilar):
+  cuatro pestañas (**Bandeja**, **Agenda**, **Lugares**, **Ajustes**, ver "Pantallas"); la Agenda al
+  estilo de Structured (día arriba, tira de la semana deslizable, horario con cápsulas por duración,
+  tiempo libre y la marca de ahora); **rutinas** (lo que se repite, con racha y widget de la pantalla
+  de bloqueo que las tacha de un toque, ver "Rutinas"); **modo oscuro** (Ajustes → Apariencia: claro,
+  oscuro o automático, ver "Estilo visual"); Lugares con mapa de Apple Maps y deslizador de radio;
+  Ajustes como página; deslizar filas sin pasar por React (se "rallaba" en móviles modestos, ver
+  "Gestos de fila") y filas memorizadas. **Arreglado** también que el widget de la pantalla de inicio
+  forzaba la paleta de noche (texto marfil sobre marfil en modo claro), y que al hacer scroll el
+  contenido pasara por detrás del reloj (ahora un velo de papel bajo la barra de estado). Probado en
+  el navegador (PWA y `npm run dev`), en claro y en oscuro. **Capturas nuevas** en `docs/capturas/`:
+  ocho (agenda, rutinas con el widget de bloqueo, lugares, "¿has acabado?", escribir, importancia,
+  modo oscuro y widgets), con el reloj de la página fijado a las 11:20.
 
 **Pendiente, en este orden**
 
-1. Probar el rediseño en el iPhone: abrir la app **cerrada del todo** (la pantalla de carga no debe
-   saltar ni parpadear al dar paso a la app), el icono (también el oscuro de iOS 18), el widget en
-   claro y en oscuro, y elegir horas con la rueda (inicio, "Hasta…", "Otra…" y el resumen diario).
-   iOS guarda en caché la pantalla de carga: si sale la antigua, reiniciar el iPhone. Después, subir
-   las capturas nuevas y enviar la 1.1 (`docs/app-store.md` §3 y §9).
+1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
+   rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
+   el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
+   pantalla de carga, la rueda de la hora y el teclado); una rutina con hora ("tomar creatina todos
+   los días a las 10") y su aviso con **Hecha** sin abrir la app; el widget **Rutinas** en la
+   pantalla de bloqueo (tocarlo la tacha; al día siguiente amanece sin tachar); el mapa de Lugares;
+   el widget de hoy en claro y en oscuro. Después, subir las ocho capturas de `docs/capturas/` y
+   enviar la 1.1 (`docs/app-store.md` §3 y §9; la ficha puede mencionar rutinas, modo oscuro y el
+   widget de la pantalla de bloqueo). iOS guarda en caché la pantalla de carga: si sale la antigua,
+   reiniciar el iPhone.
 2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
@@ -110,8 +127,9 @@ cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.1 → 1.2…) antes del s
 la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
 ejecución programada).
 
-**Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
-reprogramar avisos.
+**Ideas aplazadas**: sincronización por iCloud (CloudKit), refresco en segundo plano para
+reprogramar avisos, rutinas desde Siri y el dictado con IA (hoy solo el analizador local reconoce
+"todos los días") y un mapa interactivo en Lugares (hoy es una foto de Apple Maps).
 
 ## Trabajar en este repo
 
@@ -138,7 +156,7 @@ npm run build      # typecheck + build de producción a dist/
 npm run build:native  # typecheck + web para la app (dist-native/) + headless.js + cap sync ios
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
-node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (antes, npm run build)
+node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
 
@@ -170,19 +188,19 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Siri sin abrir la app | JavaScriptCore con `headless.js` | la misma lógica TypeScript fuera del WebView, sin reescribirla en Swift |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
-Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas (la serif es la del sistema). El bundle de la PWA debe seguir en ~120 kB gzip
-(120,2 el 28/09/2026, tras el rediseño): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
-editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
-con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
-pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
-toque.
+Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
+sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~125 kB
+gzip (126 el 29/09/2026, con la Agenda, las rutinas y el tema; 118 antes): lo que solo existe en el
+iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
+(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa") se carga con `import()` o `lazy`.
+La Bandeja y los paneles de tarea y sección van en su propio trozo, pedido nada más pintar la Agenda
+(`loadSheets` en `App.tsx`): no esperan al toque.
 
 ## Arquitectura
 
 ```
 src/
-├── types.ts              # Task, Reminder, Section, Place, AppState
+├── types.ts              # Task, Reminder, Section, Place, Routine, Theme, TabId, AppState
 ├── sw.ts                 # precache + push + notificationclick
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
@@ -190,18 +208,23 @@ src/
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
+│   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
+│   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
+│   ├── timeline.ts       # horario de un día: lo que tiene hora, tiempo libre y "ahora"
+│   ├── theme.ts          # apariencia: claro, oscuro o del sistema; cambio con un círculo de tinta
+│   ├── mapFrame.ts       # dónde van las chinchetas en el plano dibujado (sin Apple Maps)
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
 │   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
 │   ├── when.ts           # piezas de parse.ts: horas, plazos y días
 │   ├── title.ts          # título limpio: muletillas, "tengo que acudir a una cena" → "Cena"
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
-│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, badge
+│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, rutinas, badge
 │   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
 │   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
-│   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
+│   ├── widget.ts         # foto de tareas y rutinas para los widgets y cambios hechos desde ellos
 │   ├── inbox.ts          # bandeja de lo hecho fuera de la web (altas, pasar a hoy) y cómo aplicarlo
 │   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
 │   ├── headless.ts       # apuntar o pasar a hoy sin abrir la app: bandeja, avisos, icono y widget
@@ -214,10 +237,17 @@ src/
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
-└── components/           # por dominio: shell, views, task, importance, section, compose, push, places, settings, ui, dnd
+└── components/           # por dominio:
+    ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
+    ├── views/            # AgendaView (+ WeekStrip, Timeline, useDayBoard), InboxView (+ DayDock)
+    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet (constancia)
+    ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions
+    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
+    ├── settings/         # SettingsView (página), AppearancePicker, avisos, dictado
+    └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, compose, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # extensión del widget; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
+ios/App/TasksWidget/      # widgets Hoy y Rutinas; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 docs/capturas/            # capturas de la App Store (1320 × 2868), en orden de subida
 public/privacidad.html    # política de privacidad (URL que pide la App Store)
@@ -258,19 +288,38 @@ entre secciones distintas no es comparable. Cada vista ordena lo que muestra.
 
 ### Pantallas
 
-Dos vistas (`ViewId`): `home` y `week`.
+Cuatro pestañas (`TabId`) en la barra inferior, con un filete de oro que se desliza bajo la elegida
+(`TabBar`). Cada una se monta la primera vez que se abre y después se conserva con `<Activity>` de
+React (su estado y su scroll, que `App` guarda al salir). Tocar la pestaña en la que ya estás vuelve
+arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
 
-**`home`** es la pantalla principal y tiene tres bloques fijos, de arriba abajo:
+- **Bandeja** (`InboxView`): lo que no tiene día. Arriba, **Rutinas** (ver "Rutinas"); debajo,
+  **Tareas** sin fecha, ordenables con el asa. Al arrastrar una sube un **muelle** con los próximos
+  siete días (`DayDock`): soltarla en uno la planifica. Con más de una hecha, "Borrar las N hechas".
+- **Agenda** (`AgendaView`), como Structured: el mes arriba, el día elegido en grande ("Hoy martes
+  29", "Mañana miércoles 30", "Jueves 1 octubre") y la **tira de la semana** (`WeekStrip`): letra,
+  número y un anillo que se cierra con lo hecho; lo pasado con pendientes, en ladrillo. Se desliza
+  a los lados para cambiar de semana (conserva el día de la semana) y cada día es un sitio donde
+  soltar una tarea arrastrada. Debajo, el filete con el avance del día y:
+  1. `Atrasadas` (solo hoy), en rojo, con **Pasar a hoy**. Se puede sacar de aquí pero no soltar
+     dentro: sus tareas conservan la fecha hasta que se mueven.
+  2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas y rutinas) a lo largo de
+     una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
+     si está en curso, se va llenando; entre medias, "1 h 30 libres" (desde ahora, si el hueco ya
+     empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora).
+  3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Un día pasado con
+     pendientes lleva **Pasar a hoy**. Un día sin tareas dice "Día libre." (las rutinas no cuentan).
+  El compositor añade al día elegido ("Añadir al jueves 2"); su atajo, **Sin fecha**, a la Bandeja.
+- **Lugares** (`PlacesView`, ver "Lugares").
+- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Avisos, Dictado, Datos y
+  Tasks (valorar, soporte, privacidad, versión).
 
-1. `Atrasadas` — pendientes de días anteriores, en rojo. Se puede sacar de aquí pero no
-   soltar dentro: sus tareas conservan la fecha hasta que se mueven a otro bloque.
-2. `Hoy` — lista raíz más las secciones del usuario.
-3. `Sin fecha` — lo que no tiene día. Es donde caen las tareas nuevas por defecto.
+`Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
+`Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
+hoy), un aviso dice adónde ha ido y ofrece **Ver**.
 
-`Atrasadas` y `Sin fecha` se pliegan y ese estado se guarda en `AppState.collapsed`. La cabecera
-de `Atrasadas` lleva **Pasar a hoy** (se ve también plegada).
-
-Arriba a la derecha, **Aa** (modo importancia) y **⋯** (Ajustes).
+Arriba a la derecha, en la Bandeja y la Agenda, el modo importancia: una **A con una flecha doble**
+(se desliza para agrandar), que al activarse sube y baja una vez.
 
 ### Arranque
 
@@ -291,8 +340,15 @@ Los primeros segundos no deben saltar: cada relevo es invisible y la entrada, su
    (`.is-entering` en `shell.css`: cabecera, bloques y barra suben unos píxeles). Se puede tocar
    desde el primer momento.
 
-En un iPhone normal la señal da paso a la app en unos 200 ms y el esqueleto no llega a verse. La
-vista semana, si se abre antes de cargarse su trozo, enseña su propio esqueleto (`Skeleton`).
+En un iPhone normal la señal da paso a la app en unos 200 ms y el esqueleto no llega a verse. Una
+pestaña que se abre antes de cargarse su trozo enseña su propio esqueleto (`Skeleton`).
+
+**Con el modo oscuro**: la apariencia se copia en `localStorage` (`tasks:theme`) y un script en
+`<head>` pone `data-theme` antes de pintar, así que `#boot` (con variables `--boot-*`) ya sale en su
+tema. La pantalla de carga nativa usa el color `LaunchBackground` y la señal `LaunchMark` con
+variante oscura (Assets.xcassets), y `SceneDelegate` fija la apariencia guardada
+(`TasksNative.setAppearance`, en `UserDefaults`) antes de crear la vista: con "Oscuro" o "Claro"
+distinto del iPhone, la pantalla del sistema sale un instante en el tema del iPhone.
 
 ### Pasar a hoy
 
@@ -304,8 +360,8 @@ estar en rojo. Conserva la hora; lo hecho no se mueve (es historia).
 - `tasks/reschedule { ids, date }` (`rescheduled` en `order.ts`) ignora lo hecho y lo que ya es de
   ese día, así que repetirlo no cambia nada. "Deshacer" (toast) es `tasks/place` con los sitios de
   antes (`placementsOf`): cada tarea vuelve a su día, su sección y su puesto.
-- Dónde está: la cabecera de `Atrasadas`; cada día pasado con pendientes en `Semana` (solo los de
-  ese día); los avisos (el resumen diario con algo atrasado trae *Pasar atrasadas a hoy*, y el aviso
+- Dónde está: la cabecera de `Atrasadas`; la de `Sin hora` de un día pasado con pendientes en la
+  Agenda (solo los de ese día); los avisos (el resumen diario con algo atrasado trae *Pasar atrasadas a hoy*, y el aviso
   de una tarea cuyo día ya pasó, *Pasar a hoy* entre *Hecha* y *+10 min*: `ScheduleEntry.overdue`,
   categorías `task-overdue` y `digest-overdue`); Siri y Atajos (*«Pasa lo atrasado a hoy en
   Tasks»*, `MoveOverdueIntent`, sin abrir la app; sirve para una automatización cada mañana,
@@ -337,6 +393,39 @@ igual. No reordena nada.
   las dos pendientes más importantes y el resumen diario adelanta las más importantes en su vista
   previa. En el resto del widget los títulos crecen poco (las filas son de alto fijo).
 - Lo que llega sin importancia (copias antiguas, Siri, la bandeja) es normal (`normalizeImportance`).
+
+### Rutinas
+
+Lo que se repite ("tomar creatina", cada día a las 10:00) no es una tarea: es una `Routine`
+(`AppState.routines`, `lib/routines.ts`) con los días de la semana en que toca (1 = lunes … 7 =
+domingo), una hora opcional y un **diario** de días hechos (`done`, los 400 más recientes). No hay
+nada que reiniciar a medianoche: "hecha hoy" es que el diario tenga hoy, así que cada día amanece
+pendiente él solo (en la app, en los avisos y en el widget).
+
+- **Dónde**: bloque `Rutinas` de la Bandeja (las que tocan hoy arriba, lo hecho después y las que hoy
+  no tocan, atenuadas), con "2/3" de hoy y **+**. Las que tienen hora salen también en el horario
+  de la Agenda de cada día que tocan (cápsula de trazo discontinuo con el icono de repetir).
+- **Fila** (`RoutineRow`): el círculo o deslizar a la derecha la tacha hoy; a la izquierda, borra (con
+  deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba
+  (antes de crearla tampoco). Debajo del título, la hora, los días y "racha de N" (desde 2).
+- **Panel** (`RoutineSheet`): nombre, días (L M X J V S D y atajos: cada día, entre semana, fines de
+  semana), aviso a una hora, y **Constancia**: racha, mejor racha, % de los últimos 30 días y las
+  últimas cinco semanas día a día. Una nueva se crea al cerrar si tiene nombre ("Añadir rutina").
+- **Escribiendo**: `parseRoutine` (`lib/repeat.ts`) reconoce "todos los días", "cada día", "a
+  diario", "entre semana", "de lunes a viernes", "los fines de semana", "los lunes y jueves", "cada
+  martes", "todas las mañanas" (09:00)… La hora sale del analizador de siempre ("a las 7" es 19:00,
+  como en las tareas). La píldora dice "Cada día · 10:00" con el icono de repetir; tocarla la deja
+  como tarea. También al dictar (antes de la IA). "El lunes" es un día; "los lunes", todos.
+- **Desde una tarea**: panel → **Convertir en rutina** (cada día, con su hora; deshacer).
+- **Avisos**: `routineEntries` (`schedule.ts`) programa uno a su hora cada día que toca en los
+  próximos 7, mientras no esté hecha (id `routine-<id>-AAAAMMDD`). No cuentan para el número del
+  icono. En el iPhone, si no cabe todo en los 64 avisos, las rutinas se llevan como mucho un tercio
+  del hueco (`fitSchedule`, `ROUTINE_SHARE`): lo que falte se programa al volver a abrir la app. En el iPhone llevan **Hecha** (categoría `routine`), que la tacha **sin abrir la app**:
+  `NotificationResponder` lo apunta en el App Group como el widget y la web lo aplica al volver
+  (o al momento si está delante: acción `widget`). Tocar el aviso sin botón abre la Bandeja y pregunta
+  "¿Hecha?". En la PWA no llevan botones.
+- **Widget Rutinas** (pantalla de bloqueo redonda y rectangular, y pequeño de inicio): ver "App de
+  iPhone".
 
 ### Duración y aviso de cierre
 
@@ -381,32 +470,51 @@ notificación, sin entrar.
 - **El arrastre solo se activa desde el asa** (`task__grip`, `section__grip`), con
   `touch-action: none` y un umbral de 4 px. El resto de la fila queda libre para el scroll
   vertical y el deslizamiento horizontal, así que los tres gestos no compiten.
-- **`home`**: `useHomeBoard` mantiene una copia (`preview`) del tablero durante el gesto y
-  confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
-  ref: al soltar hay que leer el estado real del gesto, no el del último render.
-  Cada columna del commit lleva su propio destino: `root` y las secciones van a hoy,
-  `backlog` va a `null`, y `overdue` se excluye del commit.
-- **`week`**: cada día es un `useDroppable`; soltar cambia la fecha y conserva la sección.
-  No se reordena dentro del día (el orden es por sección y quedaría ambiguo).
-- Ids con prefijo para no colisionar: `col:<clave>` (columna), `sec:<id>` (sección),
-  el id pelado de la tarea para las tareas. Ver `src/components/dnd/ids.ts`.
+- **Agenda** (`useDayBoard`): mantiene una copia (`preview`) del tablero del día elegido durante el
+  gesto y confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
+  ref: al soltar hay que leer el estado real del gesto, no el del último render. Cada columna del
+  commit lleva su propio destino: `root` y las secciones van al día elegido, y `overdue` (solo hoy)
+  se excluye del commit. Solo entra lo que no tiene hora: lo que la tiene va al horario y no se
+  arrastra. Los días de la tira son `useDroppable` (`type: 'day'`): soltar ahí lleva la tarea a ese
+  día con su sección y su hora, con deshacer.
+- **Bandeja**: una sola lista (`scope/reorder` en `backlog`); los días del muelle (`DayDock`) son
+  droppables como los de la tira. Como el muelle sube al empezar el arrastre, su `DndContext` mide
+  los droppables siempre (`MeasuringStrategy.Always`).
+- `scopedCollision` (`dnd.ts`): un día solo cuenta si el dedo está encima (`pointerWithin`); si no,
+  `closestCorners` entre lo demás. Así reordenar cerca de la tira no se lleva la tarea a otro día.
+- Ids con prefijo para no colisionar: `col:<clave>` (columna), `sec:<id>` (sección), `day:<fecha>`
+  (día), el id pelado de la tarea para las tareas. Ver `src/components/dnd/ids.ts`.
 
-### Gestos de fila (`useSwipe`)
+### Gestos de fila (`SwipeRow` + `useSwipe`)
 
-Deslizar a la derecha completa, a la izquierda borra (con deshacer en un toast). El gesto
-se bloquea en un eje según el primer movimiento. El desplazamiento se guarda en un ref
-además de en el estado: al soltar hay que leer el valor real, no el del render anterior.
-El asa detiene la propagación del `pointerdown` para no disparar también el deslizamiento.
+Deslizar a la derecha completa, a la izquierda borra (con deshacer en un toast), como en Mail. El
+gesto se bloquea en un eje según el primer movimiento. **No pasa por React**: cada `pointermove`
+escribe el `transform` de la superficie en el siguiente fotograma y `--swipe` (0 a 1) en la fila, que
+hace crecer el icono de detrás; antes era un render por evento y en móviles modestos iba a saltos.
+Al pasar el umbral (84 px) el icono se rellena, da un saltito y vibra; al soltar cuenta también la
+velocidad (un golpe rápido de 36 px basta). Hacia un lado sin acción solo ofrece resistencia. El
+`click` que llega tras deslizar se descarta. El asa detiene la propagación del `pointerdown` para no
+disparar también el deslizamiento.
+
+Las filas están **memorizadas** (`TaskShell`, `SortableTask`, las del horario y las rutinas): las
+acciones llegan por contexto (`RowActionsContext`) y no cambian entre renders (`useTaskActions` lee
+el estado de un ref), así que tachar una tarea solo repinta esa fila.
+
+Los paneles (`Sheet`) se arrastran por el asa igual: el panel sigue al dedo sin renders, el fondo se
+aclara a la vez, un tirón corto (por velocidad) lo cierra y sigue bajando desde donde se soltó; hacia
+arriba solo cede con resistencia. El deslizador (`Slider`) se coge desde cualquier punto de la pista,
+enseña el valor encima del dedo y vibra en cada paso.
 
 ### Alta de tareas
 
-El compositor crea **sin fecha** por defecto (Enter o el `+`). `parseTask` reconoce día,
+El compositor crea donde se está mirando (Enter o el `+`): **sin fecha** en la Bandeja y **en el
+día elegido** en la Agenda; su atajo de un toque lleva al otro sitio ("Hoy" o "Sin fecha"). Si dice
+que se repite, es una rutina (ver "Rutinas"). `parseTask` reconoce día,
 hora, plazos y duración en español ("mañana a las 5", "el lunes", "15/10", "en 30 min",
 "durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora; tocarla
 deja el texto literal. Con hora → aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
 suelto nunca es una hora ("comprar 5 manzanas") ni una duración ("comprar de 5 a 7 manzanas": un
-tramo necesita "las" o minutos). Sin nada detectado aparece el atajo de un toque a hoy —o al día
-seleccionado en la vista semana—.
+tramo necesita "las" o minutos).
 
 También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes", "avísame a
 las 9", "el día antes") y números en palabras: `normalize.ts` los pasa a dígitos guardando de
@@ -499,9 +607,21 @@ ver "Duración y aviso de cierre".
 `placeKey`), ubicación (`null` hasta elegirla) y radio (100–1000 m). Borrar un lugar quita sus
 avisos de las tareas.
 
-- **Alta**: Ajustes → Lugares, o al escribir o dictar un sitio nuevo ("al pasar por Mercadona"):
-  `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor buscando ese
-  nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
+- **Pestaña Lugares** (`PlacesView`), al estilo de Google Maps: arriba un **mapa** de Apple Maps con
+  tus sitios (`MapSnapshot`: `TasksNative.mapSnapshot` hace una foto con `MKMapSnapshotter`, estilo
+  apagado y sin comercios, en el tema de la app, y devuelve dónde cae cada punto); encima, en HTML,
+  una chincheta por lugar con el número de tareas pendientes allí, que lo abre. Mientras llega la
+  foto, o si falla, un plano dibujado con los puntos en su sitio relativo (`lib/mapFrame.ts`). Un
+  buscador flota sobre el borde ("Buscar o añadir un lugar") y debajo va una tarjeta por lugar:
+  nombre, dirección, **distancia** (solo si ya hay permiso de ubicación: abrir la pestaña no lo
+  pide), radio y sus tareas pendientes. En la PWA la pestaña dice que es cosa del iPhone y lleva a
+  la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para poder probarla).
+- **Panel del lugar** (`PlaceSheet`): mapa centrado con el radio a escala, buscar en Apple Maps o
+  usar la ubicación actual, **deslizador de radio** (100 m–1 km, de 50 en 50, el círculo lo sigue en
+  vivo), las tareas con aviso allí y borrar.
+- **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por
+  Mercadona"): `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor
+  buscando ese nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
 - **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / al salir
   de". Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
   Corte Inglés"). `parseTask(texto, ahora, null)` desactiva los lugares: así funciona la PWA, que
@@ -546,14 +666,20 @@ la misma.
   *Dictar tarea* ("Dictar texto" + "Añadir tarea"). Para escribir, `ComposeTaskIntent` ("Nueva
   tarea", sin frase de Siri para no chocar con la de añadir), que abre la app con el teclado: envía
   `compose`, igual que el acceso rápido del icono.
-- **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado en tinta
-  (`Style.Light`, `UIStatusBarStyleDarkContent`) y apariencia clara forzada (`UIUserInterfaceStyle`
-  `Light`): la app no tiene modo oscuro. La pantalla de carga, en "Arranque".
-- **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
+- **Vibración** (`haptic`) al completar, borrar, elegir sitio, pasar el umbral al deslizar, cambiar
+  de semana y en cada paso de los deslizadores.
+- **Apariencia**: `lib/theme.ts` llama a `TasksNative.setAppearance` (fija
+  `overrideUserInterfaceStyle` de las ventanas, así la rueda de la hora, el teclado y los menús van
+  en el mismo tema; `auto` lo deja al sistema, y se guarda en `UserDefaults` para el próximo
+  arranque) y pone la barra de estado con la tinta que toca (`Style.Light` de día, `Style.Dark` de
+  noche). `Info.plist` ya no fuerza el modo claro y su `UIStatusBarStyle` es el del sistema. La
+  pantalla de carga, en "Arranque".
+- **Widget Hoy** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
   bloque Hoy con lo atrasado en rojo y el número del icono. Con algo atrasado, **A hoy** (ver "Pasar
   a hoy"). Los títulos crecen con la importancia (`RowStyle.titleFont`). Mismos colores que
-  `tokens.css` (`Palette`) y la cifra en New York; a diferencia de la app, en modo oscuro del
-  iPhone pasa a azul noche. Datos por el App Group, con un fichero para cada lado:
+  `tokens.css` (`Palette`) y la cifra en New York; en la pantalla de inicio sigue el modo del iPhone
+  (azul noche en oscuro); en la de bloqueo va siempre con la paleta de noche, porque iOS pinta por
+  luminosidad y la tinta marino desaparecería. Datos por el App Group, con un fichero para cada lado:
   - La app escribe `widget-snapshot.json` con `widgetSnapshot` (`NativeWidget`, debounce 400 ms y
     al instante al pasar a segundo plano) y pide recargar. La foto trae lo atrasado y 7 días por
     delante: el widget tiene una entrada por medianoche y cambia de día sin abrir la app.
@@ -562,12 +688,27 @@ la misma.
     web no corre ahí, así que al volver a primer plano `widgetChanges()` devuelve lo apuntado (y lo
     vacía), la web lo aplica con `task/toggle` y, si el widget quitó avisos, lanza
     `RESCHEDULE_EVENT` para reprogramar aunque la huella del plan no haya cambiado.
-  - Enlaces `io.github.diegomolinacatala.tasks://today|compose|task/<id>` (`WidgetLink`,
-    `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose` y `open`.
+  - Enlaces `io.github.diegomolinacatala.tasks://today|compose|routines|task/<id>` (`WidgetLink`,
+    `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose`, `routines` y `open`.
   - Sin App Group (compilación sin firmar) el widget dice "Abre Tasks" y la web ignora el error.
+- **Widget Rutinas** (`RoutinesWidget` en `TasksWidget.swift`, vistas en `TasksWidgetViews.swift`):
+  pantalla de bloqueo redonda (anillo con lo hecho hoy y la inicial de la rutina, o la marca) y
+  rectangular (la rutina, su hora y "1 de 3 hoy"), y pequeño de inicio (las de hoy con su círculo).
+  **Un toque la tacha** sin abrir la app, también bloqueado (`ToggleRoutineIntent`, en
+  `ToggleTaskIntent.swift`, `authenticationPolicy = .alwaysAllowed`). Se configura
+  (`AppIntentConfiguration` + `RoutineWidgetIntent`, `RoutineEntity`/`RoutineQuery` leen la foto): una
+  rutina concreta o "la siguiente que queda por hacer". Una entrada por medianoche: cada día amanece
+  sin tachar sin abrir la app.
+  - La foto (`widgetSnapshot`) lleva `routines` (días que tocan y diario de la última semana).
+    Tacharla apunta `routines[id][día]` en `widget-changes.json` (`WidgetStore.setRoutine`), quita su
+    aviso de hoy (pendiente y ya entregado) y, si se destacha, pide reprogramar. La web lo recoge con
+    `widgetChanges()` (en la misma lista que las tareas: `{ routineId, date, done }`,
+    `parseRoutineChanges`) y aplica `routine/set`. `headless.js` también lo cuenta (`projected`).
+  - `WidgetChanges` se lee con `decodeIfPresent`: un fichero de una versión anterior no trae
+    `routines` y no debe perder lo marcado.
 - **Permisos**: el de notificaciones se pide solo la primera vez que hay algún recordatorio
   (`tasks:notifications-asked` en localStorage); después manda Ajustes de iOS. El de ubicación, al
-  buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). Ajustes → Lugares avisa
+  buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). La pestaña Lugares avisa
   si está bloqueado.
 - **Plugins**: app, filesystem, haptics, local-notifications, share, splash-screen y status-bar.
   **No** usar `@capacitor/geolocation`: la ubicación va por el plugin propio y su presencia
@@ -670,19 +811,31 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
 
 ## Estilo visual
 
-"Old money": papelería de casa antigua. Siempre claro. Papel marfil (`--bg`), tinta azul marino
+"Old money": papelería de casa antigua. Papel marfil (`--bg`), tinta azul marino
 (`--text`), coñac (`--accent`) para lo interactivo y lo completado, azul marino macizo
 (`--primary`) para lo elegido y la acción principal, y oro viejo (`--gold`) solo para filetes.
 
-- Letra: fechas, bloques (Atrasadas, Hoy, Sin fecha), títulos de panel y vacíos en **New York**
+**Modo oscuro** ("noche de biblioteca"), en Ajustes → Apariencia: **Claro**, **Oscuro** o
+**Automático** (sigue al iPhone; es lo que trae una instalación nueva o una copia antigua). Azul
+medianoche en vez de papel (`#121828`), tinta marfil (14:1), y los mismos acentos en pastel: camel
+(9:1), rosa terracota para lo atrasado, oro pálido; lo elegido pasa a marfil macizo con tinta de
+noche. Son los mismos tokens redefinidos en `:root[data-theme='dark']` (`tokens.css`): ningún
+componente sabe en qué tema está (salvo las miniaturas de Ajustes, que enseñan cada uno a propósito).
+Cambiar de tema extiende el nuevo en un círculo desde el dedo (View Transitions, `switchTheme`). La
+apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
+
+- Letra: fechas, bloques (Atrasadas, Horario, Sin hora, Rutinas), títulos de panel, nombres de lugar
+  y vacíos en **New York**
   (`--font-serif`: `ui-serif`, la serif del sistema, sin descargar nada); el resto, San Francisco.
   Secciones y etiquetas en versalitas espaciadas.
 - Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.** Contrastes
-  comprobados: tinta 13:1, secundario 6,5:1, coñac 5:1 sobre el papel.
+  comprobados: tinta 13:1, secundario 6,5:1, terciario 4,6:1, coñac 5:1 sobre el papel; de noche,
+  tinta 14:1, secundario 8:1, terciario 5,7:1, camel 9:1. Cualquier color nuevo, en los dos temas.
 - `--danger` (ladrillo) significa una sola cosa: atrasado (o borrar). No se usa de adorno.
 - Movimiento: completar rellena el círculo con rebote (`--ease-pop`), dibuja la marca y tacha a
-  pluma; las filas se deslizan a su sitio (`lib/flip.ts`); los paneles suben con la curva de iOS y
-  bajan más deprisa; los avisos entran y salen.
+  pluma; las filas se deslizan a su sitio (`lib/flip.ts`, solo las que se ven); los paneles suben
+  con la curva de iOS y bajan más deprisa; los avisos entran y salen; el filete de oro de las
+  pestañas se desliza; el día nuevo entra por el lado hacia el que se va; la marca de "ahora" late.
 - La marca (señal a pluma en tinta, doble filete de oro en el icono) sale de `scripts/brand.mjs`:
   cambiarla ahí y `npm run icons`.
 - CSS por componente, junto al componente. Clases en kebab-case estilo BEM ligero.
@@ -717,7 +870,8 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
-- **Sin subtareas, notas ni recurrencias** por ahora.
+- **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:
+  no generan copias por día ni se "reinician"; cada día se tachan en su diario.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
@@ -727,8 +881,10 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   Atajos).
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
-- Siempre claro, sin modo oscuro en la app (el widget sí se adapta): el papel marfil es la identidad,
-  y así la pantalla de carga nativa siempre coincide con la web.
+- Modo oscuro sí, pero con la misma identidad: colores apagados y pastel, nada chillón. El papel
+  marfil sigue siendo la cara de la app (icono, capturas).
+- Cuatro pestañas y ninguna más (Bandeja, Agenda, Lugares, Ajustes). Lo que no es de primer nivel
+  va en paneles.
 
 ## Despliegue
 

@@ -24,6 +24,8 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "widgetChanges", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "inbox", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "ackInbox", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "mapSnapshot", returnType: CAPPluginReturnPromise),
     ]
 
     private static let searchSpanMeters = 30_000.0
@@ -153,18 +155,123 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         }
         do {
             try WidgetStore.saveSnapshot(json)
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.kind)
+            WidgetCenter.shared.reloadAllTimelines()
             call.resolve()
         } catch {
             call.reject("No se pudo guardar la foto del widget.")
         }
     }
 
-    /// Lo marcado desde el widget desde la última lectura. Se vacía al leerlo.
+    /// Lo marcado desde los widgets (tareas y rutinas) desde la última lectura. Se vacía al leerlo.
     @objc func widgetChanges(_ call: CAPPluginCall) {
         let pending = WidgetStore.takeChanges()
-        let changes: [[String: Any]] = pending.done.map { ["taskId": $0.key, "done": $0.value] }
-        call.resolve(["changes": changes, "reschedule": pending.reschedule])
+        call.resolve(["changes": WidgetStore.describe(pending), "reschedule": pending.reschedule])
+    }
+
+    /// Apariencia de la ventana: `light` y `dark` la fijan; `auto` deja que siga a iOS. Decide cómo
+    /// salen la rueda de la hora, el teclado y los menús. Se recuerda para el próximo arranque.
+    @objc func setAppearance(_ call: CAPPluginCall) {
+        let name = call.getString("style") ?? "auto"
+        UserDefaults.standard.set(name, forKey: Self.appearanceKey)
+        DispatchQueue.main.async {
+            let style = Self.interfaceStyle(name)
+            let windows = self.bridge?.viewController?.view.window?.windowScene?.windows ?? []
+            windows.forEach { $0.overrideUserInterfaceStyle = style }
+            call.resolve()
+        }
+    }
+
+    static let appearanceKey = "tasks.appearance"
+
+    static func interfaceStyle(_ name: String?) -> UIUserInterfaceStyle {
+        switch name {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return .unspecified
+        }
+    }
+
+    /// Foto de Apple Maps para la pestaña Lugares: estilo apagado, sin comercios, en el tema de la
+    /// app. Con `center` y `span` (metros de norte a sur) se centra ahí; si no, encuadra `points`.
+    /// Devuelve la imagen y dónde cae cada punto, de 0 a 1, para pintar encima las chinchetas.
+    @objc func mapSnapshot(_ call: CAPPluginCall) {
+        let points: [CLLocationCoordinate2D] = (call.getArray("points", JSObject.self) ?? []).compactMap { object in
+            guard let lat = Self.number(object["lat"])?.doubleValue, let lng = Self.number(object["lng"])?.doubleValue else { return nil }
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            // MapKit lanza una excepción (que no se puede capturar) con una región inválida.
+            return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
+        }
+        let width = min(max(call.getDouble("width") ?? 320, 40), 1200)
+        let height = min(max(call.getDouble("height") ?? 200, 40), 1200)
+        let dark = call.getBool("dark") ?? false
+
+        let region: MKCoordinateRegion
+        if let center = call.getObject("center"),
+           let lat = Self.number(center["lat"])?.doubleValue,
+           let lng = Self.number(center["lng"])?.doubleValue {
+            let span = min(max(call.getDouble("span") ?? 1000, 200), 50_000)
+            region = MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                latitudinalMeters: span,
+                longitudinalMeters: span * width / height
+            )
+        } else if !points.isEmpty {
+            region = Self.region(fitting: points, aspect: width / height)
+        } else {
+            call.reject("No hay nada que enseñar en el mapa.")
+            return
+        }
+
+        let configuration = MKStandardMapConfiguration(elevationStyle: .flat, emphasisStyle: .muted)
+        configuration.pointOfInterestFilter = .excludingAll
+        let options = MKMapSnapshotter.Options()
+        options.region = region
+        options.size = CGSize(width: width, height: height)
+        options.preferredConfiguration = configuration
+
+        DispatchQueue.main.async {
+            let scale = self.bridge?.viewController?.traitCollection.displayScale ?? 3
+            options.traitCollection = UITraitCollection(traitsFrom: [
+                UITraitCollection(displayScale: scale),
+                UITraitCollection(userInterfaceStyle: dark ? .dark : .light),
+            ])
+            MKMapSnapshotter(options: options).start { snapshot, error in
+                guard let snapshot, let data = snapshot.image.jpegData(compressionQuality: 0.82) else {
+                    call.reject(error?.localizedDescription ?? "No se pudo hacer el mapa.")
+                    return
+                }
+                let placed: [[String: Double]] = points.map { coordinate in
+                    let point = snapshot.point(for: coordinate)
+                    return ["x": Double(point.x) / width, "y": Double(point.y) / height]
+                }
+                call.resolve(["image": "data:image/jpeg;base64," + data.base64EncodedString(), "points": placed])
+            }
+        }
+    }
+
+    /// Encuadre con todos los puntos, con aire alrededor (las chinchetas suben por encima de su
+    /// punto) y la forma de la foto. Un solo punto, o todos juntos, enseña un barrio.
+    private static func region(fitting points: [CLLocationCoordinate2D], aspect: Double) -> MKCoordinateRegion {
+        // Rectángulos de un punto, no vacíos: un rectángulo sin tamaño podría dar una región inválida.
+        var rect = MKMapRect(origin: MKMapPoint(points[0]), size: MKMapSize(width: 1, height: 1))
+        for coordinate in points.dropFirst() {
+            let point = MKMapPoint(coordinate)
+            rect = rect.union(MKMapRect(x: point.x, y: point.y, width: 1, height: 1))
+        }
+        let minimum = MKMapPointsPerMeterAtLatitude(points[0].latitude) * 900
+        var width = max(rect.size.width * 1.5, minimum)
+        var height = max(rect.size.height * 1.9, minimum)
+        if width / height < aspect {
+            width = height * aspect
+        } else {
+            height = width / aspect
+        }
+        // Los puntos, algo por encima del centro: abajo van sus nombres y el buscador flota sobre el borde.
+        let fitted = MKMapRect(x: rect.midX - width / 2, y: rect.midY - height * 0.42, width: width, height: height)
+        return MKCoordinateRegion(fitted)
     }
 
     /// Lo apuntado con Siri o Atajos sin abrir la app. No se vacía al leerlo: ver `ackInbox`.

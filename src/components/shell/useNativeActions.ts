@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { parseNativeAction } from '../../lib/nativeEvents'
+import { WIDGET_EVENT, parseNativeAction } from '../../lib/nativeEvents'
 import { isNative } from '../../lib/platform'
 
 interface NativeActionHandlers {
@@ -16,6 +16,8 @@ interface NativeActionHandlers {
   onOpenTask: (taskId: string) => void
   /** Siri o un atajo han apuntado algo sin abrir la app mientras esta seguía viva. */
   onInbox: () => void
+  /** Widget de rutinas: tocarlo fuera del círculo. */
+  onRoutines: () => void
 }
 
 /** Acciones que llegan de fuera de la web en la app de iPhone. */
@@ -40,6 +42,8 @@ export function useNativeActions(handlers: NativeActionHandlers) {
           if (action?.type === 'today') current.current.onToday()
           if (action?.type === 'open') current.current.onOpenTask(action.taskId)
           if (action?.type === 'inbox') current.current.onInbox()
+          if (action?.type === 'routines') current.current.onRoutines()
+          if (action?.type === 'widget') window.dispatchEvent(new Event(WIDGET_EVENT))
         }),
       )
       .then((registered) => {

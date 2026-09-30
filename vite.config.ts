@@ -70,6 +70,7 @@ export default defineConfig(({ mode }) => ({
         'src/lib/transition.ts',
         'src/lib/flip.ts',
         'src/lib/boot.ts',
+        'src/lib/theme.ts',
         'src/lib/push/client.ts',
         'src/lib/push/keystore.ts',
         'src/lib/voice/capture.ts',

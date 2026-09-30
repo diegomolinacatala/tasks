@@ -1,5 +1,5 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, ReminderDraft, Task } from '../types'
+import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, ReminderDraft, Routine, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -52,9 +52,18 @@ export type Action =
   | { type: 'place/update'; id: string; name?: string; location?: PlaceLocation | null; radius?: number }
   /** Quita también sus avisos de las tareas. */
   | { type: 'place/remove'; id: string }
+  | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; id?: string }
+  | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null }
+  /** Tacha o destacha la rutina ese día. */
+  | { type: 'routine/toggle'; id: string; date: IsoDate }
+  /** Deja el día como se dice (lo marcado desde el widget o un aviso): repetirlo no cambia nada. */
+  | { type: 'routine/set'; id: string; date: IsoDate; done: boolean }
+  | { type: 'routine/remove'; id: string }
+  | { type: 'routine/restore'; routine: Routine }
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }
+  | { type: 'settings/theme'; theme: Theme }
   | { type: 'state/replace'; state: AppState }
   /** Importar una copia: como `state/replace`, salvo el permiso del dictado, que es de este dispositivo. */
   | { type: 'state/import'; state: AppState }

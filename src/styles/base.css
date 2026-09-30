@@ -103,3 +103,14 @@ h3 {
 ::view-transition-new(root) {
   animation-duration: var(--dur-2);
 }
+
+/* Cambio de tema (lib/theme.ts): el nuevo crece en círculo encima del viejo, que se queda quieto */
+html.theme-switching::view-transition-old(root),
+html.theme-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-switching::view-transition-new(root) {
+  z-index: 1;
+}

@@ -8,14 +8,14 @@ import type { InboxAsk, InboxEntry } from './inbox'
 import { applyInbox, entryFromDrafts } from './inbox'
 import { parseInbox } from './inboxFile'
 import { draftsFromInterpreted } from './interpret'
-import { parseWidgetChanges } from './nativeEvents'
+import { parseRoutineChanges, parseWidgetChanges } from './nativeEvents'
 import type { NativePlan } from './nativeSchedule'
 import { nativePlan } from './nativeSchedule'
 import type { ParsedTask } from './parse'
 import { parseSpoken } from './parse'
 import { badgeCount } from './schedule'
 import type { WidgetSnapshot } from './widget'
-import { widgetSnapshot, widgetToggles } from './widget'
+import { routineSettles, widgetSnapshot, widgetToggles } from './widget'
 
 /**
  * Apuntar una tarea, pasar lo atrasado a hoy o responder al aviso de cierre sin abrir la app (Siri,
@@ -60,12 +60,19 @@ export const sharesDictation = (state: unknown): boolean => normalizeState(state
 /** Fecha y hora locales para que la IA resuelva "mañana" o "a las 5", como al dictar en la app. */
 export const voiceContext = (now: number) => ({ today: isoOfInstant(now), now: timeOfInstant(now) })
 
-/** Lo que la web tendrá cuando aplique lo pendiente: el fichero, más la bandeja, más el widget. */
+/**
+ * Lo que la web tendrá cuando aplique lo pendiente: el fichero, más la bandeja, más lo marcado en
+ * los widgets (tareas y rutinas: una rutina tachada ya no debe volver a avisar hoy).
+ */
 function projected(saved: AppState, inbox: unknown, widgetChanges: unknown): AppState {
   const { state } = applyInbox(saved, parseInbox(inbox))
-  return widgetToggles(state.tasks, parseWidgetChanges(widgetChanges)).reduce(
+  const toggled = widgetToggles(state.tasks, parseWidgetChanges(widgetChanges)).reduce(
     (acc, id) => reducer(acc, { type: 'task/toggle', id }),
     state,
+  )
+  return routineSettles(toggled.routines, parseRoutineChanges(widgetChanges)).reduce(
+    (acc, { routineId, date, done }) => reducer(acc, { type: 'routine/set', id: routineId, date, done }),
+    toggled,
   )
 }
 

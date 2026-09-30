@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { Task } from '../../types'
 import { TaskShell } from './TaskShell'
@@ -6,14 +7,10 @@ interface DraggableTaskProps {
   task: Task
   meta?: string | null
   overdue?: boolean
-  onToggle: () => void
-  onOpen: () => void
-  onDelete: () => void
-  onImportance: (importance: number) => void
 }
 
-/** Arrastrable sin reordenar: se usa para mover tareas de un día a otro. */
-export function DraggableTask({ task, meta, overdue, ...actions }: DraggableTaskProps) {
+/** Arrastrable sin reordenar: para soltar la tarea en otro día de la semana. */
+export const DraggableTask = memo(function DraggableTask({ task, meta, overdue }: DraggableTaskProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { type: 'task' },
@@ -28,7 +25,6 @@ export function DraggableTask({ task, meta, overdue, ...actions }: DraggableTask
       setNodeRef={setNodeRef}
       attributes={attributes}
       listeners={listeners}
-      {...actions}
     />
   )
-}
+})

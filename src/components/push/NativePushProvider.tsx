@@ -72,7 +72,9 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   }, [toast])
 
   // La primera vez que hay algo que avisar se pide el permiso: en la app nativa iOS lo admite sin gesto.
-  const hasReminders = state.tasks.some((task) => !task.done && task.reminders.length > 0)
+  // Una rutina con hora también avisa ("tomar creatina a las 10").
+  const hasReminders =
+    state.tasks.some((task) => !task.done && task.reminders.length > 0) || state.routines.some((routine) => routine.time !== null)
   useEffect(() => {
     if (status !== 'off' || !hasReminders) return
     try {

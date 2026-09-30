@@ -11,25 +11,29 @@ export function DictationBlock() {
   if (!push.canTranscribe) return null
 
   return (
-    <>
-      <p className="sheet__title">Dictado</p>
-      <div className="sheet__chips">
+    <section className="group">
+      <h2 className="group__title">Dictado</h2>
+      <div className="segmented" role="radiogroup" aria-label="Dictado con IA">
         <button
           type="button"
-          className={`chip ${allowed ? '' : 'is-active'}`}
+          role="radio"
+          aria-checked={!allowed}
+          className={`segmented__option ${allowed ? '' : 'is-active'}`}
           onClick={() => dispatch({ type: 'settings/dictation', allowed: false })}
         >
           No enviar la voz
         </button>
         <button
           type="button"
-          className={`chip ${allowed ? 'is-active' : ''}`}
+          role="radio"
+          aria-checked={allowed}
+          className={`segmented__option ${allowed ? 'is-active' : ''}`}
           onClick={() => dispatch({ type: 'settings/dictation', allowed: true })}
         >
           Permitido
         </button>
       </div>
-      <p className="sheet__note">{DICTATION_NOTICE}</p>
-    </>
+      <p className="group__note">{DICTATION_NOTICE}</p>
+    </section>
   )
 }

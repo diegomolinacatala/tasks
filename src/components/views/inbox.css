@@ -1,0 +1,86 @@
+/* ── Bandeja ──────────────────────────────────────────────────────────── */
+
+.inbox__clear {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 44px;
+  margin-top: var(--sp-2);
+  padding: 10px 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease);
+}
+
+.inbox__clear:active {
+  color: var(--danger);
+}
+
+/* ── Muelle: los próximos días, para soltar ahí lo que se arrastra ──────── */
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-h) + var(--composer-h) + var(--safe-b) + 6px);
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 10px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-3) var(--ease-sheet);
+}
+
+.dock.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+.dock__panel {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  max-width: 460px;
+  padding: 6px;
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-lift);
+}
+
+.dock__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 0 8px;
+  border-radius: var(--r-md);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-2) var(--ease-pop), color var(--dur-1) var(--ease);
+}
+
+.dock__label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  text-transform: capitalize;
+}
+
+.dock__num {
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dock__day.is-over {
+  background: var(--primary);
+  transform: translateY(-4px) scale(1.06);
+}
+
+.dock__day.is-over .dock__label,
+.dock__day.is-over .dock__num {
+  color: var(--on-primary);
+}

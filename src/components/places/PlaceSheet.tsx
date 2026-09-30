@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { createId } from '../../lib/id'
-import { DEFAULT_RADIUS, RADIUS_OPTIONS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
+import { DEFAULT_RADIUS, MAX_RADIUS, MIN_RADIUS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
 import { haptic } from '../../lib/platform/feedback'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { PlaceLocation } from '../../types'
 import { IconLocate, IconPin, IconSearch, IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
+import { Slider } from '../ui/Slider'
 import { useToast } from '../ui/Toast'
+import { MapSnapshot } from './MapSnapshot'
 import { usePlaceSearch } from './usePlaceSearch'
 import './places.css'
 
@@ -30,6 +32,11 @@ interface PlaceSheetProps {
 }
 
 const CONFIRM_MS = 4000
+const RADIUS_STEP = 50
+const RADIUS_MARKS = [MIN_RADIUS, 500, MAX_RADIUS] as const
+const MAP_HEIGHT = 190
+/** Alto del mapa en metros: el radio más grande cabe con aire alrededor. */
+const mapSpan = (radius: number) => Math.max(600, radius * 3.2)
 
 /** Crear o editar un lugar. Los cambios se guardan al cerrar. */
 export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
@@ -43,7 +50,13 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   const [query, setQuery] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [locating, setLocating] = useState(false)
+  // Radio mientras se arrastra el deslizador: el círculo del mapa lo sigue en vivo.
+  const [liveRadius, setLiveRadius] = useState<number | null>(null)
   const search = usePlaceSearch(query, request !== null)
+  const radius = liveRadius ?? draft.radius
+  const linked = place
+    ? state.tasks.filter((task) => !task.done && task.reminders.some((reminder) => reminder.kind === 'place' && reminder.placeId === place.id))
+    : []
 
   useEffect(() => {
     if (!request) return
@@ -123,10 +136,21 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
 
       <p className="sheet__title">Dónde</p>
       {draft.location && (
-        <p className="place-current">
-          <IconPin size={16} />
-          <span>{draft.location.address || 'Ubicación guardada'}</span>
-        </p>
+        <>
+          <MapSnapshot
+            className="place-sheet__map"
+            points={[draft.location]}
+            center={draft.location}
+            span={mapSpan(draft.radius)}
+            radius={radius}
+            height={MAP_HEIGHT}
+            renderPin={() => <span className="place-sheet__center" />}
+          />
+          <p className="place-current">
+            <IconPin size={16} />
+            <span>{draft.location.address || 'Ubicación guardada'}</span>
+          </p>
+        </>
       )}
 
       <label className="place-search">
@@ -174,18 +198,31 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       </button>
 
       <p className="sheet__title">Radio</p>
-      <div className="sheet__chips">
-        {RADIUS_OPTIONS.map((radius) => (
-          <button
-            key={radius}
-            type="button"
-            className={`chip ${draft.radius === radius ? 'is-active' : ''}`}
-            onClick={() => update({ radius })}
-          >
-            {radius} m
-          </button>
-        ))}
-      </div>
+      <Slider
+        value={draft.radius}
+        min={MIN_RADIUS}
+        max={MAX_RADIUS}
+        step={RADIUS_STEP}
+        label="Radio del aviso"
+        format={(value) => formatDistance(value)}
+        marks={RADIUS_MARKS}
+        onInput={setLiveRadius}
+        onChange={(value) => {
+          setLiveRadius(null)
+          update({ radius: value })
+        }}
+      />
+
+      {linked.length > 0 && (
+        <>
+          <p className="sheet__title">Avisos aquí</p>
+          <ul className="place-linked">
+            {linked.map((task) => (
+              <li key={task.id}>{task.title}</li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {place && (
         <>

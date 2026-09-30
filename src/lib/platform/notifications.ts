@@ -2,7 +2,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { NotificationEvent } from '../nativeEvents'
 import { parseNotificationEvent } from '../nativeEvents'
 import type { NativePlan } from '../nativeSchedule'
-import { ASK_CATEGORY, DIGEST_CATEGORY, OVERDUE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
+import { ASK_CATEGORY, DIGEST_CATEGORY, OVERDUE_CATEGORY, ROUTINE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
 import type { PermissionStatus } from './native'
 import { TasksNative } from './native'
 
@@ -30,8 +30,8 @@ const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
 /**
  * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy": abren la app (`foreground`),
  * porque el estado vive en la web y con la app en segundo plano iOS no garantiza que el WebView
- * llegue a ejecutar nada. Los del aviso de cierre, "Sí, hecha" y "Todavía no", no la abren ni piden
- * desbloquear: los resuelve el lado nativo con `headless.js` (`NotificationResponder.swift`).
+ * llegue a ejecutar nada. Los del aviso de cierre, "Sí, hecha" y "Todavía no", y el "Hecha" de una
+ * rutina no la abren ni piden desbloquear: los resuelve el lado nativo (`NotificationResponder.swift`).
  */
 async function registerTaskActions(): Promise<void> {
   if (actionsRegistered) return
@@ -47,6 +47,7 @@ async function registerTaskActions(): Promise<void> {
           { id: 'again', title: 'Todavía no' },
         ],
       },
+      { id: ROUTINE_CATEGORY, actions: [{ id: 'done', title: 'Hecha' }] },
     ],
   })
   actionsRegistered = true
@@ -76,7 +77,7 @@ export async function applyPlan(plan: NativePlan): Promise<void> {
       sound: SYSTEM_SOUND,
       extra: notification.extra,
       actionTypeId: notification.category,
-      threadIdentifier: notification.extra.taskId ? 'tasks' : 'tasks-digest',
+      threadIdentifier: notification.extra.routineId ? 'tasks-routines' : notification.extra.taskId ? 'tasks' : 'tasks-digest',
     })),
   })
 }

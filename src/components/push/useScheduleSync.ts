@@ -79,7 +79,7 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     if (!device) return
     const timer = setTimeout(() => void sync(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, state.settings, today, device, sync])
+  }, [state.tasks, state.routines, state.settings, today, device, sync])
 
   useEffect(() => {
     const onVisibility = () => {

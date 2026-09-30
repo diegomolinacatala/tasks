@@ -182,7 +182,7 @@ enum QuickAdd {
         }
         if let widget = result["widget"], !(widget is NSNull), let data = try? JSONSerialization.data(withJSONObject: widget) {
             try? WidgetStore.saveSnapshot(String(decoding: data, as: UTF8.self))
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.kind)
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 

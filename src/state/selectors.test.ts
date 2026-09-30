@@ -43,8 +43,9 @@ const state: AppState = {
   ],
   sections: [section('s2', 1), section('s1', 0)],
   places: [],
-  collapsed: { overdue: false, backlog: false },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false },
+  routines: [],
+  collapsed: { overdue: false, backlog: false, routines: false },
+  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' },
 }
 
 describe('sortedSections', () => {

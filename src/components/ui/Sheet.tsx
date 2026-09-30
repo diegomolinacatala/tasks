@@ -4,7 +4,12 @@ import { createPortal } from 'react-dom'
 import './sheet.css'
 
 const EXIT_MS = 220
-const CLOSE_DRAG_PX = 90
+/** Bajarlo más que esto, o de un golpe, lo cierra. */
+const CLOSE_DRAG_PX = 110
+const CLOSE_SPEED = 0.5
+/** Hacia arriba no se va: cede un poco y vuelve, como una hoja sujeta. */
+const PULL_UP_PX = 28
+const VELOCITY_WINDOW_MS = 90
 
 interface SheetProps {
   open: boolean
@@ -14,25 +19,27 @@ interface SheetProps {
   children: ReactNode
 }
 
+/**
+ * Panel que sube desde abajo. Se cierra tocando fuera, con Escape o arrastrando el asa: el panel
+ * sigue al dedo en el mismo fotograma (sin pasar por React), el fondo se aclara a la vez y al soltar
+ * cuenta la velocidad, así que un tirón corto basta. Hacia arriba solo cede con resistencia.
+ */
 export function Sheet({ open, onClose, title, children }: SheetProps) {
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
-  const [dragY, setDragY] = useState(0)
-  const startY = useRef(0)
-  // Al soltar hay que leer el desplazamiento real, no el del último render.
-  const dragged = useRef(0)
   const panel = useRef<HTMLDivElement>(null)
-
-  const drag = (value: number) => {
-    dragged.current = value
-    setDragY(value)
-  }
+  const scrim = useRef<HTMLElement>(null)
+  const gesture = useRef<{ y: number; offset: number; samples: { y: number; t: number }[] } | null>(null)
 
   useEffect(() => {
     if (open) {
+      // Si se reabre mientras aún baja tras un tirón, fuera lo que dejó puesto el gesto.
+      for (const node of [panel.current, scrim.current]) {
+        node?.style.removeProperty('transform')
+        node?.style.removeProperty('transition')
+        node?.style.removeProperty('opacity')
+      }
       setMounted(true)
-      dragged.current = 0
-      setDragY(0)
       const frame = requestAnimationFrame(() => setShown(true))
       return () => cancelAnimationFrame(frame)
     }
@@ -57,33 +64,82 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
 
   if (!mounted) return null
 
+  const paint = (offset: number, animate: boolean) => {
+    const node = panel.current
+    if (!node) return
+    node.style.transition = animate ? '' : 'none'
+    node.style.transform = offset ? `translate3d(0,${offset}px,0)` : ''
+    const fade = scrim.current
+    if (fade) {
+      fade.style.transition = animate ? '' : 'none'
+      fade.style.opacity = offset > 0 ? String(Math.max(0, 1 - offset / (node.offsetHeight || 1))) : ''
+    }
+  }
+
   const onHandleDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    startY.current = event.clientY
     event.currentTarget.setPointerCapture(event.pointerId)
+    gesture.current = { y: event.clientY, offset: 0, samples: [{ y: event.clientY, t: event.timeStamp }] }
   }
 
   const onHandleMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-    drag(Math.max(0, event.clientY - startY.current))
+    const current = gesture.current
+    if (!current) return
+    const dy = event.clientY - current.y
+    current.offset = dy >= 0 ? dy : -PULL_UP_PX * (1 - Math.exp(dy / 80))
+    current.samples.push({ y: event.clientY, t: event.timeStamp })
+    if (current.samples.length > 8) current.samples.shift()
+    paint(current.offset, false)
+  }
+
+  /** Velocidad (px/ms) de los últimos ~90 ms del gesto, no de todo él: lo que cuenta es el tirón final. */
+  const speedOf = (samples: { y: number; t: number }[]) => {
+    const last = samples[samples.length - 1]
+    if (!last) return 0
+    const first = samples.find((sample) => last.t - sample.t <= VELOCITY_WINDOW_MS) ?? last
+    return last.t > first.t ? (last.y - first.y) / (last.t - first.t) : 0
   }
 
   const onHandleUp = () => {
-    if (dragged.current > CLOSE_DRAG_PX) onClose?.()
-    drag(0)
+    const current = gesture.current
+    gesture.current = null
+    if (!current) return
+    const speed = speedOf(current.samples)
+    const closes = current.offset > CLOSE_DRAG_PX || (speed > CLOSE_SPEED && current.offset > 24)
+    if (!closes) return paint(0, true)
+    // Sigue bajando desde donde lo soltó el dedo, sin volver antes arriba.
+    const node = panel.current
+    if (node) {
+      node.style.transition = `transform ${EXIT_MS}ms var(--ease-in)`
+      node.style.transform = 'translate3d(0,101%,0)'
+    }
+    if (scrim.current) {
+      scrim.current.style.transition = `opacity ${EXIT_MS}ms var(--ease)`
+      scrim.current.style.opacity = '0'
+    }
+    onClose?.()
   }
 
   return createPortal(
     <div className={`sheet ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
       {onClose ? (
-        <button type="button" className="sheet__scrim" aria-label="Cerrar" onClick={onClose} />
+        <button
+          ref={(node) => {
+            scrim.current = node
+          }}
+          type="button"
+          className="sheet__scrim"
+          aria-label="Cerrar"
+          onClick={onClose}
+        />
       ) : (
-        <div className="sheet__scrim" />
+        <div
+          ref={(node) => {
+            scrim.current = node
+          }}
+          className="sheet__scrim"
+        />
       )}
-      <div
-        ref={panel}
-        className="sheet__panel"
-        style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
-      >
+      <div ref={panel} className="sheet__panel">
         {onClose ? (
           <div
             className="sheet__grab"

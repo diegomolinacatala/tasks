@@ -9,3 +9,4 @@ coverage
 .idea
 dist-native
 build
+dist-shots

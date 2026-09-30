@@ -1,7 +1,8 @@
-import type { AppState, IsoDate, IsoTime, Task } from '../types'
-import type { WidgetChange } from './nativeEvents'
+import type { AppState, IsoDate, IsoTime, Routine, Task } from '../types'
+import type { RoutineChange, WidgetChange } from './nativeEvents'
 import { addDays, isoOfInstant } from './date'
 import { byOrder } from './order'
+import { byRoutineOrder } from './routines'
 
 /**
  * Foto de las tareas que lee el widget de la pantalla de inicio (solo iPhone). Lleva lo
@@ -23,9 +24,35 @@ export interface WidgetTask {
   importance: number
 }
 
+/**
+ * Rutina para el widget de la pantalla de bloqueo, que la tacha de un toque. El widget decide qué
+ * toca cada día (`days`) y si está hecha (`done`): a medianoche amanece pendiente sin abrir la app.
+ */
+export interface WidgetRoutine {
+  id: string
+  title: string
+  time: IsoTime | null
+  /** 1 = lunes … 7 = domingo. */
+  days: number[]
+  /** Días hechos desde hace una semana. */
+  done: IsoDate[]
+}
+
 export interface WidgetSnapshot {
   version: typeof WIDGET_VERSION
   tasks: WidgetTask[]
+  /** Falta en las fotos de antes de las rutinas: el widget lo trata como ninguna. */
+  routines: WidgetRoutine[]
+}
+
+/** Días de diario que lleva la foto: el widget solo mira hoy, y la semana da para sus puntos. */
+const WIDGET_ROUTINE_DAYS = 7
+
+function widgetRoutines(routines: readonly Routine[], today: IsoDate): WidgetRoutine[] {
+  const since = addDays(today, -WIDGET_ROUTINE_DAYS)
+  return [...routines]
+    .sort(byRoutineOrder)
+    .map(({ id, title, time, days, done }) => ({ id, title, time, days, done: done.filter((day) => day >= since) }))
 }
 
 type Dated = Task & { date: IsoDate }
@@ -51,11 +78,20 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     .slice(0, WIDGET_MAX_TASKS)
     .map(({ id, title, date, time, done, importance }) => ({ id, title, date, time, done, importance }))
 
-  return { version: WIDGET_VERSION, tasks }
+  return { version: WIDGET_VERSION, tasks, routines: widgetRoutines(state.routines, today) }
 }
 
 /** Ids a alternar para que la app refleje lo marcado en el widget. Si una tarea se repite, manda lo último. */
 export function widgetToggles(tasks: readonly Task[], changes: readonly WidgetChange[]): string[] {
   const wanted = new Map(changes.map(({ taskId, done }) => [taskId, done]))
   return tasks.filter((task) => wanted.has(task.id) && wanted.get(task.id) !== task.done).map((task) => task.id)
+}
+
+/** Lo que hay que dejar como dice el widget: solo rutinas que existen y días que cambian. */
+export function routineSettles(routines: readonly Routine[], changes: readonly RoutineChange[]): RoutineChange[] {
+  const byId = new Map(routines.map((routine) => [routine.id, routine]))
+  return changes.filter((change) => {
+    const routine = byId.get(change.routineId)
+    return routine !== undefined && routine.done.includes(change.date) !== change.done
+  })
 }

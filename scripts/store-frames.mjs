@@ -30,26 +30,28 @@ h1 em{font-weight:500;font-style:italic}
 .screen{position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;background:#f4efe6}
 .screen img{display:block;width:100%}
 .island{position:absolute;top:11px;left:50%;width:92px;height:27px;margin-left:-46px;border-radius:20px;background:#000}
-.status{position:absolute;top:15px;left:0;right:0;display:flex;justify-content:space-between;padding:0 28px 0 33px;font:600 13.5px Inter;color:${INK}}
+.status{position:absolute;top:15px;left:0;right:0;display:flex;justify-content:space-between;padding:0 28px 0 33px;font:600 13.5px Inter}
 .status svg{display:block}
 .float{position:absolute;z-index:3}
 `
 
-const status = `<div class="status"><span>9:41</span><span style="display:flex;gap:5px;align-items:center">
-<svg width="17" height="11" viewBox="0 0 17 11"><g fill="${INK}"><rect x="0" y="7" width="3" height="4" rx=".8"/><rect x="4.5" y="5" width="3" height="6" rx=".8"/><rect x="9" y="2.5" width="3" height="8.5" rx=".8"/><rect x="13.5" y="0" width="3" height="11" rx=".8"/></g></svg>
-<svg width="15" height="11" viewBox="0 0 15 11"><path fill="${INK}" d="M7.5 2.2c2.1 0 4 .8 5.4 2.1l1.1-1.1C12.3 1.6 10 .6 7.5.6S2.7 1.6 1 3.2l1.1 1.1C3.5 3 5.4 2.2 7.5 2.2Zm0 3.2c1.2 0 2.3.5 3.1 1.2l1.1-1.1C10.6 4.5 9.1 3.8 7.5 3.8S4.4 4.5 3.3 5.5l1.1 1.1c.8-.7 1.9-1.2 3.1-1.2Zm0 3.2c-.4 0-.8.2-1.1.4l1.1 1.2 1.1-1.2c-.3-.2-.7-.4-1.1-.4Z"/></svg>
-<svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3.2" fill="none" stroke="${INK}" opacity=".45"/><rect x="2" y="2" width="16" height="8" rx="2" fill="${INK}"/><rect x="22.6" y="4" width="1.6" height="4" rx=".8" fill="${INK}" opacity=".45"/></svg>
+/** Barra de estado del iPhone, en tinta o en marfil (captura en modo oscuro). */
+const statusBar = (ink) => `<div class="status" style="color:${ink}"><span>9:41</span><span style="display:flex;gap:5px;align-items:center">
+<svg width="17" height="11" viewBox="0 0 17 11"><g fill="${ink}"><rect x="0" y="7" width="3" height="4" rx=".8"/><rect x="4.5" y="5" width="3" height="6" rx=".8"/><rect x="9" y="2.5" width="3" height="8.5" rx=".8"/><rect x="13.5" y="0" width="3" height="11" rx=".8"/></g></svg>
+<svg width="15" height="11" viewBox="0 0 15 11"><path fill="${ink}" d="M7.5 2.2c2.1 0 4 .8 5.4 2.1l1.1-1.1C12.3 1.6 10 .6 7.5.6S2.7 1.6 1 3.2l1.1 1.1C3.5 3 5.4 2.2 7.5 2.2Zm0 3.2c1.2 0 2.3.5 3.1 1.2l1.1-1.1C10.6 4.5 9.1 3.8 7.5 3.8S4.4 4.5 3.3 5.5l1.1 1.1c.8-.7 1.9-1.2 3.1-1.2Zm0 3.2c-.4 0-.8.2-1.1.4l1.1 1.2 1.1-1.2c-.3-.2-.7-.4-1.1-.4Z"/></svg>
+<svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3.2" fill="none" stroke="${ink}" opacity=".45"/><rect x="2" y="2" width="16" height="8" rx="2" fill="${ink}"/><rect x="22.6" y="4" width="1.6" height="4" rx=".8" fill="${ink}" opacity=".45"/></svg>
 </span></div>`
 
 /**
  * El iPhone con una captura de la app dentro. `blurred`: la app difuminada detrás, como cuando se
- * mantiene pulsado un aviso.
+ * mantiene pulsado un aviso. `dark`: la app en modo oscuro (barra de estado en marfil).
  */
-export function device(screenshot, top, { blurred = false } = {}) {
+export function device(screenshot, top, { blurred = false, dark = false } = {}) {
   const img = blurred
     ? `<img src="${screenshot}" alt="" style="filter:blur(7px) saturate(.9) brightness(.92);transform:scale(1.06)">`
     : `<img src="${screenshot}" alt="">`
-  return `<div class="device" style="top:${top}px"><div class="screen">${img}${status}<div class="island"></div></div></div>`
+  const screen = dark ? 'background:#121828' : ''
+  return `<div class="device" style="top:${top}px"><div class="screen" style="${screen}">${img}${statusBar(dark ? '#ece4d4' : INK)}<div class="island"></div></div></div>`
 }
 
 /** Aviso de iOS (con los botones si se mantiene pulsado). */

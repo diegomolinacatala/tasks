@@ -1,7 +1,18 @@
 import { describe, expect, test } from 'vitest'
 import type { AppState, Place, Task } from '../types'
 import { toInstant } from './date'
-import { ASK_CATEGORY, MAX_PENDING, PLACE_ID_BASE, isPlaceNotification, nativePlan, numericId, planFingerprint } from './nativeSchedule'
+import {
+  ASK_CATEGORY,
+  MAX_PENDING,
+  PLACE_ID_BASE,
+  ROUTINE_CATEGORY,
+  fitSchedule,
+  isPlaceNotification,
+  nativePlan,
+  numericId,
+  planFingerprint,
+} from './nativeSchedule'
+import type { ScheduleEntry } from './schedule'
 import { emptyState } from '../state/reducer'
 
 const TODAY = '2026-09-11'
@@ -57,14 +68,14 @@ describe('nativePlan', () => {
   })
 
   test('el resumen diario no lleva botones de tarea', () => {
-    const state = { ...stateWith([task({ id: 'a', date: '2026-09-12' })]), settings: { digest: { enabled: true, time: '08:30' }, dictation: false } }
+    const state = { ...stateWith([task({ id: 'a', date: '2026-09-12' })]), settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme: 'auto' as const } }
     const [digest] = nativePlan(state, NOW).timed
     expect(digest).toMatchObject({ extra: { taskId: '', entryId: 'digest-20260912' } })
     expect(digest!.category).toBeUndefined()
   })
 
   test('con algo atrasado, el resumen ofrece pasarlo a hoy', () => {
-    const state = { ...stateWith([task({ id: 'a' })]), settings: { digest: { enabled: true, time: '08:30' }, dictation: false } }
+    const state = { ...stateWith([task({ id: 'a' })]), settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme: 'auto' as const } }
     const [digest] = nativePlan(state, NOW).timed
     expect(digest).toMatchObject({ extra: { entryId: 'digest-20260912' }, category: 'digest-overdue' })
   })
@@ -137,5 +148,53 @@ describe('aviso de cierre', () => {
       category: ASK_CATEGORY,
       extra: { taskId: 'r', entryId: 'ask-r', ask: '1' },
     })
+  })
+})
+
+describe('avisos de rutina', () => {
+  test('llevan su categoría y la rutina y el día en el extra', () => {
+    const state = {
+      ...emptyState(),
+      routines: [{ id: 'r', title: 'Creatina', days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
+    }
+    const [first] = nativePlan(state, NOW).timed
+    expect(first).toMatchObject({
+      title: 'Creatina',
+      category: ROUTINE_CATEGORY,
+      extra: { taskId: '', entryId: 'routine-r-20260911', routineId: 'r', day: TODAY },
+    })
+  })
+})
+
+describe('fitSchedule: reparto del hueco', () => {
+  const entry = (id: string, at: number, routine = false): ScheduleEntry => ({
+    id,
+    taskId: routine ? null : id,
+    at,
+    title: id,
+    body: '',
+    badge: 0,
+    overdue: false,
+    ...(routine ? { routine: { id, date: TODAY } } : {}),
+  })
+  const routines = (count: number) => Array.from({ length: count }, (_, index) => entry(`r${index}`, NOW + index, true))
+  const others = (count: number) => Array.from({ length: count }, (_, index) => entry(`t${index}`, NOW + 1000 + index))
+
+  test('si cabe todo, entra todo en orden', () => {
+    const fitted = fitSchedule([...routines(5), ...others(5)], 64)
+    expect(fitted).toHaveLength(10)
+    expect(fitted.map((item) => item.at)).toEqual([...fitted.map((item) => item.at)].sort((a, b) => a - b))
+  })
+
+  test('las rutinas no se llevan más de un tercio si lo demás necesita sitio', () => {
+    const fitted = fitSchedule([...routines(70), ...others(60)], 63)
+    expect(fitted).toHaveLength(63)
+    expect(fitted.filter((item) => item.routine)).toHaveLength(21)
+  })
+
+  test('si lo demás no llena su parte, las rutinas usan el resto', () => {
+    const fitted = fitSchedule([...routines(70), ...others(10)], 64)
+    expect(fitted.filter((item) => item.routine)).toHaveLength(54)
+    expect(fitted.filter((item) => !item.routine)).toHaveLength(10)
   })
 })

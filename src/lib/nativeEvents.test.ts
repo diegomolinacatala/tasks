@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNativeAction, parseNotificationEvent, parseWidgetChanges } from './nativeEvents'
+import { parseNativeAction, parseNotificationEvent, parseRoutineChanges, parseWidgetChanges } from './nativeEvents'
 
 describe('parseNativeAction', () => {
   test('Siri: añadir con texto', () => {
@@ -104,5 +104,43 @@ describe('aviso de cierre', () => {
 
   test('«Todavía no» llega como `again`', () => {
     expect(parseNotificationEvent('again', { taskId: 'r', entryId: 'ask-r', ask: '1' })?.action).toBe('again')
+  })
+})
+
+describe('rutinas desde el widget y los avisos', () => {
+  test('parseRoutineChanges se queda con los cambios de rutina bien formados', () => {
+    expect(
+      parseRoutineChanges([
+        { routineId: 'r', date: '2026-09-29', done: true },
+        { taskId: 't', done: true },
+        { routineId: 'r', date: 'hoy', done: true },
+        { routineId: '', date: '2026-09-29', done: true },
+        { routineId: 'r', date: '2026-09-29', done: 'sí' },
+      ]),
+    ).toEqual([{ routineId: 'r', date: '2026-09-29', done: true }])
+    expect(parseRoutineChanges(null)).toEqual([])
+  })
+
+  test('parseWidgetChanges ignora los de rutina', () => {
+    expect(parseWidgetChanges([{ routineId: 'r', date: '2026-09-29', done: true }, { taskId: 't', done: false }])).toEqual([
+      { taskId: 't', done: false },
+    ])
+  })
+
+  test('el aviso de una rutina trae cuál y qué día', () => {
+    expect(parseNotificationEvent('done', { taskId: '', entryId: 'routine-r-20260929', routineId: 'r', day: '2026-09-29' })).toEqual({
+      action: 'done',
+      taskIds: [],
+      placeId: null,
+      routine: { id: 'r', date: '2026-09-29' },
+    })
+  })
+
+  test('el widget de rutinas abre la bandeja', () => {
+    expect(parseNativeAction({ type: 'routines' })).toEqual({ type: 'routines' })
+  })
+
+  test('el aviso de una rutina tachada pide recoger los cambios', () => {
+    expect(parseNativeAction({ type: 'widget' })).toEqual({ type: 'widget' })
   })
 })

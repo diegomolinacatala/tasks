@@ -1,0 +1,102 @@
+.slider {
+  padding: 34px 12px 4px;
+}
+
+/* Toda la pista se puede coger: 44 px de alto aunque la línea sea fina */
+.slider__track {
+  position: relative;
+  height: 44px;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.slider__rail,
+.slider__fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: var(--r-full);
+}
+
+.slider__rail {
+  right: 0;
+  background: var(--line-2);
+}
+
+.slider__fill {
+  width: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--ratio, 0));
+  transform-origin: left center;
+}
+
+.slider__thumb {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--ratio, 0) * 100%);
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--line-2);
+  transition: transform var(--dur-2) var(--ease-pop), box-shadow var(--dur-2) var(--ease);
+}
+
+.slider.is-dragging .slider__thumb {
+  transform: scale(1.15);
+  box-shadow: var(--shadow-lift);
+}
+
+/* El valor, encima del dedo */
+.slider__bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  padding: 4px 9px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%) scale(0.9);
+  opacity: 0.85;
+  transition: transform var(--dur-2) var(--ease-pop), opacity var(--dur-2) var(--ease);
+}
+
+.slider.is-dragging .slider__bubble {
+  transform: translateX(-50%) translateY(-2px) scale(1);
+  opacity: 1;
+}
+
+.slider__track:focus-visible .slider__thumb {
+  box-shadow: 0 0 0 3px var(--accent-line), var(--shadow-card);
+}
+
+.slider__marks {
+  position: relative;
+  height: 16px;
+}
+
+.slider__marks span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Las de los extremos no se salen de la pista */
+.slider__marks span:first-child {
+  transform: none;
+}
+
+.slider__marks span:last-child {
+  transform: translateX(-100%);
+}

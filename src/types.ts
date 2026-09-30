@@ -82,8 +82,29 @@ export interface Place {
   radius: number
 }
 
-/** Bloques fijos de la pantalla principal que se pueden plegar. */
-export type BlockId = 'overdue' | 'backlog'
+/**
+ * Rutina: lo que se repite ciertos días de la semana ("tomar creatina", cada día a las 10:00). No es
+ * una tarea: no tiene fecha, cada día amanece sin hacer y se tacha para ese día. Lo hecho se guarda
+ * como un diario de días (`done`), del que salen la racha y los últimos días.
+ */
+export interface Routine {
+  id: string
+  title: string
+  /** Días de la semana en que toca, de 1 (lunes) a 7 (domingo). Nunca vacío. */
+  days: number[]
+  /** Hora opcional: con ella, un aviso cada día que toque mientras no esté hecha. */
+  time: IsoTime | null
+  /** Días en que se hizo, en orden y sin repetir; se guardan los más recientes (`lib/routines.ts`). */
+  done: IsoDate[]
+  order: number
+  createdAt: number
+}
+
+/** Bloques que se pueden plegar. */
+export type BlockId = 'overdue' | 'backlog' | 'routines'
+
+/** `auto` sigue al sistema. */
+export type Theme = 'light' | 'dark' | 'auto'
 
 /** Aviso diario con lo que hay para ese día. */
 export interface DigestSettings {
@@ -98,6 +119,8 @@ export interface Settings {
    * de lo dicho sale del dispositivo: Siri usa el analizador local y el micrófono pregunta antes.
    */
   dictation: boolean
+  /** Apariencia de este dispositivo. Como el dictado, importar una copia no la cambia. */
+  theme: Theme
 }
 
 export interface AppState {
@@ -105,8 +128,10 @@ export interface AppState {
   tasks: Task[]
   sections: Section[]
   places: Place[]
+  routines: Routine[]
   collapsed: Record<BlockId, boolean>
   settings: Settings
 }
 
-export type ViewId = 'home' | 'week'
+/** Pestañas de la barra inferior. */
+export type TabId = 'inbox' | 'agenda' | 'places' | 'settings'

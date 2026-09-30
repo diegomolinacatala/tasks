@@ -235,3 +235,22 @@ describe('answerAsk', () => {
     expect(answer('done', { state: null })).toMatchObject({ ...none, message: 'Abre Tasks para responder.' })
   })
 })
+
+test('una rutina tachada en el widget ya no vuelve a avisar hoy', () => {
+  const state: AppState = {
+    ...saved(),
+    routines: [{ id: 'r', title: 'Creatina', days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
+  }
+  const result = moveOverdue(
+    {
+      now: NOW,
+      state: JSON.parse(JSON.stringify({ ...state, tasks: [task({ id: 'vieja', date: addDays(TODAY, -1) })] })),
+      inbox: [],
+      widgetChanges: [{ routineId: 'r', date: TODAY, done: true }],
+    },
+    sequence(),
+  )
+  const today = result.plan?.timed.filter((item) => item.extra.routineId === 'r' && item.extra.day === TODAY)
+  expect(today).toEqual([])
+  expect(result.plan?.timed.some((item) => item.extra.routineId === 'r')).toBe(true)
+})

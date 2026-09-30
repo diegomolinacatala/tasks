@@ -1,8 +1,10 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { parseTask } from '../../lib/parse'
+import type { RoutineDraft } from '../../lib/repeat'
+import { parseRoutine } from '../../lib/repeat'
 import type { IsoDate, Place, TaskDraft } from '../../types'
-import { IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus } from '../ui/Icons'
+import { IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus, IconRepeat } from '../ui/Icons'
 import { VoiceBar } from './VoiceBar'
 import { useVoice } from './useVoice'
 import './composer.css'
@@ -12,11 +14,21 @@ const DictationConsent = lazy(() =>
   import('./DictationConsent').then((module) => ({ default: module.DictationConsent })),
 )
 
+export interface QuickTarget {
+  label: string
+  date: IsoDate | null
+}
+
 interface ComposerProps {
-  /** Atajo de un toque: añade con fecha en vez de dejarla en blanco. */
-  quickLabel: string
-  quickDate: IsoDate
+  /** Adónde va lo que no dice cuándo: `null` en la Bandeja, el día elegido en la Agenda. */
+  defaultDate: IsoDate | null
+  /** Texto de la barra vacía: dónde caerá lo que se escriba. */
+  placeholder: string
+  /** Atajo de un toque al otro sitio ("Hoy" desde la Bandeja, "Sin fecha" desde la Agenda). */
+  quick: QuickTarget | null
   onSubmit: (draft: TaskDraft) => void
+  /** "Tomar creatina todos los días a las 10": no es una tarea, es una rutina. */
+  onRoutine: (draft: RoutineDraft) => void
   /** Texto dictado: quien lo recibe crea la tarea y avisa con opción de deshacer. */
   onVoice: (text: string, interpreted: unknown) => void
   /** Lugares guardados; `null` si la plataforma no tiene avisos por lugar. */
@@ -26,19 +38,21 @@ interface ComposerProps {
 }
 
 /**
- * Por defecto la tarea nace sin fecha. Si el texto trae día u hora ("mañana a las 5"),
- * se aplican y se enseña una píldora; tocarla deja el texto literal. Con la barra vacía,
- * el micrófono dicta la tarea entera.
+ * Si el texto trae día u hora ("mañana a las 5"), se aplican y se enseña una píldora; tocarla deja
+ * el texto literal. Si dice que se repite ("cada día", "los lunes"), la píldora anuncia una rutina.
+ * Sin nada de eso, la tarea va a donde se está mirando. Con la barra vacía, el micrófono dicta.
  */
-export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, focusRequest = 0 }: ComposerProps) {
+export function Composer({ defaultDate, placeholder, quick, onSubmit, onRoutine, onVoice, places, focusRequest = 0 }: ComposerProps) {
   const [value, setValue] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const [literal, setLiteral] = useState(false)
   const voice = useVoice(onVoice)
   const ready = value.trim().length > 0
+  const routine = useMemo(() => (ready ? parseRoutine(value, Date.now()) : null), [value, ready])
   const parsed = useMemo(() => parseTask(value, Date.now(), places), [value, places])
-  const detected = ready && parsed.label !== null
-  const placed = Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place')
+  const label = routine?.label ?? parsed.label
+  const detected = ready && label !== null
+  const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
 
   useEffect(() => {
     if (focusRequest) input.current?.focus()
@@ -49,24 +63,32 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
     setLiteral(false)
   }
 
+  const literalDraft = (date: IsoDate | null): TaskDraft => ({ title: value, date, time: null, duration: null, reminders: [] })
+
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
     if (!ready) return
+    const fresh = parseRoutine(value, Date.now())
+    if (fresh && !literal) {
+      onRoutine(fresh)
+      reset()
+      return
+    }
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
     // añade la tarea, no desde la última tecla.
-    const fresh = parseTask(value, Date.now(), places)
-    const { title, date, time, duration, reminders, newPlace } = fresh
+    const parsedNow = parseTask(value, Date.now(), places)
+    const { title, date, time, duration, reminders, newPlace } = parsedNow
     onSubmit(
-      fresh.label !== null && !literal
+      parsedNow.label !== null && !literal
         ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}) }
-        : { title: value, date: null, time: null, duration: null, reminders: [] },
+        : literalDraft(defaultDate),
     )
     reset()
   }
 
   const submitQuick = () => {
-    if (!ready) return
-    onSubmit({ title: value, date: quickDate, time: null, duration: null, reminders: [] })
+    if (!ready || !quick) return
+    onSubmit(literalDraft(quick.date))
     reset()
   }
 
@@ -107,8 +129,8 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
           ref={input}
           className="composer__input"
           value={value}
-          placeholder="Añadir tarea"
-          aria-label="Añadir tarea"
+          placeholder={placeholder}
+          aria-label={placeholder}
           enterKeyHint="done"
           autoComplete="off"
           onChange={(event) => {
@@ -125,18 +147,24 @@ export function Composer({ quickLabel, quickDate, onSubmit, onVoice, places, foc
         {detected && (
           <button
             type="button"
-            className={`composer__parsed ${literal ? 'is-off' : ''}`}
+            className={`composer__parsed ${literal ? 'is-off' : ''} ${routine ? 'is-routine' : ''}`}
             aria-pressed={!literal}
-            aria-label={literal ? `Usar ${parsed.label}` : `Ignorar ${parsed.label}`}
+            aria-label={literal ? `Usar ${label}` : `Ignorar ${label}`}
             onClick={() => setLiteral((current) => !current)}
           >
-            {placed ? <IconPin size={12} strokeWidth={2} /> : parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />}
-            {parsed.label}
+            {routine ? (
+              <IconRepeat size={12} strokeWidth={2} />
+            ) : placed ? (
+              <IconPin size={12} strokeWidth={2} />
+            ) : (
+              parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
+            )}
+            {label}
           </button>
         )}
-        {ready && !detected && (
-          <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quickLabel}`}>
-            {quickLabel}
+        {ready && !detected && quick && (
+          <button type="button" className="composer__quick" onClick={submitQuick} aria-label={`Añadir a ${quick.label}`}>
+            {quick.label}
           </button>
         )}
       </form>

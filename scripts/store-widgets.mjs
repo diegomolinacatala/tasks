@@ -65,3 +65,34 @@ export function smallWidget(tasks, pending) {
     </div>`,
   )
 }
+
+/**
+ * La pantalla de bloqueo con los widgets de rutinas: el redondo con una rutina elegida y ya hecha
+ * (anillo lleno y la marca) y el rectangular con la siguiente que queda. Blanco translúcido sobre el
+ * fondo, como los pinta iOS.
+ */
+export function lockScreenRoutines({ date, title, detail }) {
+  const ring = (value, label, done = false) => `
+    <div style="position:relative;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center">
+      <svg width="64" height="64" viewBox="0 0 64 64" style="position:absolute;inset:0">
+        <circle cx="32" cy="32" r="25" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="5"/>
+        <circle cx="32" cy="32" r="25" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="${157 * value} 157" transform="rotate(-90 32 32)"/>
+      </svg>
+      <span style="position:relative;font:${done ? '700 22px Inter' : "600 20px 'Source Serif 4',serif"};color:#fff">${label}</span>
+    </div>`
+  return `
+    <div style="width:372px;padding:22px 20px 24px;border-radius:30px;background:linear-gradient(170deg,#2b3654,#141b2e 70%);box-shadow:0 30px 70px rgba(0,0,0,.4)">
+      <div style="text-align:center;font:500 15px Inter;color:rgba(255,255,255,.8)">${date}</div>
+      <div style="text-align:center;font:600 76px/1 Inter;letter-spacing:-.03em;color:#fff;margin-top:2px">9:41</div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:18px">
+        ${ring(1, '✓', true)}
+        <div style="flex:1;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:18px;background:rgba(255,255,255,.14)">
+          <span style="flex:none;width:24px;height:24px;border-radius:50%;border:2.2px solid #fff"></span>
+          <span style="min-width:0">
+            <span style="display:block;font:600 16px Inter;color:#fff;white-space:nowrap">${title}</span>
+            <span style="display:block;font:400 13px Inter;color:rgba(255,255,255,.72)">${detail}</span>
+          </span>
+        </div>
+      </div>
+    </div>`
+}

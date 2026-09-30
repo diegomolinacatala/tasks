@@ -20,12 +20,15 @@ export const OVERDUE_CATEGORY = 'task-overdue'
 export const DIGEST_CATEGORY = 'digest-overdue'
 /** Aviso al acabar una tarea que dura: "Sí, hecha" y "Todavía no". */
 export const ASK_CATEGORY = 'task-ask'
+/** Aviso de una rutina: "Hecha", que la tacha sin abrir la app (`NotificationResponder.swift`). */
+export const ROUTINE_CATEGORY = 'routine'
 
 export type NotificationCategory =
   | typeof TASK_CATEGORY
   | typeof OVERDUE_CATEGORY
   | typeof DIGEST_CATEGORY
   | typeof ASK_CATEGORY
+  | typeof ROUTINE_CATEGORY
 /** Evento de `window` que obliga a reprogramar todo aunque el plan no haya cambiado. */
 export const RESCHEDULE_EVENT = 'tasks:reschedule'
 
@@ -34,8 +37,11 @@ export interface TimedNotification {
   at: number
   title: string
   body: string
-  /** Solo texto: viaja por el `userInfo` de iOS. `taskId` vacío = resumen diario; `ask` = "1". */
-  extra: { taskId: string; entryId: string; ask?: string }
+  /**
+   * Solo texto: viaja por el `userInfo` de iOS. `taskId` vacío = resumen diario o rutina; `ask` =
+   * "1"; `routineId` y `day` (`AAAA-MM-DD`), la rutina y el día que toca.
+   */
+  extra: { taskId: string; entryId: string; ask?: string; routineId?: string; day?: string }
   category?: NotificationCategory
 }
 
@@ -82,20 +88,41 @@ export const isPlaceNotification = (id: number) => id >= PLACE_ID_BASE
 /** Botones del aviso: los de tarea, con "Pasar a hoy" si es atrasada; el resumen, solo si hay atrasadas. */
 function categoryOf(entry: ScheduleEntry): NotificationCategory | undefined {
   if (entry.ask) return ASK_CATEGORY
+  if (entry.routine) return ROUTINE_CATEGORY
   if (entry.taskId) return entry.overdue ? OVERDUE_CATEGORY : TASK_CATEGORY
   return entry.overdue ? DIGEST_CATEGORY : undefined
+}
+
+/**
+ * Parte del hueco que se pueden llevar las rutinas si hacen falta sitios para lo demás: cada una
+ * programa una semana por delante y, con varias diarias, dejarían sin sitio los recordatorios de las
+ * tareas. Lo que no cabe se programa al volver a abrir la app.
+ */
+export const ROUTINE_SHARE = 1 / 3
+
+/** Lo más próximo de cada clase dentro de `slots`, sin que las rutinas se coman el hueco de lo demás. */
+export function fitSchedule(entries: readonly ScheduleEntry[], slots: number): ScheduleEntry[] {
+  const routines = entries.filter((entry) => entry.routine)
+  const others = entries.filter((entry) => !entry.routine)
+  const routineSlots = Math.min(routines.length, Math.max(slots - others.length, Math.floor(slots * ROUTINE_SHARE)))
+  return [...others.slice(0, Math.max(0, slots - routineSlots)), ...routines.slice(0, routineSlots)].sort((a, b) => a.at - b.at)
 }
 
 /** Qué debe tener programado el iPhone ahora: regiones primero y, con el hueco que dejan, lo más próximo. */
 export function nativePlan(state: AppState, now: number): NativePlan {
   const alerts = placeAlerts(state, isoOfInstant(now))
-  const entries = upcomingSchedule(state, now, MAX_PENDING - alerts.length)
+  const entries = fitSchedule(upcomingSchedule(state, now), MAX_PENDING - alerts.length)
 
   const timedIds = new Set<number>()
   const timed = entries.map((entry): TimedNotification => {
     const id = numericId(entry.id, 1, PLACE_ID_BASE - 1, timedIds)
     timedIds.add(id)
-    const extra = { taskId: entry.taskId ?? '', entryId: entry.id, ...(entry.ask ? { ask: '1' } : {}) }
+    const extra = {
+      taskId: entry.taskId ?? '',
+      entryId: entry.id,
+      ...(entry.ask ? { ask: '1' } : {}),
+      ...(entry.routine ? { routineId: entry.routine.id, day: entry.routine.date } : {}),
+    }
     const base = { id, at: entry.at, title: entry.title, body: entry.body, extra }
     const category = categoryOf(entry)
     return category ? { ...base, category } : base

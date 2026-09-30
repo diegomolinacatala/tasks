@@ -125,7 +125,7 @@ describe('board/commit entre bloques', () => {
 describe('block/toggle', () => {
   test('pliega y despliega cada bloque por separado', () => {
     const plegado = reducer(emptyState(), { type: 'block/toggle', block: 'backlog' })
-    expect(plegado.collapsed).toEqual({ overdue: false, backlog: true })
+    expect(plegado.collapsed).toEqual({ overdue: false, backlog: true, routines: false })
     expect(reducer(plegado, { type: 'block/toggle', block: 'backlog' }).collapsed.backlog).toBe(false)
   })
 })
@@ -530,5 +530,90 @@ describe('duración', () => {
   test('alargar una tarea sin duración no hace nada', () => {
     const state = withMeeting()
     expect(run(state, { type: 'task/extend', id: only(state).id, now: Date.now() })).toBe(state)
+  })
+})
+
+describe('rutinas', () => {
+  const withRoutine = () =>
+    run(emptyState(), { type: 'routine/add', id: 'r', title: '  Tomar   creatina ', days: [7, 1, 1, 9], time: '10:00' })
+  const routineOf = (state: AppState) => state.routines[0]!
+
+  test('routine/add sanea título, días y hora', () => {
+    expect(routineOf(withRoutine())).toMatchObject({ id: 'r', title: 'Tomar creatina', days: [1, 7], time: '10:00', done: [] })
+  })
+
+  test('sin título o con id repetido no añade nada', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/add', title: '   ', days: [1], time: null })).toBe(state)
+    expect(run(state, { type: 'routine/add', id: 'r', title: 'Otra', days: [1], time: null })).toBe(state)
+  })
+
+  test('una hora que no es hora se queda sin hora', () => {
+    const state = run(emptyState(), { type: 'routine/add', title: 'Leer', days: [], time: '26:00' })
+    expect(routineOf(state)).toMatchObject({ time: null, days: [1, 2, 3, 4, 5, 6, 7] })
+  })
+
+  test('routine/toggle tacha y destacha ese día', () => {
+    const done = run(withRoutine(), { type: 'routine/toggle', id: 'r', date: TODAY })
+    expect(routineOf(done).done).toEqual([TODAY])
+    expect(routineOf(run(done, { type: 'routine/toggle', id: 'r', date: TODAY })).done).toEqual([])
+  })
+
+  test('routine/set es idempotente', () => {
+    const done = run(withRoutine(), { type: 'routine/set', id: 'r', date: TODAY, done: true })
+    expect(run(done, { type: 'routine/set', id: 'r', date: TODAY, done: true })).toBe(done)
+    expect(routineOf(run(done, { type: 'routine/set', id: 'r', date: TODAY, done: false })).done).toEqual([])
+  })
+
+  test('un día mal formado no toca nada', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/toggle', id: 'r', date: 'hoy' })).toBe(state)
+  })
+
+  test('routine/update cambia lo que llega y deja lo demás', () => {
+    const state = run(withRoutine(), { type: 'routine/update', id: 'r', days: [1, 2, 3, 4, 5], time: null })
+    expect(routineOf(state)).toMatchObject({ title: 'Tomar creatina', days: [1, 2, 3, 4, 5], time: null })
+  })
+
+  test('routine/update sin cambios devuelve el mismo estado', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/update', id: 'r', title: 'Tomar creatina', days: [7, 1] })).toBe(state)
+  })
+
+  test('borrar y deshacer', () => {
+    const state = withRoutine()
+    const routine = routineOf(state)
+    const removed = run(state, { type: 'routine/remove', id: 'r' })
+    expect(removed.routines).toEqual([])
+    expect(run(removed, { type: 'routine/restore', routine }).routines).toEqual([routine])
+  })
+
+  test('no pasa del tope', () => {
+    const many = Array.from({ length: 60 }, (_, index): Action => ({ type: 'routine/add', title: `r${index}`, days: [1], time: null }))
+    expect(run(emptyState(), ...many).routines).toHaveLength(50)
+  })
+})
+
+describe('apariencia', () => {
+  test('settings/theme guarda la elegida', () => {
+    expect(run(emptyState(), { type: 'settings/theme', theme: 'dark' }).settings.theme).toBe('dark')
+  })
+
+  test('la misma apariencia no cambia el estado', () => {
+    const state = emptyState()
+    expect(run(state, { type: 'settings/theme', theme: state.settings.theme })).toBe(state)
+  })
+
+  test('importar una copia no cambia la apariencia de este dispositivo', () => {
+    const dark = run(emptyState(), { type: 'settings/theme', theme: 'dark' })
+    const other = { ...emptyState(), settings: { ...emptyState().settings, theme: 'light' as const } }
+    expect(run(dark, { type: 'state/import', state: other }).settings.theme).toBe('dark')
+  })
+
+  test('borrarlo todo tampoco', () => {
+    const dark = run(emptyState(), { type: 'settings/theme', theme: 'dark' }, { type: 'task/add', title: 'x', date: null, sectionId: null })
+    const cleared = run(dark, { type: 'state/clear' })
+    expect(cleared.tasks).toEqual([])
+    expect(cleared.settings.theme).toBe('dark')
   })
 })

@@ -8,6 +8,8 @@ export const PAPER_LIGHT = '#fbf8f2'
 export const PAPER_DEEP = '#e9e0cf'
 export const GOLD = '#b8966a'
 export const NIGHT = '#141b2e'
+/** Tinta marfil del modo oscuro (`--text` de noche en tokens.css). */
+export const NIGHT_INK = '#ece4d4'
 
 const round = (value) => Math.round(value * 100) / 100
 

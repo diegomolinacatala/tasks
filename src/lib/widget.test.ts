@@ -2,7 +2,8 @@ import { describe, expect, test } from 'vitest'
 import type { AppState, Section, Task } from '../types'
 import { emptyState } from '../state/reducer'
 import { addDays, toInstant } from './date'
-import { WIDGET_DAYS, WIDGET_MAX_TASKS, widgetSnapshot, widgetToggles } from './widget'
+import type { Routine } from '../types'
+import { WIDGET_DAYS, WIDGET_MAX_TASKS, routineSettles, widgetSnapshot, widgetToggles } from './widget'
 
 const TODAY = '2026-09-16'
 const NOW = toInstant(TODAY, '10:00')
@@ -37,6 +38,7 @@ describe('widgetSnapshot', () => {
     expect(snapshot).toEqual({
       version: 1,
       tasks: [{ id: 'hoy', title: 'Comprar pan', date: TODAY, time: '17:00', done: false, importance: 4 }],
+      routines: [],
     })
   })
 
@@ -127,5 +129,42 @@ describe('widgetToggles', () => {
         { taskId: 'pendiente', done: false },
       ]),
     ).toEqual([])
+  })
+})
+
+describe('rutinas en el widget', () => {
+  const routine = (partial: Partial<Routine> & { id: string }): Routine => ({
+    title: partial.id,
+    days: [1, 2, 3, 4, 5, 6, 7],
+    time: null,
+    done: [],
+    order: 0,
+    createdAt: 0,
+    ...partial,
+  })
+
+  test('van en orden de hora y con el diario de la última semana', () => {
+    const state = {
+      ...emptyState(),
+      routines: [
+        routine({ id: 'tarde', time: '18:00', done: ['2026-01-01', addDays(TODAY, -3), TODAY] }),
+        routine({ id: 'manana', time: '10:00', days: [1, 3] }),
+      ],
+    }
+    expect(widgetSnapshot(state, NOW).routines).toEqual([
+      { id: 'manana', title: 'manana', time: '10:00', days: [1, 3], done: [] },
+      { id: 'tarde', title: 'tarde', time: '18:00', days: [1, 2, 3, 4, 5, 6, 7], done: [addDays(TODAY, -3), TODAY] },
+    ])
+  })
+
+  test('routineSettles deja solo lo que existe y cambia', () => {
+    const routines = [routine({ id: 'a', done: [TODAY] }), routine({ id: 'b' })]
+    expect(
+      routineSettles(routines, [
+        { routineId: 'a', date: TODAY, done: true },
+        { routineId: 'b', date: TODAY, done: true },
+        { routineId: 'borrada', date: TODAY, done: true },
+      ]),
+    ).toEqual([{ routineId: 'b', date: TODAY, done: true }])
   })
 })

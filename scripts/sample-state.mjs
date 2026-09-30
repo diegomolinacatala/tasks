@@ -1,5 +1,5 @@
-// Tareas de ejemplo para las capturas de la App Store (y para revisar el diseño con datos reales).
-// Las fechas son relativas al día en que se ejecuta.
+// Tareas, rutinas y lugares de ejemplo para las capturas de la App Store (y para revisar el diseño
+// con datos reales). Las fechas son relativas al día en que se ejecuta.
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -26,37 +26,66 @@ const task = (id, title, date, extra = {}) => ({
 })
 
 const atTime = (id) => [{ id, kind: 'before', minutes: 0 }]
+const DAILY = [1, 2, 3, 4, 5, 6, 7]
 
-export function sampleState() {
+/** Los últimos `count` días (sin hoy) menos los que se saltan: una racha con algún fallo. */
+const history = (count, skip = []) =>
+  Array.from({ length: count }, (_, index) => isoFromToday(-count + index)).filter((_, index) => !skip.includes(index))
+
+const routine = (id, title, time, extra = {}) => ({
+  id,
+  title,
+  days: DAILY,
+  time,
+  done: [],
+  order: 0,
+  createdAt: Date.now() - 40 * 86_400_000,
+  ...extra,
+})
+
+/** `theme`: la apariencia con la que se abre la app (la captura del modo oscuro). */
+export function sampleState({ theme = 'light' } = {}) {
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 7,
+    schemaVersion: 9,
     sections: [{ id: 'trabajo', name: 'Trabajo', order: 0, collapsed: false }],
     places: [
-      { id: 'mercadona', name: 'Mercadona', location: { lat: 39.4699, lng: -0.3763, address: 'Valencia' }, radius: 150 },
+      { id: 'mercadona', name: 'Mercadona', location: { lat: 39.4699, lng: -0.3763, address: 'Calle de Colón, 12' }, radius: 150 },
+      { id: 'casa', name: 'Casa', location: { lat: 39.4632, lng: -0.3589, address: 'Avenida del Puerto, 20' }, radius: 100 },
+      { id: 'uni', name: 'Universidad', location: { lat: 39.4808, lng: -0.3443, address: 'Av. dels Tarongers' }, radius: 300 },
     ],
-    collapsed: { overdue: false, backlog: false },
-    settings: { digest: { enabled: true, time: '08:30' } },
+    routines: [
+      routine('creatina', 'Tomar creatina', '10:00', { done: [...history(12, [3]), today], order: 0 }),
+      routine('leer', 'Leer 20 minutos', '22:30', { done: history(9, [1, 5]), order: 1 }),
+      routine('estirar', 'Estirar', null, { done: history(6, [0, 2]), order: 2 }),
+      routine('gym', 'Gimnasio', '19:00', { days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
+    ],
+    collapsed: { overdue: false, backlog: false, routines: false },
+    settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme },
     tasks: [
       task('luz', 'Pagar la factura de la luz', iso(-1), { importance: 4 }),
-      task('jorge', 'Reunión con Jorge', today, { time: '17:30', duration: 60, reminders: atTime('r1'), order: 0 }),
-      task('gym', 'Gimnasio', today, { time: '19:30', duration: 60, reminders: atTime('r2'), order: 1 }),
-      task('pan', 'Comprar pan', today, {
-        reminders: [{ id: 'r3', kind: 'place', placeId: 'mercadona', on: 'arrive' }],
-        order: 2,
-      }),
-      task('presentacion', 'Preparar la presentación para el cliente', today, { importance: 6, order: 3 }),
-      task('ropa', 'Tender la ropa', today, { done: true, completedAt: Date.now(), order: 4 }),
+      task('jorge', 'Reunión con Jorge', today, { time: '09:30', duration: 60, reminders: atTime('r1'), order: 0, done: true, completedAt: Date.now() }),
       task('presupuesto', 'Enviar el presupuesto a Javier', today, {
-        time: '16:00',
+        time: '12:00',
+        duration: 30,
         reminders: [{ id: 'r4', kind: 'before', minutes: 15 }],
         sectionId: 'trabajo',
         order: 0,
       }),
+      task('comida', 'Comida con Ana', today, { time: '14:00', duration: 90, reminders: atTime('r2'), order: 1 }),
+      task('pan', 'Comprar pan', today, {
+        reminders: [{ id: 'r3', kind: 'place', placeId: 'mercadona', on: 'arrive' }],
+        order: 2,
+      }),
+      task('presentacion', 'Preparar la presentación', today, { importance: 6, order: 3 }),
+      task('ropa', 'Tender la ropa', today, { done: true, completedAt: Date.now(), order: 4 }),
       task('contrato', 'Revisar el contrato', today, { importance: 3, sectionId: 'trabajo', order: 1 }),
-      task('regalo', 'Pensar el regalo de Lucía', null, { order: 0 }),
-      task('dni', 'Renovar el DNI', null, { order: 1 }),
+      task('leche', 'Leche y huevos', null, { reminders: [{ id: 'r10', kind: 'place', placeId: 'mercadona', on: 'arrive' }], order: 0 }),
+      task('basura', 'Sacar la basura', null, { reminders: [{ id: 'r11', kind: 'place', placeId: 'casa', on: 'leave' }], order: 1 }),
+      task('libro', 'Devolver el libro', null, { reminders: [{ id: 'r12', kind: 'place', placeId: 'uni', on: 'arrive' }], order: 2 }),
+      task('regalo', 'Pensar el regalo de Lucía', null, { order: 3 }),
+      task('dni', 'Renovar el DNI', null, { order: 4 }),
       task('dentista', 'Dentista', iso(1), { time: '09:30', duration: 45, reminders: [{ id: 'r5', kind: 'before', minutes: 60 }] }),
       task('marta', 'Cena con Marta', iso(2), { time: '21:00', reminders: atTime('r6') }),
       task('itv', 'ITV del coche', iso(3), { time: '10:00', reminders: atTime('r7'), importance: 3 }),
@@ -67,9 +96,13 @@ export function sampleState() {
   }
 }
 
-/** Expresión para `Runtime.evaluate`: guarda el estado en la IndexedDB de la página (mismo origen). */
+/**
+ * Expresión para `Runtime.evaluate`: guarda el estado en la IndexedDB de la página (mismo origen) y
+ * la apariencia donde la lee el arranque (`tasks:theme`).
+ */
 export function writeStateExpression(state) {
   return `new Promise((resolve, reject) => {
+  localStorage.setItem('tasks:theme', ${JSON.stringify(state.settings.theme ?? 'light')})
   const request = indexedDB.open('keyval-store')
   request.onupgradeneeded = () => request.result.createObjectStore('keyval')
   request.onerror = () => reject(request.error)

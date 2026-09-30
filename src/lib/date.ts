@@ -114,3 +114,15 @@ export function relativeLabel(iso: IsoDate, today: IsoDate = todayIso()): string
   if (delta === -1) return 'Ayer'
   return `${dayNameShort(iso)} ${dayNumber(iso)} ${monthShort(iso)}`
 }
+
+/** `septiembre 2026` */
+export const monthYear = (iso: IsoDate) => `${monthLong(iso)} ${iso.slice(0, 4)}`
+
+/** `Hoy`, `Mañana`, `Ayer` o `null` para cualquier otro día. */
+export function nearLabel(iso: IsoDate, today: IsoDate): string | null {
+  const delta = diffDays(today, iso)
+  if (delta === 0) return 'Hoy'
+  if (delta === 1) return 'Mañana'
+  if (delta === -1) return 'Ayer'
+  return null
+}

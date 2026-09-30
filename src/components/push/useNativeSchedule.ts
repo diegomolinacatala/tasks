@@ -50,7 +50,7 @@ export function useNativeSchedule(state: AppState, today: IsoDate, enabled: bool
   useEffect(() => {
     const timer = setTimeout(() => void sync(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, state.sections, state.places, state.settings, today, sync])
+  }, [state.tasks, state.sections, state.places, state.routines, state.settings, today, sync])
 
   useEffect(() => {
     // Con el paso del tiempo cambia el plan (los avisos pasados dejan hueco a los siguientes).

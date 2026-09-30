@@ -1,0 +1,219 @@
+/* ── Rutinas en la Bandeja ─────────────────────────────────────────────── */
+
+.routines__progress {
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-style: italic;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+  transition: color var(--dur-2) var(--ease);
+}
+
+.routines__progress.is-complete {
+  color: var(--accent);
+}
+
+.routines__empty {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.routines__empty svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.routines__empty:active {
+  background: var(--bg-press);
+  transform: scale(0.99);
+}
+
+.routine__row {
+  align-items: center;
+}
+
+.routine__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  text-align: left;
+}
+
+.routine__meta {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hoy no toca: se ve, pero en segundo plano */
+.routine.is-off .row__title,
+.routine.is-off .row__check {
+  opacity: 0.5;
+}
+
+/* Los últimos siete días: lleno, hecho; hueco, sin hacer; raya, no tocaba. Hoy, con aro */
+.routine__week {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 12px;
+}
+
+.routine__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  box-shadow: inset 0 0 0 1.25px var(--line-2);
+  transition: background var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+.routine__dot.is-free {
+  height: 1.5px;
+  border-radius: 1px;
+  box-shadow: none;
+  background: var(--line-2);
+}
+
+.routine__dot.is-done {
+  box-shadow: none;
+  background: var(--accent);
+}
+
+.routine__dot.is-today {
+  transform: scale(1.25);
+  box-shadow: inset 0 0 0 1.25px var(--accent-line);
+}
+
+.routine__dot.is-today.is-done {
+  box-shadow: none;
+}
+
+.routine__dot.is-today.is-free {
+  transform: none;
+}
+
+/* ── Panel de la rutina ───────────────────────────────────────────────── */
+
+.days-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.days-picker__day {
+  aspect-ratio: 1;
+  max-height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease-pop);
+}
+
+.days-picker__day.is-active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.days-picker__day:active {
+  transform: scale(0.9);
+}
+
+.days-picker + .sheet__chips {
+  margin-top: var(--sp-3);
+}
+
+/* Cifras de la rutina: racha, mejor racha y lo cumplido en el último mes */
+.routine-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.routine-stats__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 12px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev-2);
+}
+
+.routine-stats__value {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.routine-stats__label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Las últimas cinco semanas, de lunes a domingo, como un cuaderno de asistencia */
+.routine-history {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: var(--sp-3);
+}
+
+.routine-history__head {
+  text-align: center;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.routine-history__cell {
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  box-shadow: inset 0 0 0 1.25px var(--line-2);
+}
+
+.routine-history__cell.is-free {
+  box-shadow: none;
+  background: var(--line);
+  transform: scale(0.35);
+}
+
+.routine-history__cell.is-done {
+  box-shadow: none;
+  background: var(--accent);
+}
+
+.routine-history__cell.is-future {
+  opacity: 0.25;
+}
+
+.routine-history__cell.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.routine-history__cell.is-today.is-done {
+  box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 3.5px var(--accent-line);
+}

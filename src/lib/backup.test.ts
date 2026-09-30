@@ -23,8 +23,9 @@ const state: AppState = {
   ],
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
   places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
-  collapsed: { overdue: false, backlog: true },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false },
+  routines: [{ id: 'r1', title: 'Creatina', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
+  collapsed: { overdue: false, backlog: true, routines: false },
+  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -81,7 +82,7 @@ describe('normalizeState', () => {
 
   test('rellena los bloques plegados que falten en copias antiguas', () => {
     const result = normalizeState({ tasks: [], sections: [] })
-    expect(result!.collapsed).toEqual({ overdue: false, backlog: false })
+    expect(result!.collapsed).toEqual({ overdue: false, backlog: false, routines: false })
   })
 
   test('la importancia se sanea: sin ella (copias anteriores) es normal y nunca sale de 1 a 10', () => {

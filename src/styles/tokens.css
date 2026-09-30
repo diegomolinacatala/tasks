@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
 
-  /* Papel marfil, tinta azul marino, piel coñac: papelería de casa antigua. Siempre claro. */
+  /* Papel marfil, tinta azul marino, piel coñac: papelería de casa antigua. */
   --bg: #f4efe6;
   --bg-elev: #fbf8f2;
   --bg-elev-2: #ede6d9;
@@ -12,7 +12,7 @@
 
   --text: #1b2540;
   --text-2: #5a544a;
-  --text-3: #7d7466;
+  --text-3: #736a5c;
 
   /* Coñac: lo interactivo y lo completado */
   --accent: #8a5a2c;
@@ -27,6 +27,7 @@
 
   /* Oro viejo: filetes y detalles, nunca texto */
   --gold: #b8966a;
+  --gold-dim: rgba(184, 150, 106, 0.35);
 
   /* Ladrillo: solo atrasado o destructivo */
   --danger: #9e3b2e;
@@ -34,6 +35,18 @@
   --danger-line: rgba(158, 59, 46, 0.45);
 
   --scrim: rgba(22, 29, 48, 0.3);
+
+  --shadow-card: 0 1px 2px rgba(58, 42, 22, 0.06), 0 8px 24px rgba(58, 42, 22, 0.08);
+  --shadow-lift: 0 16px 36px rgba(58, 42, 22, 0.18), 0 0 0 1px var(--line);
+  --shadow-sheet: 0 -10px 40px rgba(58, 42, 22, 0.14);
+  --shadow-toast: 0 18px 40px rgba(27, 37, 64, 0.28);
+  /* Brillo del canto superior de un panel, como el borde de una hoja */
+  --edge-light: rgba(255, 255, 255, 0.7);
+
+  /* Mapa dibujado (mientras llega el de Apple Maps, o si no hay) */
+  --map-land: #ece4d5;
+  --map-road: #fbf8f2;
+  --map-water: #d8dccf;
 
   --r-xs: 6px;
   --r-sm: 10px;
@@ -68,12 +81,10 @@
   --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
   /* Rebote corto: marcar como hecha, el mando de importancia */
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* La curva de los paneles de iOS */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
 
-  --shadow-card: 0 1px 2px rgba(58, 42, 22, 0.06), 0 8px 24px rgba(58, 42, 22, 0.08);
-  --shadow-lift: 0 16px 36px rgba(58, 42, 22, 0.18), 0 0 0 1px var(--line);
-  --shadow-sheet: 0 -10px 40px rgba(58, 42, 22, 0.14);
-
-  --nav-h: 56px;
+  --nav-h: 58px;
   --composer-h: 64px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -82,4 +93,53 @@
     'Helvetica Neue', system-ui, sans-serif;
   /* New York en el iPhone: la serif del sistema, sin descargar nada */
   --font-serif: ui-serif, 'New York', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+}
+
+/*
+ * Noche de biblioteca: azul medianoche en vez de papel, tinta marfil y los mismos acentos en tonos
+ * pastel (camel, rosa terracota, oro pálido). Nada chillón: contraste de lectura, no de neón.
+ * `lib/theme.ts` pone `data-theme` en <html> (también cuando la apariencia es "Automática").
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #121828;
+  --bg-elev: #1a2236;
+  --bg-elev-2: #222b42;
+  --bg-press: #2b354e;
+
+  --line: rgba(236, 228, 212, 0.09);
+  --line-2: rgba(236, 228, 212, 0.17);
+
+  --text: #ece4d4;
+  --text-2: #bab1a1;
+  --text-3: #9a9282;
+
+  --accent: #d9b48c;
+  --accent-dim: rgba(217, 180, 140, 0.13);
+  --accent-line: rgba(217, 180, 140, 0.4);
+
+  /* Lo elegido, en marfil macizo con tinta de noche encima */
+  --primary: #e9e0cd;
+  --on-primary: #141a2b;
+  --on-primary-accent: #7a4e24;
+
+  --gold: #c7ab80;
+  --gold-dim: rgba(199, 171, 128, 0.3);
+
+  --danger: #e6a597;
+  --danger-dim: rgba(230, 165, 151, 0.12);
+  --danger-line: rgba(230, 165, 151, 0.42);
+
+  --scrim: rgba(4, 7, 14, 0.55);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lift: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-2);
+  --shadow-sheet: 0 -10px 40px rgba(0, 0, 0, 0.45);
+  --shadow-toast: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --edge-light: rgba(236, 228, 212, 0.08);
+
+  --map-land: #1b2338;
+  --map-road: #2a3450;
+  --map-water: #16203a;
 }

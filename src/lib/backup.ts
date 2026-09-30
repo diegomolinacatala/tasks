@@ -1,5 +1,6 @@
-import type { AppState, Place, Reminder, Section, Settings, Task } from '../types'
-import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
+import type { AppState, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
+import { SCHEMA_VERSION, THEMES, defaultSettings } from '../state/reducer'
+import { MAX_ROUTINES, normalizeRoutine } from './routines'
 import { isValidTime } from './date'
 import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
@@ -75,7 +76,19 @@ function normalizeSettings(raw: unknown): Settings {
       time: isValidTime(digest.time) ? digest.time : defaults.digest.time,
     },
     dictation: settings.dictation === true,
+    // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
+    theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,
   }
+}
+
+/** Sin ids repetidos. Las copias anteriores a las rutinas no las traen. */
+function normalizeRoutines(raw: unknown): Routine[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map(normalizeRoutine)
+    .filter((routine): routine is Routine => routine !== null)
+    .reduce<Routine[]>((acc, routine) => (acc.some((other) => other.id === routine.id) ? acc : [...acc, routine]), [])
+    .slice(0, MAX_ROUTINES)
 }
 
 /** Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). */
@@ -119,7 +132,8 @@ export function normalizeState(raw: unknown): AppState | null {
     tasks,
     sections,
     places,
-    collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true },
+    routines: normalizeRoutines(candidate.routines),
+    collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true, routines: collapsed.routines === true },
     settings: normalizeSettings(candidate.settings),
   }
 }

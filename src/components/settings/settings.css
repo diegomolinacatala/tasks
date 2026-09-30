@@ -1,0 +1,262 @@
+/* ── Ajustes: grupos como los de iOS, en papel ───────────────────────── */
+
+.settings {
+  padding-bottom: var(--sp-7);
+}
+
+.group {
+  margin-top: var(--sp-5);
+}
+
+.group__title {
+  margin: 0 2px var(--sp-2);
+  font-family: var(--font);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.group__card {
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.group__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: var(--fs-md);
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--dur-1) var(--ease);
+}
+
+.group__row + .group__row {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.group__row > svg:first-child {
+  flex: none;
+  color: var(--text-2);
+}
+
+button.group__row:active,
+a.group__row:active {
+  background: var(--bg-press);
+}
+
+.group__row:disabled {
+  opacity: 0.5;
+}
+
+.group__row--static {
+  cursor: default;
+}
+
+.group__row--stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.group__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.group__value {
+  flex: none;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.group__chevron {
+  flex: none;
+  color: var(--text-3);
+}
+
+.group__row--danger,
+.group__row--danger > svg:first-child {
+  color: var(--danger);
+}
+
+.group__row--danger.is-confirming {
+  background: var(--danger-dim);
+}
+
+.group__note {
+  margin: var(--sp-2) 2px 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.group__note--center {
+  text-align: center;
+}
+
+.group__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 2px var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+.group__stats b {
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  font-weight: 400;
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Dos opciones, como el control segmentado de iOS */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev-2);
+}
+
+.segmented__option {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: calc(var(--r-md) - 3px);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+.segmented__option.is-active {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Apariencia: tres tarjetas en miniatura ──────────────────────────── */
+
+.appearance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.appearance__option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+.appearance__card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 150px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 1px var(--line-2);
+  transition: box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+.appearance__option:active .appearance__card {
+  transform: scale(0.96);
+}
+
+.appearance__option.is-active .appearance__card {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* Colores fijos a propósito: cada tarjeta enseña su tema, esté la app en el que esté */
+.appearance__half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 0 0 12px;
+  background: #f4efe6;
+}
+
+.appearance__half--dark {
+  background: #121828;
+}
+
+.appearance__card--light .appearance__half--dark,
+.appearance__card--dark .appearance__half--light {
+  display: none;
+}
+
+.appearance__card--auto .appearance__half {
+  padding-left: 8px;
+}
+
+.appearance__line {
+  display: block;
+  width: 70%;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(27, 37, 64, 0.22);
+}
+
+.appearance__half--dark .appearance__line {
+  background: rgba(236, 228, 212, 0.24);
+}
+
+.appearance__line--title {
+  width: 46%;
+  height: 11px;
+  margin-bottom: 4px;
+  background: #1b2540;
+}
+
+.appearance__half--dark .appearance__line--title {
+  background: #ece4d4;
+}
+
+.appearance__line--short {
+  width: 48%;
+}
+
+.appearance__label {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.appearance__option.is-active .appearance__label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.appearance__check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--line-2);
+  color: transparent;
+  transition: background var(--dur-2) var(--ease-pop), border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+
+.appearance__option.is-active .appearance__check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-primary);
+}

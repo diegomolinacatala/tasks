@@ -150,7 +150,7 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
       está en su sitio una sola vez.
 - [ ] Apuntar con la app abierta (tocar atrás mientras se usa): la tarea aparece en la lista.
 - [ ] Tocar el aviso de una tarea apuntada con Siri con la app cerrada: se abre esa tarea.
-- [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Semana* abre la semana.
+- [ ] Mantener pulsado el icono: *Nueva tarea* enfoca la barra; *Agenda* abre la agenda.
 - [x] Tres toques atrás: crear en **Atajos** un atajo con la acción *Nueva tarea* de Tasks, asignarlo
       en **Ajustes → Accesibilidad → Tocar → Tocar atrás → Triple toque** y que, con la app cerrada o
       desde otra app, se abra Tasks con el teclado fuera.
@@ -161,8 +161,8 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 - [ ] Tocar una tarea del widget abre esa tarea; el **+** abre la barra de escribir.
 - [ ] Widget al día siguiente sin abrir la app: lo de ayer pasa a atrasado.
 - [ ] **Pasar a hoy** (desde la 14): con algo atrasado, *Pasar a hoy* en la cabecera de
-      *Atrasadas* lo sube arriba de *Hoy* (cada una a su sección) con *Deshacer*; en *Semana*, cada día
-      pasado con pendientes tiene el suyo.
+      *Atrasadas* lo sube a hoy (cada una arriba de su sección) con *Deshacer*; en la *Agenda*, cada
+      día pasado con pendientes tiene el suyo.
 - [ ] Widget con algo atrasado: sale **A hoy**. Tocarlo con la app cerrada: el widget las pasa a hoy
       sin abrir nada, y el aviso de una atrasada con hora (p. ej. ayer a las 17:00 con aviso 15 min
       antes) suena hoy a las 16:45 aunque no se abra la app. Al abrirla, están en *Hoy* una sola vez.
@@ -284,19 +284,21 @@ Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publi
 [`docs/capturas/`](capturas/), a ese tamaño exacto y en el orden en que se suben (las tres primeras
 son las que salen en la búsqueda):
 
-1. `1-hoy`: «Tu día, en orden.» (papel)
-2. `2-lugares`: «Te avisa al llegar.» (azul noche)
-3. `3-has-acabado`: «Te pregunta si has acabado.» (arena)
-4. `4-escribir`: «Escribe como hablas.»
-5. `5-importancia`: «Lo importante, más grande.»
-6. `6-semana`: «Tu semana, de un vistazo.»
-7. `7-widget`: «Siempre a mano.» (widgets y Siri)
+1. `1-agenda`: «Tu día, a su hora.» (papel; el horario del día y la tira de la semana)
+2. `2-rutinas`: «Lo de cada día, de un toque.» (azul noche; con el widget de la pantalla de bloqueo)
+3. `3-lugares`: «Te avisa al llegar.» (arena)
+4. `4-has-acabado`: «Te pregunta si has acabado.»
+5. `5-escribir`: «Escribe como hablas.»
+6. `6-importancia`: «Lo importante, más grande.»
+7. `7-oscuro`: «De noche, en calma.» (la app en modo oscuro)
+8. `8-widget`: «Siempre a mano.» (widgets y Siri)
 
-Cada una es la app real con tareas de ejemplo dentro de un iPhone, con titular y un detalle que sale
+Cada una es la app real con datos de ejemplo dentro de un iPhone, con titular y un detalle que sale
 del marco (el aviso, la píldora de lo entendido, los widgets). Se regeneran cuando cambie la
-interfaz con `npm run build` y `node scripts/app-store-shots.mjs` (usa Edge sin ventana; las
-plantillas están en `scripts/store-frames.mjs`). La letra es Inter y Source Serif 4, lo más parecido
-a San Francisco y New York que se puede usar fuera de Apple.
+interfaz con `node scripts/app-store-shots.mjs` (compila la web con `--mode shots`, que enseña la
+pestaña Lugares con el plano dibujado, y fija el reloj de la página a las 11:20; usa Edge sin
+ventana; las plantillas están en `scripts/store-frames.mjs` y `scripts/store-widgets.mjs`). La letra
+es Inter y Source Serif 4, lo más parecido a San Francisco y New York que se puede usar fuera de Apple.
 
 ## 4. Privacidad en App Store Connect
 
@@ -321,20 +323,21 @@ Notas** (máximo 4000 caracteres; estas son unas 3500). Son lo mismo que pidió 
 22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
 
 ```
-No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Continuar" = Continue.
+No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; labels used below: bottom tabs "Bandeja" = Inbox (undated tasks and routines), "Agenda" = day timeline and week, "Lugares" = Places, "Ajustes" = Settings; "Hoy" = Today, "Rutinas" = Routines, "Recordatorios" = Reminders, "Continuar" = Continue.
 
 PURPOSE AND AUDIENCE
 A simple daily to-do list for Spanish-speaking iPhone users who want to jot tasks down quickly and be reminded at the right time or place, without signing up or setting anything up. You write or say a task the way you would say it and the app sets the day, time and reminder.
 
 HOW TO TEST
-- Add: in the "Añadir tarea" bar at the bottom type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
-- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder; in "Semana" (bottom bar) drag a task to another day.
-- Tap a task to edit date, time, duration, reminders and importance. "Aa" (top right) is importance mode: drag the number on a task up or down; more important tasks get a larger title.
+- Add: in the bar at the bottom type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
+- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder, or onto a day of the week strip to move it. Swipe the week strip to change week.
+- Tap a task to edit date, time, duration, reminders and importance. The "A" button (top right) is importance mode: drag the number on a task; more important tasks get a larger title.
+- Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas; tick it for today and it resets the next day. The "Rutinas" Lock Screen widget ticks it with one tap.
 - Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
-- Location reminders: Ajustes → Lugares → Añadir lugar → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
+- Location reminders: Lugares → "Buscar o añadir un lugar" → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
 - Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
-- Ajustes → Datos: export or import a JSON backup.
+- Ajustes: light or dark appearance; export or import a JSON backup.
 
 EXTERNAL SERVICES
 - Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user has seen that notice and granted microphone access; it can be turned off in Ajustes → Dictado. Otherwise nothing is sent and Siri input is parsed on the device.
@@ -361,7 +364,7 @@ Siri y App Shortcuts, accesos rápidos del icono, búsqueda en Apple Maps y vibr
 - Rama `capacitor` unida con `main`: despliega el Worker (dictado) y publica la URL de privacidad.
   Después sale una compilación nueva: es la que se envía. Hecho el 21/09/2026: la más reciente
   desde `main` es la 18.
-- Capturas: las siete de `docs/capturas/` (§3), en ese orden.
+- Capturas: las de `docs/capturas/` (§3), en ese orden.
 
 ### En App Store Connect → la app → pestaña **Distribución**
 
@@ -477,14 +480,15 @@ Tasks is a simple daily to-do list for Spanish-speaking iPhone users who want to
 
 3. HOW TO ACCESS THE MAIN FEATURES
 No login, credentials or sample files are needed. The interface is in Spanish; labels used below: "Hoy" = Today, "Atrasadas" = Overdue, "Sin fecha" = No date, "Semana" = Week, "Ajustes" (··· button, top right) = Settings, "Lugares" = Places, "Recordatorios" = Reminders, "Permitir" = Allow.
-- Add: in the "Añadir tarea" bar at the bottom type "llamar a Ana mañana a las 5" and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
-- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder; in "Semana" (bottom bar) drag a task to another day.
-- Tap a task to edit date, time, duration, reminders and importance. "Aa" (top right) is importance mode: drag the number on a task up or down; more important tasks get a larger title.
+- Add: in the bar at the bottom type "llamar a Ana mañana a las 5" and press Return. A chip shows the detected day and time and a reminder is scheduled; notification permission is requested the first time a reminder exists.
+- Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder, or onto a day of the week strip to move it. Swipe the week strip to change week.
+- Tap a task to edit date, time, duration, reminders and importance. The "A" button (top right) is importance mode: drag the number on a task; more important tasks get a larger title.
+- Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas; tick it for today and it resets the next day. The "Rutinas" Lock Screen widget ticks it with one tap.
 - Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
-- Location reminders: Ajustes → Lugares → Añadir lugar → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
+- Location reminders: Lugares → "Buscar o añadir un lugar" → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
 - Dictation: with the bar empty, tap the microphone. The first time, a sheet explains that the audio is sent to our server and processed by Cloudflare Workers AI, and asks for permission ("Permitir"); then iOS asks for the microphone. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
-- Ajustes → Datos: export or import a JSON backup.
+- Ajustes: light or dark appearance; export or import a JSON backup.
 
 4. EXTERNAL SERVICES
 - Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with OpenAI Whisper and the text is interpreted with NVIDIA Nemotron, both running on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use this data to train models. This happens only after the user explicitly allows it in the app, and the permission can be withdrawn in Ajustes → Dictado. Without it nothing is sent and Siri input is parsed on the device.
@@ -590,7 +594,7 @@ otra, **···** → *Exportar copia* → *Guardar en Archivos*.
    lo que se lee en la App Store. Para la 1.1: *«Diseño nuevo, en papel marfil y tinta azul marino,
    con icono nuevo y una apertura más cuidada. Corregido: al elegir una hora a mano podía guardarse
    otra.»* Si cambian las capturas, en esa misma página **Capturas de pantalla** → borrar las
-   antiguas del tamaño de 6,9" y arrastrar las siete de `docs/capturas/` en orden.
+   antiguas del tamaño de 6,9" y arrastrar las ocho de `docs/capturas/` en orden.
 3. **Compilación** → **Añadir compilación** → la **1.1 (N)** probada → **Listo**.
 4. Solo si hace falta: si cambia lo que se recoge (§4), **Privacidad de la app** y
    `PrivacyInfo.xcprivacy`; si hay algo nuevo que Apple necesite saber para probarlo, las **Notas** (§5).

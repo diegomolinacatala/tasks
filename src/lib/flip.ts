@@ -25,11 +25,20 @@ const LAYOUT_ACTIONS = new Set([
   'tasks/place',
   'block/toggle',
   'section/toggle',
+  'routine/toggle',
+  'routine/set',
+  'routine/add',
+  'routine/remove',
+  'routine/restore',
 ])
 
 let captured: { at: number; tops: Map<string, number> } | null = null
 
-const rows = () => document.querySelectorAll<HTMLElement>('[data-flip]')
+/**
+ * Solo las filas a la vista: las pestañas ocultas conservan su DOM (sin caja) y la misma rutina
+ * puede estar en la Bandeja y en el horario a la vez.
+ */
+const rows = () => [...document.querySelectorAll<HTMLElement>('[data-flip]')].filter((row) => row.offsetParent !== null)
 
 export function changesLayout(type: string): boolean {
   return LAYOUT_ACTIONS.has(type)

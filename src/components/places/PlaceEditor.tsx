@@ -1,6 +1,6 @@
 import { Suspense, createContext, lazy, useContext, useState } from 'react'
 import type { ReactNode } from 'react'
-import { isNative } from '../../lib/platform'
+import { showsPlaces } from '../../lib/platform'
 import type { PlaceRequest } from './PlaceSheet'
 
 const PlaceSheet = lazy(() => import('./PlaceSheet').then((module) => ({ default: module.PlaceSheet })))
@@ -16,7 +16,7 @@ export function PlaceEditorProvider({ children }: { children: ReactNode }) {
   return (
     <PlaceEditorContext.Provider value={setRequest}>
       {children}
-      {isNative && (
+      {showsPlaces && (
         <Suspense fallback={null}>
           <PlaceSheet request={request} onClose={() => setRequest(null)} />
         </Suspense>

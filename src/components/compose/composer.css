@@ -101,6 +101,11 @@
   transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 
+/* Una rutina: el mismo coñac con un filete de oro, lo que vuelve cada día */
+.composer__parsed.is-routine {
+  border-color: var(--gold);
+}
+
 .composer__parsed.is-off {
   background: transparent;
   border-color: var(--line-2);

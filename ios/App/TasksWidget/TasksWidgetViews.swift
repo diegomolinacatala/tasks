@@ -5,8 +5,8 @@ import WidgetKit
 
 /**
  * Los tokens de `src/styles/tokens.css`: papel marfil, tinta azul marino, coñac para lo hecho y
- * ladrillo solo para lo atrasado. La app es siempre clara; el widget, que vive en la pantalla de
- * inicio, se pasa a azul noche si el iPhone está en modo oscuro.
+ * ladrillo solo para lo atrasado. El widget sigue el modo del iPhone (azul noche en oscuro), no la
+ * apariencia elegida en la app: vive en la pantalla de inicio, junto a los de las demás apps.
  */
 enum Palette {
     static let background = dynamic(0xF4EFE6, night: 0x141B2E)
@@ -428,5 +428,190 @@ enum WidgetDates {
             return "Ayer"
         }
         return dayMonthFormatter.string(from: day).replacingOccurrences(of: ".", with: "")
+    }
+}
+
+// MARK: - Rutinas
+
+/**
+ * Pantalla de bloqueo, redondo: el anillo se va cerrando con lo hecho hoy y en el centro va la inicial
+ * de la rutina que toca (o la marca si ya está). Tocarlo la tacha.
+ */
+struct RoutineCircular: View {
+    let entry: RoutinesEntry
+
+    var body: some View {
+        if let routine = entry.target {
+            let done = routine.isDone(on: entry.day)
+            Button(intent: ToggleRoutineIntent(routineId: routine.id, day: entry.day)) {
+                Gauge(value: progress(done: done)) {
+                    Text(verbatim: routine.title)
+                } currentValueLabel: {
+                    if done {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 17, weight: .bold))
+                    } else {
+                        Text(verbatim: RoutineText.initials(routine.title))
+                            .font(.system(size: 17, weight: .semibold, design: .serif))
+                    }
+                }
+                .gaugeStyle(.accessoryCircularCapacity)
+                .widgetAccentable()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+        } else {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "repeat")
+                    .font(.system(size: 18, weight: .medium))
+            }
+            .widgetURL(WidgetLink.routines)
+        }
+    }
+
+    /** Con una rutina elegida, lleno o vacío; si no, lo hecho de hoy. */
+    private func progress(done: Bool) -> Double {
+        if entry.showsChosen { return done ? 1 : 0 }
+        let total = entry.today.count
+        return total == 0 ? 0 : Double(entry.done) / Double(total)
+    }
+}
+
+/** Pantalla de bloqueo, rectangular: la rutina que toca, su hora y cuántas van hoy. Un toque la tacha. */
+struct RoutineRectangular: View {
+    let entry: RoutinesEntry
+
+    var body: some View {
+        if let routine = entry.target {
+            let done = routine.isDone(on: entry.day)
+            Button(intent: ToggleRoutineIntent(routineId: routine.id, day: entry.day)) {
+                HStack(spacing: 8) {
+                    Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 24, weight: .regular))
+                        .widgetAccentable()
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(verbatim: routine.title)
+                            .font(.headline)
+                            .strikethrough(done)
+                            .lineLimit(1)
+                        Text(verbatim: detail(routine, done: done))
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+        } else {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: "Rutinas")
+                    .font(.headline)
+                    .widgetAccentable()
+                Text(verbatim: entry.routines == nil ? "Abre Tasks" : "Hoy no toca ninguna.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .widgetURL(WidgetLink.routines)
+        }
+    }
+
+    /** `10:00 · 1 de 3 hoy`, o `Hecha · 3 de 3 hoy`. */
+    private func detail(_ routine: WidgetRoutine, done: Bool) -> String {
+        let when = done ? "Hecha" : (routine.time.map(WidgetDates.shortTime) ?? "Hoy")
+        let total = entry.today.count
+        return total > 1 ? "\(when) · \(entry.done) de \(total) hoy" : when
+    }
+}
+
+/** Pantalla de inicio: las rutinas de hoy, cada una con su círculo para tacharla. */
+struct RoutineSmall: View {
+    let entry: RoutinesEntry
+
+    private static let slots = 4
+
+    var body: some View {
+        let rows = Array(entry.today.prefix(Self.slots))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: "RUTINAS")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(Palette.accent)
+                Spacer(minLength: 0)
+                if !entry.today.isEmpty {
+                    Text(verbatim: "\(entry.done)/\(entry.today.count)")
+                        .font(.system(size: 15, design: .serif))
+                        .monospacedDigit()
+                        .foregroundStyle(entry.done == entry.today.count ? Palette.accent : Palette.text3)
+                }
+            }
+            if rows.isEmpty {
+                Text(verbatim: entry.routines == nil ? "Abre Tasks" : "Hoy no toca ninguna.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.text3)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(0..<Self.slots, id: \.self) { index in
+                        Group {
+                            if index < rows.count {
+                                RoutineRow(routine: rows[index], day: entry.day)
+                            } else {
+                                Color.clear
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+            }
+        }
+        .widgetURL(WidgetLink.routines)
+    }
+}
+
+struct RoutineRow: View {
+    let routine: WidgetRoutine
+    let day: String
+
+    var body: some View {
+        let done = routine.isDone(on: day)
+        Button(intent: ToggleRoutineIntent(routineId: routine.id, day: day)) {
+            HStack(spacing: 8) {
+                CheckCircle(done: done, overdue: false, size: 17)
+                Text(verbatim: routine.title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(done ? Palette.text3 : Palette.text)
+                    .strikethrough(done, color: Palette.text3)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let time = routine.time, !done {
+                    Text(verbatim: WidgetDates.shortTime(time))
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.text3)
+                }
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+    }
+}
+
+enum RoutineText {
+    /** `Tomar creatina` → `TC`; una sola palabra, sus dos primeras letras. */
+    static func initials(_ title: String) -> String {
+        let words = title.split(separator: " ")
+        if words.count >= 2 {
+            return words.prefix(2).compactMap { word in word.first.map { String($0) } }.joined().uppercased()
+        }
+        return String(title.prefix(2)).capitalized
     }
 }

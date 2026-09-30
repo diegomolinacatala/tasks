@@ -1,0 +1,107 @@
+import type { IsoTime } from '../types'
+import { shortTime } from './date'
+import { normalizeText, originalSpan } from './normalize'
+import { parseTask } from './parse'
+import { ALL_DAYS, WEEKEND, WORKDAYS, cleanDays, daysLabel } from './routines'
+import type { Span } from './title'
+import { capitalize } from './title'
+import { PART_OF_DAY } from './when'
+
+/**
+ * "Tomar creatina todos los días a las 10", "gimnasio los lunes y jueves", "regar entre semana":
+ * lo que se repite no es una tarea, es una rutina. Se reconoce la frase de repetición, se quita del
+ * texto y lo que queda se analiza como siempre para sacar la hora. "El lunes" es un día; "los
+ * lunes", todos.
+ */
+
+export interface RoutineDraft {
+  title: string
+  days: number[]
+  time: IsoTime | null
+  /** `Cada día · 10:00`. */
+  label: string
+}
+
+const word = (source: string) => new RegExp(`(?<![a-z0-9])(?:${source})(?![a-z0-9])`, 'g')
+
+const WEEKDAY_NUMBER: Record<string, number> = {
+  lunes: 1,
+  martes: 2,
+  miercoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sabado: 6,
+  sabados: 6,
+  domingo: 7,
+  domingos: 7,
+}
+const DAY_NAME = 'lunes|martes|miercoles|jueves|viernes|sabados?|domingos?'
+
+/**
+ * Cada patrón con los días que dice; los de franja ("todas las mañanas") dan además la hora. Van de
+ * lo más concreto a lo más general: "todos los días laborables" no es "todos los días".
+ */
+const PATTERNS: { regex: RegExp; days: (match: RegExpExecArray) => readonly number[]; part?: (match: RegExpExecArray) => string | undefined }[] = [
+  { regex: word('entre semana|de lunes a viernes|(?:todos )?los dias laborables|cada dia laborable|los laborables'), days: () => WORKDAYS },
+  { regex: word('(?:todos )?los fines de semana|cada fin de semana|(?:todos )?los findes|cada finde'), days: () => WEEKEND },
+  {
+    regex: word('(?:todas las|cada) (mananas|tardes|noches|manana|tarde|noche)'),
+    days: () => ALL_DAYS,
+    part: (match) => match[1]?.replace(/s$/, ''),
+  },
+  { regex: word('todos los dias|cada dia|a diario|diariamente'), days: () => ALL_DAYS },
+  {
+    // "cada lunes", "todos los martes", "los lunes y jueves", "los lunes, miércoles y viernes".
+    regex: word(`(?:cada|todos los|todas las|los) (?:${DAY_NAME})(?:(?:, ?| y | e )(?:los )?(?:${DAY_NAME}))*`),
+    days: (match) => match[0].split(/[^a-z]+/).flatMap((name) => (WEEKDAY_NUMBER[name] ? [WEEKDAY_NUMBER[name]] : [])),
+  },
+]
+
+/**
+ * Quita los tramos y junta lo que queda. Los conectores ("a las 10") se quedan: son de la hora, que
+ * se analiza después y ya los limpia.
+ */
+function cut(input: string, spans: readonly Span[]): string {
+  return [...spans]
+    .sort((a, b) => b.start - a.start)
+    .reduce((text, span) => `${text.slice(0, span.start)} ${text.slice(span.end)}`, input)
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/^[\s,.;:]+|[\s,.;:]+$/g, '')
+}
+
+/** La frase de repetición del texto, si la hay: los días y el texto sin ella. */
+export function readRepeat(input: string): { days: number[]; rest: string; part: string | null } | null {
+  const normalized = normalizeText(input)
+  const spans: Span[] = []
+  const days: number[] = []
+  let part: string | null = null
+
+  for (const { regex, days: read, part: readPart } of PATTERNS) {
+    for (const match of normalized.text.matchAll(regex)) {
+      const span = originalSpan(normalized, match.index, match.index + match[0].length)
+      if (spans.some((other) => span.start < other.end && span.end > other.start)) continue
+      spans.push(span)
+      days.push(...read(match as RegExpExecArray))
+      part ??= readPart?.(match as RegExpExecArray) ?? null
+    }
+  }
+  if (!spans.length) return null
+  return { days: cleanDays(days), rest: cut(input, spans), part }
+}
+
+/** La rutina que describe el texto, o `null` si no dice que se repita o no queda título. */
+export function parseRoutine(input: string, now: number): RoutineDraft | null {
+  const repeat = readRepeat(input)
+  if (!repeat?.rest) return null
+  // La hora sale del analizador de siempre; el día que calcule no cuenta: se repite.
+  const parsed = parseTask(repeat.rest, now, null)
+  const title = capitalize(parsed.title.trim())
+  if (!title) return null
+  const time = parsed.time ?? (repeat.part ? (PART_OF_DAY[repeat.part] ?? null) : null)
+  return { title, days: repeat.days, time, label: routineLabel(repeat.days, time) }
+}
+
+/** `Cada día · 10:00`, `Los lunes`. */
+export const routineLabel = (days: readonly number[], time: IsoTime | null): string =>
+  [daysLabel(days), time ? shortTime(time) : ''].filter(Boolean).join(' · ')

@@ -35,6 +35,15 @@ export function groupsFor(state: AppState, date: IsoDate): Group[] {
   ]
 }
 
+/** Lo del día que no tiene hora, por secciones: lo que tiene hora va al horario. */
+export const untimedGroupsFor = (state: AppState, date: IsoDate): Group[] =>
+  groupsFor(state, date).map((group) => ({ ...group, tasks: group.tasks.filter((task) => task.time === null) }))
+
+/** Pendientes de ese día o, si es hoy, también lo atrasado. */
+export function pendingOn(state: AppState, date: IsoDate, today: IsoDate): number {
+  return state.tasks.filter((task) => !task.done && (task.date === date || (date === today && isOverdue(task, today)))).length
+}
+
 export const findTask = (state: AppState, id: string | null): Task | null =>
   id ? (state.tasks.find((task) => task.id === id) ?? null) : null
 

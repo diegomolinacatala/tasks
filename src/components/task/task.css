@@ -1,4 +1,6 @@
-.task {
+/* Fila deslizable (SwipeRow). `useSwipe` escribe el desplazamiento en el `transform` de la
+   superficie y `--swipe` (de 0 a 1) en la fila, sin pasar por React. */
+.swipe {
   position: relative;
   list-style: none;
   overflow: hidden;
@@ -10,58 +12,92 @@
 }
 
 /* Hueco que deja la tarea mientras viaja */
-.task.is-dragging {
+.swipe.is-dragging {
   background: var(--accent-dim);
   box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
-.task.is-dragging .task__surface {
+.swipe.is-dragging .swipe__surface {
   opacity: 0;
 }
 
-/* Lo que asoma al deslizar: coñac para hecha, ladrillo para borrar. `--swipe` va de 0 a 1 */
-.task__affordance {
+/* Lo que asoma al deslizar: coñac para hecha, ladrillo para borrar */
+.swipe__behind {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 20px;
   pointer-events: none;
+  visibility: hidden;
 }
 
-.task__affordance.is-done {
+.is-swipe-right > .swipe__behind,
+.is-swipe-left > .swipe__behind {
+  visibility: visible;
+}
+
+.is-swipe-right > .swipe__behind {
   background: var(--accent-dim);
 }
 
-.task__affordance.is-delete {
+.is-swipe-left > .swipe__behind {
   background: var(--danger-dim);
 }
 
-.task__act {
+.swipe__act {
   display: grid;
   place-items: center;
-  transition: opacity var(--dur-1) linear;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  opacity: var(--swipe, 0);
+  transform: scale(calc(0.55 + 0.45 * var(--swipe, 0)));
+  transition: transform var(--dur-2) var(--ease-pop), background var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
 }
 
-.task__act--done {
+.swipe__act--right {
   color: var(--accent);
 }
 
-.task__act--delete {
+.swipe__act--left {
+  margin-left: auto;
   color: var(--danger);
 }
 
-.task__surface {
+.is-swipe-right .swipe__act--left,
+.is-swipe-left .swipe__act--right {
+  opacity: 0;
+}
+
+/* Pasado el umbral: el icono se rellena y da un saltito. Soltar ya hace la acción. */
+.is-armed .swipe__act {
+  transform: scale(1.12);
+}
+
+.is-armed.is-swipe-right .swipe__act--right {
+  color: var(--on-primary);
+  background: var(--accent);
+}
+
+.is-armed.is-swipe-left .swipe__act--left {
+  color: var(--on-primary);
+  background: var(--danger);
+}
+
+.swipe__surface {
   position: relative;
   display: flex;
   align-items: stretch;
   background: var(--bg);
 }
 
-.column > .task + .task .task__surface {
+.column > .swipe + .swipe .swipe__surface {
   border-top: 1px solid var(--line);
 }
+
 
 .task__grip {
   flex: none;

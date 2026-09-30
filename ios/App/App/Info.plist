@@ -85,7 +85,7 @@
 			<key>UIApplicationShortcutItemType</key>
 			<string>$(PRODUCT_BUNDLE_IDENTIFIER).week</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Semana</string>
+			<string>Agenda</string>
 			<key>UIApplicationShortcutItemIconSymbolName</key>
 			<string>calendar</string>
 		</dict>
@@ -101,13 +101,11 @@
 	<key>UIRequiresFullScreen</key>
 	<true/>
 	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDarkContent</string>
+	<string>UIStatusBarStyleDefault</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Light</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>

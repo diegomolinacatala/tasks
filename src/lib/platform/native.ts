@@ -11,6 +11,18 @@ export interface FoundPlace {
   lng: number
 }
 
+export interface MapSnapshotRequest {
+  /** Puntos que tiene que enseñar; sin `center`, el mapa los encuadra todos. */
+  points: { lat: number; lng: number }[]
+  center?: { lat: number; lng: number }
+  /** Metros de norte a sur con `center`. */
+  span?: number
+  /** Puntos de pantalla (CSS px). */
+  width: number
+  height: number
+  dark: boolean
+}
+
 /** Plugin propio de la app (ios/App/App/TasksNativePlugin.swift). Solo existe en el iPhone. */
 interface TasksNativePlugin {
   setBadge(options: { count: number }): Promise<void>
@@ -31,6 +43,13 @@ interface TasksNativePlugin {
   inbox(): Promise<{ entries: unknown }>
   /** Borra de la bandeja lo que ya está en el fichero de estado. */
   ackInbox(options: { ids: string[] }): Promise<void>
+  /** Apariencia de la ventana: `auto` sigue a iOS; `light` y `dark` la fijan (selectores, teclado, menús). */
+  setAppearance(options: { style: 'light' | 'dark' | 'auto' }): Promise<void>
+  /**
+   * Foto de Apple Maps (estilo apagado, sin comercios) centrada en `center` con `span` metros de alto,
+   * o encuadrando `points`. Devuelve la imagen y dónde cae cada punto, de 0 a 1.
+   */
+  mapSnapshot(options: MapSnapshotRequest): Promise<{ image: string; points: { x: number; y: number }[] }>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
 }

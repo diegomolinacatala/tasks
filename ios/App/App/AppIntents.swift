@@ -56,7 +56,7 @@ struct ComposeTaskIntent: AppIntent {
 /// Abre la app directamente en la vista de semana.
 struct OpenWeekIntent: AppIntent {
     static var title: LocalizedStringResource = "Ver la semana"
-    static var description = IntentDescription("Abre Tasks en la vista de semana.")
+    static var description = IntentDescription("Abre Tasks en la agenda de la semana.")
     static var openAppWhenRun: Bool = true
 
     @MainActor

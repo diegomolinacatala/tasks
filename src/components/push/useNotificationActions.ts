@@ -13,6 +13,8 @@ interface NotificationHandlers {
   onOpenTask: (taskId: string) => void
   /** Aviso de lugar con varias tareas: se enseñan todas juntas. */
   onOpenPlace: (placeId: string) => void
+  /** Aviso de una rutina tocado sin botón: se va a la Bandeja, donde están. */
+  onOpenRoutine: (routineId: string) => void
 }
 
 /**
@@ -21,12 +23,13 @@ interface NotificationHandlers {
  * si ya está hecha: "Sí" la tacha, "Todavía no" alarga la tarea y vuelve a preguntar, y tocarlo
  * sin botón repite la pregunta en un aviso de la propia app, para acabar en un solo toque.
  */
-export function useNotificationActions({ onOpenTask, onOpenPlace }: NotificationHandlers) {
+export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine }: NotificationHandlers) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
   const { toToday } = useTaskActions()
   const tasks = useRef(state.tasks)
+  const routines = useRef(state.routines)
   // El aviso puede llegar antes de que se pinte el estado nuevo: siempre la última versión.
   const moveToToday = useRef(toToday)
 
@@ -36,7 +39,29 @@ export function useNotificationActions({ onOpenTask, onOpenPlace }: Notification
 
   useEffect(() => {
     tasks.current = state.tasks
-  }, [state.tasks])
+    routines.current = state.routines
+  }, [state.tasks, state.routines])
+
+  /** "Hecha" en el aviso de una rutina, o tocarlo: se tacha ese día, o se pregunta en la app. */
+  const answerRoutine = (routineId: string, date: string, action: string) => {
+    const routine = routines.current.find((item) => item.id === routineId)
+    if (!routine) return
+    const markDone = () => {
+      dispatch({ type: 'routine/set', id: routine.id, date, done: true })
+      haptic('success')
+    }
+    if (action === 'done') {
+      markDone()
+      toast({
+        message: `Hecha: ${routine.title}`,
+        actionLabel: 'Deshacer',
+        onAction: () => dispatch({ type: 'routine/set', id: routine.id, date, done: false }),
+      })
+      return
+    }
+    onOpenRoutine(routine.id)
+    if (!routine.done.includes(date)) toast({ message: `¿Hecha: ${routine.title}?`, actionLabel: 'Sí', onAction: markDone })
+  }
 
   const complete = (task: Task) => {
     if (task.done) return
@@ -73,7 +98,8 @@ export function useNotificationActions({ onOpenTask, onOpenPlace }: Notification
     toast({ message: `¿Has acabado ${task.title}?`, actionLabel: 'Sí', onAction: () => complete(task) })
   }
 
-  useNotificationOpen(({ action, taskIds, placeId, ask }) => {
+  useNotificationOpen(({ action, taskIds, placeId, ask, routine }) => {
+    if (routine) return answerRoutine(routine.id, routine.date, action)
     // Las que se borraron después de programar el aviso ya no cuentan.
     const found = taskIds.flatMap((id) => tasks.current.find((task) => task.id === id) ?? [])
     const [first] = found

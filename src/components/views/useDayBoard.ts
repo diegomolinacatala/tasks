@@ -2,9 +2,9 @@ import { useMemo, useRef, useState } from 'react'
 import type { DragEndEvent, DragOverEvent, DragStartEvent, Over } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import { backlogTasks, groupsFor, overdueTasks, sortedSections } from '../../state/selectors'
+import { overdueTasks, sortedSections, untimedGroupsFor } from '../../state/selectors'
 import type { IsoDate } from '../../types'
-import { BACKLOG, OVERDUE, ROOT, columnKeyOf, sectionDragId, sectionIdOf } from '../dnd/ids'
+import { OVERDUE, ROOT, columnKeyOf, dayOfDrop, sectionDragId, sectionIdOf } from '../dnd/ids'
 import { buzz } from '../dnd/dnd'
 
 export type Columns = Record<string, string[]>
@@ -15,19 +15,20 @@ const findColumn = (columns: Columns, taskId: string) =>
 const targetColumn = (columns: Columns, over: Over | null) => {
   if (!over) return null
   const id = String(over.id)
+  if (dayOfDrop(id)) return null
   return columnKeyOf(id) ?? findColumn(columns, id)
 }
 
 /**
- * Tablero de la pantalla principal: atrasadas, hoy (con sus secciones) y sin fecha.
- * Durante el arrastre se trabaja sobre una copia (`preview`) y se confirma de una vez al
- * soltar. La copia vive además en un ref: al soltar hay que leer el estado real del gesto,
- * no el del último render.
+ * Tablero de un día de la Agenda: lo atrasado (solo hoy) y lo que no tiene hora, con sus secciones.
+ * Lo que tiene hora va al horario y no se reordena a mano. Durante el arrastre se trabaja sobre una
+ * copia (`preview`) y se confirma de una vez al soltar; la copia vive además en un ref, porque al
+ * soltar hay que leer el estado real del gesto y no el del último render.
  *
- * De `overdue` se puede sacar pero no recibe nada, así que nunca se confirma: sus tareas
- * conservan su fecha original hasta que se mueven a otro bloque.
+ * De `overdue` se puede sacar pero no recibe nada: sus tareas conservan su fecha hasta que se
+ * mueven. Soltar sobre un día de la tira de la semana lleva la tarea a ese día (`onDropOnDay`).
  */
-export function useHomeBoard(today: IsoDate) {
+export function useDayBoard(day: IsoDate, today: IsoDate, onDropOnDay: (taskId: string, date: IsoDate) => void) {
   const state = useAppState()
   const dispatch = useDispatch()
   const [preview, setPreview] = useState<Columns | null>(null)
@@ -36,13 +37,12 @@ export function useHomeBoard(today: IsoDate) {
 
   const sections = useMemo(() => sortedSections(state), [state])
   const base = useMemo(() => {
-    const columns: Columns = { [OVERDUE]: overdueTasks(state, today).map((task) => task.id) }
-    for (const group of groupsFor(state, today)) {
+    const columns: Columns = day === today ? { [OVERDUE]: overdueTasks(state, today).map((task) => task.id) } : {}
+    for (const group of untimedGroupsFor(state, day)) {
       columns[group.section?.id ?? ROOT] = group.tasks.map((task) => task.id)
     }
-    columns[BACKLOG] = backlogTasks(state).map((task) => task.id)
     return columns
-  }, [state, today])
+  }, [state, day, today])
 
   const columns = preview ?? base
 
@@ -104,17 +104,15 @@ export function useHomeBoard(today: IsoDate) {
       type: 'board/commit',
       columns: Object.entries(next)
         .filter(([key]) => key !== OVERDUE)
-        .map(([key, ids]) => ({
-          date: key === BACKLOG ? null : today,
-          sectionId: key === ROOT || key === BACKLOG ? null : key,
-          ids,
-        })),
+        .map(([key, ids]) => ({ date: day, sectionId: key === ROOT ? null : key, ids })),
     })
   }
 
   const onDragEnd = ({ active: dragged, over }: DragEndEvent) => {
     const id = String(dragged.id)
+    const dropDay = over ? dayOfDrop(String(over.id)) : null
     if (sectionIdOf(id)) commitSections(id, over)
+    else if (dropDay) onDropOnDay(id, dropDay)
     else if (over) commitTasks(id, over)
     reset()
   }

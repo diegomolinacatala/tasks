@@ -4,6 +4,7 @@ import { taskEnd, timeRange } from './duration'
 import { byImportance } from './importance'
 import { byOrder } from './order'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
+import { daysLabel, isDoneOn, isDue, routineEntryId } from './routines'
 
 const MINUTE = 60_000
 const SOON_MINUTES = 60
@@ -31,7 +32,12 @@ export interface ScheduleEntry {
   overdue: boolean
   /** Aviso de cierre: pregunta si la tarea ya está hecha, con "Sí" y "Todavía no". */
   ask?: true
+  /** Aviso de una rutina el día que toca: "Hecha" la tacha para ese día. */
+  routine?: { id: string; date: IsoDate }
 }
+
+/** Días por delante para los que se programan los avisos de las rutinas. */
+export const ROUTINE_DAYS = 7
 
 /** Pendientes con fecha hasta el día indicado: hoy más lo atrasado. */
 export function badgeCount(tasks: readonly Task[], at: number): number {
@@ -129,9 +135,36 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
   })
 }
 
+/**
+ * Un aviso a su hora cada día que toca la rutina, mientras no esté hecha ese día. Tacharla lo quita
+ * (el plan se recalcula) y el día siguiente vuelve a sonar.
+ */
+export function routineEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
+  const today = isoOfInstant(now)
+  return state.routines.flatMap((routine) => {
+    const { time } = routine
+    if (!time) return []
+    return Array.from({ length: ROUTINE_DAYS }, (_, offset) => addDays(today, offset)).flatMap((day) => {
+      const at = toInstant(day, time)
+      if (at <= now || !isDue(routine, day) || isDoneOn(routine, day)) return []
+      return [
+        {
+          id: routineEntryId(routine.id, day),
+          taskId: null,
+          at,
+          title: routine.title,
+          body: `${shortTime(time)} · ${daysLabel(routine.days)}`,
+          overdue: false,
+          routine: { id: routine.id, date: day },
+        },
+      ]
+    })
+  })
+}
+
 /** Todo lo que debe sonar a partir de ahora, del más cercano al más lejano. */
 export function upcomingSchedule(state: AppState, now: number, max = MAX_SCHEDULE): ScheduleEntry[] {
-  return [...digestEntries(state, now), ...reminderEntries(state, now), ...checkInEntries(state, now)]
+  return [...digestEntries(state, now), ...reminderEntries(state, now), ...checkInEntries(state, now), ...routineEntries(state, now)]
     .sort((a, b) => a.at - b.at)
     .slice(0, max)
     .map((entry) => ({ ...entry, badge: badgeCount(state.tasks, entry.at) }))

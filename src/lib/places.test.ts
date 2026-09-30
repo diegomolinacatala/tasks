@@ -116,6 +116,7 @@ describe('distanceMeters / formatDistance', () => {
     expect(formatDistance(42)).toBe('40 m')
     expect(formatDistance(950)).toBe('950 m')
     expect(formatDistance(1234)).toBe('1,2 km')
+    expect(formatDistance(1000)).toBe('1 km')
     expect(formatDistance(25_400)).toBe('25 km')
   })
 })

@@ -5,19 +5,23 @@ import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
-import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
+import { MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
+import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
-export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false })
+export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' })
+
+export const THEMES: readonly Theme[] = ['light', 'dark', 'auto']
 
 export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
   tasks: [],
   sections: [],
   places: [],
-  collapsed: { overdue: false, backlog: false },
+  routines: [],
+  collapsed: { overdue: false, backlog: false, routines: false },
   settings: defaultSettings(),
 })
 
@@ -39,6 +43,22 @@ function updateTask(state: AppState, id: string, update: (task: Task) => Task): 
 
 /** Una tarea sin fecha no tiene sección: las secciones agrupan dentro del día. */
 const sectionFor = (date: IsoDate | null, sectionId: string | null) => (date ? sectionId : null)
+
+/** Como `updateTask`, para rutinas. */
+function updateRoutine(state: AppState, id: string, update: (routine: Routine) => Routine): AppState {
+  let changed = false
+  const routines = state.routines.map((routine) => {
+    if (routine.id !== id) return routine
+    const next = update(routine)
+    changed = changed || next !== routine
+    return next
+  })
+  return changed ? { ...state, routines } : state
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+const sameDays = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((day, index) => day === b[index])
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -256,6 +276,55 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, tasks, places: state.places.filter((place) => place.id !== action.id) }
     }
 
+    case 'routine/add': {
+      const title = clean(action.title)
+      if (!title || state.routines.length >= MAX_ROUTINES) return state
+      if (action.id !== undefined && state.routines.some((routine) => routine.id === action.id)) return state
+      const routine: Routine = {
+        id: action.id ?? createId(),
+        title,
+        days: cleanDays(action.days),
+        time: isValidTime(action.time) ? action.time : null,
+        done: [],
+        order: state.routines.reduce((max, item) => Math.max(max, item.order + 1), 0),
+        createdAt: Date.now(),
+      }
+      return { ...state, routines: [...state.routines, routine] }
+    }
+
+    case 'routine/update':
+      return updateRoutine(state, action.id, (routine) => {
+        const title = action.title === undefined ? routine.title : clean(action.title) || routine.title
+        const days = action.days === undefined ? routine.days : cleanDays(action.days)
+        const time = action.time === undefined ? routine.time : isValidTime(action.time) ? action.time : null
+        const same = title === routine.title && sameDays(days, routine.days) && time === routine.time
+        return same ? routine : { ...routine, title, days, time }
+      })
+
+    case 'routine/toggle':
+      if (!ISO_DATE.test(action.date)) return state
+      return updateRoutine(state, action.id, (routine) => ({
+        ...routine,
+        done: withDay(routine.done, action.date, !routine.done.includes(action.date)),
+      }))
+
+    case 'routine/set':
+      if (!ISO_DATE.test(action.date)) return state
+      return updateRoutine(state, action.id, (routine) => {
+        const done = withDay(routine.done, action.date, action.done)
+        return done === routine.done ? routine : { ...routine, done }
+      })
+
+    case 'routine/remove':
+      return state.routines.some((routine) => routine.id === action.id)
+        ? { ...state, routines: state.routines.filter((routine) => routine.id !== action.id) }
+        : state
+
+    case 'routine/restore':
+      return state.routines.some((routine) => routine.id === action.routine.id)
+        ? state
+        : { ...state, routines: [...state.routines, action.routine] }
+
     case 'block/toggle':
       return {
         ...state,
@@ -274,15 +343,23 @@ export function reducer(state: AppState, action: Action): AppState {
       if (state.settings.dictation === action.allowed) return state
       return { ...state, settings: { ...state.settings, dictation: action.allowed } }
 
+    case 'settings/theme':
+      if (!THEMES.includes(action.theme) || state.settings.theme === action.theme) return state
+      return { ...state, settings: { ...state.settings, theme: action.theme } }
+
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado se da en este dispositivo: una copia de otro no lo trae ni lo quita.
+    // El permiso del dictado y la apariencia son de este dispositivo: una copia de otro no los cambia.
     case 'state/import':
-      return { ...action.state, settings: { ...action.state.settings, dictation: state.settings.dictation } }
+      return {
+        ...action.state,
+        settings: { ...action.state.settings, dictation: state.settings.dictation, theme: state.settings.theme },
+      }
 
+    // Borrarlo todo no cambia cómo se ve la app.
     case 'state/clear':
-      return emptyState()
+      return { ...emptyState(), settings: { ...defaultSettings(), theme: state.settings.theme } }
 
     default:
       return state

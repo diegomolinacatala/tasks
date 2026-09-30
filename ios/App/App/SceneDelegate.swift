@@ -8,6 +8,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
+        // La apariencia elegida en la app (claro, oscuro o la del sistema) desde el primer momento:
+        // así la pantalla de carga que se queda encima hasta que pinta la web ya sale en su tema.
+        window?.overrideUserInterfaceStyle = TasksNativePlugin.interfaceStyle(
+            UserDefaults.standard.string(forKey: TasksNativePlugin.appearanceKey)
+        )
         window?.rootViewController = TasksViewController()
         window?.makeKeyAndVisible()
 

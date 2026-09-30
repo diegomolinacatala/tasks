@@ -87,3 +87,368 @@
 .place-tasks {
   margin-top: var(--sp-1);
 }
+
+/* ── Mapa ─────────────────────────────────────────────────────────────── */
+
+.map {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--map-land);
+  box-shadow: inset 0 0 0 1px var(--line);
+  isolation: isolate;
+}
+
+.map__paper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map__land {
+  fill: var(--map-land);
+}
+
+.map__water {
+  fill: var(--map-water);
+}
+
+.map__roads path,
+.map__streets path {
+  fill: none;
+  stroke: var(--map-road);
+  stroke-linecap: round;
+}
+
+.map__roads path {
+  stroke-width: 9;
+}
+
+.map__streets path {
+  stroke-width: 4;
+  opacity: 0.8;
+}
+
+.map__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: map-in var(--dur-4) var(--ease-out);
+}
+
+@keyframes map-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* El radio de un lugar, a escala */
+.map__radius {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+  transform: translate(-50%, -50%);
+  transition: width var(--dur-2) var(--ease-out), height var(--dur-2) var(--ease-out);
+  pointer-events: none;
+}
+
+/* La punta de la gota (que asoma 6 px bajo su caja al girarla) cae justo en el sitio */
+.map__pin {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, calc(-100% - 6px));
+}
+
+/* Chincheta: una gota de tinta con el número de tareas pendientes allí */
+.pin {
+  position: relative;
+  display: block;
+  padding: 0;
+  transition: transform var(--dur-2) var(--ease-pop);
+  transform-origin: bottom center;
+}
+
+.pin:active {
+  transform: scale(1.12);
+}
+
+.pin__head {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--bg-elev);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pin__head > span {
+  display: grid;
+  place-items: center;
+  transform: rotate(45deg);
+}
+
+.pin.has-tasks .pin__head {
+  background: var(--accent);
+}
+
+.pin__label {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 110px;
+  padding: 2px 7px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Pestaña Lugares ──────────────────────────────────────────────────── */
+
+.places__map {
+  position: relative;
+  margin-top: var(--sp-2);
+}
+
+.places__map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  pointer-events: none;
+}
+
+.places__search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  margin-top: calc(-26px);
+  position: relative;
+  z-index: 2;
+  padding: 0 8px 0 18px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--line);
+  color: var(--text-3);
+  font-size: var(--fs-md);
+  text-align: left;
+  transition: transform var(--dur-1) var(--ease);
+  width: calc(100% - 24px);
+  margin-left: 12px;
+}
+
+.places__search span:nth-child(2) {
+  flex: 1;
+}
+
+.places__search:active {
+  transform: scale(0.985);
+}
+
+.places__search-plus {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.places__warning {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-top: var(--sp-4);
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--danger-dim);
+  color: var(--danger);
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+
+.places__warning span {
+  flex: 1;
+}
+
+.places__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-5) 0 var(--sp-6);
+}
+
+.place-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 16px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+
+.place-card:active {
+  transform: scale(0.985);
+}
+
+.place-card__top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.place-card__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-block);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-card__distance {
+  flex: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.place-card__address {
+  padding-right: 48px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-card.is-unset .place-card__address {
+  color: var(--danger);
+}
+
+.place-card__tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.place-card__task,
+.place-card__more {
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-card__more {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.place-card__radius {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.place-card__tasks ~ .place-card__radius {
+  display: none;
+}
+
+.places__pitch {
+  margin: var(--sp-5) 4px 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.places__store {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: var(--sp-4) 4px 0;
+  padding: 10px 18px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ── Panel del lugar ──────────────────────────────────────────────────── */
+
+.place-sheet__map {
+  margin: 4px -4px var(--sp-4);
+}
+
+.place-sheet__center {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--bg-elev), var(--shadow-card);
+  transform: translateY(50%);
+}
+
+.place-linked {
+  display: flex;
+  flex-direction: column;
+}
+
+.place-linked li {
+  padding: 11px 2px;
+  font-size: var(--fs-md);
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+}
+
+.place-linked li:last-child {
+  border-bottom: 0;
+}

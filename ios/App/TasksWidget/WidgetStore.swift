@@ -1,13 +1,16 @@
 import Foundation
 
 /**
- * Lo que comparten la app y el widget a través del App Group (se compila en los dos objetivos).
- * La app escribe la foto de las tareas (`src/lib/widget.ts`); el widget apunta aparte lo que se
- * marca desde él hasta que la app lo recoge al volver a primer plano. Cada lado escribe su fichero.
+ * Lo que comparten la app y los widgets a través del App Group (se compila en los dos objetivos).
+ * La app escribe la foto de las tareas y las rutinas (`src/lib/widget.ts`); los widgets apuntan
+ * aparte lo que se marca desde ellos hasta que la app lo recoge al volver a primer plano. Cada lado
+ * escribe su fichero.
  */
 enum WidgetStore {
     static let appGroup = "group.io.github.diegomolinacatala.tasks"
     static let kind = "TasksToday"
+    /** El widget de rutinas (pantalla de bloqueo y de inicio). */
+    static let routinesKind = "TasksRoutines"
     /** Días por delante que trae la foto (`WIDGET_DAYS`). */
     static let days = 7
 
@@ -42,6 +45,21 @@ enum WidgetStore {
         }
     }
 
+    /** Las rutinas como las ve el widget, con lo tachado desde él (o desde su aviso) encima. `nil` sin foto. */
+    static func routines() -> [WidgetRoutine]? {
+        guard let snapshot = read(WidgetSnapshot.self, snapshotFile), snapshot.version == version else { return nil }
+        let marked = loadChanges().routines
+        return (snapshot.routines ?? []).map { routine in
+            guard let days = marked[routine.id] else { return routine }
+            var changed = routine
+            for (day, done) in days {
+                changed.done.removeAll { $0 == day }
+                if done { changed.done.append(day) }
+            }
+            return changed
+        }
+    }
+
     /** Marca o desmarca desde el widget. Devuelve cómo queda, o `nil` si la tarea ya no está en la foto. */
     static func toggle(_ id: String) -> Bool? {
         guard
@@ -56,6 +74,26 @@ enum WidgetStore {
         return done
     }
 
+    /** Tacha o destacha una rutina ese día. Devuelve cómo queda, o `nil` si ya no está en la foto. */
+    static func toggleRoutine(_ id: String, day: String) -> Bool? {
+        guard let routine = routines()?.first(where: { $0.id == id }) else { return nil }
+        let done = !routine.done.contains(day)
+        setRoutine(id, day: day, done: done)
+        return done
+    }
+
+    /** Deja una rutina hecha o sin hacer ese día (el botón "Hecha" de su aviso). */
+    static func setRoutine(_ id: String, day: String, done: Bool) {
+        guard let snapshot = read(WidgetSnapshot.self, snapshotFile) else { return }
+        let saved = snapshot.routines?.first(where: { $0.id == id })?.done.contains(day) ?? false
+        var changes = loadChanges()
+        var days = changes.routines[id] ?? [:]
+        // Si vuelve a como está en la app, no hay nada que aplicar.
+        days[day] = done == saved ? nil : done
+        changes.routines[id] = days.isEmpty ? nil : days
+        save(changes)
+    }
+
     /** El widget quitó avisos: la app tiene que volver a programarlos aunque su plan no cambie. */
     static func markReschedule() {
         var changes = loadChanges()
@@ -63,9 +101,24 @@ enum WidgetStore {
         save(changes)
     }
 
-    /** Lo marcado y aún sin aplicar, sin vaciarlo, como lo recibe la web: `[{ taskId, done }]`. */
+    /**
+     * Lo marcado y aún sin aplicar, sin vaciarlo, como lo recibe la web: `[{ taskId, done }]` para las
+     * tareas y `[{ routineId, date, done }]` para las rutinas, en la misma lista.
+     */
     static func pendingDone() -> [[String: Any]] {
-        loadChanges().done.map { ["taskId": $0.key, "done": $0.value] }
+        describe(loadChanges())
+    }
+
+    /** Los cambios como lista para la web (`parseWidgetChanges` y `parseRoutineChanges`). */
+    static func describe(_ changes: WidgetChanges) -> [[String: Any]] {
+        let tasks: [[String: Any]] = changes.done.map { ["taskId": $0.key, "done": $0.value] }
+        var routines: [[String: Any]] = []
+        for (id, days) in changes.routines {
+            for (day, done) in days {
+                routines.append(["routineId": id, "date": day, "done": done])
+            }
+        }
+        return tasks + routines
     }
 
     /** Para la app: lo pendiente de aplicar, y se vacía. */
@@ -117,14 +170,49 @@ struct WidgetTask: Codable, Hashable, Identifiable {
     }
 }
 
+/** Rutina (`WidgetRoutine` en `src/lib/widget.ts`): qué días toca y cuáles se hizo. */
+struct WidgetRoutine: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    /** `HH:MM` o `nil`. */
+    let time: String?
+    /** 1 = lunes … 7 = domingo. */
+    let days: [Int]
+    /** Días hechos (`AAAA-MM-DD`) desde hace una semana. */
+    var done: [String]
+
+    func isDue(on day: String) -> Bool {
+        guard let weekday = WidgetDay.weekday(of: day) else { return false }
+        return days.contains(weekday)
+    }
+
+    func isDone(on day: String) -> Bool {
+        done.contains(day)
+    }
+}
+
 struct WidgetSnapshot: Codable {
     let version: Int
     let tasks: [WidgetTask]
+    /** Falta en las fotos de antes de las rutinas. */
+    let routines: [WidgetRoutine]?
 }
 
 struct WidgetChanges: Codable {
     var done: [String: Bool] = [:]
+    /** Rutina → día → hecha. */
+    var routines: [String: [String: Bool]] = [:]
     var reschedule = false
+
+    init() {}
+
+    /** Un fichero de una versión anterior no trae `routines`: se lee igual. */
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        done = try container.decodeIfPresent([String: Bool].self, forKey: .done) ?? [:]
+        routines = try container.decodeIfPresent([String: [String: Bool]].self, forKey: .routines) ?? [:]
+        reschedule = try container.decodeIfPresent(Bool.self, forKey: .reschedule) ?? false
+    }
 }
 
 /** Lo que enseña el widget un día concreto, con el criterio de la pantalla principal. */
@@ -159,22 +247,37 @@ struct WidgetDay {
             .map(\.element)
     }
 
-    /** Día local en ISO, siempre en calendario gregoriano como la web. */
-    static func iso(_ date: Date) -> String {
+    private static var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
+        return calendar
+    }
+
+    /** Día local en ISO, siempre en calendario gregoriano como la web. */
+    static func iso(_ date: Date) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
+
+    /** Día de la semana de un `AAAA-MM-DD`: 1 = lunes … 7 = domingo, como `isoWeekday` en la web. */
+    static func weekday(of day: String) -> Int? {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3, let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else {
+            return nil
+        }
+        // `Calendar` cuenta del domingo (1) al sábado (7).
+        return (calendar.component(.weekday, from: date) + 5) % 7 + 1
+    }
 }
 
-/** Enlaces del widget a la app: `<esquema>://today`, `://compose` y `://task/<id>`. */
+/** Enlaces del widget a la app: `<esquema>://today`, `://compose`, `://routines` y `://task/<id>`. */
 enum WidgetLink {
     /** Igual que `CFBundleURLSchemes` en el Info.plist de la app. */
     static let scheme = "io.github.diegomolinacatala.tasks"
 
     static var today: URL { link("today") }
     static var compose: URL { link("compose") }
+    static var routines: URL { link("routines") }
 
     static func task(_ id: String) -> URL {
         link("task", path: "/" + id)
@@ -188,6 +291,8 @@ enum WidgetLink {
             return ["type": "today"]
         case "compose":
             return ["type": "compose"]
+        case "routines":
+            return ["type": "routines"]
         case "task":
             let id = url.lastPathComponent
             return id.isEmpty || id == "/" ? nil : ["type": "open", "taskId": id]

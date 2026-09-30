@@ -1,5 +1,6 @@
 import Capacitor
 import UserNotifications
+import WidgetKit
 
 /**
  * Delegado de las notificaciones de la app. Los botones del aviso de cierre ("Sí, hecha" y "Todavía
@@ -13,6 +14,8 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
     /** `ASK_CATEGORY` y los ids de sus botones (`src/lib/platform/notifications.ts`). */
     private static let askCategory = "task-ask"
     private static let replies: Set<String> = ["done", "again"]
+    /** `ROUTINE_CATEGORY`: su "Hecha" la tacha ese día sin abrir la app. */
+    private static let routineCategory = "routine"
 
     private weak var router: NotificationRouter?
     /** Toques que llegan antes de que cargue la web: se le entregan en cuanto existe. */
@@ -61,6 +64,18 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
                 await QuickAdd.answer(response.actionIdentifier, to: request)
                 completionHandler()
             }
+            return
+        }
+        if request.content.categoryIdentifier == Self.routineCategory,
+           response.actionIdentifier == "done",
+           let extra = request.content.userInfo["cap_extra"] as? [String: Any],
+           let routineId = extra["routineId"] as? String,
+           let day = extra["day"] as? String {
+            // Como tacharla en el widget: se apunta en el App Group y la web lo aplica al volver.
+            WidgetStore.setRoutine(routineId, day: day, done: true)
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.routinesKind)
+            NativeActions.shared.post(["type": "widget"])
+            completionHandler()
             return
         }
         guard let router else {

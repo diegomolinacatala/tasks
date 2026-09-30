@@ -1,0 +1,444 @@
+/* ── Cabecera ─────────────────────────────────────────────────────────── */
+
+.agenda__head {
+  padding-bottom: 10px;
+}
+
+/* El mes y, si no es hoy, el atajo de vuelta; a la derecha queda sitio para el botón "Aa" */
+.agenda__kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 28px;
+  margin: -6px 52px 2px 0;
+}
+
+.agenda__kicker .view__kicker {
+  flex: 1;
+  margin: 0;
+}
+
+.agenda__title {
+  font-size: clamp(36px, 11vw, 46px);
+}
+
+.agenda__title .view__title-dim {
+  white-space: nowrap;
+}
+
+.agenda__today {
+  flex: none;
+  min-height: 30px;
+  padding: 5px 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  animation: quick-in var(--dur-2) var(--ease-out);
+  transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.agenda__today:active {
+  background: var(--accent-dim);
+  transform: scale(0.95);
+}
+
+/* ── Tira de la semana ────────────────────────────────────────────────── */
+
+.strip {
+  margin: 0 -18px;
+  overflow: hidden;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.strip__track {
+  display: flex;
+  width: 300%;
+  margin-left: -100%;
+}
+
+.strip__week {
+  flex: 0 0 calc(100% / 3);
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 0 8px;
+}
+
+.strip__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0 10px;
+  border-radius: var(--r-md);
+  transition: background var(--dur-2) var(--ease);
+}
+
+.strip__letter {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+.strip__num {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  transition: transform var(--dur-2) var(--ease-pop);
+}
+
+.strip__num svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* El día elegido: un disco de tinta que aparece con un pequeño rebote */
+.strip__num::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  transform: scale(0);
+  transition: transform var(--dur-2) var(--ease-in);
+}
+
+.strip__track-ring {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+}
+
+/* Lo hecho del día: el anillo se cierra en coñac */
+.strip__ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--dur-4) var(--ease-out);
+}
+
+.strip__digit {
+  position: relative;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums lining-nums;
+  transition: color var(--dur-1) var(--ease);
+}
+
+.strip__day.is-today .strip__letter,
+.strip__day.is-today .strip__digit {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.strip__day.is-late .strip__track-ring {
+  stroke: var(--danger-line);
+}
+
+.strip__day.is-late .strip__digit {
+  color: var(--danger);
+}
+
+.strip__day.is-selected .strip__letter {
+  color: var(--text);
+}
+
+.strip__day.is-selected .strip__num::before {
+  transform: scale(1);
+  transition: transform var(--dur-3) var(--ease-pop);
+}
+
+.strip__day.is-selected .strip__digit {
+  color: var(--on-primary);
+}
+
+.strip__day:active .strip__num {
+  transform: scale(0.92);
+}
+
+/* Soltar aquí una tarea la lleva a ese día */
+.strip__day.is-over {
+  background: var(--accent-dim);
+}
+
+.strip__day.is-over .strip__num {
+  transform: scale(1.14);
+}
+
+/* ── Contenido del día ────────────────────────────────────────────────── */
+
+.agenda__day.is-next {
+  animation: day-from-right var(--dur-3) var(--ease-out);
+}
+
+.agenda__day.is-prev {
+  animation: day-from-left var(--dur-3) var(--ease-out);
+}
+
+@keyframes day-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@keyframes day-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+
+.agenda__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 56px 0 24px;
+  color: var(--gold);
+}
+
+.agenda__empty p {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-block);
+  font-style: italic;
+  color: var(--text-3);
+}
+
+/* ── Horario ──────────────────────────────────────────────────────────── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+}
+
+.tl {
+  /* Importancia: como en las filas, el título crece hasta el doble */
+  --title-size: calc(var(--fs-md) + (var(--fs-task-max) - var(--fs-md)) * var(--imp, 0));
+  --title-leading: calc(1.35 - 0.2 * var(--imp, 0));
+  --rail-top: 11px;
+
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px 26px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: start;
+}
+
+.tl__time {
+  padding-top: 13px;
+  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl__rail {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  padding: var(--rail-top) 0 12px;
+}
+
+/* La línea que une todo el día; empieza en la primera cápsula y acaba en la última */
+.tl__rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1.5px;
+  margin-left: -0.75px;
+  background: var(--line-2);
+}
+
+.timeline > li:first-child .tl__rail::before {
+  top: var(--rail-top);
+}
+
+.timeline > li:last-child .tl__rail::before {
+  bottom: auto;
+  height: calc(var(--rail-top) + var(--node, 24px));
+}
+
+/* Una sola cosa con hora: no hay nada que unir */
+.timeline > li:only-child .tl__rail::before {
+  display: none;
+}
+
+/* La cápsula: tan alta como lo que dura. Hecha, se llena de coñac; en curso, se va llenando */
+.tl__node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  width: 24px;
+  height: var(--node, 24px);
+  padding-top: 5px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line-2);
+  background: var(--bg);
+  color: transparent;
+  overflow: hidden;
+  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+
+.tl__node::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-dim);
+  transform: scaleY(var(--live, 0));
+  transform-origin: top;
+  transition: transform var(--dur-4) var(--ease-out);
+}
+
+.tl__node svg {
+  position: relative;
+}
+
+/* Área de toque de 44 px sin agrandar la cápsula */
+.tl__node::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.tl__node:active {
+  transform: scale(0.88);
+}
+
+.tl-row.is-live .tl__node {
+  border-color: var(--accent-line);
+}
+
+.tl-row.is-done .tl__node {
+  color: var(--on-primary);
+  background: var(--accent);
+  border-color: var(--accent);
+  transition-timing-function: var(--ease-pop);
+}
+
+.tl__node--routine {
+  color: var(--text-3);
+  border-style: dashed;
+}
+
+.tl-row--routine.is-done .tl__node--routine {
+  border-style: solid;
+}
+
+.tl__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 11px 0 14px;
+  text-align: left;
+}
+
+.tl__title {
+  font-size: var(--title-size);
+  font-weight: calc(400 + 250 * var(--imp, 0));
+  letter-spacing: calc(-0.025em * var(--imp, 0));
+  line-height: var(--title-leading);
+  color: var(--text);
+  overflow-wrap: anywhere;
+  transition: color var(--dur-2) var(--ease);
+}
+
+.tl-row.is-done .tl__title {
+  color: var(--text-3);
+}
+
+.tl__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-row.is-live .tl__meta {
+  color: var(--accent);
+}
+
+/* Tiempo libre: la línea se vuelve de puntos y una nota al margen dice cuánto */
+.tl--gap {
+  min-height: 34px;
+  align-items: center;
+}
+
+.tl--gap .tl__rail::before {
+  width: 0;
+  margin-left: -0.75px;
+  background: none;
+  border-left: 1.5px dotted var(--line-2);
+}
+
+.tl__free {
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--text-3);
+}
+
+/* Ahora: un punto de coñac en la línea y un trazo que se desvanece */
+.tl--now {
+  min-height: 26px;
+  align-items: center;
+}
+
+.tl--now .tl__time {
+  padding-top: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tl--now .tl__rail {
+  align-items: center;
+  padding: 0;
+}
+
+.tl__now-dot {
+  position: relative;
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent-dim);
+  animation: now-pulse 2.4s var(--ease) infinite;
+}
+
+.tl__now-line {
+  grid-column: 3 / -1;
+  height: 1.5px;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+@keyframes now-pulse {
+  50% {
+    box-shadow: 0 0 0 3px var(--bg), 0 0 0 8px var(--accent-dim);
+  }
+}

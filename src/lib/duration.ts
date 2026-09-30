@@ -40,7 +40,8 @@ export function taskEnd(task: Task): number | null {
 
 const DAY_MIN = 24 * HOUR_MIN
 
-const minutesOf = (value: IsoTime) => {
+/** Minutos desde medianoche: `17:30` → 1050. */
+export const minutesOf = (value: IsoTime): number => {
   const [hours = 0, mins = 0] = value.split(':').map(Number)
   return hours * HOUR_MIN + mins
 }

@@ -46,11 +46,11 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h))
 }
 
-/** `40 m`, `950 m`, `1,2 km`, `25 km`. */
+/** `40 m`, `950 m`, `1 km`, `1,2 km`, `25 km`. */
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`
   const km = meters / 1000
-  return km < 10 ? `${km.toFixed(1).replace('.', ',')} km` : `${Math.round(km)} km`
+  return km < 10 ? `${km.toFixed(1).replace(/\.0$/, '').replace('.', ',')} km` : `${Math.round(km)} km`
 }
 
 export const clampRadius = (radius: number) => Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, Math.round(radius)))
