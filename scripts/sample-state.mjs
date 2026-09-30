@@ -44,6 +44,25 @@ const routine = (id, title, time, extra = {}) => ({
   ...extra,
 })
 
+/**
+ * Para que el mes desplegado salga con sus anillos: días pasados con todo hecho (lo pasado sin hacer
+ * iría a Atrasadas) y días sueltos de las próximas semanas con algo pendiente.
+ */
+const PAST_DONE = [-2, -3, -5, -6, -7, -9, -12, -13, -14, -16, -19, -20, -21, -23, -26, -27]
+const AHEAD = [8, 9, 11, 13, 15, 18, 22]
+
+function monthFiller() {
+  const past = PAST_DONE.flatMap((offset, index) =>
+    Array.from({ length: 1 + (index % 3) }, (_, n) =>
+      task(`hecha${offset}-${n}`, 'Hecha', isoFromToday(offset), { done: true, completedAt: Date.now(), order: n }),
+    ),
+  )
+  const ahead = AHEAD.flatMap((offset, index) =>
+    Array.from({ length: 1 + (index % 2) }, (_, n) => task(`luego${offset}-${n}`, 'Pendiente', isoFromToday(offset), { order: n })),
+  )
+  return [...past, ...ahead]
+}
+
 /** `theme`: la apariencia con la que se abre la app (la captura del modo oscuro). */
 export function sampleState({ theme = 'light' } = {}) {
   const today = isoFromToday(0)
@@ -93,6 +112,7 @@ export function sampleState({ theme = 'light' } = {}) {
       task('ingles', 'Clase de inglés', iso(4), { time: '18:00', duration: 90, reminders: atTime('r8') }),
       task('padel', 'Partido de pádel', iso(5), { time: '11:00', duration: 90, reminders: atTime('r9') }),
       task('mama', 'Llamar a mamá', iso(6)),
+      ...monthFiller(),
     ],
   }
 }

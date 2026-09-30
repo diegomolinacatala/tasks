@@ -111,24 +111,29 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   vez se abre una **bienvenida** interactiva en lugar de las tareas de ejemplo (ver "Bienvenida").
   Probado con Edge sin ventana y dedo simulado (claro, oscuro y 375 × 667); 620 tests. En el iPhone
   queda por ver el teclado con la barra nueva y los widgets con emoji.
+- **Ficha de la 1.2 preparada** (30/09/2026): **nueve capturas** nuevas en `docs/capturas/` (entra
+  `4-mes`; las rutinas y los widgets salen con emoji), y en `docs/app-store.md` la descripción y las
+  palabras clave nuevas (§3), las notas para la revisión con la bienvenida y la barra nueva (§5) y
+  las novedades y los pasos de la 1.2 (§9.4). La compilación que se envía es la **1.2 (29)**.
+  `scripts/edge.mjs` ya cierra el navegador al acabar (`Browser.close`): antes quedaban Edge sin
+  ventana vivos y la siguiente ejecución hablaba con uno viejo (su service worker servía la web de
+  entonces); `app-store-shots.mjs` además limpia el origen antes de empezar.
 
 **Pendiente, en este orden**
 
-0. De lo del 30/09/2026 (TestFlight 29), probar en el iPhone: tocar la barra
-   de escribir (que las pestañas se quiten en el acto y la tarjeta suba con el teclado), tirar de la
-   tira hacia abajo y pasar de mes, una rutina con emoji en el widget de bloqueo y en el de inicio, y
-   la bienvenida (borrar la app e instalarla, o Ajustes → *Ver la bienvenida*). Las capturas de
-   `docs/capturas/` son de antes: regenerarlas (`node scripts/app-store-shots.mjs`) antes de enviar.
+0. **Enviar la 1.2** (`docs/app-store.md` §9.3 y §9.4). Antes, probar la TestFlight 29 en el iPhone:
+   tocar la barra de escribir (que las pestañas se quiten en el acto y la tarjeta suba con el
+   teclado), tirar de la tira hacia abajo y pasar de mes, una rutina con emoji en el widget de bloqueo
+   y en el de inicio, y la bienvenida (Ajustes → *Ver la bienvenida*). Después de enviarla, unir
+   `capacitor` a `main` para que la web pública lleve la misma interfaz.
 1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
    rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
    el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
    pantalla de carga, la rueda de la hora y el teclado); una rutina con hora ("tomar creatina todos
    los días a las 10") y su aviso con **Hecha** sin abrir la app; el widget **Rutinas** en la
    pantalla de bloqueo (tocarlo la tacha; al día siguiente amanece sin tachar); el mapa de Lugares;
-   el widget de hoy en claro y en oscuro. Después, subir las ocho capturas de `docs/capturas/` y
-   enviar la 1.2 (`docs/app-store.md` §3 y §9; la ficha puede mencionar rutinas, modo oscuro y el
-   widget de la pantalla de bloqueo). iOS guarda en caché la pantalla de carga: si sale la antigua,
-   reiniciar el iPhone.
+   el widget de hoy en claro y en oscuro. iOS guarda en caché la pantalla de carga: si sale la
+   antigua, reiniciar el iPhone.
 2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app

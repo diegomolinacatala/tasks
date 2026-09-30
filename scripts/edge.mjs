@@ -74,6 +74,13 @@ export async function launch({ port = 9333 } = {}) {
   }
 
   const close = () => {
+    // `kill` solo acaba con el proceso lanzado: en Windows el navegador de verdad seguiría vivo en el
+    // mismo puerto, con sus datos, y la siguiente ejecución hablaría con él. Se le pide que cierre.
+    try {
+      ws.send(JSON.stringify({ id: next + 1, method: 'Browser.close' }))
+    } catch {
+      // Si el socket ya no está, queda el `kill`.
+    }
     ws.close()
     child.kill()
     // Edge tarda un poco en soltar el perfil.

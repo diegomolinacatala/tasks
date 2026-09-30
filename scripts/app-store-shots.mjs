@@ -14,7 +14,7 @@ import { build, preview } from 'vite'
 import { decodePng, encodePng, launch, renderHtml, sleep } from './edge.mjs'
 import { sampleState, writeStateExpression } from './sample-state.mjs'
 import { FONTS, READY, device, frame, notification } from './store-frames.mjs'
-import { lockScreenRoutines, mediumWidget, smallWidget } from './store-widgets.mjs'
+import { lockScreenRoutines, mediumWidget, routinesWidget, smallWidget } from './store-widgets.mjs'
 
 const PORT = 4174
 const BASE = `http://localhost:${PORT}/tasks/`
@@ -110,6 +110,8 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 440, height: 956, deviceScaleFactor: 3, mobile: true })
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] })
+  // Nada de una ejecución anterior: ni datos ni el service worker con la web de entonces.
+  await send('Storage.clearDataForOrigin', { origin: `http://localhost:${PORT}`, storageTypes: 'all' })
   const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: PAGE_SETUP })
 
   const screens = {}
@@ -117,6 +119,13 @@ try {
   await open()
   screens.agenda = await capture()
 
+  // La tira desplegada en el mes entero (tocando el mes de la cabecera).
+  await click('.agenda__month', '')
+  await waitFor(`document.querySelector('.cal.is-month')`)
+  await sleep(900)
+  screens.month = await capture()
+
+  await open()
   await click('.tabs__tab', 'Bandeja')
   await waitFor(`document.querySelector('.routine')`)
   await sleep(800)
@@ -180,6 +189,8 @@ try {
             date: new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
             title: 'Gimnasio',
             detail: '19:00 · 1 de 4 hoy',
+            emoji: '🏋️',
+            pending: '📖',
           })}</div>`,
       }),
     ],
@@ -201,8 +212,18 @@ try {
       }),
     ],
     [
-      '4-has-acabado',
+      '4-mes',
       frame({
+        kicker: 'Agenda',
+        title: 'De la semana *al mes*.',
+        sub: 'Tira de los días hacia abajo y salta a cualquier fecha. Cada anillo dice cómo fue el día.',
+        content: device(screens.month, 262),
+      }),
+    ],
+    [
+      '5-has-acabado',
+      frame({
+        theme: 'sand',
         kicker: 'Al acabar',
         title: 'Te pregunta *si has acabado*.',
         sub: 'Táchala desde el propio aviso, sin abrir la app.',
@@ -218,7 +239,7 @@ try {
       }),
     ],
     [
-      '5-escribir',
+      '6-escribir',
       frame({
         theme: 'night',
         kicker: 'Escribe o dicta',
@@ -230,7 +251,7 @@ try {
       }),
     ],
     [
-      '6-importancia',
+      '7-importancia',
       frame({
         theme: 'sand',
         kicker: 'Importancia',
@@ -240,7 +261,7 @@ try {
       }),
     ],
     [
-      '7-oscuro',
+      '8-oscuro',
       frame({
         kicker: 'Modo oscuro',
         title: 'De noche, *en calma*.',
@@ -248,7 +269,7 @@ try {
         content: device(screens.dark, 262, { dark: true }),
       }),
     ],
-    ['8-widget', widgetsFrame(icon)],
+    ['9-widget', widgetsFrame()],
   ]
 
   for (const [name, html] of shots) {
@@ -262,7 +283,7 @@ try {
   await server.close()
 }
 
-function widgetsFrame(icon) {
+function widgetsFrame() {
   const tasks = [
     { title: 'Pagar la factura de la luz', overdue: true, detail: 'Ayer', weight: 0.3 },
     { title: 'Comprar pan' },
@@ -270,18 +291,21 @@ function widgetsFrame(icon) {
     { title: 'Enviar el presupuesto', detail: '12:00' },
   ]
   const small = [{ title: 'Comprar pan' }, { title: 'Presentación', weight: 0.6 }, { title: 'Tender la ropa', done: true }]
+  const routines = [
+    { title: 'Gimnasio', emoji: '🏋️' },
+    { title: 'Leer 20 min', emoji: '📖' },
+    { title: 'Estirar', emoji: '🧘' },
+    { title: 'Creatina', emoji: '💊', done: true },
+  ]
   return frame({
     theme: 'night',
     kicker: 'Widgets y Siri',
     title: 'Siempre *a mano*.',
-    sub: 'Táchalas desde el widget. «Apunta en Tasks» y Siri la añade sin abrir nada.',
+    sub: 'Tareas y rutinas, desde el widget. «Apunta en Tasks» y Siri la añade sola.',
     content: `
       <div class="float" style="left:34px;top:318px">${mediumWidget(tasks, 4)}</div>
       <div class="float" style="left:34px;top:520px">${smallWidget(small, 4)}</div>
-      <div class="float" style="left:236px;top:520px;width:176px;text-align:center">
-        <img src="${icon}" style="width:112px;height:112px;border-radius:26px;box-shadow:0 26px 60px rgba(0,0,0,.4)" alt="">
-        <div style="margin-top:10px;font:500 14px Inter;color:#f4efe6">Tasks</div>
-      </div>
+      <div class="float" style="left:230px;top:520px">${routinesWidget(routines)}</div>
       <div class="float" style="left:34px;right:34px;top:734px;padding:16px 18px;border-radius:22px;background:rgba(244,239,230,.08);box-shadow:inset 0 0 0 1px rgba(244,239,230,.12)">
         <div style="font:500 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#d6b07f">Siri</div>
         <div style="margin-top:8px;font:italic 500 19px/1.3 'Source Serif 4',serif;color:#f4efe6">«Apunta en Tasks cena con Ana mañana a las 9»</div>
