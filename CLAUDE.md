@@ -80,6 +80,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Aprobada y publicada** (27/09/2026, 17:29): la 1.0 (compilación 24) está en la App Store, gratis,
   también en la UE (el estado de comerciante está bien: sale en España, Francia y Alemania).
   `MARKETING_VERSION` subido a 1.1 el 28/09/2026, porque la 1.0 ya no admite compilaciones nuevas.
+- **La 1.1 ya figura como aprobada** en App Store Connect (el CI del 30/09/2026 lo dijo al subir:
+  *train version '1.1' is closed*): `MARKETING_VERSION` subido a **1.2**. Comprobar en App Store
+  Connect qué hay publicado.
 - **Rediseño "old money"** (28/09/2026, commit `a49c254`): papel marfil, tinta azul marino, coñac y
   oro viejo; fechas y titulares en New York (serif del sistema); icono nuevo; arranque en frío sin
   saltos (ver "Arranque"); filas que se deslizan al reordenarse. Además, **arreglado** que al elegir
@@ -107,7 +110,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    los días a las 10") y su aviso con **Hecha** sin abrir la app; el widget **Rutinas** en la
    pantalla de bloqueo (tocarlo la tacha; al día siguiente amanece sin tachar); el mapa de Lugares;
    el widget de hoy en claro y en oscuro. Después, subir las ocho capturas de `docs/capturas/` y
-   enviar la 1.1 (`docs/app-store.md` §3 y §9; la ficha puede mencionar rutinas, modo oscuro y el
+   enviar la 1.2 (`docs/app-store.md` §3 y §9; la ficha puede mencionar rutinas, modo oscuro y el
    widget de la pantalla de bloqueo). iOS guarda en caché la pantalla de carga: si sale la antigua,
    reiniciar el iPhone.
 2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
@@ -123,7 +126,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    tareas sigan ahí tras forzar el cierre.
 
 Cualquier cambio de la app llega a la App Store con una versión nueva: `docs/app-store.md` §9. En
-cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.1 → 1.2…) antes del siguiente push que toque
+cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.2 → 1.3…) antes del siguiente push que toque
 la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
 ejecución programada).
 
@@ -908,7 +911,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.1,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.2,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.
