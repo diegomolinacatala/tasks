@@ -27,13 +27,38 @@
   pointer-events: none;
 }
 
+/* El final de cada lista deja sitio a lo que flota encima: la barra de escribir (`--dock`) y el
+   teclado, que sube la barra inferior sobre la lista (`--kb`) */
 .app__scroll {
   position: absolute;
   inset: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 18px;
+  padding: 0 18px calc(var(--dock, 0px) + var(--kb, 0px));
+}
+
+.app.has-composer .app__scroll {
+  --dock: var(--composer-h);
+}
+
+/* Mientras se escribe, la lista queda tras un velo de papel: sigue ahí (se ve entrar lo que se añade)
+   pero no compite con la barra. Tocarlo suelta el teclado. */
+.app__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+.app.is-composing .app__veil {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--dur-3);
 }
 
 /* Al cambiar de pestaña, la nueva sube un poco al aparecer (al pasar de oculta a visible la animación
@@ -97,6 +122,8 @@
 
 /* El teclado virtual empuja la barra inferior para que siga visible */
 .app__bar {
+  position: relative;
+  z-index: 40;
   flex: none;
   padding-bottom: var(--safe-b);
   background: var(--bg);
@@ -107,9 +134,16 @@
   padding-bottom: 0;
 }
 
-/* La barra sube sobre el final de la lista: ese hueco se puede recorrer para ver lo último */
-.app.is-typing .app__scroll {
-  padding-bottom: var(--kb, 0px);
+/* La barra de escribir flota sobre el final de la lista, como el reproductor de Spotify sobre sus
+   pestañas: lo que pasa por debajo se desvanece en el papel antes de llegar a ella */
+.app__dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  padding: 20px 12px 8px;
+  background: linear-gradient(transparent, var(--bg) 26px);
+  pointer-events: none;
 }
 
 /* Barra de pestañas: cuatro columnas iguales y un filete de oro bajo la elegida */
@@ -121,7 +155,10 @@
   border-top: 1px solid var(--line);
 }
 
-.app.is-typing .tabs {
+/* Con el teclado fuera, o en cuanto se toca la barra de escribir (sin esperar a que el teclado
+   termine de subir), las pestañas se apartan: su sitio lo ocupan los destinos de la barra */
+.app.is-typing .tabs,
+.app.is-composing .tabs {
   display: none;
 }
 
@@ -206,7 +243,7 @@
 }
 
 .is-entering .view > .block,
-.is-entering .view > .strip {
+.is-entering .view .cal {
   animation: app-enter var(--dur-4) var(--ease-out) 170ms both;
 }
 

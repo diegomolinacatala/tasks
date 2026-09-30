@@ -24,6 +24,7 @@ const TUESDAY = '2026-09-29'
 
 const routine = (partial: Partial<Routine> & { id: string }): Routine => ({
   title: partial.id,
+  emoji: null,
   days: [...ALL_DAYS],
   time: null,
   done: [],
@@ -156,7 +157,13 @@ describe('normalizeRoutine', () => {
   test('sanea lo que llega de fuera', () => {
     expect(
       normalizeRoutine({ id: 'r', title: '  Tomar   creatina ', days: [9, 1], time: '25:00', done: [TUESDAY, 'ayer', MONDAY, MONDAY], order: 'x' }),
-    ).toMatchObject({ id: 'r', title: 'Tomar creatina', days: [1], time: null, done: [MONDAY, TUESDAY], order: 0 })
+    ).toMatchObject({ id: 'r', title: 'Tomar creatina', emoji: null, days: [1], time: null, done: [MONDAY, TUESDAY], order: 0 })
+  })
+
+  test('el emoji se queda en uno solo; lo que no lo es, fuera', () => {
+    expect(normalizeRoutine({ id: 'r', title: 'Creatina', emoji: '💊💧' })?.emoji).toBe('💊')
+    expect(normalizeRoutine({ id: 'r', title: 'Creatina', emoji: 'TC' })?.emoji).toBeNull()
+    expect(normalizeRoutine({ id: 'r', title: 'Creatina', emoji: 3 })?.emoji).toBeNull()
   })
 
   test('sin id o sin título no es una rutina', () => {

@@ -102,9 +102,23 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   el navegador (PWA y `npm run dev`), en claro y en oscuro. **Capturas nuevas** en `docs/capturas/`:
   ocho (agenda, rutinas con el widget de bloqueo, lugares, "¿has acabado?", escribir, importancia,
   modo oscuro y widgets), con el reloj de la página fijado a las 11:20.
+- **Emoji, barra de escribir, mes y bienvenida** (30/09/2026, en `capacitor`; sin probar aún en el
+  iPhone ni unida a `main`): las rutinas llevan **emoji** (ver
+  "Rutinas"), que sale en la fila, el horario y los widgets en lugar de las iniciales; la **barra de
+  escribir** es una píldora flotante que al tocarla aparta las pestañas y enseña los destinos (ver
+  "Alta de tareas"); la tira de la semana **se despliega en el mes** (ver "Pantallas"); y la primera
+  vez se abre una **bienvenida** interactiva en lugar de las tareas de ejemplo (ver "Bienvenida").
+  Probado con Edge sin ventana y dedo simulado (claro, oscuro y 375 × 667); 620 tests. En el iPhone
+  queda por ver el teclado con la barra nueva y los widgets con emoji.
 
 **Pendiente, en este orden**
 
+0. De lo del 30/09/2026: **comprobar que el CI compila el Swift** (`WidgetRoutine.emoji`,
+   `RoutineEmoji`, `RoutineEntity.init`) y probar en el iPhone: tocar la barra
+   de escribir (que las pestañas se quiten en el acto y la tarjeta suba con el teclado), tirar de la
+   tira hacia abajo y pasar de mes, una rutina con emoji en el widget de bloqueo y en el de inicio, y
+   la bienvenida (borrar la app e instalarla, o Ajustes → *Ver la bienvenida*). Las capturas de
+   `docs/capturas/` son de antes: regenerarlas (`node scripts/app-store-shots.mjs`) antes de enviar.
 1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
    rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
    el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
@@ -194,10 +208,12 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
-sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~125 kB
-gzip (126 el 29/09/2026, con la Agenda, las rutinas y el tema; 118 antes): lo que solo existe en el
+sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
+gzip (132,6 el 30/09/2026 con `npm run build`, con el mes desplegable, los destinos de la barra y el
+emoji; 129,6 el commit anterior): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
-(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa") se carga con `import()` o `lazy`.
+(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa", la bienvenida) se carga con
+`import()` o `lazy`.
 La Bandeja y los paneles de tarea y sección van en su propio trozo, pedido nada más pintar la Agenda
 (`loadSheets` en `App.tsx`): no esperan al toque.
 
@@ -209,7 +225,9 @@ src/
 ├── sw.ts                 # precache + push + notificationclick
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
-│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
+│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes, semanas de un mes
+│   ├── compose.ts        # destinos del compositor ("Hoy", "Mañana", "Jue 2", "Sin fecha")
+│   ├── emoji.ts          # emoji de una rutina: sanearlo, los del selector y el que le pega a un nombre
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
@@ -238,14 +256,15 @@ src/
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
 │   ├── transition.ts     # View Transitions API con degradación
-│   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app
+│   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
-    ├── views/            # AgendaView (+ WeekStrip, Timeline, useDayBoard), InboxView (+ DayDock)
-    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet (constancia)
+    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, useDayBoard), InboxView (+ DayDock)
+    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet (constancia), EmojiPicker
+    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, gestos, mes y rutinas
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
     ├── settings/         # SettingsView (página), AppearancePicker, avisos, dictado
@@ -305,7 +324,8 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
   29", "Mañana miércoles 30", "Jueves 1 octubre") y la **tira de la semana** (`WeekStrip`): letra,
   número y un anillo que se cierra con lo hecho; lo pasado con pendientes, en ladrillo. Se desliza
   a los lados para cambiar de semana (conserva el día de la semana) y cada día es un sitio donde
-  soltar una tarea arrastrada. Debajo, el filete con el avance del día y:
+  soltar una tarea arrastrada. **Se despliega en el mes entero** (ver "El mes desplegado"). Debajo, el
+  filete con el avance del día y:
   1. `Atrasadas` (solo hoy), en rojo, con **Pasar a hoy**. Se puede sacar de aquí pero no soltar
      dentro: sus tareas conservan la fecha hasta que se mueven.
   2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas y rutinas) a lo largo de
@@ -314,10 +334,10 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
      empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora).
   3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Un día pasado con
      pendientes lleva **Pasar a hoy**. Un día sin tareas dice "Día libre." (las rutinas no cuentan).
-  El compositor añade al día elegido ("Añadir al jueves 2"); su atajo, **Sin fecha**, a la Bandeja.
+  El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
 - **Lugares** (`PlacesView`, ver "Lugares").
 - **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Avisos, Dictado, Datos y
-  Tasks (valorar, soporte, privacidad, versión).
+  Tasks (ver la bienvenida, valorar, soporte, privacidad, versión).
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -325,6 +345,47 @@ hoy), un aviso dice adónde ha ido y ofrece **Ver**.
 
 Arriba a la derecha, en la Bandeja y la Agenda, el modo importancia: una **A con una flecha doble**
 (se desliza para agrandar), que al activarse sube y baja una vez.
+
+### El mes desplegado
+
+Para ir a dentro de dos meses sin pasar semana a semana, la tira se abre en el mes, como el
+calendario que baja en Google Calendar. Tres formas, las tres a la vista: **tirar de la tira hacia
+abajo** (sigue al dedo), el **asa** que tiene debajo y el **mes de la cabecera**, que es un botón con
+una flecha que se da la vuelta. Desplegada, a los lados se pasa **de mes** (conserva el día del mes,
+`addMonths`); **elegir un día la recoge** en su semana; tirar hacia arriba, el asa o el mes también.
+Siempre seis semanas (`monthWeeks`): no cambia de alto al pasar de mes; los días de los meses vecinos
+asoman atenuados. Cada día del mes es también un sitio donde soltar una tarea arrastrada.
+
+- `AgendaView` guarda si está abierta (`monthOpen`, no se persiste) y cuenta lo de todos los días
+  (`loads`) para los anillos.
+- **Sin animar alturas**: al desplegar, el mes ocupa su sitio de golpe y lo que se mueve son un
+  recorte (`clip-path` en `.strip`) y tres `transform` (las semanas, el asa y `.agenda__below`, el
+  bloque con todo lo de debajo), que `WeekStrip` pinta con `paint(p)` sin pasar por React. Al recoger,
+  se anima a 0 y entonces vuelve el `layout` de semana, en el mismo fotograma en que se quitan los
+  estilos. Al tirar con el dedo el mes se pinta antes con `flushSync`.
+- `open` (lo pedido) y `layout` (lo pintado) van separados: el segundo se queda atrás mientras dura
+  la animación de recoger. Un tirón (0,35 px/ms) o un tercio del recorrido cambian de estado.
+- El bloque entero (`.cal`) lleva `touch-action: none`: en vertical es del gesto, así que desde la
+  tira no se hace scroll de la página.
+
+### Bienvenida
+
+La primera vez (no hay nada guardado: `useFirstRun`, que sale de `loadState().fresh`) se abre
+`Welcome` en lugar de tareas de ejemplo: la app empieza vacía. También desde Ajustes → *Ver la
+bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual.
+
+- **Portada**: la señal en el centro exacto y a 92 px, donde la deja `#boot` (`MARK_PATH` en
+  `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
+  entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
+  (`onReady`): no llega a verse la app vacía.
+- **Cuatro láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+  sale cuando el analizador de verdad entiende la frase), *Gestos* (dos `SwipeRow` reales: tachar y
+  borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes) y *Rutinas* (tacharlas; en el
+  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez). Hasta que se tocan, las
+  escenas se mueven un poco para decir por dónde se cogen.
+- Nada obliga: **Continuar**, atrás, **Saltar** y Escape. Con `prefers-reduced-motion`, la primera
+  lámina enseña el resultado sin teclear. Mientras está abierta, la app de debajo va con `inert`.
+- Es la única pantalla con texto explicativo: un titular y una frase por lámina.
 
 ### Arranque
 
@@ -403,18 +464,27 @@ igual. No reordena nada.
 
 Lo que se repite ("tomar creatina", cada día a las 10:00) no es una tarea: es una `Routine`
 (`AppState.routines`, `lib/routines.ts`) con los días de la semana en que toca (1 = lunes … 7 =
-domingo), una hora opcional y un **diario** de días hechos (`done`, los 400 más recientes). No hay
-nada que reiniciar a medianoche: "hecha hoy" es que el diario tenga hoy, así que cada día amanece
-pendiente él solo (en la app, en los avisos y en el widget).
+domingo), una hora opcional, un **emoji** opcional y un **diario** de días hechos (`done`, los 400
+más recientes). No hay nada que reiniciar a medianoche: "hecha hoy" es que el diario tenga hoy, así
+que cada día amanece pendiente él solo (en la app, en los avisos y en el widget).
 
+- **Emoji** (`Routine.emoji`, `lib/emoji.ts`): su seña. Sale delante del nombre en la fila, dentro de
+  la cápsula del horario y en los widgets en lugar de las iniciales. Se elige en el panel, tocando el
+  **sello** que hay junto al nombre: una lámina de 28 (`ROUTINE_EMOJIS`), "sin emoji" y un hueco para
+  teclear **otro** con el teclado de emojis (se guarda uno solo: `cleanEmoji`). Al crear una rutina
+  (escribiendo, dictando, desde una tarea o en el panel) se propone el que le pega al nombre
+  ("creatina" → 💊, `suggestEmoji`); en el panel, hasta que se elige uno a mano. **Entonados**: la
+  clase `.emoji` les pone `--emoji-tone` (medio color y un velo sepia, distinto en cada tema) para que
+  no desentonen con el papel; en el widget de inicio, `RoutineEmoji` (`.saturation(0.55)`), y en la
+  pantalla de bloqueo iOS ya los pinta en un tono.
 - **Dónde**: bloque `Rutinas` de la Bandeja (las que tocan hoy arriba, lo hecho después y las que hoy
   no tocan, atenuadas), con "2/3" de hoy y **+**. Las que tienen hora salen también en el horario
-  de la Agenda de cada día que tocan (cápsula de trazo discontinuo con el icono de repetir).
+  de la Agenda de cada día que tocan (cápsula de trazo discontinuo con su emoji o el icono de repetir).
 - **Fila** (`RoutineRow`): el círculo o deslizar a la derecha la tacha hoy; a la izquierda, borra (con
   deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba
   (antes de crearla tampoco). Debajo del título, la hora, los días y "racha de N" (desde 2).
-- **Panel** (`RoutineSheet`): nombre, días (L M X J V S D y atajos: cada día, entre semana, fines de
-  semana), aviso a una hora, y **Constancia**: racha, mejor racha, % de los últimos 30 días y las
+- **Panel** (`RoutineSheet`): emoji y nombre, días (L M X J V S D y atajos: cada día, entre semana,
+  fines de semana), aviso a una hora, y **Constancia**: racha, mejor racha, % de los últimos 30 días y las
   últimas cinco semanas día a día. Una nueva se crea al cerrar si tiene nombre ("Añadir rutina").
 - **Escribiendo**: `parseRoutine` (`lib/repeat.ts`) reconoce "todos los días", "cada día", "a
   diario", "entre semana", "de lunes a viernes", "los fines de semana", "los lunes y jueves", "cada
@@ -512,12 +582,23 @@ enseña el valor encima del dedo y vibra en cada paso.
 
 ### Alta de tareas
 
-El compositor crea donde se está mirando (Enter o el `+`): **sin fecha** en la Bandeja y **en el
-día elegido** en la Agenda; su atajo de un toque lleva al otro sitio ("Hoy" o "Sin fecha"). Si dice
+La **barra de escribir** (`Composer`) es, en reposo, una píldora que flota sobre el final de la lista
+(`.app__dock`, como el reproductor de Spotify sobre sus pestañas: lo que pasa por debajo se desvanece
+en el papel). **Al tocarla** (con el foco, sin esperar a que el teclado termine de subir) la app pasa
+a `is-composing`: las pestañas se quitan, la lista queda tras un velo de papel (`.app__veil`; tocarlo
+suelta el teclado) y la barra crece en una tarjeta con los **destinos** en el sitio de las pestañas,
+como los filtros de una búsqueda: "Hoy", "Mañana", "Sin fecha" y, si se mira otro día, ese
+(`composeTargets`). El primero es donde se está mirando y va elegido; tocar otro manda ahí lo que se
+añada mientras la barra siga abierta. Se envía con Intro o con el botón redondo de la derecha, y la
+barra **sigue abierta** para la siguiente; se suelta tocando el velo, con Escape o con Intro sin nada
+escrito. Vacía, el micrófono dicta.
+
+Crea donde se está mirando: **sin fecha** en la Bandeja y **en el día elegido** en la Agenda. Si dice
 que se repite, es una rutina (ver "Rutinas"). `parseTask` reconoce día,
 hora, plazos y duración en español ("mañana a las 5", "el lunes", "15/10", "en 30 min",
-"durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora; tocarla
-deja el texto literal. Con hora → aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
+"durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora en lugar de
+los destinos (lo entendido manda); tocarla deja el texto literal y vuelven los destinos. Con hora →
+aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
 suelto nunca es una hora ("comprar 5 manzanas") ni una duración ("comprar de 5 a 7 manzanas": un
 tramo necesita "las" o minutos).
 
@@ -697,14 +778,17 @@ la misma.
     `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose`, `routines` y `open`.
   - Sin App Group (compilación sin firmar) el widget dice "Abre Tasks" y la web ignora el error.
 - **Widget Rutinas** (`RoutinesWidget` en `TasksWidget.swift`, vistas en `TasksWidgetViews.swift`):
-  pantalla de bloqueo redonda (anillo con lo hecho hoy y la inicial de la rutina, o la marca) y
-  rectangular (la rutina, su hora y "1 de 3 hoy"), y pequeño de inicio (las de hoy con su círculo).
+  pantalla de bloqueo redonda (anillo con lo hecho hoy y el **emoji** de la rutina; sus iniciales si
+  no tiene, o la marca si ya está hecha) y rectangular (el emoji en el sitio del círculo, la rutina,
+  su hora y "1 de 3 hoy"), y pequeño de inicio (las de hoy con su círculo y su emoji).
   **Un toque la tacha** sin abrir la app, también bloqueado (`ToggleRoutineIntent`, en
   `ToggleTaskIntent.swift`, `authenticationPolicy = .alwaysAllowed`). Se configura
   (`AppIntentConfiguration` + `RoutineWidgetIntent`, `RoutineEntity`/`RoutineQuery` leen la foto): una
   rutina concreta o "la siguiente que queda por hacer". Una entrada por medianoche: cada día amanece
   sin tachar sin abrir la app.
-  - La foto (`widgetSnapshot`) lleva `routines` (días que tocan y diario de la última semana).
+  - La foto (`widgetSnapshot`) lleva `routines` (emoji, días que tocan y diario de la última semana).
+    `WidgetRoutine.emoji` es opcional en Swift: una foto de antes del emoji se lee igual, y sin él
+    salen las iniciales (`badge`).
     Tacharla apunta `routines[id][día]` en `widget-changes.json` (`WidgetStore.setRoutine`), quita su
     aviso de hoy (pendiente y ya entregado) y, si se destacha, pide reprogramar. La web lo recoge con
     `widgetChanges()` (en la misma lista que las tareas: `{ routineId, date, done }`,

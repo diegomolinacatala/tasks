@@ -155,7 +155,7 @@ describe('avisos de rutina', () => {
   test('llevan su categoría y la rutina y el día en el extra', () => {
     const state = {
       ...emptyState(),
-      routines: [{ id: 'r', title: 'Creatina', days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
+      routines: [{ id: 'r', title: 'Creatina', emoji: null, days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
     }
     const [first] = nativePlan(state, NOW).timed
     expect(first).toMatchObject({

@@ -147,7 +147,17 @@ struct RoutineEntity: AppEntity {
     static var defaultQuery = RoutineQuery()
 
     let id: String
+    /** Con su emoji delante, si lo tiene: así se reconoce en la lista al configurar el widget. */
     let title: String
+
+    init(_ routine: WidgetRoutine) {
+        id = routine.id
+        if let emoji = routine.emoji, routine.hasEmoji {
+            title = "\(emoji) \(routine.title)"
+        } else {
+            title = routine.title
+        }
+    }
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(title)")
@@ -158,11 +168,11 @@ struct RoutineQuery: EntityQuery {
     func entities(for identifiers: [RoutineEntity.ID]) async throws -> [RoutineEntity] {
         (WidgetStore.routines() ?? [])
             .filter { identifiers.contains($0.id) }
-            .map { RoutineEntity(id: $0.id, title: $0.title) }
+            .map { RoutineEntity($0) }
     }
 
     func suggestedEntities() async throws -> [RoutineEntity] {
-        (WidgetStore.routines() ?? []).map { RoutineEntity(id: $0.id, title: $0.title) }
+        (WidgetStore.routines() ?? []).map { RoutineEntity($0) }
     }
 }
 
@@ -206,9 +216,9 @@ struct RoutinesEntry: TimelineEntry {
     static func sample(_ date: Date) -> RoutinesEntry {
         let today = WidgetDay.iso(date)
         return RoutinesEntry(date: date, routines: [
-            WidgetRoutine(id: "muestra-1", title: "Tomar creatina", time: "10:00", days: [1, 2, 3, 4, 5, 6, 7], done: []),
-            WidgetRoutine(id: "muestra-2", title: "Leer 20 minutos", time: "22:30", days: [1, 2, 3, 4, 5, 6, 7], done: [today]),
-            WidgetRoutine(id: "muestra-3", title: "Estirar", time: nil, days: [1, 2, 3, 4, 5, 6, 7], done: []),
+            WidgetRoutine(id: "muestra-1", title: "Tomar creatina", time: "10:00", days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "💊"),
+            WidgetRoutine(id: "muestra-2", title: "Leer 20 minutos", time: "22:30", days: [1, 2, 3, 4, 5, 6, 7], done: [today], emoji: "📖"),
+            WidgetRoutine(id: "muestra-3", title: "Estirar", time: nil, days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "🧘"),
         ], chosen: nil)
     }
 }

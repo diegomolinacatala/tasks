@@ -203,6 +203,7 @@ describe('checkInEntries: preguntar al acabar', () => {
 describe('routineEntries: avisos de las rutinas', () => {
   const routine = (partial: Partial<Routine> & { id: string }): Routine => ({
     title: partial.id,
+    emoji: null,
     days: [1, 2, 3, 4, 5, 6, 7],
     time: '11:00',
     done: [],

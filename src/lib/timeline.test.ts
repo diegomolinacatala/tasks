@@ -17,7 +17,7 @@ const task = (id: string, time: string | null, duration: number | null = null): 
   completedAt: null,
 })
 
-const routine = (id: string, time: string | null): Routine => ({ id, title: id, days: [1, 2, 3, 4, 5, 6, 7], time, done: [], order: 0, createdAt: 0 })
+const routine = (id: string, time: string | null): Routine => ({ id, title: id, emoji: null, days: [1, 2, 3, 4, 5, 6, 7], time, done: [], order: 0, createdAt: 0 })
 
 const kinds = (rows: ReturnType<typeof buildTimeline>) => rows.map((row) => (row.kind === 'gap' ? `gap ${row.minutes}` : row.kind === 'now' ? 'now' : row.id))
 

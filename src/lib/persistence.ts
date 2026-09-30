@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval'
-import { seedState } from '../state/seed'
+import { emptyState } from '../state/reducer'
 import type { AppState } from '../types'
 import { normalizeState } from './backup'
 import { applyInbox } from './inbox'
@@ -26,12 +26,12 @@ async function loadFromBrowser(): Promise<AppState | null> {
  * iPhone: lo apuntado con Siri o Atajos con la app cerrada entra al cargar, antes de pintar nada.
  * Así, tocar el aviso de una de esas tareas ya la encuentra.
  */
-async function withInbox(state: AppState | null): Promise<AppState | null> {
+async function withInbox(state: AppState): Promise<AppState> {
   try {
     const { markApplied, readInbox } = await import('./platform/inbox')
     const entries = await readInbox()
     if (!entries.length) return state
-    const applied = applyInbox(state ?? seedState(), entries)
+    const applied = applyInbox(state, entries)
     markApplied(applied.entries)
     return applied.state
   } catch {
@@ -40,12 +40,21 @@ async function withInbox(state: AppState | null): Promise<AppState | null> {
   }
 }
 
+export interface Loaded {
+  state: AppState
+  /** No había nada guardado: es la primera vez que se abre (y toca la bienvenida). */
+  fresh: boolean
+}
+
 /** En el iPhone manda el fichero; IndexedDB primero en la web; localStorage como red de seguridad. */
-export async function loadState(): Promise<AppState | null> {
-  if (!isNative) return loadFromBrowser()
+export async function loadState(): Promise<Loaded> {
+  if (!isNative) {
+    const stored = await loadFromBrowser()
+    return { state: stored ?? emptyState(), fresh: stored === null }
+  }
   const { readStateFile } = await import('./platform/storage')
   const stored = normalizeState(await readStateFile()) ?? (await loadFromBrowser())
-  return withInbox(stored)
+  return { state: await withInbox(stored ?? emptyState()), fresh: stored === null }
 }
 
 async function saveToBrowser(state: AppState): Promise<void> {

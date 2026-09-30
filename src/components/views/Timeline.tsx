@@ -153,7 +153,15 @@ const TimelineRoutine = memo(function TimelineRoutine({ routine, day, start }: T
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => actions.toggleRoutine(routine.id, day)}
           >
-            {done ? <IconCheck size={12} strokeWidth={2.6} /> : <IconRepeat size={12} strokeWidth={2} />}
+            {done ? (
+              <IconCheck size={12} strokeWidth={2.6} />
+            ) : routine.emoji ? (
+              <span className="emoji tl__emoji" aria-hidden="true">
+                {routine.emoji}
+              </span>
+            ) : (
+              <IconRepeat size={12} strokeWidth={2} />
+            )}
           </button>
         </span>
         <button type="button" className="tl__body" onClick={() => actions.openRoutine(routine.id)}>

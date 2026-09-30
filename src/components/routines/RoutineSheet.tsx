@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { addDays, shortTime, startOfWeek } from '../../lib/date'
+import { suggestEmoji } from '../../lib/emoji'
 import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
 import {
@@ -17,9 +18,10 @@ import {
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate, IsoTime, Routine } from '../../types'
 import { useTaskActions } from '../task/useTaskActions'
-import { IconTrash } from '../ui/Icons'
+import { IconSmile, IconTrash } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
+import { EmojiPicker } from './EmojiPicker'
 import './routines.css'
 
 interface RoutineSheetProps {
@@ -31,9 +33,12 @@ interface RoutineSheetProps {
 
 interface Draft {
   title: string
+  emoji: string | null
   days: number[]
   time: IsoTime | null
 }
+
+const blank = (): Draft => ({ title: '', emoji: null, days: [...ALL_DAYS], time: null })
 
 const PRESETS: { label: string; days: readonly number[] }[] = [
   { label: 'Cada día', days: ALL_DAYS },
@@ -46,7 +51,8 @@ const HISTORY_WEEKS = 5
 const same = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((day, index) => day === b[index])
 
 /**
- * Crear o editar una rutina: nombre, qué días toca y a qué hora avisa. Una existente enseña además
+ * Crear o editar una rutina: nombre, emoji, qué días toca y a qué hora avisa. Una nueva propone el
+ * emoji que le pega al nombre hasta que se elige uno a mano. Una existente enseña además
  * su racha, la mejor y lo cumplido en el último mes, y las últimas cinco semanas día a día. Los
  * cambios de una existente se aplican al momento; una nueva se crea al cerrar si tiene nombre.
  */
@@ -57,14 +63,19 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   // Se conserva la última para animar el cierre sin que cambie el contenido.
   const [shownId, setShownId] = useState<string | null>(routineId)
   const routine = shownId ? (state.routines.find((item) => item.id === shownId) ?? null) : null
-  const [draft, setDraft] = useState<Draft>({ title: '', days: [...ALL_DAYS], time: null })
+  const [draft, setDraft] = useState<Draft>(blank)
+  const [picking, setPicking] = useState(false)
+  // El emoji elegido (o quitado) a mano ya no lo cambia el nombre.
+  const [chosen, setChosen] = useState(false)
   const titleInput = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (routineId === null) return
     setShownId(routineId)
+    setPicking(false)
+    setChosen(false)
     const current = routineId ? state.routines.find((item) => item.id === routineId) : undefined
-    setDraft(current ? { title: current.title, days: current.days, time: current.time } : { title: '', days: [...ALL_DAYS], time: null })
+    setDraft(current ? { title: current.title, emoji: current.emoji, days: current.days, time: current.time } : blank())
   }, [routineId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
@@ -78,9 +89,18 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
     const next = { ...draft, ...patch }
     setDraft(next)
     // Una existente cambia al momento (menos el nombre, que se guarda al salir del campo).
-    if (routine && (patch.days !== undefined || patch.time !== undefined)) {
-      dispatch({ type: 'routine/update', id: routine.id, days: next.days, time: next.time })
+    if (routine && (patch.days !== undefined || patch.time !== undefined || patch.emoji !== undefined)) {
+      dispatch({ type: 'routine/update', id: routine.id, days: next.days, time: next.time, emoji: next.emoji })
     }
+  }
+
+  const rename = (title: string) => setDraft({ ...draft, title, emoji: routine || chosen ? draft.emoji : suggestEmoji(title) })
+
+  const pickEmoji = (emoji: string | null) => {
+    haptic('selection')
+    setChosen(true)
+    setPicking(false)
+    update({ emoji })
   }
 
   const toggleDay = (day: number) => {
@@ -98,7 +118,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   const close = () => {
     commitTitle()
     if (routineId === '' && draft.title.trim()) {
-      dispatch({ type: 'routine/add', id: createId(), title: draft.title, days: draft.days, time: draft.time })
+      dispatch({ type: 'routine/add', id: createId(), title: draft.title, days: draft.days, time: draft.time, emoji: draft.emoji })
       haptic('success')
     }
     onClose()
@@ -108,17 +128,36 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
 
   return (
     <Sheet open={routineId !== null} onClose={close} title={isNew ? 'Nueva rutina' : 'Rutina'}>
-      <textarea
-        ref={titleInput}
-        className="sheet__input"
-        rows={1}
-        value={draft.title}
-        placeholder={isNew ? 'Tomar creatina' : undefined}
-        autoFocus={isNew}
-        aria-label="Nombre de la rutina"
-        onChange={(event) => setDraft({ ...draft, title: event.target.value.replace(/\n/g, ' ') })}
-        onBlur={commitTitle}
-      />
+      <div className="routine-name">
+        <button
+          type="button"
+          className={`routine-seal ${draft.emoji ? 'is-set' : ''} ${picking ? 'is-open' : ''}`}
+          aria-expanded={picking}
+          aria-label={draft.emoji ? `Emoji ${draft.emoji}: cambiar` : 'Elegir emoji'}
+          onClick={() => setPicking((open) => !open)}
+        >
+          {draft.emoji ? (
+            // Con `key`, el emoji nuevo entra con su pequeño rebote.
+            <span key={draft.emoji} className="emoji routine-seal__emoji" aria-hidden="true">
+              {draft.emoji}
+            </span>
+          ) : (
+            <IconSmile size={21} />
+          )}
+        </button>
+        <textarea
+          ref={titleInput}
+          className="sheet__input"
+          rows={1}
+          value={draft.title}
+          placeholder={isNew ? 'Tomar creatina' : undefined}
+          autoFocus={isNew}
+          aria-label="Nombre de la rutina"
+          onChange={(event) => rename(event.target.value.replace(/\n/g, ' '))}
+          onBlur={commitTitle}
+        />
+      </div>
+      {picking && <EmojiPicker value={draft.emoji} onChange={pickEmoji} />}
 
       <p className="sheet__title">Días</p>
       <div className="days-picker" role="group" aria-label="Días de la semana">

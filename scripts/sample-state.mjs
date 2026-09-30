@@ -35,6 +35,7 @@ const history = (count, skip = []) =>
 const routine = (id, title, time, extra = {}) => ({
   id,
   title,
+  emoji: null,
   days: DAILY,
   time,
   done: [],
@@ -48,7 +49,7 @@ export function sampleState({ theme = 'light' } = {}) {
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     sections: [{ id: 'trabajo', name: 'Trabajo', order: 0, collapsed: false }],
     places: [
       { id: 'mercadona', name: 'Mercadona', location: { lat: 39.4699, lng: -0.3763, address: 'Calle de Colón, 12' }, radius: 150 },
@@ -56,10 +57,10 @@ export function sampleState({ theme = 'light' } = {}) {
       { id: 'uni', name: 'Universidad', location: { lat: 39.4808, lng: -0.3443, address: 'Av. dels Tarongers' }, radius: 300 },
     ],
     routines: [
-      routine('creatina', 'Tomar creatina', '10:00', { done: [...history(12, [3]), today], order: 0 }),
-      routine('leer', 'Leer 20 minutos', '22:30', { done: history(9, [1, 5]), order: 1 }),
-      routine('estirar', 'Estirar', null, { done: history(6, [0, 2]), order: 2 }),
-      routine('gym', 'Gimnasio', '19:00', { days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
+      routine('creatina', 'Tomar creatina', '10:00', { emoji: '💊', done: [...history(12, [3]), today], order: 0 }),
+      routine('leer', 'Leer 20 minutos', '22:30', { emoji: '📖', done: history(9, [1, 5]), order: 1 }),
+      routine('estirar', 'Estirar', null, { emoji: '🧘', done: history(6, [0, 2]), order: 2 }),
+      routine('gym', 'Gimnasio', '19:00', { emoji: '🏋️', days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
     ],
     collapsed: { overdue: false, backlog: false, routines: false },
     settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme },

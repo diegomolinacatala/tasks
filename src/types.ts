@@ -90,6 +90,8 @@ export interface Place {
 export interface Routine {
   id: string
   title: string
+  /** Su seña: un emoji (`lib/emoji.ts`) que sale en la fila, el horario y el widget. `null` = sin él. */
+  emoji: string | null
   /** Días de la semana en que toca, de 1 (lunes) a 7 (domingo). Nunca vacío. */
   days: number[]
   /** Hora opcional: con ella, un aviso cada día que toque mientras no esté hecha. */

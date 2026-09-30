@@ -434,8 +434,8 @@ enum WidgetDates {
 // MARK: - Rutinas
 
 /**
- * Pantalla de bloqueo, redondo: el anillo se va cerrando con lo hecho hoy y en el centro va la inicial
- * de la rutina que toca (o la marca si ya está). Tocarlo la tacha.
+ * Pantalla de bloqueo, redondo: el anillo se va cerrando con lo hecho hoy y en el centro va el emoji
+ * de la rutina que toca (sus iniciales si no tiene, o la marca si ya está). Tocarlo la tacha.
  */
 struct RoutineCircular: View {
     let entry: RoutinesEntry
@@ -450,8 +450,11 @@ struct RoutineCircular: View {
                     if done {
                         Image(systemName: "checkmark")
                             .font(.system(size: 17, weight: .bold))
+                    } else if routine.hasEmoji {
+                        Text(verbatim: routine.badge)
+                            .font(.system(size: 22))
                     } else {
-                        Text(verbatim: RoutineText.initials(routine.title))
+                        Text(verbatim: routine.badge)
                             .font(.system(size: 17, weight: .semibold, design: .serif))
                     }
                 }
@@ -487,9 +490,16 @@ struct RoutineRectangular: View {
             let done = routine.isDone(on: entry.day)
             Button(intent: ToggleRoutineIntent(routineId: routine.id, day: entry.day)) {
                 HStack(spacing: 8) {
-                    Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 24, weight: .regular))
-                        .widgetAccentable()
+                    // Pendiente y con emoji, el emoji hace de botón; hecha, la marca de siempre.
+                    if let emoji = routine.emoji, routine.hasEmoji, !done {
+                        Text(verbatim: emoji)
+                            .font(.system(size: 24))
+                            .frame(width: 28)
+                    } else {
+                        Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 24, weight: .regular))
+                            .widgetAccentable()
+                    }
                     VStack(alignment: .leading, spacing: 1) {
                         Text(verbatim: routine.title)
                             .font(.headline)
@@ -584,6 +594,10 @@ struct RoutineRow: View {
         Button(intent: ToggleRoutineIntent(routineId: routine.id, day: day)) {
             HStack(spacing: 8) {
                 CheckCircle(done: done, overdue: false, size: 17)
+                if let emoji = routine.emoji, routine.hasEmoji {
+                    RoutineEmoji(emoji: emoji, size: 13)
+                        .opacity(done ? 0.5 : 1)
+                }
                 Text(verbatim: routine.title)
                     .font(.system(size: 13))
                     .foregroundStyle(done ? Palette.text3 : Palette.text)
@@ -605,13 +619,19 @@ struct RoutineRow: View {
     }
 }
 
-enum RoutineText {
-    /** `Tomar creatina` → `TC`; una sola palabra, sus dos primeras letras. */
-    static func initials(_ title: String) -> String {
-        let words = title.split(separator: " ")
-        if words.count >= 2 {
-            return words.prefix(2).compactMap { word in word.first.map { String($0) } }.joined().uppercased()
-        }
-        return String(title.prefix(2)).capitalized
+/**
+ * El emoji de una rutina en la pantalla de inicio, entonado con el papel como en la app: a medio
+ * color, para que no desentone con la tinta y el coñac. En la pantalla de bloqueo iOS ya lo pinta
+ * en un solo tono.
+ */
+struct RoutineEmoji: View {
+    let emoji: String
+    let size: CGFloat
+
+    var body: some View {
+        Text(verbatim: emoji)
+            .font(.system(size: size))
+            .saturation(0.55)
+            .accessibilityHidden(true)
     }
 }

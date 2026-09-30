@@ -48,6 +48,15 @@
   --map-road: #fbf8f2;
   --map-water: #d8dccf;
 
+  /* Los emojis de las rutinas, como una lámina antigua: medio color y un velo sepia */
+  --emoji-tone: grayscale(0.45) sepia(0.4) saturate(1.1);
+
+  /* La pantalla de bloqueo del iPhone que enseña la bienvenida: de noche en los dos temas */
+  --lock-top: #2b3654;
+  --lock-bottom: #141b2e;
+  --lock-ink: #ffffff;
+  --lock-glass: rgba(255, 255, 255, 0.15);
+
   --r-xs: 6px;
   --r-sm: 10px;
   --r-md: 14px;
@@ -142,4 +151,6 @@
   --map-land: #1b2338;
   --map-road: #2a3450;
   --map-water: #16203a;
+
+  --emoji-tone: grayscale(0.5) sepia(0.3) brightness(1.05);
 }

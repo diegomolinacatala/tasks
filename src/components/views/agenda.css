@@ -8,14 +8,45 @@
 .agenda__kicker {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-3);
-  min-height: 28px;
-  margin: -6px 52px 2px 0;
+  /* El alto del botón "Hoy": que aparezca no mueve lo de debajo */
+  min-height: 30px;
+  margin: -7px 52px 1px 0;
 }
 
-.agenda__kicker .view__kicker {
-  flex: 1;
+/* El mes es un botón: despliega el calendario entero. La flecha se da la vuelta al abrirlo */
+.agenda__month {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  color: var(--accent);
+  transition: opacity var(--dur-1) var(--ease);
+}
+
+/* Área de toque de 44 px de alto sin mover la cabecera */
+.agenda__month::after {
+  content: '';
+  position: absolute;
+  inset: -8px -10px;
+}
+
+.agenda__month .view__kicker {
   margin: 0;
+}
+
+.agenda__month svg {
+  transition: transform var(--dur-3) var(--ease-sheet);
+}
+
+.agenda__month.is-open svg {
+  transform: rotate(180deg);
+}
+
+.agenda__month:active {
+  opacity: 0.6;
 }
 
 .agenda__title {
@@ -44,44 +75,75 @@
   transform: scale(0.95);
 }
 
-/* ── Tira de la semana ────────────────────────────────────────────────── */
+/* ── Tira de la semana, que se despliega en el mes ─────────────────────── */
 
-.strip {
+/* Todo el bloque es del gesto: a los lados se pasa de semana (o de mes) y en vertical se despliega o
+   se recoge, así que aquí el dedo no hace scroll */
+.cal {
+  --cal-row: 46px;
+
   margin: 0 -18px;
-  overflow: hidden;
-  touch-action: pan-y;
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-.strip__track {
-  display: flex;
-  width: 300%;
-  margin-left: -100%;
-}
-
-.strip__week {
-  flex: 0 0 calc(100% / 3);
+.cal__letters {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding: 0 8px;
+  padding: 4px 8px 1px;
 }
 
-.strip__day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 0 10px;
-  border-radius: var(--r-md);
-  transition: background var(--dur-2) var(--ease);
-}
-
-.strip__letter {
+.cal__letter {
+  text-align: center;
   font-size: var(--fs-micro);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-3);
+  transition: color var(--dur-2) var(--ease);
+}
+
+.cal__letter.is-selected {
+  color: var(--text);
+}
+
+.cal__letter.is-today {
+  color: var(--accent);
+}
+
+/* La ventana: mientras se despliega, `WeekStrip` la recorta por abajo (clip-path) */
+.strip {
+  overflow: hidden;
+}
+
+.strip__track {
+  display: flex;
+  align-items: flex-start;
+  width: 300%;
+  margin-left: -100%;
+}
+
+.strip__panel {
+  flex: 0 0 calc(100% / 3);
+  padding: 0 8px;
+}
+
+.strip__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  height: var(--cal-row);
+}
+
+.strip__day {
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  transition: background var(--dur-2) var(--ease), opacity var(--dur-2) var(--ease);
+}
+
+/* Días del mes de antes o del de después: se van apagando a medida que el mes se despliega */
+.strip__day.is-outside {
+  opacity: calc(1 - 0.62 * var(--cal-p, 1));
 }
 
 .strip__num {
@@ -136,7 +198,6 @@
   transition: color var(--dur-1) var(--ease);
 }
 
-.strip__day.is-today .strip__letter,
 .strip__day.is-today .strip__digit {
   color: var(--accent);
   font-weight: 600;
@@ -148,10 +209,6 @@
 
 .strip__day.is-late .strip__digit {
   color: var(--danger);
-}
-
-.strip__day.is-selected .strip__letter {
-  color: var(--text);
 }
 
 .strip__day.is-selected .strip__num::before {
@@ -174,6 +231,43 @@
 
 .strip__day.is-over .strip__num {
   transform: scale(1.14);
+}
+
+/* El asa: una raya bajo los días, como la de los paneles. Se tira de ella (o de los días) o se toca */
+.cal__handle {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 5px 0 7px;
+}
+
+/* Área de toque de 44 px sin separar más la tira de la lista */
+.cal__handle::after {
+  content: '';
+  position: absolute;
+  inset: -12px 30% -16px;
+}
+
+.cal__handle span {
+  width: 34px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--line-2);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+.cal__handle:active span {
+  background: var(--accent-line);
+  transform: scaleX(1.25);
+}
+
+.cal.is-month .cal__handle span {
+  background: var(--gold);
+}
+
+.agenda__below .view__progress {
+  margin-top: 4px;
 }
 
 /* ── Contenido del día ────────────────────────────────────────────────── */
@@ -344,6 +438,13 @@
 
 .tl-row--routine.is-done .tl__node--routine {
   border-style: solid;
+}
+
+/* El emoji de la rutina, dentro de su cápsula (como los iconos de Structured) */
+.tl__emoji {
+  position: relative;
+  font-size: 12px;
+  line-height: 13px;
 }
 
 .tl__body {

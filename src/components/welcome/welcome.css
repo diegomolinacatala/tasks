@@ -1,0 +1,707 @@
+/* ── Bienvenida: una portada y cuatro láminas, a toda pantalla sobre la app ───────────── */
+
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-t) 0 calc(var(--safe-b) + 14px);
+  background: var(--bg);
+  color: var(--text);
+  /* Recibe el foco al abrirse (la app de debajo queda inerte), pero no es un control */
+  outline: none;
+  transition: opacity 420ms var(--ease), transform 420ms var(--ease-in);
+}
+
+/* Al acabar se levanta como una hoja y deja ver la app, que ya estaba debajo */
+.welcome.is-leaving {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+}
+
+/* ── Portada ──────────────────────────────────────────────────────────── */
+
+.welcome__cover {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* La señal, donde la deja la pantalla de arranque (centro exacto, 92 px); después sube a su sitio */
+.welcome__mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  margin: -46px 0 0 -46px;
+  animation: welcome-mark 760ms var(--ease-sheet) 700ms both;
+}
+
+@keyframes welcome-mark {
+  to {
+    transform: translateY(-138px) scale(0.8);
+  }
+}
+
+.welcome__hello {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 70px);
+  padding: 0 32px;
+  text-align: center;
+}
+
+.welcome__rule {
+  display: block;
+  width: 44px;
+  height: 1.5px;
+  margin: 0 auto 20px;
+  border-radius: var(--r-full);
+  background: var(--gold);
+  animation: welcome-rule 620ms var(--ease-out) 1150ms both;
+}
+
+@keyframes welcome-rule {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.welcome__name {
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  animation: welcome-rise 700ms var(--ease-out) 1260ms both;
+}
+
+.welcome__tagline {
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-2);
+  animation: welcome-rise 700ms var(--ease-out) 1400ms both;
+}
+
+.welcome__cover .welcome__foot {
+  margin-top: auto;
+  animation: welcome-rise 700ms var(--ease-out) 1580ms both;
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Al volver a la portada desde la primera lámina no se repite la entrada */
+.welcome__cover.is-back .welcome__mark {
+  animation-duration: 1ms;
+  animation-delay: 0ms;
+}
+
+.welcome__cover.is-back .welcome__rule,
+.welcome__cover.is-back .welcome__name,
+.welcome__cover.is-back .welcome__tagline,
+.welcome__cover.is-back .welcome__foot {
+  animation-duration: var(--dur-3);
+  animation-delay: 0ms;
+}
+
+/* ── Barra: atrás, por dónde se va y saltar ───────────────────────────── */
+
+.welcome__bar {
+  flex: none;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 52px;
+  padding: 0 10px 0 8px;
+}
+
+.welcome__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.welcome__back:active {
+  background: var(--bg-press);
+  transform: scale(0.92);
+}
+
+/* Cuatro filetes: el de la lámina en la que estás se llena de oro */
+.welcome__progress {
+  display: flex;
+  gap: 6px;
+}
+
+.welcome__progress li {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--line-2);
+  overflow: hidden;
+}
+
+.welcome__progress li::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-4) var(--ease-out);
+}
+
+.welcome__progress li.is-done::after,
+.welcome__progress li.is-current::after {
+  transform: scaleX(1);
+}
+
+.welcome__skip {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease);
+}
+
+.welcome__skip:active {
+  color: var(--accent);
+}
+
+/* ── Lámina: la escena enmarcada y, debajo, qué es ───────────────────── */
+
+.welcome__plate {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 22px 0;
+  animation: welcome-plate var(--dur-4) var(--ease-out) both;
+}
+
+.welcome__plate.is-back {
+  animation-name: welcome-plate-back;
+}
+
+@keyframes welcome-plate {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes welcome-plate-back {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+/* El marco: papel sobre papel con un filete de oro, como una lámina en su paspartú */
+.welcome__stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 236px;
+  max-height: 404px;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--gold-dim), var(--shadow-card);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.welcome__copy {
+  flex: none;
+  padding: 24px 2px 6px;
+}
+
+.welcome__kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* El número de la lámina, en romanos y en serif, con su filete */
+.welcome__numeral {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.welcome__numeral::after {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.welcome__title {
+  font-size: clamp(30px, 8.8vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Dos líneas siempre: el botón no cambia de sitio de una lámina a otra */
+.welcome__text {
+  min-height: 2.9em;
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.welcome__foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 22px 0;
+}
+
+.welcome__next {
+  width: 100%;
+  min-height: 54px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.welcome__next:active {
+  transform: scale(0.98);
+}
+
+/* ── Escenas ──────────────────────────────────────────────────────────── */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+}
+
+.scene__rows {
+  flex: none;
+}
+
+/* I · Escribir: la lista arriba y la barra debajo, como en la app */
+
+.scene--write {
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 14px;
+}
+
+.scene__list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.scene__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: 11px 0;
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+.scene__row + .scene__row {
+  border-top: 1px solid var(--line);
+}
+
+.scene__row .row__check {
+  margin-top: 1px;
+}
+
+@keyframes scene-row {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.scene__row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scene__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene__composer {
+  flex: none;
+}
+
+.scene__typed {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.scene__typed > span {
+  flex: none;
+  min-width: 100%;
+  white-space: pre;
+}
+
+.scene__placeholder {
+  color: var(--text-3);
+}
+
+.scene__caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.15em;
+  margin-left: 1px;
+  vertical-align: -0.2em;
+  background: var(--accent);
+  animation: scene-caret 1.06s steps(1) infinite;
+}
+
+@keyframes scene-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* II · Gestos: dos filas de verdad que, hasta que se tocan, se asoman hacia su lado */
+
+.scene--swipe,
+.scene--routine {
+  justify-content: center;
+}
+
+.scene--swipe .row {
+  align-items: center;
+  padding: 15px 4px;
+}
+
+/* El hueco de las dos filas se conserva: al borrar la segunda, la primera no se mueve */
+.scene--swipe .scene__rows {
+  min-height: 106px;
+}
+
+.scene__arrow {
+  flex: none;
+  margin-right: 4px;
+  color: var(--text-3);
+}
+
+.scene__back {
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+.swipe.is-hint-right > .swipe__behind,
+.swipe.is-hint-left > .swipe__behind {
+  visibility: visible;
+}
+
+.swipe.is-hint-right > .swipe__behind {
+  background: var(--accent-dim);
+}
+
+.swipe.is-hint-left > .swipe__behind {
+  background: var(--danger-dim);
+}
+
+.swipe.is-hint-right .swipe__act--right,
+.swipe.is-hint-left .swipe__act--left {
+  opacity: 1;
+  transform: scale(0.82);
+}
+
+.swipe.is-hint-right > .swipe__surface {
+  animation: scene-hint-right 2.8s var(--ease) 900ms infinite;
+}
+
+.swipe.is-hint-left > .swipe__surface {
+  animation: scene-hint-left 2.8s var(--ease) 2300ms infinite;
+}
+
+@keyframes scene-hint-right {
+  0%,
+  42%,
+  100% {
+    transform: none;
+  }
+  14%,
+  28% {
+    transform: translateX(48px);
+  }
+}
+
+@keyframes scene-hint-left {
+  0%,
+  42%,
+  100% {
+    transform: none;
+  }
+  14%,
+  28% {
+    transform: translateX(-48px);
+  }
+}
+
+/* III · Agenda: la tira de verdad; en pantallas bajas las semanas se aprietan para que quepa el mes */
+
+.scene--month {
+  padding: 12px 18px 0;
+}
+
+.scene--month .agenda__month {
+  align-self: flex-start;
+}
+
+.scene--month .cal {
+  --cal-row: clamp(32px, 5.3dvh, 46px);
+}
+
+.scene--month .strip__num {
+  width: min(40px, var(--cal-row));
+  height: min(40px, var(--cal-row));
+}
+
+.scene--month.is-hinting .cal__handle span {
+  animation: scene-handle 1.8s var(--ease) 900ms infinite;
+}
+
+@keyframes scene-handle {
+  0%,
+  55%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(5px) scaleX(1.2);
+  }
+}
+
+.scene__below {
+  padding-top: 8px;
+}
+
+.scene__day {
+  margin: 6px 0 14px;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.scene__day span {
+  font-size: 0.6em;
+  font-style: italic;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+/* Filas sin texto: lo que habría ese día */
+.scene__ghost {
+  display: block;
+  width: 72%;
+  height: 11px;
+  margin-bottom: 20px;
+  border-radius: var(--r-xs);
+  background: var(--line);
+}
+
+.scene__ghost:nth-of-type(2) {
+  width: 48%;
+}
+
+.scene__ghost:nth-of-type(3) {
+  width: 60%;
+}
+
+/* IV · Rutinas: dos rutinas y, en el iPhone, el widget de la pantalla de bloqueo */
+
+.scene--routine {
+  gap: 18px;
+}
+
+.scene__routine {
+  list-style: none;
+}
+
+.scene__routine + .scene__routine {
+  border-top: 1px solid var(--line);
+}
+
+.scene__routine .routine__week {
+  padding-right: 2px;
+}
+
+/* Un trozo de pantalla de bloqueo: siempre de noche, como la pinta iOS */
+.lock {
+  flex: none;
+  padding: 12px 14px 14px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(170deg, var(--lock-top), var(--lock-bottom) 72%);
+  color: var(--lock-ink);
+}
+
+.lock__date {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  opacity: 0.78;
+}
+
+.lock__date::first-letter {
+  text-transform: uppercase;
+}
+
+.lock__widgets {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.lock__ring {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-full);
+  background: var(--lock-glass);
+  color: var(--lock-ink);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.lock__ring:active,
+.lock__card:active {
+  transform: scale(0.95);
+}
+
+.lock__ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lock__ring-track,
+.lock__ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.lock__ring-track {
+  stroke: var(--lock-glass);
+}
+
+.lock__ring-fill {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--ring, 0));
+  transition: stroke-dashoffset var(--dur-4) var(--ease-out);
+}
+
+/* En la pantalla de bloqueo iOS pinta los emojis en un solo tono */
+.lock__emoji {
+  position: relative;
+  font-size: 22px;
+  line-height: 1;
+  filter: grayscale(1) brightness(1.45);
+}
+
+.lock__card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  background: var(--lock-glass);
+  color: var(--lock-ink);
+  text-align: left;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.lock__glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+}
+
+.lock__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lock__lines b {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lock__lines b.is-done {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.lock__lines small {
+  font-size: var(--fs-xs);
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}

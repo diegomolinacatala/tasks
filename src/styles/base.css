@@ -77,6 +77,16 @@ h3 {
   background: var(--accent-dim);
 }
 
+/* El emoji de una rutina, entonado con el papel (`--emoji-tone`): a medio color y tirando a sepia */
+.emoji {
+  display: inline-block;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  filter: var(--emoji-tone);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

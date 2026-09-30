@@ -180,6 +180,22 @@ struct WidgetRoutine: Codable, Hashable, Identifiable {
     let days: [Int]
     /** Días hechos (`AAAA-MM-DD`) desde hace una semana. */
     var done: [String]
+    /** Su emoji, que sustituye a las iniciales. Falta en las fotos anteriores y en las rutinas sin él. */
+    var emoji: String? = nil
+
+    var hasEmoji: Bool {
+        !(emoji ?? "").isEmpty
+    }
+
+    /** El emoji si lo tiene; si no, sus iniciales: `Tomar creatina` → `TC`; una sola palabra, sus dos primeras letras. */
+    var badge: String {
+        if let emoji, !emoji.isEmpty { return emoji }
+        let words = title.split(separator: " ")
+        if words.count >= 2 {
+            return words.prefix(2).compactMap { word in word.first.map { String($0) } }.joined().uppercased()
+        }
+        return String(title.prefix(2)).capitalized
+    }
 
     func isDue(on day: String) -> Bool {
         guard let weekday = WidgetDay.weekday(of: day) else { return false }

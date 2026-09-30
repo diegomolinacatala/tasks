@@ -31,6 +31,8 @@ export interface WidgetTask {
 export interface WidgetRoutine {
   id: string
   title: string
+  /** Lo que enseña el widget en lugar de las iniciales. Falta en las fotos anteriores al emoji. */
+  emoji: string | null
   time: IsoTime | null
   /** 1 = lunes … 7 = domingo. */
   days: number[]
@@ -52,7 +54,7 @@ function widgetRoutines(routines: readonly Routine[], today: IsoDate): WidgetRou
   const since = addDays(today, -WIDGET_ROUTINE_DAYS)
   return [...routines]
     .sort(byRoutineOrder)
-    .map(({ id, title, time, days, done }) => ({ id, title, time, days, done: done.filter((day) => day >= since) }))
+    .map(({ id, title, emoji, time, days, done }) => ({ id, title, emoji, time, days, done: done.filter((day) => day >= since) }))
 }
 
 type Dated = Task & { date: IsoDate }

@@ -53,6 +53,11 @@ export const RoutineRow = memo(function RoutineRow({ routine, today }: RoutineRo
         </button>
         <button type="button" className="routine__main" onClick={() => actions.openRoutine(routine.id)}>
           <span className="row__title">
+            {routine.emoji && (
+              <span className="emoji routine__emoji" aria-hidden="true">
+                {routine.emoji}
+              </span>
+            )}
             <span className="row__text">{routine.title}</span>
           </span>
           <span className="routine__meta">{meta}</span>

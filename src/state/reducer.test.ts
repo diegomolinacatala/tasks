@@ -580,6 +580,21 @@ describe('rutinas', () => {
     expect(run(state, { type: 'routine/update', id: 'r', title: 'Tomar creatina', days: [7, 1] })).toBe(state)
   })
 
+  test('nace sin emoji salvo que se le dé uno, y solo uno', () => {
+    expect(routineOf(withRoutine()).emoji).toBeNull()
+    const state = run(emptyState(), { type: 'routine/add', title: 'Leer', days: [1], time: null, emoji: '📖 y más 📚' })
+    expect(routineOf(state).emoji).toBe('📖')
+  })
+
+  test('routine/update pone, cambia y quita el emoji sin tocar lo demás', () => {
+    const set = run(withRoutine(), { type: 'routine/update', id: 'r', emoji: '💊' })
+    expect(routineOf(set)).toMatchObject({ emoji: '💊', title: 'Tomar creatina', days: [1, 7], time: '10:00' })
+    expect(run(set, { type: 'routine/update', id: 'r', emoji: '💊' })).toBe(set)
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', days: [1] })).emoji).toBe('💊')
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', emoji: null })).emoji).toBeNull()
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', emoji: 'no' })).emoji).toBeNull()
+  })
+
   test('borrar y deshacer', () => {
     const state = withRoutine()
     const routine = routineOf(state)

@@ -239,7 +239,7 @@ describe('answerAsk', () => {
 test('una rutina tachada en el widget ya no vuelve a avisar hoy', () => {
   const state: AppState = {
     ...saved(),
-    routines: [{ id: 'r', title: 'Creatina', days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
+    routines: [{ id: 'r', title: 'Creatina', emoji: null, days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
   }
   const result = moveOverdue(
     {

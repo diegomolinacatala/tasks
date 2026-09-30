@@ -52,8 +52,9 @@ export type Action =
   | { type: 'place/update'; id: string; name?: string; location?: PlaceLocation | null; radius?: number }
   /** Quita también sus avisos de las tareas. */
   | { type: 'place/remove'; id: string }
-  | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; id?: string }
-  | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null }
+  | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; emoji?: string | null; id?: string }
+  /** `emoji: null` lo quita; sin el campo, se queda como está. */
+  | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null; emoji?: string | null }
   /** Tacha o destacha la rutina ese día. */
   | { type: 'routine/toggle'; id: string; date: IsoDate }
   /** Deja el día como se dice (lo marcado desde el widget o un aviso): repetirlo no cambia nada. */

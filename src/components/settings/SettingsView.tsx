@@ -3,7 +3,7 @@ import { backupFilename, parseBackup, serializeBackup } from '../../lib/backup'
 import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import { IconArrowUpRight, IconDownload, IconTrash, IconUpload } from '../ui/Icons'
+import { IconArrowUpRight, IconChevronRight, IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AppearancePicker } from './AppearancePicker'
 import { DictationBlock } from './DictationBlock'
@@ -14,8 +14,13 @@ const SITE = 'https://diegomolinacatala.github.io/tasks/'
 const APP_STORE = 'https://apps.apple.com/es/app/tasks-tareas-y-lugares/id6812776586'
 const CONFIRM_MS = 4000
 
+interface SettingsViewProps {
+  /** Volver a ver la bienvenida del primer día. */
+  onWelcome: () => void
+}
+
 /** Ajustes: una página propia, en grupos como los de iOS, con el papel y la tinta de la app. */
-export function SettingsView() {
+export function SettingsView({ onWelcome }: SettingsViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -145,6 +150,10 @@ export function SettingsView() {
       <section className="group">
         <h2 className="group__title">Tasks</h2>
         <div className="group__card">
+          <button type="button" className="group__row" onClick={onWelcome}>
+            <span className="group__label">Ver la bienvenida</span>
+            <IconChevronRight size={16} className="group__chevron" />
+          </button>
           {isNative && (
             <a className="group__row" href={`${APP_STORE}?action=write-review`} target="_blank" rel="noopener noreferrer">
               <span className="group__label">Valorar en la App Store</span>

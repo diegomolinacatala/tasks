@@ -5,14 +5,15 @@ import { createPersister, loadState } from '../lib/persistence'
 import type { AppState } from '../types'
 import type { Action } from './actions'
 import { emptyState, reducer } from './reducer'
-import { seedState } from './seed'
 
 const StateContext = createContext<AppState | null>(null)
 const DispatchContext = createContext<Dispatch<Action> | null>(null)
+const FirstRunContext = createContext(false)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, null, emptyState)
   const [hydrated, setHydrated] = useState(false)
+  const [firstRun, setFirstRun] = useState(false)
   const persister = useRef(createPersister()).current
 
   // Lo que mueve filas se anota antes y se anima después de pintar (lib/flip.ts): así completar,
@@ -28,9 +29,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    void loadState().then((stored) => {
+    void loadState().then((loaded) => {
       if (cancelled) return
-      dispatch({ type: 'state/replace', state: stored ?? seedState() })
+      dispatch({ type: 'state/replace', state: loaded.state })
+      setFirstRun(loaded.fresh)
       setHydrated(true)
     })
     return () => {
@@ -60,10 +62,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StateContext.Provider value={value}>
-      <DispatchContext.Provider value={dispatch}>{children}</DispatchContext.Provider>
+      <DispatchContext.Provider value={dispatch}>
+        <FirstRunContext.Provider value={firstRun}>{children}</FirstRunContext.Provider>
+      </DispatchContext.Provider>
     </StateContext.Provider>
   )
 }
+
+/** No había nada guardado al arrancar: instalación nueva, toca la bienvenida. */
+export const useFirstRun = (): boolean => useContext(FirstRunContext)
 
 export function useAppState(): AppState {
   const state = useContext(StateContext)

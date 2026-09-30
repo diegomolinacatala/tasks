@@ -42,6 +42,29 @@ export function weekDays(iso: IsoDate): IsoDate[] {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
 }
 
+/** Semanas que pinta un mes desplegado: seis caben siempre, y así no cambia de alto al pasar de mes. */
+export const MONTH_WEEKS = 6
+
+/** Día 1 del mes de `iso`. */
+export const startOfMonth = (iso: IsoDate): IsoDate => `${iso.slice(0, 8)}01`
+
+export const sameMonth = (a: IsoDate, b: IsoDate): boolean => a.slice(0, 7) === b.slice(0, 7)
+
+/** El mismo día de otro mes; si ese mes es más corto, su último día (31 ene + 1 → 28 feb). */
+export function addMonths(iso: IsoDate, months: number): IsoDate {
+  const from = fromIso(iso)
+  const target = new Date(from.getFullYear(), from.getMonth() + months, 1)
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(from.getDate(), lastDay))
+  return toIso(target)
+}
+
+/** Lunes de las seis semanas del mes de `iso`, empezando por la que contiene el día 1. */
+export function monthWeeks(iso: IsoDate): IsoDate[] {
+  const first = startOfWeek(startOfMonth(iso))
+  return Array.from({ length: MONTH_WEEKS }, (_, index) => addDays(first, index * 7))
+}
+
 const fmt = (iso: IsoDate, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(LOCALE, options).format(fromIso(iso))
 

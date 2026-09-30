@@ -212,6 +212,23 @@ export const IconHalf = (props: IconProps) => (
   </Icon>
 )
 
+/** Enviar lo escrito en el compositor. */
+export const IconArrowUp = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 19.5v-15M5.5 11 12 4.5l6.5 6.5" />
+  </Icon>
+)
+
+/** Hueco del emoji de una rutina que aún no tiene. */
+export const IconSmile = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M8.6 14.2a4.2 4.2 0 0 0 6.8 0" />
+    <circle cx="9.2" cy="10" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14.8" cy="10" r="1" fill="currentColor" stroke="none" />
+  </Icon>
+)
+
 export const IconArrowUpRight = (props: IconProps) => (
   <Icon {...props}>
     <path d="M7 17 17 7M9 7h8v8" />

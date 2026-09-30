@@ -1,5 +1,6 @@
 import type { IsoDate, Routine } from '../types'
 import { addDays, fromIso, isValidTime, isoOfInstant } from './date'
+import { cleanEmoji } from './emoji'
 
 /**
  * Rutinas: lo que toca ciertos días de la semana y amanece sin hacer cada uno de ellos ("tomar
@@ -168,6 +169,8 @@ export function normalizeRoutine(raw: unknown): Routine | null {
   return {
     id: raw.id,
     title,
+    // Las copias anteriores al emoji no lo traen: quedan sin él.
+    emoji: cleanEmoji(raw.emoji),
     days: cleanDays(Array.isArray(raw.days) ? raw.days : []),
     time: isValidTime(raw.time) ? raw.time : null,
     done,

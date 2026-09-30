@@ -1,5 +1,6 @@
 import { isValidTime } from '../lib/date'
 import { extendedDuration, normalizeDuration } from '../lib/duration'
+import { cleanEmoji } from '../lib/emoji'
 import { createId } from '../lib/id'
 import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
@@ -9,7 +10,7 @@ import { MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 
 export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' })
 
@@ -283,6 +284,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const routine: Routine = {
         id: action.id ?? createId(),
         title,
+        emoji: cleanEmoji(action.emoji),
         days: cleanDays(action.days),
         time: isValidTime(action.time) ? action.time : null,
         done: [],
@@ -297,8 +299,9 @@ export function reducer(state: AppState, action: Action): AppState {
         const title = action.title === undefined ? routine.title : clean(action.title) || routine.title
         const days = action.days === undefined ? routine.days : cleanDays(action.days)
         const time = action.time === undefined ? routine.time : isValidTime(action.time) ? action.time : null
-        const same = title === routine.title && sameDays(days, routine.days) && time === routine.time
-        return same ? routine : { ...routine, title, days, time }
+        const emoji = action.emoji === undefined ? routine.emoji : cleanEmoji(action.emoji)
+        const same = title === routine.title && sameDays(days, routine.days) && time === routine.time && emoji === routine.emoji
+        return same ? routine : { ...routine, title, days, time, emoji }
       })
 
     case 'routine/toggle':

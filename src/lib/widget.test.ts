@@ -135,6 +135,7 @@ describe('widgetToggles', () => {
 describe('rutinas en el widget', () => {
   const routine = (partial: Partial<Routine> & { id: string }): Routine => ({
     title: partial.id,
+    emoji: null,
     days: [1, 2, 3, 4, 5, 6, 7],
     time: null,
     done: [],
@@ -143,17 +144,17 @@ describe('rutinas en el widget', () => {
     ...partial,
   })
 
-  test('van en orden de hora y con el diario de la última semana', () => {
+  test('van en orden de hora, con su emoji y el diario de la última semana', () => {
     const state = {
       ...emptyState(),
       routines: [
         routine({ id: 'tarde', time: '18:00', done: ['2026-01-01', addDays(TODAY, -3), TODAY] }),
-        routine({ id: 'manana', time: '10:00', days: [1, 3] }),
+        routine({ id: 'manana', emoji: '☕', time: '10:00', days: [1, 3] }),
       ],
     }
     expect(widgetSnapshot(state, NOW).routines).toEqual([
-      { id: 'manana', title: 'manana', time: '10:00', days: [1, 3], done: [] },
-      { id: 'tarde', title: 'tarde', time: '18:00', days: [1, 2, 3, 4, 5, 6, 7], done: [addDays(TODAY, -3), TODAY] },
+      { id: 'manana', title: 'manana', emoji: '☕', time: '10:00', days: [1, 3], done: [] },
+      { id: 'tarde', title: 'tarde', emoji: null, time: '18:00', days: [1, 2, 3, 4, 5, 6, 7], done: [addDays(TODAY, -3), TODAY] },
     ])
   })
 

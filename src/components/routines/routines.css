@@ -58,6 +58,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Su emoji, delante del nombre y a su altura */
+.routine__emoji {
+  margin-right: 7px;
+  font-size: 0.95em;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+.routine.is-done .routine__emoji {
+  opacity: 0.55;
+}
+
 /* Hoy no toca: se ve, pero en segundo plano */
 .routine.is-off .row__title,
 .routine.is-off .row__check {
@@ -107,6 +118,124 @@
 }
 
 /* ── Panel de la rutina ───────────────────────────────────────────────── */
+
+/* El sello con su emoji, a la izquierda del nombre: tocarlo abre la lámina para elegir otro */
+.routine-name {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.routine-name .sheet__input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.routine-seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-2) var(--ease), background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.routine-seal.is-set {
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+
+.routine-seal.is-open {
+  box-shadow: inset 0 0 0 1.5px var(--gold);
+}
+
+.routine-seal:active {
+  background: var(--bg-press);
+  transform: scale(0.94);
+}
+
+.routine-seal__emoji {
+  font-size: 24px;
+  animation: seal-in var(--dur-3) var(--ease-pop);
+}
+
+@keyframes seal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* La lámina: ocho por fila, a 44 px de toque */
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: var(--sp-3);
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev-2);
+  animation: picker-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.emoji-picker__cell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 38px;
+  border-radius: var(--r-sm);
+  font-size: 21px;
+  color: var(--text-3);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease-pop);
+}
+
+.emoji-picker__cell:active {
+  transform: scale(0.86);
+}
+
+.emoji-picker__cell.is-active {
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1.5px var(--gold), var(--shadow-card);
+}
+
+.emoji-picker__none.is-active {
+  color: var(--text);
+}
+
+/* Cualquier otro, con el teclado de emojis: ocupa lo que queda de la última fila */
+.emoji-picker__other {
+  grid-column: span 3;
+  align-self: center;
+  min-width: 0;
+  height: 34px;
+  margin: 0 4px;
+  padding: 0 10px;
+  border-radius: var(--r-full);
+  border: 1px dashed var(--line-2);
+  color: var(--text);
+  text-align: center;
+}
+
+.emoji-picker__other::placeholder {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+.emoji-picker__other:focus {
+  border-style: solid;
+  border-color: var(--accent-line);
+}
 
 .days-picker {
   display: grid;

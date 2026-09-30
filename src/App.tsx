@@ -1,7 +1,9 @@
 import { Activity, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
+import { composeTargets } from './lib/compose'
 import { dayNameLong, dayNumber, relativeLabel } from './lib/date'
+import { suggestEmoji } from './lib/emoji'
 import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
 import { draftsFromInterpreted } from './lib/interpret'
@@ -14,10 +16,9 @@ import { parseRoutine } from './lib/repeat'
 import { ALL_DAYS, MAX_ROUTINES } from './lib/routines'
 import { applyTheme } from './lib/theme'
 import { useToday } from './hooks/useToday'
-import { useAppState, useDispatch } from './state/StoreProvider'
+import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
 import { isOverdue } from './state/selectors'
 import type { TabId, Task, TaskDraft } from './types'
-import type { QuickTarget } from './components/compose/Composer'
 import { Composer } from './components/compose/Composer'
 import { SizingContext } from './components/importance/sizing'
 import { useAddTasks } from './components/compose/useAddTasks'
@@ -50,9 +51,34 @@ const PlaceTasksSheet = lazy(() =>
 )
 const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
 const NativeInbox = lazy(() => import('./components/shell/NativeInbox').then((module) => ({ default: module.NativeInbox })))
+// La bienvenida solo se ve una vez (o desde Ajustes). Si su trozo no llegara a cargarse, la app se abre igual.
+const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
+  import('./components/welcome/Welcome').then(
+    (module) => ({ default: module.Welcome }),
+    () => ({ default: WelcomeUnavailable }),
+  ),
+)
+
+interface WelcomeHandlers {
+  onReady?: () => void
+  onDone: () => void
+}
+
+function WelcomeUnavailable({ onReady, onDone }: WelcomeHandlers) {
+  useEffect(() => {
+    onReady?.()
+    onDone()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
 
 /** Las pestañas donde se escribe y se ordena: llevan el compositor y el modo "Aa". */
 const WRITING: ReadonlySet<TabId> = new Set(['inbox', 'agenda'])
+
+/** Tocar el velo (o cualquier cosa que no sea la barra) suelta el teclado. */
+const stopComposing = () => {
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+}
 
 export function App() {
   const state = useAppState()
@@ -78,6 +104,11 @@ export function App() {
   const [focusRequest, setFocusRequest] = useState(0)
   // Modo "Aa": las filas enseñan su mando de importancia en lugar del asa de mover.
   const [sizing, setSizing] = useState(false)
+  // La barra de escribir tiene el foco: las pestañas se apartan y la lista queda tras un velo.
+  const [composing, setComposing] = useState(false)
+  // La bienvenida: sola la primera vez que se abre la app, y a petición desde Ajustes.
+  const firstRun = useFirstRun()
+  const [welcome, setWelcome] = useState(firstRun)
   // Tras el primer cambio de pestaña, las pestañas entran con su animación (en el arranque, no).
   const [switched, setSwitched] = useState(false)
   const scrollers = useRef<Partial<Record<TabId, HTMLDivElement | null>>>({})
@@ -88,11 +119,12 @@ export function App() {
   useEffect(() => applyTheme(state.settings.theme), [state.settings.theme])
 
   useEffect(() => {
-    // Ya hay estado pintado: se funde el arranque (#boot) y la app entra.
-    finishBoot()
+    // Ya hay estado pintado: se funde el arranque (#boot) y la app entra. Con bienvenida lo funde
+    // ella cuando está pintada (`onReady`): así no llega a verse la app vacía por debajo.
+    if (!welcome) finishBoot()
     if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
     void loadSheets()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pasada la medianoche con la app abierta, si se miraba "hoy", se sigue mirando hoy.
   const previousToday = useRef(today)
@@ -167,10 +199,11 @@ export function App() {
   const addRoutine = (draft: RoutineDraft) => {
     if (!roomForRoutine()) return
     const id = createId()
-    dispatch({ type: 'routine/add', id, title: draft.title, days: draft.days, time: draft.time })
+    const emoji = suggestEmoji(draft.title)
+    dispatch({ type: 'routine/add', id, title: draft.title, days: draft.days, time: draft.time, emoji })
     haptic('success')
     toast({
-      message: `Rutina: ${draft.title} · ${draft.label}`,
+      message: `Rutina: ${emoji ? `${emoji} ` : ''}${draft.title} · ${draft.label}`,
       actionLabel: tab === 'inbox' ? 'Deshacer' : 'Ver',
       onAction: () => (tab === 'inbox' ? dispatch({ type: 'routine/remove', id }) : go('inbox')),
     })
@@ -180,7 +213,7 @@ export function App() {
   const makeRoutine = (task: Task) => {
     if (!roomForRoutine()) return
     const id = createId()
-    dispatch({ type: 'routine/add', id, title: task.title, days: [...ALL_DAYS], time: task.time })
+    dispatch({ type: 'routine/add', id, title: task.title, days: [...ALL_DAYS], time: task.time, emoji: suggestEmoji(task.title) })
     dispatch({ type: 'task/remove', id: task.id })
     haptic('success')
     openTask(null)
@@ -256,7 +289,8 @@ export function App() {
   const inAgenda = tab === 'agenda'
   const near = relativeLabel(day, today)
   const target = day === today ? 'a hoy' : near === 'Mañana' ? 'a mañana' : `al ${dayNameLong(day)} ${dayNumber(day)}`
-  const quick: QuickTarget = inAgenda ? { label: 'Sin fecha', date: null } : { label: 'Hoy', date: today }
+  // Adónde puede ir lo escrito: primero donde se está mirando, después los sitios de siempre.
+  const targets = useMemo(() => composeTargets(inAgenda ? day : null, today), [inAgenda, day, today])
 
   const pane = (id: TabId, content: ReactNode) =>
     visited.has(id) && (
@@ -274,7 +308,12 @@ export function App() {
 
   return (
     <RowActionsContext.Provider value={rowActions}>
-      <div className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''}`}>
+      <div
+        inert={welcome}
+        className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
+          writing ? 'has-composer' : ''
+        } ${writing && composing ? 'is-composing' : ''}`}
+      >
         {writing && (
           <button
             type="button"
@@ -292,22 +331,26 @@ export function App() {
             {pane('inbox', <InboxView today={today} />)}
             {pane('agenda', <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} />)}
             {pane('places', <PlacesView />)}
-            {pane('settings', <SettingsView />)}
+            {pane('settings', <SettingsView onWelcome={() => setWelcome(true)} />)}
           </SizingContext.Provider>
+          {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
+          <button type="button" className="app__veil" tabIndex={-1} aria-label="Dejar de escribir" aria-hidden={!composing} onClick={stopComposing} />
         </main>
 
         <div className="app__bar">
           {writing && (
-            <Composer
-              defaultDate={inAgenda ? day : null}
-              placeholder={inAgenda ? `Añadir ${target}` : 'Añadir a la bandeja'}
-              quick={quick}
-              places={places}
-              focusRequest={focusRequest}
-              onSubmit={addTask}
-              onRoutine={addRoutine}
-              onVoice={addFromVoice}
-            />
+            <div className="app__dock">
+              <Composer
+                targets={targets}
+                placeholder={inAgenda ? `Añadir ${target}` : 'Añadir a la bandeja'}
+                places={places}
+                focusRequest={focusRequest}
+                onSubmit={addTask}
+                onRoutine={addRoutine}
+                onVoice={addFromVoice}
+                onComposing={setComposing}
+              />
+            </div>
           )}
           <TabBar tab={tab} overdue={hasOverdue} onChange={go} onReselect={reselect} />
         </div>
@@ -325,6 +368,11 @@ export function App() {
           </Suspense>
         )}
       </div>
+      {welcome && (
+        <Suspense fallback={null}>
+          <Welcome onReady={finishBoot} onDone={() => setWelcome(false)} />
+        </Suspense>
+      )}
     </RowActionsContext.Provider>
   )
 }
