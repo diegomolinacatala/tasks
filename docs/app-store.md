@@ -12,7 +12,7 @@ actualizaciones. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o
 | 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |
 | Unir `capacitor` con `main` | Hecho (17/09/2026). El Worker se despliega solo desde `main` |
 | 6 Publicar en la App Store | Hecho. En la App Store desde el 27/09/2026: la 1.0 con la compilación 24, tras dos rechazos (§7 y §8) |
-| 9 Actualizaciones | Versión en curso: 1.1 |
+| 9 Actualizaciones | 1.2 publicada el 30/09/2026 (compilación 29). Versión en curso: 1.3 (§9.5) |
 
 ## 1. Primera compilación en TestFlight
 
@@ -592,12 +592,12 @@ versión nueva y su revisión. Lo demás sigue igual:
 Release) es la versión que se publica y tiene que ser mayor que la última aprobada: App Store Connect
 rechaza las compilaciones de una versión ya aprobada y el CI falla al subir (`ITMS-90186`,
 `ITMS-90062`), también la ejecución programada del día 1. Por eso, **en cuanto Apple apruebe una
-versión, se sube** (1.2 → 1.3…) antes del siguiente push que toque la app. Ahora es la 1.2.
+versión, se sube** (1.3 → 1.4…) antes del siguiente push que toque la app. Ahora es la 1.3.
 
 ### 9.2 Probar la compilación (tú, en el iPhone)
 
 1. Tras el push, *Actions* → **iOS** en verde; entre 5 y 30 minutos después TestFlight enseña
-   **1.2 (N)**.
+   **1.3 (N)**.
 2. *TestFlight* → Tasks → **Actualizar**, y probar.
 
 En el iPhone solo cabe una: la de TestFlight (punto naranja junto al nombre) sustituye a la de la App
@@ -631,7 +631,8 @@ otra, **···** → *Exportar copia* → *Guardar en Archivos*.
 
 La primera actualización grande: cuatro pestañas, agenda con horario, rutinas, modo oscuro, el mes
 desplegable, los emojis, la barra de escribir nueva y la bienvenida. Compilación: la **1.2 (29)**, de
-`capacitor` (commit `14fe2f2`). Cambia casi toda la ficha, así que además de los pasos de §9.3:
+`capacitor` (commit `14fe2f2`); publicada el 30/09/2026. Cambia casi toda la ficha, así que además de
+los pasos de §9.3:
 
 - **Capturas**: borrar las que haya en 6,9" y subir las nueve de `docs/capturas/`, de `1-agenda` a
   `9-widget`, en ese orden.
@@ -659,4 +660,20 @@ Tasks se ha rehecho de arriba abajo.
 
 ```
 Nuevo: agenda con horario, rutinas con emoji que se tachan desde la pantalla de bloqueo, el mes entero de un tirón y modo oscuro.
+```
+
+### 9.5 La 1.3 (en preparación)
+
+La ficha del compositor y la bienvenida también al actualizar. **Detalles** (o tirar del asa de la barra
+de escribir) la despliega en una ficha con todo lo de una tarea antes de añadirla; y la bienvenida, que
+en la 1.2 solo salía en una instalación nueva, sale ahora también a quien actualiza (a todos los que
+vienen de la 1.2 o antes, entera; después, solo las láminas nuevas). Pasos de §9.3; la ficha de la
+tienda no cambia salvo, si se quiere, una captura de la ficha.
+
+**Novedades de esta versión**
+
+```
+• Detalles al escribir: toca Detalles (o tira de la barra hacia arriba) y elige el día, la hora, la duración, los avisos, la sección, la importancia o si se repite antes de añadir la tarea.
+• Duración en una regla: arrastra para elegir cuánto dura y mantén el dedo al final para alargarla, hasta medio día.
+• La bienvenida sale también al actualizar, con lo nuevo de cada versión.
 ```

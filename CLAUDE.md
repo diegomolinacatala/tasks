@@ -119,13 +119,35 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   ventana vivos y la siguiente ejecución hablaba con uno viejo (su service worker servía la web de
   entonces); `app-store-shots.mjs` además limpia el origen antes de empezar.
 
+- **Publicada la 1.2** (30/09/2026) con la compilación 29. `MARKETING_VERSION` subido a **1.3**.
+- **Bienvenida también tras actualizar** (01/10/2026, en `capacitor`, sin subir aún): a unos amigos
+  no les salió. La 1.2 (29) solo la enseña en una instalación nueva (`loadState().fresh`), así que quien
+  tenía la 1.1 y actualizó no la ve nunca. Ahora sale también al actualizar si trae láminas que ese
+  dispositivo no ha visto (ver "Bienvenida"). Ningún estado guardado hasta ahora sabe nada de ella, así
+  que con la 1.3 la ve entera todo el mundo, también quien ya la vio en la 1.2. `SCHEMA_VERSION` 11.
+- **Ficha del compositor** (01/10/2026, en `capacitor`, sin subir aún): **Detalles** o tirar del asa de
+  la barra de escribir la despliega en una ficha con todo lo de una tarea (ver "Ficha del compositor"),
+  como el mini reproductor de Spotify se abre en el reproductor. Lámina nueva en la bienvenida
+  (*Detalles*, versión 2). Los campos del panel de la tarea se sacaron a piezas compartidas
+  (`task/fields.tsx`, `DurationPicker` y `ReminderPicker` controlados) sin cambiar su comportamiento.
+  Probado con Edge sin ventana y dedo simulado (claro, oscuro, 390 × 844 y 375 × 667: escribir,
+  desplegar, cambiar campos, plegar, añadir tarea y rutina, el asa, la ×, y el panel de una tarea); 665
+  tests.
+- **Regla de la duración** (01/10/2026, en `capacitor`, sin subir aún): los atajos de duración (dos
+  filas de píldoras) pasan a ser una regla que se arrastra y se estira manteniendo el dedo al final (ver
+  "Duración y aviso de cierre"), en el panel de la tarea, la ficha y la lámina *Detalles*. Y los
+  ejemplos de la bienvenida nombran a Carlota. Probado con dedo simulado (arrastrar, estirar dos veces,
+  soltar, quitarla, tocar, la ×; claro y oscuro, 390 × 844 y 375 × 667); 676 tests.
+
 **Pendiente, en este orden**
 
-0. **Enviar la 1.2** (`docs/app-store.md` §9.3 y §9.4). Antes, probar la TestFlight 29 en el iPhone:
-   tocar la barra de escribir (que las pestañas se quiten en el acto y la tarjeta suba con el
-   teclado), tirar de la tira hacia abajo y pasar de mes, una rutina con emoji en el widget de bloqueo
-   y en el de inicio, y la bienvenida (Ajustes → *Ver la bienvenida*). Después de enviarla, unir
-   `capacitor` a `main` para que la web pública lleve la misma interfaz.
+0. **Subir la 1.3** (push a `capacitor`) y probar la TestFlight en el iPhone. Al instalarla encima de la
+   1.2 tiene que salir la portada de novedades ("Hay cosas nuevas"). En la barra de escribir: tocar
+   **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
+   en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
+   la ficha. La regla de la duración: que arrastrar no mueva el panel, que la vibración de cada paso no
+   canse y que mantener al final se note (halo de oro y vibración al estirarse). Si va bien, enviarla (`docs/app-store.md` §9.3 y §9.5) y unir `capacitor` a `main` para
+   que la web pública lleve la misma interfaz.
 1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
    rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
    el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
@@ -147,7 +169,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    tareas sigan ahí tras forzar el cierre.
 
 Cualquier cambio de la app llega a la App Store con una versión nueva: `docs/app-store.md` §9. En
-cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.2 → 1.3…) antes del siguiente push que toque
+cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.3 → 1.4…) antes del siguiente push que toque
 la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
 ejecución programada).
 
@@ -214,11 +236,12 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (132,6 el 30/09/2026 con `npm run build`, con el mes desplegable, los destinos de la barra y el
-emoji; 129,6 el commit anterior): lo que solo existe en el
+gzip (134,2 el 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
+30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
-(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa", la bienvenida) se carga con
-`import()` o `lazy`.
+(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa", la bienvenida, la ficha del
+compositor) se carga con `import()` o `lazy`. Los campos de tarea (`task/fields.tsx` y los pickers)
+van en un trozo que comparten el panel de la tarea y la ficha.
 La Bandeja y los paneles de tarea y sección van en su propio trozo, pedido nada más pintar la Agenda
 (`loadSheets` en `App.tsx`): no esperan al toque.
 
@@ -231,11 +254,13 @@ src/
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
 │   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes, semanas de un mes
-│   ├── compose.ts        # destinos del compositor ("Hoy", "Mañana", "Jue 2", "Sin fecha")
+│   ├── compose.ts        # destinos del compositor ("Hoy", "Mañana", "Jue 2", "Sin fecha") y "Añadir a…"
+│   ├── details.ts        # la ficha del compositor: campos, reglas entre ellos, resumen y lo que se añade
 │   ├── emoji.ts          # emoji de una rutina: sanearlo, los del selector y el que le pega a un nombre
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
+│   ├── ruler.ts          # la regla de la duración: tramos que se estiran, paso, minutos en un punto y marcas
 │   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
 │   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
 │   ├── timeline.ts       # horario de un día: lo que tiene hora, tiempo libre y "ahora"
@@ -262,6 +287,7 @@ src/
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
 │   ├── transition.ts     # View Transitions API con degradación
 │   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
+│   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider
@@ -269,11 +295,12 @@ src/
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
     ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, useDayBoard), InboxView (+ DayDock)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet (constancia), EmojiPicker
-    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, gestos, mes y rutinas
-    ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions
+    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes y rutinas
+    ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
+    ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
     ├── settings/         # SettingsView (página), AppearancePicker, avisos, dictado
-    └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, compose, push, dnd
+    └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
 ios/App/TasksWidget/      # widgets Hoy y Rutinas; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
@@ -377,20 +404,38 @@ asoman atenuados. Cada día del mes es también un sitio donde soltar una tarea 
 
 La primera vez (no hay nada guardado: `useFirstRun`, que sale de `loadState().fresh`) se abre
 `Welcome` en lugar de tareas de ejemplo: la app empieza vacía. También desde Ajustes → *Ver la
-bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual.
+bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual (y no se da por vista).
+
+- **Tras actualizar** también sale (`lib/welcome.ts`): cada lámina lleva la versión de la bienvenida en
+  que entró (`PLATE_SINCE`) y el dispositivo guarda la última que cerró (`Settings.welcome`, 0 =
+  ninguna; los estados de antes de la 1.3 no la traen, así que con la 1.3 la ve entera todo el mundo).
+  Al abrir, `welcomeOnLaunch`: entera si es la primera vez; si hay láminas posteriores a lo visto, solo
+  esas, numeradas desde la I y con la **portada de novedades** ("Hay cosas nuevas", **Ver lo nuevo** /
+  **Saltar**, y **Listo** al final); si no, nada. Acabarla o saltarla la da por vista
+  (`settings/welcome`, que nunca baja). Es del dispositivo, como la apariencia: importar una copia o
+  borrarlo todo no la cambia.
+- **Lámina nueva, o una que cambie para enseñar algo nuevo**: en `PLATE_SINCE` con la versión siguiente
+  a la mayor que haya (`WELCOME_VERSION` sale sola). Sin eso, quien actualiza no la ve.
+- El estado de ejemplo de las capturas (`scripts/sample-state.mjs`) la da por vista (`welcome: 999`)
+  para que no tape las capturas.
 
 - **Portada**: la señal en el centro exacto y a 92 px, donde la deja `#boot` (`MARK_PATH` en
   `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
   entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
   (`onReady`): no llega a verse la app vacía.
-- **Cuatro láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
-  sale cuando el analizador de verdad entiende la frase), *Gestos* (dos `SwipeRow` reales: tachar y
+- **Cinco láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+  sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
+  Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
+  `lib/details.ts`; al plegarla queda el resumen), *Gestos* (dos `SwipeRow` reales: tachar y
   borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes) y *Rutinas* (tacharlas; en el
   iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez). Hasta que se tocan, las
-  escenas se mueven un poco para decir por dónde se cogen.
+  escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
+  (`composer__foot`, `composer__more`…): si cambia la barra de escribir, mirarlas.
 - Nada obliga: **Continuar**, atrás, **Saltar** y Escape. Con `prefers-reduced-motion`, la primera
   lámina enseña el resultado sin teclear. Mientras está abierta, la app de debajo va con `inert`.
 - Es la única pantalla con texto explicativo: un titular y una frase por lámina.
+- Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…"), la novia del usuario:
+  lo pidió él. No cambiarlo.
 
 ### Arranque
 
@@ -531,9 +576,16 @@ notificación, sin entrar.
   a la vez, y la franja del final vale para el inicio si el tramo sigue hacia delante ("de 9 a 11
   de la noche" es 21:00–23:00; "de 10 a 2 de la tarde", 10:00–14:00). Lo que no se dice no dura:
   nunca se supone.
-- En el panel, **Duración** va debajo de Hora: atajos (15 min, 30 min, 1 h, 2 h), `Hasta…` para la
-  hora exacta de acabar, y una línea que dice a qué hora será la pregunta. La fila enseña el tramo
-  (`17:30–18:30`) en lugar de la hora suelta.
+- En el panel (y en la ficha del compositor), **Duración** va debajo de Hora y es una **regla**
+  (`DurationPicker`, `lib/ruler.ts`): una regla de papelería con las horas en oro, la tinta marina de
+  la hora de empezar a la de acabar y un sello en la punta. Se arrastra o se toca (5 en 5 min en la de
+  dos horas); **mantener el dedo al final** (480 ms) llena de oro un halo alrededor del sello y la regla
+  se estira (2 h → 4 h → 8 h → medio día, con vibración; las marcas se aprietan desde donde estaban) y
+  marca todo lo que abarca ahora; seguir manteniendo la vuelve a estirar. Al soltar, la regla vuelve al
+  tramo que le queda holgado (`spanFor`), así que lo corto se ajusta con precisión. A la izquierda del
+  todo o con la ×, sin duración; arriba, la duración en serif y "17:00 → 18:30", donde la hora de
+  acabar abre la rueda para ponerla exacta. Debajo, la línea que dice a qué hora será la pregunta. La
+  fila enseña el tramo (`17:30–18:30`) en lugar de la hora suelta.
 - Categoría de botones `task-ask` en el iPhone; en la PWA, acciones `done` y `again` del push.
 - **En el iPhone los botones no abren la app** ni piden desbloquear (sin `foreground`): iOS la arranca
   en segundo plano, sin WebView, y `NotificationResponder.swift` (delegado de notificaciones, puesto
@@ -611,6 +663,39 @@ También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes",
 las 9", "el día antes") y números en palabras: `normalize.ts` los pasa a dígitos guardando de
 qué parte del original viene cada carácter, para recortar bien el título. Si la frase pide
 avisos concretos, no se añade el de "a la hora".
+
+### Ficha del compositor
+
+Para decidirlo todo antes de añadir, sin tener que añadir la tarea y abrirla después. La referencia es
+Spotify: la barra es su mini reproductor y la ficha, el reproductor que se abre al tocarlo.
+
+- **Cómo se abre**: **Detalles** (a la derecha de los destinos, quieto mientras las píldoras se deslizan)
+  o el **asa** de arriba de la tarjeta: tirar hacia arriba (sigue al dedo con resistencia, `usePullUp`)
+  o tocarla. La ficha (`ComposeSheet`, en su propio trozo, pedido en cuanto se toca la barra) es un
+  `Sheet` con pie fijo (`footer`): arriba, como "Reproduciendo" en Spotify, la flecha para plegar y qué
+  se crea y adónde va ("Nueva tarea · Mañana"); el título en grande; **Cuándo**, **Hora**,
+  **Duración**, **Recordatorios**, **Repetir**, **Sección** e **Importancia** (los mismos campos que el
+  panel de la tarea: `task/fields.tsx`, `DurationPicker`, `ReminderPicker`, `ImportanceScale`); y abajo,
+  siempre a mano, **Añadir a mañana** / **Añadir a la bandeja** / **Crear rutina** (`addLabel`). La
+  barra sube y se desvanece mientras la ficha ocupa su sitio (`.composer.is-expanded`).
+- **Lo que ya decía la frase pasa a los campos** al desplegarla (`detailsFrom`) y del texto queda solo
+  el título: lo que se ve es lo que se va a crear. Desde ese momento la frase ya no se interpreta (la
+  ficha manda) hasta que se añade o se quita con la ×.
+- **Plegarla** (la flecha, el asa, tocar fuera) no pierde nada: la barra enseña lo decidido en píldoras
+  (`detailsSummary`: "Mañana · 17:00–18:00", "A la hora", la sección, la importancia; o "Cada día ·
+  10:00"), que vuelven a abrir la ficha, una **×** que lo quita (vuelven los destinos y, si el título
+  no se tocó, la frase entera tal como se escribió) y Detalles solo con su icono. Se añade igual con
+  Intro o el botón redondo. Borrar todo el texto de la barra quita también la ficha (es empezar otra).
+  En una rutina el último día no se puede quitar (como en su panel); una rutina que no cabe (50) deja
+  la ficha como estaba.
+- **Reglas** (`lib/details.ts`, puras y con tests): sin fecha no hay hora, duración, sección ni avisos
+  "antes"; poner hora trae el aviso "a la hora" (como al escribirla) salvo que ya haya uno relativo;
+  quitar la hora quita la duración. **Repetir** (cada día, entre semana, fines de semana o días
+  sueltos) la convierte en rutina: la ficha se queda con los días y el **Aviso** (su hora, sin día), y
+  al añadir se crea con `onRoutine` y su emoji. La importancia y la sección viajan en el `TaskDraft`
+  hasta `task/add` (también por la bandeja: `InboxTask.importance` y `sectionId`, opcionales).
+- Intro en el título suelta el teclado (deja ver los campos); añadir es el botón de abajo. Tras añadir,
+  la ficha baja y la barra queda vacía.
 
 ### Elegir fecha u hora a mano (`PickerChip`)
 

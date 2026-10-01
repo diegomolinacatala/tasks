@@ -56,6 +56,10 @@ export interface TaskDraft {
   reminders: ReminderDraft[]
   /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
   newPlace?: { name: string; on: PlaceTrigger }
+  /** Del 1 al 10, si se eligió en la ficha del compositor; si no, la normal. */
+  importance?: number
+  /** Sección del día, si se eligió en la ficha del compositor; si no, ninguna. */
+  sectionId?: string | null
 }
 
 export interface Section {
@@ -123,6 +127,11 @@ export interface Settings {
   dictation: boolean
   /** Apariencia de este dispositivo. Como el dictado, importar una copia no la cambia. */
   theme: Theme
+  /**
+   * Última versión de la bienvenida que se cerró en este dispositivo (`lib/welcome.ts`); 0 = ninguna.
+   * Si la app trae láminas posteriores, salen al abrirla. Importar una copia no la cambia.
+   */
+  welcome: number
 }
 
 export interface AppState {

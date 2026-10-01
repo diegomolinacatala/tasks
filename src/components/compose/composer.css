@@ -7,11 +7,46 @@
   background: var(--bg-elev);
   box-shadow: var(--shadow-card), inset 0 0 0 1px var(--line);
   pointer-events: auto;
-  transition: box-shadow var(--dur-2) var(--ease);
+  transition: box-shadow var(--dur-2) var(--ease), transform var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease);
 }
 
 .composer.is-active {
   box-shadow: var(--shadow-lift), inset 0 0 0 1px var(--accent-line);
+}
+
+/* Desplegada en la ficha: la barra sube y se desvanece mientras la ficha ocupa su sitio, como el mini
+   reproductor de Spotify al abrirse. Al plegarla, vuelve a bajar a donde estaba */
+.composer.is-expanded {
+  opacity: 0;
+  transform: translate3d(0, -14px, 0) scale(0.98);
+  pointer-events: none;
+}
+
+/* El asa: tirar de ella hacia arriba (o tocarla) despliega la ficha. Franja alta de toque, raya fina;
+   pisa el borde de arriba de la línea, que está vacío (el texto va centrado) */
+.composer__grab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  height: 22px;
+  margin-bottom: -12px;
+  padding-top: 6px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.composer__grab span {
+  width: 30px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--line-2);
+  transition: width var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+
+.composer__grab:active span {
+  width: 40px;
+  background: var(--accent-line);
 }
 
 .composer__line {
@@ -75,16 +110,89 @@
   }
 }
 
-/* La bandeja de píldoras: qué se ha entendido y adónde va. Se desliza a los lados si no caben */
+/* El pie de la tarjeta: las píldoras, que se deslizan a los lados, y Detalles, que se queda quieto */
+.composer__foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 10px 0;
+  animation: tray-in var(--dur-3) var(--ease-out);
+}
+
+/* La bandeja de píldoras: qué se ha entendido y adónde va. Se desliza a los lados si no caben y se
+   desvanece al llegar a Detalles */
 .composer__tray {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 10px 10px;
+  padding: 0 14px 0 10px;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  animation: tray-in var(--dur-3) var(--ease-out);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+
+/* Detalles: la puerta a la ficha. Con algo decidido, en coñac */
+.composer__more {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 13px 0 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.composer__more:active {
+  background: var(--bg-press);
+  transform: scale(0.95);
+}
+
+.composer__more.has-details {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+}
+
+/* Quitar lo decidido en la ficha: vuelve a mandar lo que dice la frase */
+.composer__clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-2);
+  animation: quick-in var(--dur-2) var(--ease-out);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.composer__clear:active {
+  transform: scale(0.9);
+}
+
+/* Lo decidido en la ficha, resumido: tocar cualquiera la vuelve a desplegar */
+.composer__target.is-detail {
+  gap: 5px;
+  color: var(--text);
+  animation: quick-in var(--dur-2) var(--ease-out);
+}
+
+.composer__target.is-detail.is-active {
+  color: var(--on-primary);
 }
 
 .composer__tray::-webkit-scrollbar {

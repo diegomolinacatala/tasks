@@ -4,7 +4,10 @@ import { createPortal } from 'react-dom'
 import { MARK_PATH } from '../../lib/boot'
 import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
+import type { PlateId, WelcomeRun } from '../../lib/welcome'
+import { platesAfter } from '../../lib/welcome'
 import { IconChevronLeft } from '../ui/Icons'
+import { DetailsScene } from './DetailsScene'
 import { MonthScene } from './MonthScene'
 import { RoutineScene } from './RoutineScene'
 import { SwipeScene } from './SwipeScene'
@@ -12,33 +15,42 @@ import { WriteScene } from './WriteScene'
 import './welcome.css'
 
 interface WelcomeProps {
+  /** Qué láminas tocan y si la portada presenta la app o anuncia lo nuevo (`lib/welcome.ts`). */
+  run: WelcomeRun
   /** Ya está pintada: se puede fundir la pantalla de arranque que tiene encima. */
   onReady?: () => void
   onDone: () => void
 }
 
 interface Plate {
-  id: string
-  numeral: string
+  id: PlateId
   kicker: string
   title: string
   text: string
   Scene: ComponentType
 }
 
-/** Cada lámina es un trozo de la app de verdad, para probarlo con el dedo antes de empezar. */
+/**
+ * Cada lámina es un trozo de la app de verdad, para probarlo con el dedo antes de empezar. Una lámina
+ * nueva lleva su versión en `PLATE_SINCE` (`lib/welcome.ts`): así sale también a quien actualiza.
+ */
 const PLATES: readonly Plate[] = [
   {
     id: 'write',
-    numeral: 'I',
     kicker: 'Escribir',
     title: 'Escribe como hablas.',
     text: 'El día, la hora y los avisos salen solos de la frase.',
     Scene: WriteScene,
   },
   {
+    id: 'details',
+    kicker: 'Detalles',
+    title: 'Todo, antes de añadir.',
+    text: 'Toca Detalles o tira de la barra hacia arriba: día, hora, avisos y si se repite.',
+    Scene: DetailsScene,
+  },
+  {
     id: 'swipe',
-    numeral: 'II',
     kicker: 'Gestos',
     title: 'Un gesto y listo.',
     text: 'A la derecha, hecha. A la izquierda, fuera. Pruébalo.',
@@ -46,7 +58,6 @@ const PLATES: readonly Plate[] = [
   },
   {
     id: 'month',
-    numeral: 'III',
     kicker: 'Agenda',
     title: 'De la semana al mes.',
     text: 'Tira de los días hacia abajo y salta a cualquier fecha.',
@@ -54,7 +65,6 @@ const PLATES: readonly Plate[] = [
   },
   {
     id: 'routine',
-    numeral: 'IV',
     kicker: 'Rutinas',
     title: 'Lo de cada día.',
     text: isNative
@@ -64,16 +74,26 @@ const PLATES: readonly Plate[] = [
   },
 ]
 
+/** Las láminas se numeran según salen: tras una actualización, lo nuevo empieza en I. */
+const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
+
 /** Lo que dura la salida (`.welcome.is-leaving` en welcome.css). */
 const EXIT_MS = 420
 
 /**
  * La bienvenida de la primera vez (y de Ajustes → «Ver la bienvenida»): una portada con la señal, que
- * toma el relevo de la pantalla de arranque sin que se note, y cuatro láminas que no explican la app
- * sino que dejan usarla: escribir una frase, deslizar una fila, desplegar el mes, tachar una rutina.
+ * toma el relevo de la pantalla de arranque sin que se note, y unas láminas que no explican la app
+ * sino que dejan usarla: escribir una frase, desplegar sus detalles, deslizar una fila, desplegar el
+ * mes, tachar una rutina.
+ * Tras una actualización sale igual, con la portada de novedades y solo las láminas nuevas.
  * Nada obliga: se avanza con el botón, se vuelve atrás y «Saltar» está siempre a mano.
  */
-export function Welcome({ onReady, onDone }: WelcomeProps) {
+export function Welcome({ run, onReady, onDone }: WelcomeProps) {
+  // Lo que toca se fija al abrir: no cambia mientras se recorre.
+  const [plates] = useState(() => {
+    const due = platesAfter(PLATES, run.after)
+    return due.length ? due : PLATES
+  })
   // 0 es la portada; del 1 en adelante, las láminas.
   const [step, setStep] = useState(0)
   const [backwards, setBackwards] = useState(false)
@@ -111,11 +131,19 @@ export function Welcome({ onReady, onDone }: WelcomeProps) {
     return () => document.removeEventListener('keydown', onKey)
   })
 
-  const plate = PLATES[step - 1]
-  const last = step === PLATES.length
+  const plate = plates[step - 1]
+  const last = step === plates.length
+  const { news } = run
 
   return createPortal(
-    <div ref={root} tabIndex={-1} className={`welcome ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-modal="true" aria-label="Bienvenida a Tasks">
+    <div
+      ref={root}
+      tabIndex={-1}
+      className={`welcome ${leaving ? 'is-leaving' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={news ? 'Novedades de Tasks' : 'Bienvenida a Tasks'}
+    >
       {!plate ? (
         <section className={`welcome__cover ${backwards ? 'is-back' : ''}`}>
           {/* En el centro exacto y del mismo tamaño que la del arranque: al fundirse aquella, queda esta. */}
@@ -125,18 +153,26 @@ export function Welcome({ onReady, onDone }: WelcomeProps) {
           <div className="welcome__hello">
             <i className="welcome__rule" aria-hidden="true" />
             <h1 className="welcome__name">Tasks</h1>
-            <p className="welcome__tagline">
-              Tareas, rutinas y lugares.
-              <br />
-              Todo se queda en tu {isNative ? 'iPhone' : 'dispositivo'}, sin cuentas.
-            </p>
+            {news ? (
+              <p className="welcome__tagline">
+                Hay cosas nuevas.
+                <br />
+                Pruébalas con el dedo antes de seguir.
+              </p>
+            ) : (
+              <p className="welcome__tagline">
+                Tareas, rutinas y lugares.
+                <br />
+                Todo se queda en tu {isNative ? 'iPhone' : 'dispositivo'}, sin cuentas.
+              </p>
+            )}
           </div>
           <footer className="welcome__foot">
             <button type="button" className="welcome__next" onClick={() => go(1)}>
-              Empezar
+              {news ? 'Ver lo nuevo' : 'Empezar'}
             </button>
             <button type="button" className="welcome__skip" onClick={finish}>
-              Ya la conozco
+              {news ? 'Saltar' : 'Ya la conozco'}
             </button>
           </footer>
         </section>
@@ -146,8 +182,8 @@ export function Welcome({ onReady, onDone }: WelcomeProps) {
             <button type="button" className="welcome__back" aria-label="Atrás" onClick={() => go(step - 1)}>
               <IconChevronLeft size={20} />
             </button>
-            <ol className="welcome__progress" aria-label={`Lámina ${step} de ${PLATES.length}`}>
-              {PLATES.map((item, index) => (
+            <ol className="welcome__progress" aria-label={`Lámina ${step} de ${plates.length}`}>
+              {plates.map((item, index) => (
                 <li key={item.id} className={index < step - 1 ? 'is-done' : index === step - 1 ? 'is-current' : ''} />
               ))}
             </ol>
@@ -161,7 +197,7 @@ export function Welcome({ onReady, onDone }: WelcomeProps) {
             </div>
             <div className="welcome__copy">
               <p className="welcome__kicker">
-                <span className="welcome__numeral">{plate.numeral}</span>
+                <span className="welcome__numeral">{NUMERALS[step - 1] ?? step}</span>
                 {plate.kicker}
               </p>
               <h1 className="welcome__title">{plate.title}</h1>
@@ -170,7 +206,7 @@ export function Welcome({ onReady, onDone }: WelcomeProps) {
           </section>
           <footer className="welcome__foot">
             <button type="button" className="welcome__next" onClick={last ? finish : () => go(step + 1)}>
-              {last ? 'Empezar' : 'Continuar'}
+              {last ? (news ? 'Listo' : 'Empezar') : 'Continuar'}
             </button>
           </footer>
         </>

@@ -32,6 +32,10 @@ export interface InboxTask {
   /** Minutos que dura; ausente en lo apuntado antes de que existiera la duración. */
   duration?: number | null
   reminders: ReminderDraft[]
+  /** Solo lo creado con la ficha del compositor (nunca desde Siri): del 1 al 10. */
+  importance?: number
+  /** Ídem: sección del día. */
+  sectionId?: string | null
 }
 
 export interface InboxEntry {
@@ -87,7 +91,16 @@ export function entryFromDrafts(drafts: readonly TaskDraft[], places: readonly P
       }
       reminders = [...reminders, { kind: 'place', placeId, on: draft.newPlace.on }]
     }
-    return { id: newId(), title: draft.title, date: draft.date, time: draft.time, duration: draft.duration, reminders }
+    return {
+      id: newId(),
+      title: draft.title,
+      date: draft.date,
+      time: draft.time,
+      duration: draft.duration,
+      reminders,
+      ...(draft.importance !== undefined ? { importance: draft.importance } : {}),
+      ...(draft.sectionId ? { sectionId: draft.sectionId } : {}),
+    }
   })
 
   return { id: newId(), createdAt: now, places: [...created.values()], tasks }
@@ -173,7 +186,8 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
         time: task.time,
         duration: task.duration,
         reminders,
-        sectionId: null,
+        sectionId: task.sectionId ?? null,
+        ...(task.importance !== undefined ? { importance: task.importance } : {}),
       })
     }
 

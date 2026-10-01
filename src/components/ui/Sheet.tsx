@@ -17,6 +17,8 @@ interface SheetProps {
   onClose?: () => void
   title: string
   children: ReactNode
+  /** Fijo al pie, fuera del scroll (la acción principal): siempre a mano, también con el teclado fuera. */
+  footer?: ReactNode
 }
 
 /**
@@ -24,7 +26,7 @@ interface SheetProps {
  * sigue al dedo en el mismo fotograma (sin pasar por React), el fondo se aclara a la vez y al soltar
  * cuenta la velocidad, así que un tirón corto basta. Hacia arriba solo cede con resistencia.
  */
-export function Sheet({ open, onClose, title, children }: SheetProps) {
+export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
   const panel = useRef<HTMLDivElement>(null)
@@ -153,7 +155,8 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         ) : (
           <div className="sheet__top" />
         )}
-        <div className="sheet__body">{children}</div>
+        <div className={`sheet__body ${footer ? 'has-foot' : ''}`}>{children}</div>
+        {footer && <div className="sheet__foot">{footer}</div>}
       </div>
     </div>,
     document.body,

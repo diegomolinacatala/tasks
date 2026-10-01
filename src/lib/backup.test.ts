@@ -25,7 +25,7 @@ const state: AppState = {
   places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   routines: [{ id: 'r1', title: 'Creatina', emoji: '💊', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
   collapsed: { overdue: false, backlog: true, routines: false },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' },
+  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto', welcome: 0 },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -108,6 +108,12 @@ describe('normalizeState', () => {
     expect(settings(true).dictation).toBe(true)
     expect(settings('true').dictation).toBe(false)
     expect(settings(true).digest).toEqual({ enabled: false, time: '08:30' })
+  })
+
+  test('la bienvenida vista se conserva; las copias anteriores no la han visto', () => {
+    expect(normalizeState({ schemaVersion: 10, tasks: [], sections: [] })!.settings.welcome).toBe(0)
+    expect(normalizeState({ tasks: [], sections: [], settings: { welcome: 1 } })!.settings.welcome).toBe(1)
+    expect(normalizeState({ tasks: [], sections: [], settings: { welcome: 'sí' } })!.settings.welcome).toBe(0)
   })
 
   test('devuelve null si faltan las colecciones', () => {

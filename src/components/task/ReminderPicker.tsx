@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { toInstant } from '../../lib/date'
 import { isNative } from '../../lib/platform'
 import { isPending, reminderLabel, reminderPresets } from '../../lib/reminders'
-import { useAppState, useDispatch } from '../../state/StoreProvider'
-import type { PlaceTrigger, Reminder, Task } from '../../types'
+import { useAppState } from '../../state/StoreProvider'
+import type { PlaceTrigger, Reminder, ReminderDraft, Task } from '../../types'
 import { usePlaceEditor } from '../places/PlaceEditor'
 import { usePush } from '../push/PushProvider'
 import { IconBell, IconClose, IconPin } from '../ui/Icons'
@@ -11,16 +12,20 @@ import { PickerChip } from '../ui/PickerChip'
 import { useToast } from '../ui/Toast'
 
 interface ReminderPickerProps {
+  /** La tarea (o la que se está escribiendo): de ella salen los atajos y qué avisos siguen activos. */
   task: Task
+  onAdd: (reminder: ReminderDraft) => void
+  onRemove: (reminderId: string) => void
+  /** Delante de los avisos (en la ficha del compositor, el lugar nuevo que se nombró). */
+  leading?: ReactNode
 }
 
 const LOCAL_DATETIME = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/
 /** Más lugares que estos en la fila de opciones abruman; el resto, desde "Otro lugar…". */
 const MAX_PLACE_OPTIONS = 5
 
-export function ReminderPicker({ task }: ReminderPickerProps) {
+export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPickerProps) {
   const { places } = useAppState()
-  const dispatch = useDispatch()
   const openPlace = usePlaceEditor()
   const toast = useToast()
   const [adding, setAdding] = useState(false)
@@ -36,12 +41,12 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
       toast({ message: 'Esa hora ya ha pasado.' })
       return
     }
-    dispatch({ type: 'reminder/add', taskId: task.id, reminder: { kind: 'at', at } })
+    onAdd({ kind: 'at', at })
     setAdding(false)
   }
 
   const addPlace = (placeId: string) => {
-    dispatch({ type: 'reminder/add', taskId: task.id, reminder: { kind: 'place', placeId, on: trigger } })
+    onAdd({ kind: 'place', placeId, on: trigger })
     setAdding(false)
   }
 
@@ -63,6 +68,7 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
     <>
       <p className="sheet__title">Recordatorios</p>
       <div className="sheet__chips">
+        {leading}
         {task.reminders.map((reminder) => {
           const label = reminderLabel(reminder, now, places)
           return (
@@ -71,7 +77,7 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
               type="button"
               className={`chip chip--reminder ${isActive(reminder) ? '' : 'is-muted'}`}
               aria-label={`Quitar recordatorio ${label}`}
-              onClick={() => dispatch({ type: 'reminder/remove', taskId: task.id, reminderId: reminder.id })}
+              onClick={() => onRemove(reminder.id)}
             >
               {reminder.kind === 'place' ? <IconPin size={13} /> : <IconBell size={13} />}
               {label}
@@ -92,7 +98,7 @@ export function ReminderPicker({ task }: ReminderPickerProps) {
             type="button"
             className="chip chip--option"
             onClick={() => {
-              dispatch({ type: 'reminder/add', taskId: task.id, reminder: preset.draft })
+              onAdd(preset.draft)
               setAdding(false)
             }}
           >

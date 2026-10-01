@@ -1,0 +1,59 @@
+/* La ficha del compositor: arriba, como el reproductor de Spotify, una flecha para plegarla y qué se
+   está creando y adónde va; debajo, el título en grande y los campos de una tarea */
+.compose-head {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  margin: calc(-1 * var(--sp-3)) -10px var(--sp-3);
+}
+
+.compose-head__fold {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.compose-head__fold:active {
+  background: var(--bg-press);
+  transform: scale(0.92);
+}
+
+.compose-head__text {
+  min-width: 0;
+  text-align: center;
+}
+
+.compose-head__kicker {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.compose-head__where {
+  margin-top: 2px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El título, más grande que en el panel de una tarea: es lo primero que se escribe */
+.compose-sheet__title {
+  font-size: 26px;
+}
+
+.compose-sheet__title::placeholder {
+  color: var(--text-3);
+}
+
+.compose-sheet__days {
+  margin-top: var(--sp-3);
+}

@@ -1,9 +1,18 @@
 import { describe, expect, test } from 'vitest'
-import { composeTargets } from './compose'
+import { addLabel, composeTargets } from './compose'
 import { dayNameShort } from './date'
 
 const TODAY = '2026-09-30'
 const TOMORROW = '2026-10-01'
+
+describe('addLabel', () => {
+  test('dice adónde va lo que se añade', () => {
+    expect(addLabel(null, TODAY)).toBe('Añadir a la bandeja')
+    expect(addLabel(TODAY, TODAY)).toBe('Añadir a hoy')
+    expect(addLabel(TOMORROW, TODAY)).toBe('Añadir a mañana')
+    expect(addLabel('2026-10-08', TODAY)).toBe('Añadir al jueves 8')
+  })
+})
 
 describe('composeTargets', () => {
   test('en la Bandeja, sin fecha va primero', () => {

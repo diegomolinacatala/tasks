@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { suggestEmoji } from '../../lib/emoji'
 import { parseTask } from '../../lib/parse'
 import { parseRoutine } from '../../lib/repeat'
-import { IconArrowUp, IconBell, IconPlus, IconRepeat } from '../ui/Icons'
+import { IconArrowUp, IconBell, IconPlus, IconRepeat, IconSliders } from '../ui/Icons'
 import { reducedMotion } from './motion'
 import '../compose/composer.css'
 import '../routines/routines.css'
 import '../task/task.css'
 
 /** Una cita, un tramo con su duración y algo que se repite: lo que el compositor entiende solo. */
-const PHRASES = ['Cena con Ana mañana a las 9 de la noche', 'Dentista el viernes de 17:30 a 18:30', 'Tomar creatina cada día a las 10'] as const
+const PHRASES = ['Cena con Carlota mañana a las 9 de la noche', 'Dentista el viernes de 17:30 a 18:30', 'Tomar creatina cada día a las 10'] as const
 
 const TYPE_MS = 44
 /** Con la frase entera, lo que se queda a la vista antes de añadirse. */
@@ -110,19 +110,25 @@ export function WriteScene() {
             </span>
           )}
         </div>
-        <div className="composer__tray">
-          {found ? (
-            <span className={`composer__parsed ${found.routine ? 'is-routine' : ''}`}>
-              {found.routine ? <IconRepeat size={12} strokeWidth={2} /> : <IconBell size={12} strokeWidth={2} />}
-              {found.label}
-            </span>
-          ) : (
-            ['Hoy', 'Mañana', 'Sin fecha'].map((label, index) => (
-              <span key={label} className={`composer__target ${index === 0 ? 'is-active' : ''}`}>
-                {label}
+        <div className="composer__foot">
+          <div className="composer__tray">
+            {found ? (
+              <span className={`composer__parsed ${found.routine ? 'is-routine' : ''}`}>
+                {found.routine ? <IconRepeat size={12} strokeWidth={2} /> : <IconBell size={12} strokeWidth={2} />}
+                {found.label}
               </span>
-            ))
-          )}
+            ) : (
+              ['Hoy', 'Mañana', 'Sin fecha'].map((label, index) => (
+                <span key={label} className={`composer__target ${index === 0 ? 'is-active' : ''}`}>
+                  {label}
+                </span>
+              ))
+            )}
+          </div>
+          <span className="composer__more">
+            <IconSliders size={15} />
+            Detalles
+          </span>
         </div>
       </div>
     </div>

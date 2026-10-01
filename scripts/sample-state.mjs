@@ -68,7 +68,7 @@ export function sampleState({ theme = 'light' } = {}) {
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 10,
+    schemaVersion: 11,
     sections: [{ id: 'trabajo', name: 'Trabajo', order: 0, collapsed: false }],
     places: [
       { id: 'mercadona', name: 'Mercadona', location: { lat: 39.4699, lng: -0.3763, address: 'Calle de Colón, 12' }, radius: 150 },
@@ -82,7 +82,8 @@ export function sampleState({ theme = 'light' } = {}) {
       routine('gym', 'Gimnasio', '19:00', { emoji: '🏋️', days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
     ],
     collapsed: { overdue: false, backlog: false, routines: false },
-    settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme },
+    // La bienvenida, dada por vista (de cualquier versión futura): que no tape las capturas.
+    settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme, welcome: 999 },
     tasks: [
       task('luz', 'Pagar la factura de la luz', iso(-1), { importance: 4 }),
       task('jorge', 'Reunión con Jorge', today, { time: '09:30', duration: 60, reminders: atTime('r1'), order: 0, done: true, completedAt: Date.now() }),

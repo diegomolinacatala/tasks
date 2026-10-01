@@ -7,12 +7,18 @@ import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
 import { MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
+import { normalizeWelcome } from '../lib/welcome'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
-export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto' })
+export const defaultSettings = (): Settings => ({
+  digest: { enabled: false, time: '08:30' },
+  dictation: false,
+  theme: 'auto',
+  welcome: 0,
+})
 
 export const THEMES: readonly Theme[] = ['light', 'dark', 'auto']
 
@@ -67,7 +73,9 @@ export function reducer(state: AppState, action: Action): AppState {
       const title = clean(action.title)
       // Un id repetido sería la misma tarea aplicada dos veces (la bandeja de Siri se puede releer).
       if (!title || (action.id !== undefined && state.tasks.some((task) => task.id === action.id))) return state
-      const sectionId = sectionFor(action.date, action.sectionId)
+      // Una sección que ya no existe (borrada mientras se escribía) deja la tarea en la raíz del día.
+      const known = state.sections.some((section) => section.id === action.sectionId)
+      const sectionId = sectionFor(action.date, known ? action.sectionId : null)
       const base: Task = {
         id: action.id ?? createId(),
         title,
@@ -78,7 +86,7 @@ export function reducer(state: AppState, action: Action): AppState {
         reminders: [],
         sectionId,
         order: nextOrder(state.tasks, scopeKey(action.date, sectionId)),
-        importance: DEFAULT_IMPORTANCE,
+        importance: action.importance === undefined ? DEFAULT_IMPORTANCE : clampImportance(action.importance),
         createdAt: Date.now(),
         completedAt: null,
       }
@@ -350,19 +358,32 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!THEMES.includes(action.theme) || state.settings.theme === action.theme) return state
       return { ...state, settings: { ...state.settings, theme: action.theme } }
 
+    // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
+    case 'settings/welcome': {
+      const welcome = normalizeWelcome(action.version)
+      if (welcome <= state.settings.welcome) return state
+      return { ...state, settings: { ...state.settings, welcome } }
+    }
+
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado y la apariencia son de este dispositivo: una copia de otro no los cambia.
+    // El permiso del dictado, la apariencia y la bienvenida vista son de este dispositivo: una copia
+    // de otro no los cambia.
     case 'state/import':
       return {
         ...action.state,
-        settings: { ...action.state.settings, dictation: state.settings.dictation, theme: state.settings.theme },
+        settings: {
+          ...action.state.settings,
+          dictation: state.settings.dictation,
+          theme: state.settings.theme,
+          welcome: state.settings.welcome,
+        },
       }
 
-    // Borrarlo todo no cambia cómo se ve la app.
+    // Borrarlo todo no cambia cómo se ve la app ni vuelve a enseñar la bienvenida.
     case 'state/clear':
-      return { ...emptyState(), settings: { ...defaultSettings(), theme: state.settings.theme } }
+      return { ...emptyState(), settings: { ...defaultSettings(), theme: state.settings.theme, welcome: state.settings.welcome } }
 
     default:
       return state

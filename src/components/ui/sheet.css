@@ -67,6 +67,22 @@
   overscroll-behavior: contain;
 }
 
+/* Con pie fijo, el hueco de la zona segura lo pone el pie */
+.sheet__body.has-foot {
+  padding-bottom: var(--sp-4);
+}
+
+/* Con el teclado fuera, el pie va pegado a él: la zona segura ya queda debajo del teclado */
+.sheet__foot {
+  flex: none;
+  padding: var(--sp-3) 20px calc(var(--sp-3) + max(0px, var(--safe-b) - var(--kb, 0px)));
+  border-top: 1px solid var(--line);
+}
+
+.sheet__foot .sheet__primary {
+  margin-top: 0;
+}
+
 .sheet__title {
   font-size: var(--fs-micro);
   font-weight: 600;

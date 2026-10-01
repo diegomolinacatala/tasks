@@ -17,6 +17,8 @@ export type Action =
       time?: IsoTime | null
       duration?: number | null
       reminders?: ReminderDraft[]
+      /** Del 1 al 10 (la ficha del compositor); sin ella, la normal. */
+      importance?: number
       /** Id fijado por quien crea la tarea, para poder deshacer. */
       id?: string
     }
@@ -65,6 +67,8 @@ export type Action =
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }
   | { type: 'settings/theme'; theme: Theme }
+  /** Se ha cerrado la bienvenida de esa versión (`lib/welcome.ts`). */
+  | { type: 'settings/welcome'; version: number }
   | { type: 'state/replace'; state: AppState }
   /** Importar una copia: como `state/replace`, salvo el permiso del dictado, que es de este dispositivo. */
   | { type: 'state/import'; state: AppState }

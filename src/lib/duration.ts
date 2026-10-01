@@ -16,8 +16,6 @@ export const MIN_DURATION = 5
 export const MAX_DURATION = 12 * HOUR_MIN
 /** Lo que se retrasa la pregunta al responder "Todavía no". */
 export const AGAIN_MINUTES = 15
-/** Atajos del panel; la duración exacta se pone eligiendo a qué hora acaba. */
-export const DURATION_PRESETS = [15, 30, HOUR_MIN, 2 * HOUR_MIN] as const
 
 export function clampDuration(minutes: number): number {
   return Math.min(Math.max(Math.round(minutes), MIN_DURATION), MAX_DURATION)

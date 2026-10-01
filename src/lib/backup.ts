@@ -6,6 +6,7 @@ import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
 import { MAX_PLACES, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
+import { normalizeWelcome } from './welcome'
 
 export interface BackupFile {
   app: 'tasks'
@@ -78,6 +79,8 @@ function normalizeSettings(raw: unknown): Settings {
     dictation: settings.dictation === true,
     // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
     theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,
+    // Las copias anteriores a la bienvenida no la han visto: al actualizar, sale.
+    welcome: normalizeWelcome(settings.welcome),
   }
 }
 

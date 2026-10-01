@@ -1,5 +1,5 @@
 import type { IsoDate } from '../types'
-import { addDays, dayNameShort, dayNumber } from './date'
+import { addDays, dayNameLong, dayNameShort, dayNumber } from './date'
 
 /** Un sitio donde dejar lo escrito en el compositor: "Hoy", "Mañana", "Jue 2", "Sin fecha". */
 export interface ComposeTarget {
@@ -25,4 +25,12 @@ export function composeTargets(here: IsoDate | null, today: IsoDate): ComposeTar
     date: here,
   }
   return [current, ...usual.filter((target) => target.date !== here)]
+}
+
+/** Adónde va lo que se añade: "Añadir a hoy", "Añadir a mañana", "Añadir al jueves 8", "Añadir a la bandeja". */
+export function addLabel(date: IsoDate | null, today: IsoDate): string {
+  if (date === null) return 'Añadir a la bandeja'
+  if (date === today) return 'Añadir a hoy'
+  if (date === addDays(today, 1)) return 'Añadir a mañana'
+  return `Añadir al ${dayNameLong(date)} ${dayNumber(date)}`
 }

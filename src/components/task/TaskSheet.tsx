@@ -1,15 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { addDays, relativeLabel, shortTime, todayIso } from '../../lib/date'
-import { createId } from '../../lib/id'
+import { todayIso } from '../../lib/date'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import { findTask, sortedSections } from '../../state/selectors'
+import { findTask } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
 import { IconRepeat, IconTrash } from '../ui/Icons'
-import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
 import { DurationPicker } from './DurationPicker'
 import { ReminderPicker } from './ReminderPicker'
+import { SectionField, TimeField, WhenField } from './fields'
 import { SnoozeBar } from './SnoozeBar'
 import { useTaskActions } from './useTaskActions'
 
@@ -30,13 +29,11 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
   // Se conserva la última tarea para poder animar el cierre del panel.
   const [shown, setShown] = useState<Task | null>(task)
   const [title, setTitle] = useState(task?.title ?? '')
-  const [draftSection, setDraftSection] = useState<string | null>(null)
 
   useEffect(() => {
     if (!task) return
     setShown(task)
     setTitle(task.title)
-    setDraftSection(null)
   }, [task?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -57,9 +54,6 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
 
   const open = Boolean(task)
   const today = todayIso()
-  const sections = sortedSections(state)
-  const tomorrow = addDays(today, 1)
-  const isCustomDate = Boolean(shown.date && shown.date !== today && shown.date !== tomorrow)
 
   const commitTitle = () => {
     if (task && title.trim() && title !== task.title) {
@@ -78,14 +72,6 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
 
   const setSection = (sectionId: string | null) => {
     if (task) dispatch({ type: 'task/move', id: task.id, date: task.date, sectionId })
-  }
-
-  const createSection = (name: string) => {
-    if (!task || !name.trim()) return
-    const id = createId()
-    dispatch({ type: 'section/add', name, id })
-    dispatch({ type: 'task/move', id: task.id, date: task.date, sectionId: id })
-    setDraftSection(null)
   }
 
   const setTime = (time: string | null) => {
@@ -110,97 +96,27 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
       <p className="sheet__title">Importancia</p>
       <ImportanceScale value={shown.importance} onChange={(importance) => task && setImportance(task.id, importance)} />
 
-      <p className="sheet__title">Cuándo</p>
-      <div className="sheet__chips">
-        <button type="button" className={`chip ${shown.date === today ? 'is-active' : ''}`} onClick={() => moveTo(today)}>
-          Hoy
-        </button>
-        <button
-          type="button"
-          className={`chip ${shown.date === tomorrow ? 'is-active' : ''}`}
-          onClick={() => moveTo(tomorrow)}
-        >
-          Mañana
-        </button>
-        <button type="button" className={`chip ${shown.date === null ? 'is-active' : ''}`} onClick={() => moveTo(null)}>
-          Sin fecha
-        </button>
-        <PickerChip
-          type="date"
-          className={`chip ${isCustomDate ? 'is-active' : ''}`}
-          value={shown.date ?? ''}
-          onCommit={(value) => moveTo(value || null)}
-        >
-          {isCustomDate && shown.date ? relativeLabel(shown.date, today) : 'Otro día'}
-        </PickerChip>
-      </div>
+      <WhenField date={shown.date} today={today} onChange={moveTo} />
 
-      {shown.date !== null && (
-        <>
-          <p className="sheet__title">Hora</p>
-          <div className="sheet__chips">
-            <button type="button" className={`chip ${shown.time === null ? 'is-active' : ''}`} onClick={() => setTime(null)}>
-              Sin hora
-            </button>
-            <PickerChip
-              type="time"
-              className={`chip ${shown.time ? 'is-active' : ''}`}
-              value={shown.time ?? ''}
-              onCommit={(value) => setTime(value || null)}
-            >
-              {shown.time ? shortTime(shown.time) : 'Elegir hora'}
-            </PickerChip>
-          </div>
-        </>
+      {shown.date !== null && <TimeField time={shown.time} onChange={setTime} />}
+
+      {shown.date !== null && shown.time !== null && (
+        <DurationPicker
+          time={shown.time}
+          duration={shown.duration}
+          done={shown.done}
+          onChange={(duration) => task && dispatch({ type: 'task/setDuration', id: task.id, duration })}
+        />
       )}
 
-      {shown.date !== null && shown.time !== null && <DurationPicker task={{ ...shown, time: shown.time }} />}
-
-      <ReminderPicker task={shown} />
+      <ReminderPicker
+        task={shown}
+        onAdd={(reminder) => task && dispatch({ type: 'reminder/add', taskId: task.id, reminder })}
+        onRemove={(reminderId) => task && dispatch({ type: 'reminder/remove', taskId: task.id, reminderId })}
+      />
 
       {/* Las secciones agrupan dentro del día: sin fecha no hay dónde agrupar. */}
-      {shown.date !== null && (
-        <>
-          <p className="sheet__title">Sección</p>
-          <div className="sheet__chips">
-            <button
-              type="button"
-              className={`chip ${shown.sectionId === null ? 'is-active' : ''}`}
-              onClick={() => setSection(null)}
-            >
-              Ninguna
-            </button>
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className={`chip ${shown.sectionId === section.id ? 'is-active' : ''}`}
-                onClick={() => setSection(section.id)}
-              >
-                {section.name}
-              </button>
-            ))}
-            {draftSection === null ? (
-              <button type="button" className="chip" onClick={() => setDraftSection('')}>
-                + Nueva
-              </button>
-            ) : (
-              <input
-                className="chip"
-                autoFocus
-                placeholder="Nombre"
-                value={draftSection}
-                onChange={(event) => setDraftSection(event.target.value)}
-                onBlur={() => setDraftSection(null)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') createSection(draftSection)
-                  if (event.key === 'Escape') setDraftSection(null)
-                }}
-              />
-            )}
-          </div>
-        </>
-      )}
+      {shown.date !== null && <SectionField sectionId={shown.sectionId} onChange={setSection} />}
 
       <p className="sheet__title">Acciones</p>
       <button

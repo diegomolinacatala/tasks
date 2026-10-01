@@ -35,6 +35,21 @@ describe('task/add', () => {
     expect(before.tasks).toHaveLength(0)
   })
 
+  test('con importancia, la acota; sin ella, la normal', () => {
+    const state = run(
+      emptyState(),
+      { type: 'task/add', title: 'a', date: TODAY, sectionId: null, importance: 7 },
+      { type: 'task/add', title: 'b', date: TODAY, sectionId: null, importance: 40 },
+      { type: 'task/add', title: 'c', date: TODAY, sectionId: null },
+    )
+    expect(state.tasks.map((task) => task.importance)).toEqual([7, 10, 1])
+  })
+
+  test('una sección que no existe se queda en ninguna', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'a', date: TODAY, sectionId: 'fantasma' })
+    expect(state.tasks[0]!.sectionId).toBeNull()
+  })
+
   test('un id que ya existe no crea otra tarea: aplicar la bandeja dos veces no duplica', () => {
     const once = run(emptyState(), { type: 'task/add', id: 'siri', title: 'Comprar pan', date: null, sectionId: null })
     expect(reducer(once, { type: 'task/add', id: 'siri', title: 'Otra', date: TODAY, sectionId: null })).toBe(once)
@@ -630,5 +645,33 @@ describe('apariencia', () => {
     const cleared = run(dark, { type: 'state/clear' })
     expect(cleared.tasks).toEqual([])
     expect(cleared.settings.theme).toBe('dark')
+  })
+})
+
+describe('bienvenida vista', () => {
+  test('una instalación nueva no la ha visto', () => {
+    expect(emptyState().settings.welcome).toBe(0)
+  })
+
+  test('settings/welcome guarda la versión vista y nunca vuelve atrás', () => {
+    const seen = run(emptyState(), { type: 'settings/welcome', version: 2 })
+    expect(seen.settings.welcome).toBe(2)
+    expect(run(seen, { type: 'settings/welcome', version: 1 })).toBe(seen)
+    expect(run(seen, { type: 'settings/welcome', version: 2 })).toBe(seen)
+    expect(run(seen, { type: 'settings/welcome', version: 3 }).settings.welcome).toBe(3)
+  })
+
+  test('una versión que no es válida no cambia nada', () => {
+    const state = emptyState()
+    expect(run(state, { type: 'settings/welcome', version: -4 })).toBe(state)
+    expect(run(state, { type: 'settings/welcome', version: 1.5 })).toBe(state)
+  })
+
+  test('es de este dispositivo: ni importar una copia ni borrarlo todo la cambian', () => {
+    const seen = run(emptyState(), { type: 'settings/welcome', version: 2 })
+    expect(run(seen, { type: 'state/import', state: emptyState() }).settings.welcome).toBe(2)
+    expect(run(seen, { type: 'state/clear' }).settings.welcome).toBe(2)
+    const elsewhere = run(emptyState(), { type: 'settings/welcome', version: 5 })
+    expect(run(emptyState(), { type: 'state/import', state: elsewhere }).settings.welcome).toBe(0)
   })
 })

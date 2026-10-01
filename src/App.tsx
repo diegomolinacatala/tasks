@@ -1,8 +1,8 @@
 import { Activity, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
-import { composeTargets } from './lib/compose'
-import { dayNameLong, dayNumber, relativeLabel } from './lib/date'
+import { addLabel, composeTargets } from './lib/compose'
+import { relativeLabel } from './lib/date'
 import { suggestEmoji } from './lib/emoji'
 import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
@@ -15,6 +15,8 @@ import type { RoutineDraft } from './lib/repeat'
 import { parseRoutine } from './lib/repeat'
 import { ALL_DAYS, MAX_ROUTINES } from './lib/routines'
 import { applyTheme } from './lib/theme'
+import type { WelcomeRun } from './lib/welcome'
+import { FULL_WELCOME, WELCOME_VERSION, welcomeOnLaunch } from './lib/welcome'
 import { useToday } from './hooks/useToday'
 import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
 import { isOverdue } from './state/selectors'
@@ -51,7 +53,8 @@ const PlaceTasksSheet = lazy(() =>
 )
 const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
 const NativeInbox = lazy(() => import('./components/shell/NativeInbox').then((module) => ({ default: module.NativeInbox })))
-// La bienvenida solo se ve una vez (o desde Ajustes). Si su trozo no llegara a cargarse, la app se abre igual.
+// La bienvenida sale la primera vez, tras una actualización que traiga láminas nuevas y desde Ajustes.
+// Si su trozo no llegara a cargarse, la app se abre igual (y no se da por vista).
 const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
   import('./components/welcome/Welcome').then(
     (module) => ({ default: module.Welcome }),
@@ -60,14 +63,16 @@ const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
 )
 
 interface WelcomeHandlers {
+  run: WelcomeRun
   onReady?: () => void
   onDone: () => void
+  onUnavailable: () => void
 }
 
-function WelcomeUnavailable({ onReady, onDone }: WelcomeHandlers) {
+function WelcomeUnavailable({ onReady, onUnavailable }: WelcomeHandlers) {
   useEffect(() => {
     onReady?.()
-    onDone()
+    onUnavailable()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
@@ -106,9 +111,9 @@ export function App() {
   const [sizing, setSizing] = useState(false)
   // La barra de escribir tiene el foco: las pestañas se apartan y la lista queda tras un velo.
   const [composing, setComposing] = useState(false)
-  // La bienvenida: sola la primera vez que se abre la app, y a petición desde Ajustes.
+  // La bienvenida: entera la primera vez, con lo nuevo tras actualizar, y a petición desde Ajustes.
   const firstRun = useFirstRun()
-  const [welcome, setWelcome] = useState(firstRun)
+  const [welcome, setWelcome] = useState<WelcomeRun | null>(() => welcomeOnLaunch(firstRun, state.settings.welcome))
   // Tras el primer cambio de pestaña, las pestañas entran con su animación (en el arranque, no).
   const [switched, setSwitched] = useState(false)
   const scrollers = useRef<Partial<Record<TabId, HTMLDivElement | null>>>({})
@@ -151,6 +156,12 @@ export function App() {
     setSwitched(true)
     if (!WRITING.has(next)) setSizing(false)
   }, [])
+
+  // Cerrada (acabada o saltada): esta versión queda vista y no vuelve a salir sola.
+  const closeWelcome = useCallback(() => {
+    setWelcome(null)
+    dispatch({ type: 'settings/welcome', version: WELCOME_VERSION })
+  }, [dispatch])
 
   const reselect = (current: TabId) => {
     scrollers.current[current]?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -196,8 +207,9 @@ export function App() {
     return false
   }
 
-  const addRoutine = (draft: RoutineDraft) => {
-    if (!roomForRoutine()) return
+  /** `false` si no cabe (ya lo ha dicho un aviso): la barra conserva lo escrito. */
+  const addRoutine = (draft: RoutineDraft): boolean => {
+    if (!roomForRoutine()) return false
     const id = createId()
     const emoji = suggestEmoji(draft.title)
     dispatch({ type: 'routine/add', id, title: draft.title, days: draft.days, time: draft.time, emoji })
@@ -207,6 +219,7 @@ export function App() {
       actionLabel: tab === 'inbox' ? 'Deshacer' : 'Ver',
       onAction: () => (tab === 'inbox' ? dispatch({ type: 'routine/remove', id }) : go('inbox')),
     })
+    return true
   }
 
   /** Del panel de una tarea: pasa a ser una rutina de cada día (con su hora) y se abre para ajustarla. */
@@ -264,7 +277,10 @@ export function App() {
   const addFromVoice = (text: string, interpreted: unknown) => {
     const now = Date.now()
     const routine = parseRoutine(text, now)
-    if (routine) return addRoutine(routine)
+    if (routine) {
+      addRoutine(routine)
+      return
+    }
     addSpoken(draftsFromInterpreted(interpreted, now, places) ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
   }
 
@@ -287,8 +303,6 @@ export function App() {
   const hasOverdue = useMemo(() => state.tasks.some((task) => isOverdue(task, today)), [state.tasks, today])
   const writing = WRITING.has(tab)
   const inAgenda = tab === 'agenda'
-  const near = relativeLabel(day, today)
-  const target = day === today ? 'a hoy' : near === 'Mañana' ? 'a mañana' : `al ${dayNameLong(day)} ${dayNumber(day)}`
   // Adónde puede ir lo escrito: primero donde se está mirando, después los sitios de siempre.
   const targets = useMemo(() => composeTargets(inAgenda ? day : null, today), [inAgenda, day, today])
 
@@ -309,7 +323,7 @@ export function App() {
   return (
     <RowActionsContext.Provider value={rowActions}>
       <div
-        inert={welcome}
+        inert={welcome !== null}
         className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
           writing ? 'has-composer' : ''
         } ${writing && composing ? 'is-composing' : ''}`}
@@ -331,7 +345,7 @@ export function App() {
             {pane('inbox', <InboxView today={today} />)}
             {pane('agenda', <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} />)}
             {pane('places', <PlacesView />)}
-            {pane('settings', <SettingsView onWelcome={() => setWelcome(true)} />)}
+            {pane('settings', <SettingsView onWelcome={() => setWelcome(FULL_WELCOME)} />)}
           </SizingContext.Provider>
           {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
           <button type="button" className="app__veil" tabIndex={-1} aria-label="Dejar de escribir" aria-hidden={!composing} onClick={stopComposing} />
@@ -342,7 +356,8 @@ export function App() {
             <div className="app__dock">
               <Composer
                 targets={targets}
-                placeholder={inAgenda ? `Añadir ${target}` : 'Añadir a la bandeja'}
+                placeholder={addLabel(inAgenda ? day : null, today)}
+                today={today}
                 places={places}
                 focusRequest={focusRequest}
                 onSubmit={addTask}
@@ -370,7 +385,7 @@ export function App() {
       </div>
       {welcome && (
         <Suspense fallback={null}>
-          <Welcome onReady={finishBoot} onDone={() => setWelcome(false)} />
+          <Welcome run={welcome} onReady={finishBoot} onDone={closeWelcome} onUnavailable={() => setWelcome(null)} />
         </Suspense>
       )}
     </RowActionsContext.Provider>
