@@ -120,12 +120,12 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   entonces); `app-store-shots.mjs` además limpia el origen antes de empezar.
 
 - **Publicada la 1.2** (30/09/2026) con la compilación 29. `MARKETING_VERSION` subido a **1.3**.
-- **Bienvenida también tras actualizar** (01/10/2026, en `capacitor`, sin subir aún): a unos amigos
+- **Bienvenida también tras actualizar** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): a unos amigos
   no les salió. La 1.2 (29) solo la enseña en una instalación nueva (`loadState().fresh`), así que quien
   tenía la 1.1 y actualizó no la ve nunca. Ahora sale también al actualizar si trae láminas que ese
   dispositivo no ha visto (ver "Bienvenida"). Ningún estado guardado hasta ahora sabe nada de ella, así
   que con la 1.3 la ve entera todo el mundo, también quien ya la vio en la 1.2. `SCHEMA_VERSION` 11.
-- **Ficha del compositor** (01/10/2026, en `capacitor`, sin subir aún): **Detalles** o tirar del asa de
+- **Ficha del compositor** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): **Detalles** o tirar del asa de
   la barra de escribir la despliega en una ficha con todo lo de una tarea (ver "Ficha del compositor"),
   como el mini reproductor de Spotify se abre en el reproductor. Lámina nueva en la bienvenida
   (*Detalles*, versión 2). Los campos del panel de la tarea se sacaron a piezas compartidas
@@ -133,7 +133,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   Probado con Edge sin ventana y dedo simulado (claro, oscuro, 390 × 844 y 375 × 667: escribir,
   desplegar, cambiar campos, plegar, añadir tarea y rutina, el asa, la ×, y el panel de una tarea); 665
   tests.
-- **Regla de la duración** (01/10/2026, en `capacitor`, sin subir aún): los atajos de duración (dos
+- **Regla de la duración** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): los atajos de duración (dos
   filas de píldoras) pasan a ser una regla que se arrastra y se estira manteniendo el dedo al final (ver
   "Duración y aviso de cierre"), en el panel de la tarea, la ficha y la lámina *Detalles*. Y los
   ejemplos de la bienvenida nombran a Carlota. Probado con dedo simulado (arrastrar, estirar dos veces,
@@ -141,7 +141,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Subir la 1.3** (push a `capacitor`) y probar la TestFlight en el iPhone. Al instalarla encima de la
+0. **Probar la TestFlight 30 (1.3)** en el iPhone y enviarla. Al instalarla encima de la
    1.2 tiene que salir la portada de novedades ("Hay cosas nuevas"). En la barra de escribir: tocar
    **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
    en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
@@ -1092,6 +1092,10 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.
   - Tras subir, Apple procesa 5–30 min y avisa por correo de problemas del binario (`ITMS-…`).
+  - Si "Firmar y subir a TestFlight" falla con *exportArchive The request timed out* seguido de *No
+    profiles for … were found*, es Apple que no respondió al pedir los perfiles (pasó con la 30): sin
+    tocar nada, en la ejecución fallida **Re-run jobs → Re-run failed jobs** (lo hace el usuario: sin
+    `gh` no se puede relanzar).
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Usa el secret `CLOUDFLARE_API_TOKEN` (plantilla *Edit Cloudflare
   Workers* más *Account → D1 → Edit*) y la variable `CLOUDFLARE_ACCOUNT_ID`; sin el token solo

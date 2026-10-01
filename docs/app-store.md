@@ -176,8 +176,12 @@ clave de la API no puede crear el grupo ni asignarlo, solo los perfiles.
 - [ ] Widget: las importantes salen más grandes; en la pantalla de bloqueo, las dos más importantes.
 - [ ] **Aviso de cierre** (desde la 15): abrir la app una vez (registra los botones). Escribir
       *«prueba hoy a las HH:MM durante 5 minutos»* con una hora dentro de dos o tres minutos: la
-      píldora dice *Hoy HH:MM–HH:MM* y la fila, el tramo. En el panel, *Duración* con *5 min* no
-      existe como atajo: sale **Hasta HH:MM** marcado y debajo *A las … te pregunto si has acabado*.
+      píldora dice *Hoy HH:MM–HH:MM* y la fila, el tramo. En el panel, la regla de *Duración* marca
+      **5 min**, arriba *HH:MM → HH:MM* y debajo *A las … te pregunto si has acabado*.
+- [ ] **Regla de la duración** (desde la 1.3): arrastrarla (vibra en cada paso de 5 min) sin que se
+      mueva el panel; mantener el dedo al final: se llena el halo de oro, vibra y pasa a 4 h; seguir
+      manteniendo, 8 h. Al soltar con algo corto vuelve a la de 2 h. A la izquierda del todo, sin
+      duración; tocar la hora de acabar abre la rueda.
 - [ ] Al acabar llega *«prueba / ¿Has acabado? · HH:MM–HH:MM»*. Mantenerlo pulsado: **Sí, hecha** y
       **Todavía no**. *Sí, hecha* **no abre la app**: el aviso se va, el número del icono baja y el
       widget la enseña tachada. Al abrir la app, la tarea está tachada.
@@ -662,7 +666,7 @@ Tasks se ha rehecho de arriba abajo.
 Nuevo: agenda con horario, rutinas con emoji que se tachan desde la pantalla de bloqueo, el mes entero de un tirón y modo oscuro.
 ```
 
-### 9.5 La 1.3 (en preparación)
+### 9.5 La 1.3 (01/10/2026, compilación 30)
 
 La ficha del compositor y la bienvenida también al actualizar. **Detalles** (o tirar del asa de la barra
 de escribir) la despliega en una ficha con todo lo de una tarea antes de añadirla; y la bienvenida, que
