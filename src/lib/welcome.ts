@@ -4,12 +4,12 @@
  * versión de la bienvenida que cerró (`Settings.welcome`; 0 = ninguna, también las copias de antes).
  */
 
-export type PlateId = 'write' | 'details' | 'swipe' | 'month' | 'routine'
+export type PlateId = 'write' | 'details' | 'swipe' | 'month' | 'routine' | 'suggest'
 
 /**
  * Versión de la bienvenida en que entró cada lámina. Una lámina nueva, o una que cambie para enseñar
  * algo nuevo, lleva la siguiente a la mayor de aquí: quien ya la vio la verá al actualizar, solo con eso.
- * 1: la 1.2. 2: la 1.3 (la ficha del compositor).
+ * 1: la 1.2. 2: la 1.3 (la ficha del compositor). 3: la 1.4 (las sugerencias).
  */
 export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   write: 1,
@@ -17,6 +17,7 @@ export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   swipe: 1,
   month: 1,
   routine: 1,
+  suggest: 3,
 }
 
 export const WELCOME_VERSION = Math.max(...Object.values(PLATE_SINCE))

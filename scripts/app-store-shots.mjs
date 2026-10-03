@@ -1,8 +1,10 @@
 // Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Las tres
-// primeras son las que salen en la búsqueda. Cada una es la app real (build de producción, datos de
-// ejemplo) dentro de un iPhone, con titular y un detalle que sale del marco (store-frames.mjs).
+// primeras son las que salen en la búsqueda: dicen lo que hace la app distinta (escribir como se
+// habla, avisos por lugar, el día de un vistazo). Cada una es la app real (build de producción, datos
+// de ejemplo) dentro de un iPhone, con titular y un detalle que sale del marco (store-frames.mjs).
 //
-//   node scripts/app-store-shots.mjs          # → docs/capturas/1-agenda.png …
+//   node scripts/app-store-shots.mjs          # → docs/capturas/01-escribir.png … (en español)
+//   node scripts/app-store-shots.mjs --en     # → docs/capturas/en/… (la ficha en inglés)
 //
 // Compila la web con `--mode shots` en dist-shots/: igual que la de producción, pero con la pestaña
 // Lugares de la app (sin Apple Maps sale el plano dibujado). Usa Edge sin ventana (edge.mjs). La
@@ -13,12 +15,21 @@ import { join } from 'node:path'
 import { build, preview } from 'vite'
 import { decodePng, encodePng, launch, renderHtml, sleep } from './edge.mjs'
 import { sampleState, writeStateExpression } from './sample-state.mjs'
+import { STORE_COPY } from './store-copy.mjs'
 import { FONTS, READY, device, frame, notification } from './store-frames.mjs'
-import { lockScreenRoutines, mediumWidget, routinesWidget, smallWidget } from './store-widgets.mjs'
+import { WIDGET_LABELS, lockScreenRoutines, mediumWidget, routinesWidget, smallWidget } from './store-widgets.mjs'
+
+const LANG = process.argv.includes('--en') ? 'en' : 'es'
+const T = STORE_COPY[LANG]
+
+/** Micrófono y candado, en la línea de los iconos de la app. */
+const MIC = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a5a2c" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>`
+const BELL = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>`
+const LOCK = `<div style="display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(244,239,230,.08);box-shadow:inset 0 0 0 1px rgba(214,176,127,.35)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d6b07f" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg></div>`
 
 const PORT = 4174
 const BASE = `http://localhost:${PORT}/tasks/`
-const OUT = process.argv[2] ?? 'docs/capturas'
+const OUT = process.argv.slice(2).find((arg) => !arg.startsWith('--')) ?? (LANG === 'en' ? 'docs/capturas/en' : 'docs/capturas')
 const DIST = 'dist-shots'
 
 await build({ mode: 'shots', logLevel: 'warn', build: { outDir: DIST, emptyOutDir: true, sourcemap: false } })
@@ -56,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const style = document.createElement('style')
   style.textContent = ':root{--safe-t:62px!important;--safe-b:34px!important;--font:Inter,sans-serif!important;--font-serif:"Source Serif 4",serif!important}'
   document.head.appendChild(style)
-  const webOnly = /avisos|pantalla de inicio/i
+  const webOnly = /avisos|pantalla de inicio|reminders|home screen/i
   const hide = () => document.querySelectorAll('.sheet__hint, .sheet__note, .group__note').forEach((el) => {
     if (webOnly.test(el.textContent || '')) el.style.display = 'none'
   })
@@ -115,7 +126,7 @@ try {
   const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: PAGE_SETUP })
 
   const screens = {}
-  await seed(sampleState())
+  await seed(sampleState({ language: LANG }))
   await open()
   screens.agenda = await capture()
 
@@ -126,32 +137,45 @@ try {
   screens.month = await capture()
 
   await open()
-  await click('.tabs__tab', 'Bandeja')
+  await click('.tabs__tab', T.tabs.inbox)
   await waitFor(`document.querySelector('.routine')`)
   await sleep(800)
   screens.routines = await capture()
 
-  await click('.tabs__tab', 'Lugares')
+  await click('.tabs__tab', T.tabs.places)
   await waitFor(`document.querySelector('.place-card')`)
   await sleep(900)
   screens.places = await capture()
 
+  // Escribir: la frase con Carlota, con la píldora de lo que ha entendido.
   await open()
   await evaluate(`document.querySelector('.composer__input').focus()`)
-  await send('Input.insertText', { text: 'Cena con Ana el viernes de 9 a 11 de la noche' })
+  await send('Input.insertText', { text: T.phrase })
   await waitFor(`document.querySelector('.composer__parsed')`)
   const parsedLabel = await evaluate(`document.querySelector('.composer__parsed').textContent.trim()`)
   // La píldora estrecha la barra al aparecer: que se lea el principio de la frase, no un trozo.
-  await evaluate(`(() => { const input = document.querySelector('.composer__input'); input.setSelectionRange(0, 0); input.scrollLeft = 0; input.blur(); return true })()`)
+  await evaluate(`(() => { const input = document.querySelector('.composer__input'); input.setSelectionRange(0, 0); input.scrollLeft = 0; return true })()`)
   await sleep(400)
   screens.write = await capture()
 
+  // Y la ficha desplegada (Detalles), con todo lo que se puede decidir antes de añadir; con tramo,
+  // para que la regla de la duración salga marcada.
   await open()
-  await click('button', 'Tamaño según importancia')
+  await evaluate(`document.querySelector('.composer__input').focus()`)
+  await send('Input.insertText', { text: T.detailsPhrase })
+  await waitFor(`document.querySelector('.composer__parsed')`)
+  await click('.composer__more', '')
+  await waitFor(`document.querySelector('.sheet.is-open .compose-sheet__title')`)
+  await evaluate(`(() => { document.activeElement?.blur(); return true })()`)
+  await sleep(900)
+  screens.details = await capture()
+
+  await open()
+  await click('button', T.sizing)
   await waitFor(`document.querySelector('.knob')`)
   // Lo que tiene tamaño está en "Sin hora": la lista sube hasta ahí.
   await evaluate(`(() => {
-    const head = [...document.querySelectorAll('.section__name')].find((node) => node.textContent === 'Sin hora')
+    const head = [...document.querySelectorAll('.section__name')].find((node) => node.textContent === ${JSON.stringify(T.untimed)})
     const scroller = head.closest('.app__scroll')
     scroller.scrollTop += head.getBoundingClientRect().top - 150
     return true
@@ -159,117 +183,70 @@ try {
   await sleep(900)
   screens.importance = await capture()
 
-  await seed(sampleState({ theme: 'dark' }))
+  await seed(sampleState({ theme: 'dark', language: LANG }))
   await open()
   screens.dark = await capture()
 
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
 
   const icon = dataUrl(readFileSync('public/icons/icon-192.png'))
+  const labels = WIDGET_LABELS[LANG]
+  const today = new Intl.DateTimeFormat(LANG === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+  const c = T.shots
   const shots = [
     [
-      '1-agenda',
+      '01-escribir',
       frame({
-        kicker: 'Tasks',
-        title: 'Tu día, *a su hora*.',
-        sub: 'Lo que tiene hora, en su sitio; lo demás, en su lista. Sin cuentas: todo se queda en tu iPhone.',
-        content: device(screens.agenda, 262),
-      }),
-    ],
-    [
-      '2-rutinas',
-      frame({
-        theme: 'night',
-        kicker: 'Rutinas',
-        title: 'Lo de cada día, *de un toque*.',
-        sub: 'Táchalas desde la pantalla de bloqueo. Cada día vuelven a empezar y la racha se lleva sola.',
-        content:
-          device(screens.routines, 262) +
-          `<div class="float" style="left:34px;top:652px">${lockScreenRoutines({
-            date: new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()),
-            title: 'Gimnasio',
-            detail: '19:00 · 1 de 4 hoy',
-            emoji: '🏋️',
-            pending: '📖',
-          })}</div>`,
-      }),
-    ],
-    [
-      '3-lugares',
-      frame({
-        theme: 'sand',
-        kicker: 'Avisos por lugar',
-        title: 'Te avisa *al llegar*.',
-        sub: 'Pon «al pasar por Mercadona» y el aviso salta cuando llegas, no antes.',
-        content:
-          device(screens.places, 262) +
-          notification({
-            icon,
-            title: 'Mercadona',
-            body: 'Comprar pan · Leche y huevos',
-            style: 'left:22px;right:22px;top:640px',
-          }),
-      }),
-    ],
-    [
-      '4-mes',
-      frame({
-        kicker: 'Agenda',
-        title: 'De la semana *al mes*.',
-        sub: 'Tira de los días hacia abajo y salta a cualquier fecha. Cada anillo dice cómo fue el día.',
-        content: device(screens.month, 262),
-      }),
-    ],
-    [
-      '5-has-acabado',
-      frame({
-        theme: 'sand',
-        kicker: 'Al acabar',
-        title: 'Te pregunta *si has acabado*.',
-        sub: 'Táchala desde el propio aviso, sin abrir la app.',
-        content:
-          device(screens.agenda, 262, { blurred: true }) +
-          notification({
-            icon,
-            title: 'Comida con Ana',
-            body: '¿Has acabado? · 14:00–15:30',
-            actions: ['Sí, hecha', 'Todavía no'],
-            style: 'left:34px;right:34px;top:470px',
-          }),
-      }),
-    ],
-    [
-      '6-escribir',
-      frame({
-        theme: 'night',
-        kicker: 'Escribe o dicta',
-        title: 'Escribe *como hablas*.',
-        sub: '«Cena con Ana el viernes de 9 a 11 de la noche». Lo entiende y lo apunta. «Cada día a las 10» es una rutina.',
+        ...c.write,
         content:
           device(screens.write, 262) +
-          `<div class="float" style="right:16px;top:676px;transform:rotate(-2deg);white-space:nowrap;padding:12px 20px;border-radius:999px;background:#f4efe6;color:#1b2540;font:600 17px Inter;box-shadow:0 20px 44px rgba(0,0,0,.35)">${parsedLabel}</div>`,
+          resultCard(T.resultTitle, [parsedLabel, `${BELL}${T.atTime}`]) +
+          `<div class="float" style="left:18px;top:742px;transform:rotate(2deg);display:flex;align-items:center;gap:8px;padding:10px 16px 10px 12px;border-radius:999px;background:#f4efe6;color:#1b2540;font:600 15px Inter;box-shadow:0 18px 40px rgba(20,27,46,.25),0 0 0 1px rgba(78,58,34,.12)">${MIC}${T.sayIt}</div>`,
       }),
     ],
     [
-      '7-importancia',
+      '02-lugares',
       frame({
         theme: 'sand',
-        kicker: 'Importancia',
-        title: 'Lo importante, *más grande*.',
-        sub: 'Desliza el número: el título crece. Sin etiquetas ni colores.',
-        content: device(screens.importance, 262),
+        ...c.places,
+        content:
+          device(screens.places, 262) +
+          notification({ icon, title: T.place, body: T.placeBody, when: T.now, style: 'left:22px;right:22px;top:640px' }),
       }),
     ],
+    ['03-agenda', frame({ ...c.agenda, content: device(screens.agenda, 262) })],
     [
-      '8-oscuro',
+      '04-rutinas',
       frame({
-        kicker: 'Modo oscuro',
-        title: 'De noche, *en calma*.',
-        sub: 'Tonos suaves para la noche, o que siga a tu iPhone.',
-        content: device(screens.dark, 262, { dark: true }),
+        theme: 'night',
+        ...c.routines,
+        content:
+          device(screens.routines, 262) +
+          `<div class="float" style="left:34px;top:652px">${lockScreenRoutines({ date: today, title: T.gym, detail: T.gymDetail, emoji: '🏋️', pending: '📖' })}</div>`,
       }),
     ],
-    ['9-widget', widgetsFrame()],
+    ['05-widgets', widgetsFrame(c.widgets, labels)],
+    [
+      '06-has-acabado',
+      frame({
+        theme: 'sand',
+        ...c.ask,
+        content:
+          device(screens.agenda, 262, { blurred: true }) +
+          notification({ icon, title: T.lunch, body: T.askBody, when: T.now, actions: T.askActions, style: 'left:34px;right:34px;top:470px' }),
+      }),
+    ],
+    ['07-detalles', frame({ theme: 'night', ...c.details, content: device(screens.details, 262) })],
+    ['08-mes', frame({ ...c.month, content: device(screens.month, 262) })],
+    ['09-importancia', frame({ theme: 'sand', ...c.importance, content: device(screens.importance, 262) })],
+    [
+      '10-privada',
+      frame({
+        theme: 'night',
+        ...c.private,
+        content: device(screens.dark, 262, { dark: true }) + `<div class="float" style="left:50%;top:214px;margin-left:-22px">${LOCK}</div>`,
+      }),
+    ],
   ]
 
   for (const [name, html] of shots) {
@@ -283,33 +260,38 @@ try {
   await server.close()
 }
 
-function widgetsFrame() {
-  const tasks = [
-    { title: 'Pagar la factura de la luz', overdue: true, detail: 'Ayer', weight: 0.3 },
-    { title: 'Comprar pan' },
-    { title: 'Preparar la presentación', weight: 0.6 },
-    { title: 'Enviar el presupuesto', detail: '12:00' },
-  ]
-  const small = [{ title: 'Comprar pan' }, { title: 'Presentación', weight: 0.6 }, { title: 'Tender la ropa', done: true }]
-  const routines = [
-    { title: 'Gimnasio', emoji: '🏋️' },
-    { title: 'Leer 20 min', emoji: '📖' },
-    { title: 'Estirar', emoji: '🧘' },
-    { title: 'Creatina', emoji: '💊', done: true },
-  ]
+/** La tarea que sale de la frase, como tarjeta que flota sobre la app: lo que se gana, a la vista. */
+function resultCard(title, chips) {
+  const pills = chips
+    .map(
+      (chip) =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:rgba(138,90,44,.12);color:#8a5a2c;font:600 13.5px Inter;white-space:nowrap">${chip}</span>`,
+    )
+    .join('')
+  return `<div class="float" style="right:16px;top:600px;width:268px;transform:rotate(-2deg);padding:16px 18px;border-radius:22px;background:#fbf8f2;box-shadow:0 26px 56px rgba(20,27,46,.3),0 0 0 1px rgba(78,58,34,.1)">
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <span style="flex:none;margin-top:3px;width:21px;height:21px;border-radius:50%;border:1.5px solid rgba(78,58,34,.3)"></span>
+      <div style="min-width:0">
+        <div style="font:600 20px/1.2 'Source Serif 4',serif;color:#1b2540">${title}</div>
+        <div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
+      </div>
+    </div>
+  </div>`
+}
+
+function widgetsFrame(copy, labels) {
+  const w = T.widgets
   return frame({
     theme: 'night',
-    kicker: 'Widgets y Siri',
-    title: 'Siempre *a mano*.',
-    sub: 'Tareas y rutinas, desde el widget. «Apunta en Tasks» y Siri la añade sola.',
+    ...copy,
     content: `
-      <div class="float" style="left:34px;top:318px">${mediumWidget(tasks, 4)}</div>
-      <div class="float" style="left:34px;top:520px">${smallWidget(small, 4)}</div>
-      <div class="float" style="left:230px;top:520px">${routinesWidget(routines)}</div>
-      <div class="float" style="left:34px;right:34px;top:734px;padding:16px 18px;border-radius:22px;background:rgba(244,239,230,.08);box-shadow:inset 0 0 0 1px rgba(244,239,230,.12)">
+      <div class="float" style="left:34px;top:270px">${mediumWidget(w.today, 4, labels)}</div>
+      <div class="float" style="left:34px;top:472px">${smallWidget(w.inbox, 5, labels.inbox)}</div>
+      <div class="float" style="left:230px;top:472px">${routinesWidget(w.routines, labels.routines)}</div>
+      <div class="float" style="left:34px;right:34px;top:686px;padding:16px 18px;border-radius:22px;background:rgba(244,239,230,.08);box-shadow:inset 0 0 0 1px rgba(244,239,230,.12)">
         <div style="font:500 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:#d6b07f">Siri</div>
-        <div style="margin-top:8px;font:italic 500 19px/1.3 'Source Serif 4',serif;color:#f4efe6">«Apunta en Tasks cena con Ana mañana a las 9»</div>
-        <div style="margin-top:8px;font:400 13.5px Inter;color:#b3aa9a">Apuntada: Cena con Ana, mañana 21:00</div>
+        <div style="margin-top:8px;font:italic 500 19px/1.3 'Source Serif 4',serif;color:#f4efe6">${w.siri}</div>
+        <div style="margin-top:8px;font:400 13.5px Inter;color:#b3aa9a">${w.siriReply}</div>
       </div>`,
   })
 }

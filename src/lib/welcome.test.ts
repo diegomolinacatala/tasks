@@ -23,14 +23,18 @@ describe('welcomeOnLaunch', () => {
 })
 
 describe('platesAfter', () => {
-  const plates: { id: PlateId }[] = [{ id: 'write' }, { id: 'details' }, { id: 'swipe' }, { id: 'month' }, { id: 'routine' }]
+  const plates: { id: PlateId }[] = [{ id: 'write' }, { id: 'details' }, { id: 'swipe' }, { id: 'month' }, { id: 'routine' }, { id: 'suggest' }]
 
   test('con 0 van todas, en su orden', () => {
-    expect(platesAfter(plates, 0).map((plate) => plate.id)).toEqual(['write', 'details', 'swipe', 'month', 'routine'])
+    expect(platesAfter(plates, 0).map((plate) => plate.id)).toEqual(['write', 'details', 'swipe', 'month', 'routine', 'suggest'])
   })
 
-  test('quien vio la de la 1.2 solo ve lo de la 1.3: la ficha del compositor', () => {
-    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details'])
+  test('quien vio la de la 1.2 ve lo de la 1.3 y la 1.4: la ficha del compositor y las sugerencias', () => {
+    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'suggest'])
+  })
+
+  test('quien vio la de la 1.3 solo ve las sugerencias', () => {
+    expect(platesAfter(plates, 2).map((plate) => plate.id)).toEqual(['suggest'])
   })
 
   test('con la versión actual no queda ninguna', () => {

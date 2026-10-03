@@ -1,5 +1,6 @@
 // Los widgets de las capturas, copiados de `ios/App/TasksWidget/TasksWidgetViews.swift` (mismas
-// medidas y colores): mediano y pequeño de Hoy, pequeño de Rutinas y los de la pantalla de bloqueo.
+// medidas y colores): mediano y pequeño de Hoy, pequeño de la Bandeja y de Rutinas y los de la
+// pantalla de bloqueo. `labels`: los textos del idioma de la captura (`WIDGET_LABELS`).
 
 import { INK } from './brand.mjs'
 
@@ -40,27 +41,36 @@ const card = (width, height, inner) =>
 
 const count = (value, size) =>
   `<div style="font:400 ${size}px/1 'Source Serif 4',serif;color:${C.text};letter-spacing:-.02em">${value}</div>`
-const day = `<div style="margin-top:4px;font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">HOY</div>`
-const moveButton = `<div style="display:inline-block;margin-top:8px;padding:0 9px;height:24px;line-height:24px;border-radius:12px;background:${C.accentDim};font:600 12px Inter;color:${C.accent}">A hoy</div>`
+/** Lo que dicen los widgets en cada idioma (`WidgetText.swift`). */
+export const WIDGET_LABELS = {
+  es: { today: 'HOY', moveToday: 'A hoy', routines: 'RUTINAS', inbox: 'BANDEJA' },
+  en: { today: 'TODAY', moveToday: 'To today', routines: 'ROUTINES', inbox: 'INBOX' },
+}
+
+const caps = (label) => `<div style="font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">${label}</div>`
+const day = (label) => `<div style="margin-top:4px;font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">${label}</div>`
+const moveButton = (label) =>
+  `<div style="display:inline-block;margin-top:8px;padding:0 9px;height:24px;line-height:24px;border-radius:12px;background:${C.accentDim};font:600 12px Inter;color:${C.accent}">${label}</div>`
 const addLink = `<div style="display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:${C.accentDim}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="${C.accent}" stroke-width="2.6" stroke-linecap="round"/></svg></div>`
 
-export function mediumWidget(tasks, pending) {
+export function mediumWidget(tasks, pending, labels = WIDGET_LABELS.es) {
   return card(
     372,
     176,
     `<div style="display:flex;gap:16px;height:100%">
-      <div style="display:flex;flex-direction:column;min-width:52px">${addLink}<div style="flex:1"></div>${count(pending, 36)}${day}${moveButton}</div>
+      <div style="display:flex;flex-direction:column;min-width:52px">${addLink}<div style="flex:1"></div>${count(pending, 36)}${day(labels.today)}${moveButton(labels.moveToday)}</div>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">${rows(tasks.slice(0, 4), { circleSize: 20, title: 15, detailed: true })}</div>
     </div>`,
   )
 }
 
-export function smallWidget(tasks, pending) {
+/** Pequeño de Hoy o, con `label` de la Bandeja, el de la Bandeja (`InboxSmall`): la misma forma. */
+export function smallWidget(tasks, pending, label = WIDGET_LABELS.es.today) {
   return card(
     176,
     176,
     `<div style="display:flex;flex-direction:column;height:100%;gap:4px">
-      <div style="display:flex;align-items:baseline;gap:6px">${count(pending, 28)}<div style="font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">HOY</div></div>
+      <div style="display:flex;align-items:baseline;gap:6px">${count(pending, 28)}${caps(label)}</div>
       <div style="flex:1;display:flex;flex-direction:column">${rows(tasks.slice(0, 3), { circleSize: 17, title: 13, detailed: false })}</div>
     </div>`,
   )
@@ -104,7 +114,7 @@ export function lockScreenRoutines({ date, title, detail, emoji, pending }) {
 }
 
 /** Widget pequeño de Rutinas (`RoutineSmall` en Swift): las de hoy con su círculo y su emoji. */
-export function routinesWidget(routines) {
+export function routinesWidget(routines, label = WIDGET_LABELS.es.routines) {
   const done = routines.filter((routine) => routine.done).length
   const rowsHtml = routines
     .slice(0, 4)
@@ -121,7 +131,7 @@ export function routinesWidget(routines) {
     176,
     `<div style="display:flex;flex-direction:column;height:100%;gap:6px">
       <div style="display:flex;align-items:baseline;justify-content:space-between">
-        <div style="font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">RUTINAS</div>
+        ${caps(label)}
         <div style="font:400 15px 'Source Serif 4',serif;color:${C.text3}">${done}/${routines.length}</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column">${rowsHtml}</div>

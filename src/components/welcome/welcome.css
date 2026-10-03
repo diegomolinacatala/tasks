@@ -492,6 +492,124 @@
 
 /* II · Gestos: dos filas de verdad que, hasta que se tocan, se asoman hacia su lado */
 
+/* VI · Sugerencias: una lista de mentira sobre la que se rodea, y la sugerencia que sale debajo */
+
+.scene--suggest {
+  gap: 12px;
+  padding: 14px;
+}
+
+.scene__screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.scene__list--plain {
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.scene__ink,
+.scene__demo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* La de muestra cubre solo la primera fila */
+.scene__demo {
+  height: 74px;
+}
+
+.scene__ink path,
+.scene__demo-trace {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.scene__demo-trace {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: scene-trace calc(var(--dur-3) * 8) var(--ease) var(--dur-4) infinite;
+}
+
+@keyframes scene-trace {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* La sugerencia: sube al rodear algo */
+.scene__note {
+  flex: none;
+  min-height: 96px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-3) var(--ease-out);
+}
+
+.scene__note.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.scene__note-about {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+}
+
+.scene__note-text {
+  margin: 6px 0 8px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.scene__note-send {
+  min-height: 32px;
+  padding: 4px 14px;
+}
+
+.scene__note-sent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 72px;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  color: var(--accent);
+}
+
 .scene--swipe,
 .scene--routine {
   justify-content: center;

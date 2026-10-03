@@ -11,6 +11,7 @@ import { IconChevronLeft } from '../ui/Icons'
 import { DetailsScene } from './DetailsScene'
 import { MonthScene } from './MonthScene'
 import { RoutineScene } from './RoutineScene'
+import { SuggestScene } from './SuggestScene'
 import { SwipeScene } from './SwipeScene'
 import { WriteScene } from './WriteScene'
 import './welcome.css'
@@ -38,6 +39,7 @@ const PLATES: readonly Plate[] = [
   { id: 'swipe', Scene: SwipeScene },
   { id: 'month', Scene: MonthScene },
   { id: 'routine', Scene: RoutineScene },
+  { id: 'suggest', Scene: SuggestScene },
 ]
 
 const device = isNative ? 'iPhone' : null
@@ -59,6 +61,11 @@ const COPY = {
         text: isNative
           ? 'Cada mañana amanecen sin tachar. Se tachan también desde la pantalla de bloqueo.'
           : 'Cada mañana amanecen sin tachar, con su emoji y su racha.',
+      },
+      suggest: {
+        kicker: 'Sugerencias',
+        title: 'Rodéalo y cuéntalo.',
+        text: 'En Ajustes, Sugerir una mejora: rodea con el dedo lo que cambiarías y escríbelo. Pruébalo aquí.',
       },
     },
     newsLabel: 'Novedades de Tasks',
@@ -90,6 +97,11 @@ const COPY = {
         text: isNative
           ? 'Every morning they start unchecked. Check them off from the Lock Screen, too.'
           : 'Every morning they start unchecked, with their emoji and their streak.',
+      },
+      suggest: {
+        kicker: 'Suggestions',
+        title: 'Circle it, say it.',
+        text: 'In Settings, Suggest an improvement: circle what you’d change and write it down. Try it here.',
       },
     },
     newsLabel: 'What’s new in Tasks',

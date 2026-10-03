@@ -176,10 +176,25 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   - Bajo las rutinas de la Bandeja, una nota discreta: *Se renuevan a las 00:00*; tocar la hora la
     cambia (`Settings.dayStart`, `SCHEMA_VERSION` 13). Con "04:00", lo tachado a la 1 de la madrugada
     cuenta para la víspera. Ver "Rutinas". Sin opción en Ajustes: lo pidió así, integrado.
+- **Lista para enviar la 1.4** (03/10/2026, en `capacitor`, **TestFlight 35**): el usuario probó la 34 y
+  pidió subir la actualización con capturas que vendan de verdad.
+  - **Bienvenida**: lámina nueva *Sugerencias* (`SuggestScene`, versión 3): una lista de mentira con
+    «Cena con Carlota» arriba, que una mano de muestra rodea hasta que se toca; al rodear una fila sale
+    la sugerencia lista para enviar. Quien venga de la 1.3 ve *Hay cosas nuevas* y solo esa lámina.
+  - **Capturas nuevas**, diez en español (`docs/capturas/`) y diez en inglés (`docs/capturas/en/`),
+    numeradas `01-…`/`10-…` para que se arrastren en orden. Ordenadas para vender: primero lo que la
+    hace distinta (escribir como se habla, con la cena con Carlota; avisos por lugar; el día de un
+    vistazo), después hábitos, widgets, el aviso de cierre, la ficha, el mes, la importancia y la
+    privacidad. Textos en `scripts/store-copy.mjs`; datos de ejemplo en los dos idiomas.
+  - **Ficha**: descripción reescrita en el mismo orden (§3 y §3.1 de `docs/app-store.md`), texto
+    promocional y novedades nuevos, y el paso a paso para enviarla en §9.6.
 
 **Pendiente, en este orden**
 
-0. **Probar la TestFlight 34**: Ajustes → *Sugerir una mejora*, ir a otra pestaña, tocar **Señalar** en
+0. **Enviar la 1.4 (35)** siguiendo `docs/app-store.md` §9.6 (lo hace el usuario: capturas, descripción,
+   ficha en inglés, privacidad con *Atención al cliente*, notas, compilación 35). Antes, en la 35, la
+   lámina *Sugerencias* tras actualizar. Lo de abajo, si no se probó en la 34:
+   **Probar la TestFlight 34**: Ajustes → *Sugerir una mejora*, ir a otra pestaña, tocar **Señalar** en
    la tarjeta de abajo (destello, pantalla congelada con marco de coñac y la mano de muestra), rodear algo, ver la miniatura
    con el trazo en el panel, quitarla y volver a ponerla, enviar, y que llegue al buzón con la captura.
    Abrir el buzón en el iPhone (Safari → la dirección de arriba → pegar la clave → Compartir → *Añadir a
@@ -247,7 +262,7 @@ npm run build      # typecheck + build de producción a dist/
 npm run build:native  # typecheck + web para la app (dist-native/) + headless.js + cap sync ios
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
-node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/)
+node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/); --en, las inglesas en docs/capturas/en/
 node scripts/perf.mjs 6 3         # fluidez con la CPU 6× más lenta, mediana de 3 pasadas (antes: build + preview en :4173)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
@@ -482,19 +497,21 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
   entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
   (`onReady`): no llega a verse la app vacía.
-- **Cinco láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+- **Seis láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
   `lib/details.ts`; al plegarla queda el resumen), *Gestos* (dos `SwipeRow` reales: tachar y
-  borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes) y *Rutinas* (tacharlas; en el
-  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez). Hasta que se tocan, las
+  borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
+  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez) y *Sugerencias* (versión 3,
+  la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar"). Hasta que se tocan, las
   escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
   (`composer__foot`, `composer__more`…): si cambia la barra de escribir, mirarlas.
 - Nada obliga: **Continuar**, atrás, **Saltar** y Escape. Con `prefers-reduced-motion`, la primera
   lámina enseña el resultado sin teclear. Mientras está abierta, la app de debajo va con `inert`.
 - Es la única pantalla con texto explicativo: un titular y una frase por lámina.
-- Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…"), la novia del usuario:
-  lo pidió él. No cambiarlo.
+- Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…", la cena que se rodea en
+  *Sugerencias*), la novia del usuario: lo pidió él. No cambiarlo. También sale en las capturas de la
+  App Store (la frase de la primera, el widget de Siri) y en los datos de ejemplo (`sample-state.mjs`).
 
 ### Arranque
 
