@@ -1,4 +1,4 @@
-import type { IsoDate, Routine } from '../types'
+import type { IsoDate, IsoTime, Routine } from '../types'
 import { addDays, fromIso, isValidTime, isoOfInstant } from './date'
 import { cleanEmoji } from './emoji'
 import { pick } from './i18n'
@@ -205,6 +205,47 @@ export function normalizeRoutine(raw: unknown): Routine | null {
     order: typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : 0,
     createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : Date.now(),
   }
+}
+
+/** Cuándo empieza el día de las rutinas si nadie lo cambia: a medianoche, como el calendario. */
+export const DAY_START: IsoTime = '00:00'
+const DAY_MINUTES = 1440
+const HALF_DAY = 720
+
+const minutesOf = (time: IsoTime): number => {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+/**
+ * Minutos que el día de las rutinas va detrás del calendario. Con "04:00", lo que se tacha a la 1 de la
+ * madrugada cuenta para el día anterior (la racha de quien se acuesta tarde no se rompe). Una hora de
+ * la tarde lo adelanta: con "22:00", el día empieza la víspera por la noche (negativo).
+ */
+export function dayShift(dayStart: IsoTime): number {
+  if (!isValidTime(dayStart)) return 0
+  const minutes = minutesOf(dayStart)
+  return minutes <= HALF_DAY ? minutes : minutes - DAY_MINUTES
+}
+
+/** Desplazamiento de un día de calendario a esa hora: −1 (aún es ayer), +1 (ya es mañana) o 0. */
+function dayOffset(minutes: number, shift: number): number {
+  if (shift > 0 && minutes < shift) return -1
+  if (shift < 0 && minutes >= DAY_MINUTES + shift) return 1
+  return 0
+}
+
+/** El día de las rutinas en un instante: el que se tacha, cuenta para la racha y enseña el widget. */
+export function routineDay(now: number, dayStart: IsoTime): IsoDate {
+  const date = new Date(now)
+  const offset = dayOffset(date.getHours() * 60 + date.getMinutes(), dayShift(dayStart))
+  return offset ? addDays(isoOfInstant(now), offset) : isoOfInstant(now)
+}
+
+/** Día de calendario en que suena el aviso a `time` de la rutina del día `day` (la 1:00 de un día que empieza a las 4:00 es la madrugada siguiente). */
+export function occurrenceDate(day: IsoDate, time: IsoTime, dayStart: IsoTime): IsoDate {
+  const offset = dayOffset(minutesOf(time), dayShift(dayStart))
+  return offset ? addDays(day, -offset) : day
 }
 
 /** Id del aviso de una rutina un día concreto: `routine-<id>-AAAAMMDD`. Estable entre sincronizaciones. */

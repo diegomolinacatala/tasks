@@ -25,7 +25,7 @@ const state: AppState = {
   places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   routines: [{ id: 'r1', title: 'Creatina', emoji: '💊', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
   collapsed: { overdue: false, backlog: true, routines: false },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto', language: 'es', welcome: 0 },
+  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -108,6 +108,12 @@ describe('normalizeState', () => {
     expect(settings(true).dictation).toBe(true)
     expect(settings('true').dictation).toBe(false)
     expect(settings(true).digest).toEqual({ enabled: false, time: '08:30' })
+  })
+
+  test('la hora en que empieza el día se conserva; las copias anteriores, a medianoche', () => {
+    expect(normalizeState({ schemaVersion: 12, tasks: [], sections: [] })!.settings.dayStart).toBe('00:00')
+    expect(normalizeState({ tasks: [], sections: [], settings: { dayStart: '04:00' } })!.settings.dayStart).toBe('04:00')
+    expect(normalizeState({ tasks: [], sections: [], settings: { dayStart: '4' } })!.settings.dayStart).toBe('00:00')
   })
 
   test('la bienvenida vista se conserva; las copias anteriores no la han visto', () => {

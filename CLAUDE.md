@@ -164,15 +164,29 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   Probado con Edge sin ventana y dedo simulado contra el Worker local (español y claro, inglés y
   oscuro, rodear otra vez, cerrar y seguir, enviar, el buzón y la descarga); la captura del iPhone
   (`TasksNative.screenshot`) solo se puede probar allí.
+  - **Probada en el iPhone** por el usuario con la TestFlight 33: la primera sugerencia llegó bien, con la
+    captura y el círculo en su sitio. Pero le costó entender que primero había que tocar la píldora y
+    luego rodear: ver la siguiente.
+- **Sugerencias más claras y hora de inicio del día de las rutinas** (03/10/2026, en `capacitor`,
+  **TestFlight 34**, la 1.4), las dos pedidas por el usuario tras probar la 33:
+  - La píldora de arriba pasa a ser una **tarjeta abajo** ("Ve a lo que quieras comentar", con un solo
+    botón grande, **Señalar**, que late un par de veces), y al dibujar una **mano de muestra** traza una
+    vuelta en el centro hasta el primer toque. Además, el tamaño de pantalla que se manda es el de
+    cuando se rodeó (antes salía encogido por el teclado). Ver "Sugerencias".
+  - Bajo las rutinas de la Bandeja, una nota discreta: *Se renuevan a las 00:00*; tocar la hora la
+    cambia (`Settings.dayStart`, `SCHEMA_VERSION` 13). Con "04:00", lo tachado a la 1 de la madrugada
+    cuenta para la víspera. Ver "Rutinas". Sin opción en Ajustes: lo pidió así, integrado.
 
 **Pendiente, en este orden**
 
-0. **Probar las sugerencias en la TestFlight 33**: Ajustes → *Sugerir una mejora*, ir a otra pestaña,
-   tocar la píldora (destello y pantalla congelada con marco de coñac), rodear algo, ver la miniatura
+0. **Probar la TestFlight 34**: Ajustes → *Sugerir una mejora*, ir a otra pestaña, tocar **Señalar** en
+   la tarjeta de abajo (destello, pantalla congelada con marco de coñac y la mano de muestra), rodear algo, ver la miniatura
    con el trazo en el panel, quitarla y volver a ponerla, enviar, y que llegue al buzón con la captura.
    Abrir el buzón en el iPhone (Safari → la dirección de arriba → pegar la clave → Compartir → *Añadir a
    pantalla de inicio*). Si va bien, enviar la 1.4 (`docs/app-store.md` §9.3 y §9.6: **privacidad con
-   *Atención al cliente***, notas nuevas de §5 y ficha en inglés de §3.1). Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
+   *Atención al cliente***, notas nuevas de §5 y ficha en inglés de §3.1). Las rutinas: tocar la hora de
+   *Se renuevan a las 00:00* en la Bandeja, ponerla a las 4:00, y que el widget de rutinas siga
+   tachado pasada la medianoche hasta las 4:00. Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
    **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
    en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
    la ficha. La regla de la duración: que arrastrar no mueva el panel, que la vibración de cada paso no
@@ -582,13 +596,18 @@ Para que quien usa la app (los amigos del usuario) diga qué cambiaría señalan
 → **Sugerir una mejora** (solo si hay servidor: `VITE_PUSH_API`) pone la app en **modo sugerencia**
 (`components/feedback/`, en su propio trozo):
 
-1. **Ir a donde sea**: la app sigue usándose (pestañas, paneles) con una píldora arriba, *Rodea lo que
-   quieras comentar* y una × para salir (`FeedbackMode`, fase `browse`; z 70, por encima de los paneles).
-2. **Tocar la píldora** la quita un fotograma y hace la **foto** (`captureScreen` →
+1. **Ir a donde sea**: la app sigue usándose (pestañas, paneles) con una **tarjeta abajo**, sobre las
+   pestañas y al alcance del pulgar (`FeedbackDock`, z 70): *Ve a lo que quieras comentar* y un solo botón
+   grande, **Señalar**, con un halo que late un par de veces; la × sale del modo. La barra de escribir se
+   aparta mientras (`data-suggesting` en `<html>`). Antes era una píldora arriba que ya decía *Rodea…*:
+   en el iPhone el usuario intentaba rodear sin tocarla primero.
+2. **Señalar** quita la tarjeta un fotograma y hace la **foto** (`captureScreen` →
    `TasksNative.screenshot`, `WKWebView.takeSnapshot`): destello y la pantalla congelada con un marco de
    coñac (`FeedbackDraw`, z 90). En la PWA no hay foto (una página no puede fotografiarse): se rodea
-   sobre la app en vivo. **Se rodea con el dedo** (el trazo se pinta sin pasar por React); un toque rodea
-   un círculo; *Sin rodear* es la pantalla entera; Cancelar o Escape vuelve a la píldora.
+   sobre la app en vivo. Hasta el primer toque, una **mano de muestra** dibuja una vuelta en el centro
+   (`fb-demo`: el trazo se dibuja y un dedo lo recorre con `offset-path`). **Se rodea con el dedo** (el
+   trazo se pinta sin pasar por React); un toque rodea un círculo; *Sin rodear* es la pantalla entera;
+   Cancelar o Escape vuelve a la tarjeta. La pantalla (`Mark.viewport`) se guarda al rodear.
 3. **Al soltar**, `describe.ts` mira qué hay debajo (`elementsFromPoint` en una rejilla de la zona, del
    centro hacia fuera): el texto de cada cosa y sus clases ("Cena — tl-row › row__title"), y el panel
    abierto. `composeShot` pinta el trazo sobre la foto, estirada a la pantalla como en la capa (JPEG a
@@ -676,7 +695,15 @@ que cada día amanece pendiente él solo (en la app, en los avisos y en el widge
   no desentonen con el papel; en el widget de inicio, `RoutineEmoji` (`.saturation(0.55)`), y en la
   pantalla de bloqueo iOS ya los pinta en un tono.
 - **Dónde**: bloque `Rutinas` de la Bandeja (las que tocan hoy arriba, lo hecho después y las que hoy
-  no tocan, atenuadas), con "2/3" de hoy y **+**. Las que tienen hora salen también en el horario
+  no tocan, atenuadas), con "2/3" de hoy y **+**. Al pie, una nota: *Se renuevan a las 00:00*.
+- **Cuándo empieza el día** (`Settings.dayStart`, `00:00` por defecto): se cambia tocando la hora de esa
+  nota (`PickerChip`, la rueda de iOS), sin opción en Ajustes: casi nadie lo toca. Con "04:00", lo que se
+  tacha a la 1 de la madrugada cuenta para la víspera y la racha no se rompe; una hora de la tarde
+  ("22:00") adelanta el día a la víspera por la noche. `routineDay` (`lib/routines.ts`) da el día de las
+  rutinas: lo usan la Bandeja y el panel (`useRoutineDay` en `App`), los avisos (`routineEntries`, con
+  `occurrenceDate`: el aviso de la 1:00 de un día que empieza a las 4:00 suena la madrugada siguiente)
+  y el widget (la foto lleva `dayShift`; `WidgetDay.routineDay` y una entrada en cada cambio de día). El
+  horario de la Agenda sigue el calendario. Es de los datos: va en la copia y se borra con *Borrar todo*. Las que tienen hora salen también en el horario
   de la Agenda de cada día que tocan (cápsula de trazo discontinuo con su emoji o el icono de repetir).
 - **Fila** (`RoutineRow`): el círculo o deslizar a la derecha la tacha hoy; a la izquierda, borra (con
   deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba

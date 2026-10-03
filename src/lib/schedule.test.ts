@@ -29,7 +29,7 @@ const stateOf = (tasks: Task[], digest = { enabled: false, time: '08:30' }): App
   places: [],
   routines: [],
   collapsed: { overdue: false, backlog: false, routines: false },
-  settings: { digest, dictation: false, theme: 'auto', language: 'es', welcome: 0 },
+  settings: { digest, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 })
 
 describe('notificationBody', () => {
@@ -241,5 +241,14 @@ describe('routineEntries: avisos de las rutinas', () => {
   test('entran en la agenda completa, sin tocar el número del icono', () => {
     const [entry] = upcomingSchedule(withRoutines(routine({ id: 'r' })), NOW)
     expect(entry).toMatchObject({ routine: { id: 'r' }, badge: 0 })
+  })
+
+  test('con el día empezando a las 4, el aviso de la 1:00 es de la víspera y suena de madrugada', () => {
+    const base = withRoutines(routine({ id: 'tarde', time: '01:00', done: [TODAY] }))
+    const state: AppState = { ...base, settings: { ...base.settings, dayStart: '04:00' } }
+    const [first] = routineEntries(state, NOW)
+    // Hoy (11) ya está hecha: el siguiente es el del 12, que suena la madrugada del 13.
+    expect(first).toMatchObject({ id: 'routine-tarde-20260912', routine: { date: '2026-09-12' } })
+    expect(first!.at).toBe(toInstant('2026-09-13', '01:00'))
   })
 })

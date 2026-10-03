@@ -190,9 +190,12 @@ struct RoutinesEntry: TimelineEntry {
     /** La rutina elegida al configurar el widget; `nil` = la siguiente. */
     let chosen: String?
     var text = WidgetText.current
+    /** Minutos que el día de las rutinas va detrás del calendario (`WidgetStore.dayShift`). */
+    var shift = 0
 
+    /** El día de las rutinas: con el día empezando de madrugada, lo de antes aún es de la víspera. */
     var day: String {
-        WidgetDay.iso(date)
+        WidgetDay.routineDay(date, shift: shift)
     }
 
     /** Las que tocan hoy, en el orden de la app (por hora). */
@@ -243,19 +246,22 @@ struct RoutinesProvider: AppIntentTimelineProvider {
         if context.isPreview && (routines?.isEmpty ?? true) {
             return RoutinesEntry.sample(Date())
         }
-        return RoutinesEntry(date: Date(), routines: routines, chosen: configuration.routine?.id)
+        return RoutinesEntry(date: Date(), routines: routines, chosen: configuration.routine?.id, shift: WidgetStore.dayShift())
     }
 
-    /** Una entrada por medianoche: cada día nuevo amanece con todo sin tachar, sin abrir la app. */
+    /**
+     * Una entrada cada vez que empieza el día de las rutinas (medianoche, o la hora elegida en la app):
+     * cada día nuevo amanece con todo sin tachar, sin abrir la app.
+     */
     func timeline(for configuration: RoutineWidgetIntent, in context: Context) async -> Timeline<RoutinesEntry> {
         let now = Date()
         let routines = WidgetStore.routines()
         let chosen = configuration.routine?.id
         let text = WidgetText.current
-        let start = Calendar.current.startOfDay(for: now)
-        let midnights = (1...WidgetStore.days).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: start) }
-        let entries = [RoutinesEntry(date: now, routines: routines, chosen: chosen, text: text)]
-            + midnights.map { RoutinesEntry(date: $0, routines: routines, chosen: chosen, text: text) }
+        let shift = WidgetStore.dayShift()
+        let starts = WidgetDay.routineDayStarts(after: now, shift: shift, count: WidgetStore.days)
+        let entries = [RoutinesEntry(date: now, routines: routines, chosen: chosen, text: text, shift: shift)]
+            + starts.map { RoutinesEntry(date: $0, routines: routines, chosen: chosen, text: text, shift: shift) }
         return Timeline(entries: entries, policy: .atEnd)
     }
 }

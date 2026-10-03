@@ -5,7 +5,7 @@ import { addDays, isoOfInstant } from './date'
 import type { Language } from './i18n'
 import { language } from './i18n'
 import { byOrder, compareText } from './order'
-import { byRoutineOrder } from './routines'
+import { byRoutineOrder, dayShift, routineDay } from './routines'
 
 /**
  * Foto de las tareas que lee el widget de la pantalla de inicio (solo iPhone). Lleva lo
@@ -62,6 +62,11 @@ export interface WidgetSnapshot {
   inbox: WidgetInboxTask[]
   /** Idioma de la app (ya resuelto): el de los textos de los widgets. Sin él, el del iPhone. */
   language: Language
+  /**
+   * Minutos que el día de las rutinas va detrás del calendario (`dayShift`): el widget de rutinas cambia
+   * de día a esa hora. Sin él (fotos anteriores), a medianoche.
+   */
+  dayShift: number
 }
 
 /** Días de diario que lleva la foto: el widget solo mira hoy, y la semana da para sus puntos. */
@@ -101,7 +106,15 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     .slice(0, WIDGET_MAX_INBOX)
     .map(({ id, title, done, importance }) => ({ id, title, done, importance }))
 
-  return { version: WIDGET_VERSION, tasks, routines: widgetRoutines(state.routines, today), inbox, language: language() }
+  const { dayStart } = state.settings
+  return {
+    version: WIDGET_VERSION,
+    tasks,
+    routines: widgetRoutines(state.routines, routineDay(now, dayStart)),
+    inbox,
+    language: language(),
+    dayShift: dayShift(dayStart),
+  }
 }
 
 /** Ids a alternar para que la app refleje lo marcado en el widget. Si una tarea se repite, manda lo último. */

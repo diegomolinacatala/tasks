@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest'
 import type { Routine } from '../types'
+import { toInstant } from './date'
 import {
   ALL_DAYS,
+  dayShift,
+  occurrenceDate,
+  routineDay,
   bestStreak,
   completionRate,
   ROUTINE_LOG_DAYS,
@@ -195,5 +199,35 @@ describe('estadísticas', () => {
   test('completionRate sin días que tocaran es null', () => {
     const created = new Date(2026, 8, 29, 9).getTime()
     expect(completionRate(routine({ id: 'a', createdAt: created }), TUESDAY)).toBeNull()
+  })
+})
+
+describe('el día de las rutinas', () => {
+  test('a medianoche, el del calendario', () => {
+    expect(dayShift('00:00')).toBe(0)
+    expect(routineDay(toInstant(TUESDAY, '00:30'), '00:00')).toBe(TUESDAY)
+  })
+
+  test('si empieza de madrugada, lo de antes cuenta para la víspera', () => {
+    expect(dayShift('04:00')).toBe(240)
+    expect(routineDay(toInstant(TUESDAY, '01:30'), '04:00')).toBe(MONDAY)
+    expect(routineDay(toInstant(TUESDAY, '04:00'), '04:00')).toBe(TUESDAY)
+  })
+
+  test('si empieza por la noche, a esa hora ya es el día siguiente', () => {
+    expect(dayShift('22:00')).toBe(-120)
+    expect(routineDay(toInstant(MONDAY, '21:59'), '22:00')).toBe(MONDAY)
+    expect(routineDay(toInstant(MONDAY, '22:00'), '22:00')).toBe(TUESDAY)
+  })
+
+  test('una hora rota es medianoche', () => {
+    expect(dayShift('mañana')).toBe(0)
+  })
+
+  test('el aviso de la madrugada de un día que empieza a las 4 suena al día siguiente', () => {
+    expect(occurrenceDate(MONDAY, '01:00', '04:00')).toBe(TUESDAY)
+    expect(occurrenceDate(MONDAY, '10:00', '04:00')).toBe(MONDAY)
+    expect(occurrenceDate(TUESDAY, '23:00', '22:00')).toBe(MONDAY)
+    expect(occurrenceDate(MONDAY, '01:00', '00:00')).toBe(MONDAY)
   })
 })

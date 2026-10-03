@@ -85,6 +85,8 @@ function normalizeSettings(raw: unknown): Settings {
     language: isLanguageSetting(settings.language) ? settings.language : 'es',
     // Las copias anteriores a la bienvenida no la han visto: al actualizar, sale.
     welcome: normalizeWelcome(settings.welcome),
+    // Las anteriores a la hora de inicio del día: a medianoche, como hasta ahora.
+    dayStart: isValidTime(settings.dayStart) ? settings.dayStart : defaults.dayStart,
   }
 }
 

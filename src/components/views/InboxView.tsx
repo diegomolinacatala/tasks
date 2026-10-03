@@ -24,6 +24,8 @@ import './inbox.css'
 
 interface InboxViewProps {
   today: IsoDate
+  /** Hoy para las rutinas: puede ir por detrás del calendario si su día empieza de madrugada. */
+  routineDay: IsoDate
 }
 
 const COPY = {
@@ -56,7 +58,7 @@ const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
  * Bandeja: lo que aún no tiene día. Arriba, las rutinas (lo que se repite); debajo, las tareas sin
  * fecha, que se ordenan con el asa y se planifican soltándolas en un día del muelle.
  */
-export function InboxView({ today }: InboxViewProps) {
+export function InboxView({ today, routineDay }: InboxViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -123,7 +125,7 @@ export function InboxView({ today }: InboxViewProps) {
         <div className="view__progress view__progress--plain" aria-hidden="true" />
       </header>
 
-      <RoutinesBlock today={today} />
+      <RoutinesBlock today={routineDay} />
 
       <DndContext
         sensors={sensors}

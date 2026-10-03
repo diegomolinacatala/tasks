@@ -42,6 +42,7 @@ describe('widgetSnapshot', () => {
       routines: [],
       inbox: [],
       language: 'es',
+      dayShift: 0,
     })
   })
 

@@ -133,6 +133,11 @@ export interface Settings {
   /** Idioma de este dispositivo. Como la apariencia, importar una copia o borrarlo todo no lo cambia. */
   language: LanguageSetting
   /**
+   * A qué hora empieza el día de las rutinas (`HH:MM`, `00:00` por defecto): lo tachado antes cuenta para
+   * el día anterior. Ver `routineDay` en `lib/routines.ts`.
+   */
+  dayStart: IsoTime
+  /**
    * Última versión de la bienvenida que se cerró en este dispositivo (`lib/welcome.ts`); 0 = ninguna.
    * Si la app trae láminas posteriores, salen al abrirla. Importar una copia no la cambia.
    */

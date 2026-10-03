@@ -5,7 +5,7 @@ import { pick, plural } from './i18n'
 import { byImportance } from './importance'
 import { byOrder, compareText } from './order'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
-import { daysLabel, isDoneOn, isDue, routineEntryId } from './routines'
+import { daysLabel, isDoneOn, isDue, occurrenceDate, routineDay, routineEntryId } from './routines'
 
 const MINUTE = 60_000
 const SOON_MINUTES = 60
@@ -173,12 +173,14 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
  * (el plan se recalcula) y el día siguiente vuelve a sonar.
  */
 export function routineEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
-  const today = isoOfInstant(now)
+  // Por días de las rutinas: con el día empezando a las 4:00, el aviso de la 1:00 es de la víspera.
+  const { dayStart } = state.settings
+  const today = routineDay(now, dayStart)
   return state.routines.flatMap((routine) => {
     const { time } = routine
     if (!time) return []
     return Array.from({ length: ROUTINE_DAYS }, (_, offset) => addDays(today, offset)).flatMap((day) => {
-      const at = toInstant(day, time)
+      const at = toInstant(occurrenceDate(day, time, dayStart), time)
       if (at <= now || !isDue(routine, day) || isDoneOn(routine, day)) return []
       return [
         {

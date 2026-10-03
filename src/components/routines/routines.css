@@ -38,6 +38,43 @@
   transform: scale(0.99);
 }
 
+/* Cuándo se renuevan: una nota al pie, con la hora como único sitio que se toca */
+.routines__renew {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: var(--sp-1) 0 0;
+  padding-left: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.routines__renew svg {
+  flex: none;
+  opacity: 0.8;
+}
+
+.routines__time {
+  position: relative;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline dotted var(--line-2);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease);
+}
+
+/* Área de toque de 44 px sin agrandar la nota */
+.routines__time::after {
+  content: '';
+  position: absolute;
+  inset: -14px -10px;
+}
+
+.routines__time:active {
+  color: var(--accent);
+}
+
 .routine__row {
   align-items: center;
 }

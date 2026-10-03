@@ -69,6 +69,11 @@ enum WidgetStore {
         read(WidgetSnapshot.self, snapshotFile)?.language
     }
 
+    /** Minutos que el día de las rutinas va detrás del calendario (`dayShift`); 0 sin foto o con una anterior. */
+    static func dayShift() -> Int {
+        read(WidgetSnapshot.self, snapshotFile)?.dayShift ?? 0
+    }
+
     /** Las rutinas como las ve el widget, con lo tachado desde él (o desde su aviso) encima. `nil` sin foto. */
     static func routines() -> [WidgetRoutine]? {
         guard let snapshot = read(WidgetSnapshot.self, snapshotFile), snapshot.version == version else { return nil }
@@ -255,6 +260,8 @@ struct WidgetSnapshot: Codable {
     let inbox: [WidgetInboxTask]?
     /** `es` o `en`, ya resuelto por la app. Falta en las fotos de antes del inglés. */
     let language: String?
+    /** Minutos que el día de las rutinas va detrás del calendario. Falta en las fotos de antes: medianoche. */
+    let dayShift: Int?
 }
 
 struct WidgetChanges: Codable {
@@ -316,6 +323,35 @@ struct WidgetDay {
     static func iso(_ date: Date) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    /**
+     * El día de las rutinas a esa hora (`routineDay` en `src/lib/routines.ts`). Con el día empezando a las
+     * 4:00 (`shift` 240), la 1 de la madrugada aún es la víspera; con 22:00 (`shift` -120), las 23:00 ya
+     * son el día siguiente.
+     */
+    static func routineDay(_ date: Date, shift: Int) -> String {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        var offset = 0
+        if shift > 0 && minutes < shift {
+            offset = -1
+        } else if shift < 0 && minutes >= 1440 + shift {
+            offset = 1
+        }
+        guard offset != 0, let moved = calendar.date(byAdding: .day, value: offset, to: date) else { return iso(date) }
+        return iso(moved)
+    }
+
+    /** Las próximas `count` horas a las que cambia el día de las rutinas, después de `now`. */
+    static func routineDayStarts(after now: Date, shift: Int, count: Int) -> [Date] {
+        let start = calendar.startOfDay(for: now)
+        return (0...count + 1)
+            .compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+            .map { $0.addingTimeInterval(TimeInterval(shift * 60)) }
+            .filter { $0 > now }
+            .prefix(count)
+            .map { $0 }
     }
 
     /** Día de la semana de un `AAAA-MM-DD`: 1 = lunes … 7 = domingo, como `isoWeekday` en la web. */

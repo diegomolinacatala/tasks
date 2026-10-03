@@ -6,13 +6,13 @@ import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
-import { MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
+import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { normalizeWelcome } from '../lib/welcome'
 import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 12
+export const SCHEMA_VERSION = 13
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
@@ -20,6 +20,7 @@ export const defaultSettings = (): Settings => ({
   theme: 'auto',
   language: 'auto',
   welcome: 0,
+  dayStart: DAY_START,
 })
 
 export const THEMES: readonly Theme[] = ['light', 'dark', 'auto']
@@ -363,6 +364,10 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'settings/language':
       if (!isLanguageSetting(action.language) || state.settings.language === action.language) return state
       return { ...state, settings: { ...state.settings, language: action.language } }
+
+    case 'settings/dayStart':
+      if (!isValidTime(action.time) || state.settings.dayStart === action.time) return state
+      return { ...state, settings: { ...state.settings, dayStart: action.time } }
 
     // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
     case 'settings/welcome': {

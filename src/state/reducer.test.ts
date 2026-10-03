@@ -625,6 +625,14 @@ describe('rutinas', () => {
 })
 
 describe('apariencia', () => {
+  test('settings/dayStart guarda una hora válida y nada más', () => {
+    expect(emptyState().settings.dayStart).toBe('00:00')
+    const state = run(emptyState(), { type: 'settings/dayStart', time: '04:30' })
+    expect(state.settings.dayStart).toBe('04:30')
+    expect(run(state, { type: 'settings/dayStart', time: '25:00' })).toBe(state)
+    expect(run(state, { type: 'settings/dayStart', time: '04:30' })).toBe(state)
+  })
+
   test('settings/theme guarda la elegida', () => {
     expect(run(emptyState(), { type: 'settings/theme', theme: 'dark' }).settings.theme).toBe('dark')
   })

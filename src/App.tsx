@@ -17,7 +17,7 @@ import { ALL_DAYS, MAX_ROUTINES } from './lib/routines'
 import { applyTheme } from './lib/theme'
 import type { WelcomeRun } from './lib/welcome'
 import { FULL_WELCOME, WELCOME_VERSION, welcomeOnLaunch } from './lib/welcome'
-import { useToday } from './hooks/useToday'
+import { useRoutineDay, useToday } from './hooks/useToday'
 import { useCopy, useLanguage } from './state/LanguageProvider'
 import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
 import { isOverdue } from './state/selectors'
@@ -122,6 +122,8 @@ export function App() {
   const state = useAppState()
   const dispatch = useDispatch()
   const today = useToday()
+  // Las rutinas cambian de día a la hora elegida (medianoche si no): lo tachado de madrugada es de ayer.
+  const routineToday = useRoutineDay(state.settings.dayStart)
   const typing = useKeyboardInset()
   const toast = useToast()
   const addTasks = useAddTasks()
@@ -391,7 +393,7 @@ export function App() {
 
         <main className="app__views">
           <SizingContext.Provider value={sizing}>
-            {pane('inbox', <InboxView today={today} />)}
+            {pane('inbox', <InboxView today={today} routineDay={routineToday} />)}
             {pane('agenda', <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} />)}
             {pane('places', <PlacesView />)}
             {pane(
@@ -425,7 +427,7 @@ export function App() {
         <Suspense fallback={null}>
           <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} onMakeRoutine={makeRoutine} />
           <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
-          {routineLoaded && <RoutineSheet routineId={routineId} today={today} onClose={() => setRoutineId(null)} />}
+          {routineLoaded && <RoutineSheet routineId={routineId} today={routineToday} onClose={() => setRoutineId(null)} />}
         </Suspense>
         {isNative && (
           <Suspense fallback={null}>

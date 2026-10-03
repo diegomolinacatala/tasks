@@ -68,6 +68,7 @@ export type Action =
   | { type: 'settings/dictation'; allowed: boolean }
   | { type: 'settings/theme'; theme: Theme }
   | { type: 'settings/language'; language: LanguageSetting }
+  | { type: 'settings/dayStart'; time: IsoTime }
   /** Se ha cerrado la bienvenida de esa versión (`lib/welcome.ts`). */
   | { type: 'settings/welcome'; version: number }
   | { type: 'state/replace'; state: AppState }
