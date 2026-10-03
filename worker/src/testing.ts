@@ -108,6 +108,7 @@ export function testDeps(overrides: Partial<Deps> = {}) {
   let clock = Date.UTC(2026, 8, 11, 8, 0, 0)
   const armed: number[] = []
   const transcribed: string[] = []
+  const languages: string[] = []
   const interpreted: { text: string; context: InterpretContext }[] = []
   const deps: Deps = {
     store: memory.store,
@@ -121,8 +122,9 @@ export function testDeps(overrides: Partial<Deps> = {}) {
       },
     },
     transcriber: {
-      transcribe: async (audio) => {
+      transcribe: async (audio, language) => {
         transcribed.push(audio)
+        languages.push(language)
         return 'llamar a miguel'
       },
     },
@@ -130,5 +132,5 @@ export function testDeps(overrides: Partial<Deps> = {}) {
     now: () => clock,
     ...overrides,
   }
-  return { deps, memory, push, armed, transcribed, interpreted, setNow: (ms: number) => (clock = ms), now: () => clock }
+  return { deps, memory, push, armed, transcribed, languages, interpreted, setNow: (ms: number) => (clock = ms), now: () => clock }
 }

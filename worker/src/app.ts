@@ -146,11 +146,13 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
       const body = await readJson(request, MAX_AUDIO_BODY_BYTES)
       const audio = unwrap(parseAudio(body.audio))
       const context = parseInterpretContext(body.context)
+      // La app en inglés lo dice (y no manda contexto: la IA solo entiende español). Sin `lang`, español.
+      const language = body.lang === 'en' ? 'en' : 'es'
       // La app nativa solo aparece por aquí: sin esto caducaría a los 180 días aunque se use.
       await deps.store.touchDevice(device.id, deps.now())
       let text: string
       try {
-        text = await deps.transcriber.transcribe(audio)
+        text = await deps.transcriber.transcribe(audio, language)
       } catch (error) {
         // El móvil distingue la cuota por el 503 para decir cuándo vuelve el dictado.
         if (isQuotaExceeded(error)) {
@@ -162,7 +164,7 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
         throw new HttpError(502, 'no se pudo transcribir el audio')
       }
       // Sin contexto o si la IA falla, el móvil interpreta el texto con su analizador local.
-      const tasks = context && text ? await interpretOrNull(deps, text, context) : null
+      const tasks = context && text && language === 'es' ? await interpretOrNull(deps, text, context) : null
       return json(200, { data: { text, tasks } }, headers)
     },
     // Siri o un atajo de la app de iPhone: el texto ya viene transcrito en el propio iPhone.

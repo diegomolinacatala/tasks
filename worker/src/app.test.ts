@@ -242,6 +242,24 @@ describe('rutas autenticadas', () => {
     expect(transcribed).toEqual([AUDIO])
   })
 
+  test('POST /v1/transcribe en inglés transcribe en inglés y no pasa por la IA, que solo entiende español', async () => {
+    const { deps, languages, interpreted } = testDeps()
+    const { token } = await register(deps)
+    const context = { today: '2026-09-15', now: '10:00' }
+    const response = await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO, lang: 'en', context } }), deps)
+    expect(response.status).toBe(200)
+    expect(languages).toEqual(['en'])
+    expect(interpreted).toEqual([])
+    expect(((await response.json()) as { data: { tasks: unknown } }).data.tasks).toBeNull()
+  })
+
+  test('POST /v1/transcribe sin idioma (versiones anteriores) sigue en español', async () => {
+    const { deps, languages } = testDeps()
+    const { token } = await register(deps)
+    await handle(request('POST', '/v1/transcribe', { token, body: { audio: AUDIO } }), deps)
+    expect(languages).toEqual(['es'])
+  })
+
   test('POST /v1/transcribe con contexto devuelve también las tareas interpretadas', async () => {
     const { deps, interpreted } = testDeps()
     const { token } = await register(deps)

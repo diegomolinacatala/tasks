@@ -94,9 +94,12 @@ export interface Scheduler {
 }
 
 /** Voz a texto. En producción, Whisper en Workers AI. */
+/** Idioma de lo dictado: el de la app que lo manda. Las versiones anteriores al inglés no lo dicen: español. */
+export type SpeechLanguage = 'es' | 'en'
+
 export interface Transcriber {
   /** `audio`: WAV en base64 estándar. */
-  transcribe(audio: string): Promise<string>
+  transcribe(audio: string, language: SpeechLanguage): Promise<string>
 }
 
 /** Fecha y hora locales del móvil: el servidor no conoce la zona horaria del usuario. */

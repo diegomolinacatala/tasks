@@ -32,7 +32,25 @@ describe('workersAiTranscriber', () => {
         return { text: ' Comprar pan mañana ' }
       },
     } as unknown as Ai
-    expect(await workersAiTranscriber(ai).transcribe('QUJD')).toBe('Comprar pan mañana')
+    expect(await workersAiTranscriber(ai).transcribe('QUJD', 'es')).toBe('Comprar pan mañana')
     expect(calls[0]).toMatchObject(['@cf/openai/whisper-large-v3-turbo', { audio: 'QUJD', language: 'es', vad_filter: true }])
+  })
+})
+
+describe('en inglés', () => {
+  test('pide inglés al modelo, con su propio contexto', async () => {
+    const calls: unknown[] = []
+    const ai = {
+      run: async (model: string, input: unknown) => {
+        calls.push([model, input])
+        return { text: ' Call Mike tomorrow ' }
+      },
+    } as unknown as Ai
+    expect(await workersAiTranscriber(ai).transcribe('QUJD', 'en')).toBe('Call Mike tomorrow')
+    expect(calls[0]).toMatchObject(['@cf/openai/whisper-large-v3-turbo', { audio: 'QUJD', language: 'en', initial_prompt: expect.stringContaining('remind me') }])
+  })
+
+  test('descarta también la alucinación inglesa sobre silencio', () => {
+    expect(cleanTranscript('Thank you for watching!')).toBe('')
   })
 })
