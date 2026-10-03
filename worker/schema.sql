@@ -24,3 +24,17 @@ CREATE TABLE IF NOT EXISTS schedule (
 );
 
 CREATE INDEX IF NOT EXISTS schedule_at ON schedule (at);
+
+-- Sugerencias que se mandan desde Ajustes. Las lee el desarrollador en /buzon; archivar las borra.
+-- `shot`: la captura con lo rodeado (JPEG en base64), si quien la manda la deja.
+CREATE TABLE IF NOT EXISTS feedback (
+  id TEXT PRIMARY KEY,
+  at INTEGER NOT NULL,
+  message TEXT NOT NULL,
+  context TEXT NOT NULL,
+  shot TEXT,
+  ip_hash TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS feedback_ip ON feedback (ip_hash, at);
+CREATE INDEX IF NOT EXISTS feedback_at ON feedback (at);

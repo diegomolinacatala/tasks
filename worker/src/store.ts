@@ -1,4 +1,4 @@
-import type { Device, DueItem, ItemKey, NewDevice, ScheduleItem, Store, Subscription } from './types'
+import type { Device, DueItem, FeedbackSummary, ItemKey, NewDevice, NewFeedback, ScheduleItem, Store, Subscription } from './types'
 
 /** D1 admite como mucho 100 parámetros por consulta. */
 const MAX_PARAMS = 100
@@ -14,6 +14,14 @@ interface DeviceRow {
   endpoint: string
   p256dh: string
   auth: string
+}
+
+interface FeedbackRow {
+  id: string
+  at: number
+  message: string
+  context: string
+  has_shot: number
 }
 
 interface DueRow extends DeviceRow {
@@ -149,6 +157,47 @@ export function d1Store(db: D1Database): Store {
         db.prepare('DELETE FROM schedule WHERE device_id IN (SELECT id FROM devices WHERE seen_at < ?)').bind(seenBefore),
         db.prepare('DELETE FROM devices WHERE seen_at < ?').bind(seenBefore),
       ])
+    },
+
+    async countFeedback() {
+      const row = await db.prepare('SELECT COUNT(*) AS n FROM feedback').first<{ n: number }>()
+      return row?.n ?? 0
+    },
+
+    async countFeedbackSince(ipHash, since) {
+      const row = await db
+        .prepare('SELECT COUNT(*) AS n FROM feedback WHERE ip_hash = ? AND at >= ?')
+        .bind(ipHash, since)
+        .first<{ n: number }>()
+      return row?.n ?? 0
+    },
+
+    async addFeedback({ id, at, message, context, shot, ipHash }: NewFeedback) {
+      await db
+        .prepare('INSERT INTO feedback (id, at, message, context, shot, ip_hash) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(id, at, message, context, shot, ipHash)
+        .run()
+    },
+
+    async listFeedback(limit): Promise<FeedbackSummary[]> {
+      const { results } = await db
+        .prepare('SELECT id, at, message, context, shot IS NOT NULL AS has_shot FROM feedback ORDER BY at DESC LIMIT ?')
+        .bind(limit)
+        .all<FeedbackRow>()
+      return results.map((row) => ({ id: row.id, at: row.at, message: row.message, context: row.context, hasShot: Boolean(row.has_shot) }))
+    },
+
+    async feedbackShot(id) {
+      const row = await db.prepare('SELECT shot FROM feedback WHERE id = ?').bind(id).first<{ shot: string | null }>()
+      return row?.shot ?? null
+    },
+
+    async deleteFeedback(id) {
+      await db.prepare('DELETE FROM feedback WHERE id = ?').bind(id).run()
+    },
+
+    async deleteFeedbackBefore(at) {
+      await db.prepare('DELETE FROM feedback WHERE at < ?').bind(at).run()
     },
   }
 }

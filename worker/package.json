@@ -12,7 +12,8 @@
     "eval": "vite-node eval/run.ts",
     "db:init": "wrangler d1 execute tasks-push --remote --file=schema.sql",
     "db:init:local": "wrangler d1 execute tasks-push --local --file=schema.sql",
-    "db:init:query": "node scripts/apply-schema.mjs"
+    "db:init:query": "node scripts/apply-schema.mjs",
+    "feedback": "node scripts/feedback.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^2.0.0"
