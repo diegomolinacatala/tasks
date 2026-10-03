@@ -140,7 +140,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   soltar, quitarla, tocar, la ×; claro y oscuro, 390 × 844 y 375 × 667); 676 tests.
 - **La 1.3 está aprobada** (compilación 30): el 03/10/2026 la subida respondió *train version '1.3' is
   closed*. `MARKETING_VERSION` subido a **1.4**.
-- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, la **1.4**; el Worker ya
+- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, **TestFlight 32**, la **1.4**; el Worker ya
   desplegado desde `main`). Lo pidió el usuario en una sola petición:
   - **Idioma** (Ajustes → *Idioma*: Automático, Español, English): toda la app, los avisos, los widgets,
     lo que dice Siri, la bienvenida y un **analizador en inglés** ("call mom tomorrow at 5pm, remind me
