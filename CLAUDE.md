@@ -138,8 +138,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   "Duración y aviso de cierre"), en el panel de la tarea, la ficha y la lámina *Detalles*. Y los
   ejemplos de la bienvenida nombran a Carlota. Probado con dedo simulado (arrastrar, estirar dos veces,
   soltar, quitarla, tocar, la ×; claro y oscuro, 390 × 844 y 375 × 667); 676 tests.
-- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, **sin subir**: va en la 1.3,
-  que aún no se ha enviado). Lo pidió el usuario en una sola petición:
+- **La 1.3 está aprobada** (compilación 30): el 03/10/2026 la subida respondió *train version '1.3' is
+  closed*. `MARKETING_VERSION` subido a **1.4**.
+- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, la **1.4**; el Worker ya
+  desplegado desde `main`). Lo pidió el usuario en una sola petición:
   - **Idioma** (Ajustes → *Idioma*: Automático, Español, English): toda la app, los avisos, los widgets,
     lo que dice Siri, la bienvenida y un **analizador en inglés** ("call mom tomorrow at 5pm, remind me
     15 minutes before", "every monday at 7am", "when I get to Walmart"). Ver "Idioma". `SCHEMA_VERSION`
@@ -151,26 +153,23 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     ~130 ms de peor fotograma, volver a la Agenda de 216 a ~50 ms de respuesta, tachar de 64 a ~20.
   - Probado con Edge sin ventana y dedo simulado (inglés y español, instalación nueva con el sistema en
     inglés, la tira deslizando nada más desplegar el mes, arrastrar en la Agenda); 804 tests de la app y
-    150 del Worker. Revisado por un segundo agente (sin errores de Swift a la vista). El
-    Swift (widget nuevo, textos, `en.lproj`) **no se ha compilado aún**: lo dirá el CI al subir.
+    150 del Worker. Revisado por un segundo agente. El Swift nuevo (widget, textos, `en.lproj`)
+    **compila en el CI** (el archivo salió bien; falló solo la subida, por la versión 1.3 cerrada).
 
 **Pendiente, en este orden**
 
-0. **Subir lo del 03/10/2026.** Primero el Worker a `main` (el dictado en inglés necesita su `lang`; es
-   compatible hacia atrás, así que no rompe nada de lo publicado): sin él, una app en inglés transcribiría
-   forzando español. Después push a `capacitor` y mirar que el CI compila el Swift nuevo (widget de
-   la Bandeja, `WidgetText.swift`, los `en.lproj`). En el iPhone: Ajustes → Idioma → English (los
+0. **Probar la 1.4 en el iPhone** (TestFlight de `capacitor`). En el iPhone: Ajustes → Idioma → English (los
    widgets cambian de idioma al volver al inicio), escribir y dictar en inglés, el widget **Bandeja**
    (tachar sin abrir la app, el +, tocar una tarea), y con el iPhone en inglés, Siri: *«Add to Tasks»*
    (las frases en inglés salen de `en.lproj/AppShortcuts.strings`; si Siri no las reconoce, abrir la
-   app Atajos una vez). Notar si va más fluido. Después, lo de la 1.3 de abajo con esa compilación.
-   **Probar la 1.3** en el iPhone y enviarla. Al instalarla encima de la
-   1.2 tiene que salir la portada de novedades ("Hay cosas nuevas"). En la barra de escribir: tocar
+   app Atajos una vez). Notar si va más fluido. Si va bien, enviar la 1.4 (`docs/app-store.md` §9.3 y
+   §9.6, con la ficha en inglés de §3.1). Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
    **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
    en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
    la ficha. La regla de la duración: que arrastrar no mueva el panel, que la vibración de cada paso no
-   canse y que mantener al final se note (halo de oro y vibración al estirarse). Si va bien, enviarla (`docs/app-store.md` §9.3 y §9.5) y unir `capacitor` a `main` para
-   que la web pública lleve la misma interfaz.
+   canse y que mantener al final se note (halo de oro y vibración al estirarse). Después, unir
+   `capacitor` a `main` para que la web pública lleve la misma interfaz (`main` ya tiene el commit del
+   Worker, cogido aparte: la unión será un merge, no un fast-forward).
 1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
    rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
    el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
@@ -192,7 +191,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    tareas sigan ahí tras forzar el cierre.
 
 Cualquier cambio de la app llega a la App Store con una versión nueva: `docs/app-store.md` §9. En
-cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.3 → 1.4…) antes del siguiente push que toque
+cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.4 → 1.5…) antes del siguiente push que toque
 la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
 ejecución programada).
 
@@ -1194,7 +1193,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.2,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.4,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.

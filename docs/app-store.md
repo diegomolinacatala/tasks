@@ -12,7 +12,7 @@ actualizaciones. Los pasos marcados con **(tú)** necesitan tu cuenta de Apple o
 | 2 Probar en el iPhone | A grandes rasgos: «funciona medio decente». Widget, Siri, tres toques atrás y aviso al salir de un lugar, bien. Falta el resto de la lista |
 | Unir `capacitor` con `main` | Hecho (17/09/2026). El Worker se despliega solo desde `main` |
 | 6 Publicar en la App Store | Hecho. En la App Store desde el 27/09/2026: la 1.0 con la compilación 24, tras dos rechazos (§7 y §8) |
-| 9 Actualizaciones | 1.2 publicada el 30/09/2026 (compilación 29). Versión en curso: 1.3 (§9.5) |
+| 9 Actualizaciones | 1.3 aprobada (compilación 30; el CI lo dijo el 03/10/2026). Versión en curso: 1.4 (§9.6) |
 
 ## 1. Primera compilación en TestFlight
 
@@ -296,17 +296,17 @@ PRIVADA
 Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publicidad, sin analítica.
 ```
 
-### 3.1 Ficha en inglés (desde la 1.3)
+### 3.1 Ficha en inglés (desde la 1.4)
 
-La app habla inglés desde la 1.3, así que la ficha puede tenerlo también: quien tenga el iPhone en
+La app habla inglés desde la 1.4, así que la ficha puede tenerlo también: quien tenga el iPhone en
 inglés (o la tienda de un país de habla inglesa) la verá así.
 
 **Cómo añadirla (tú, en App Store Connect):**
 
-1. La app → pestaña **Distribución** → en la versión 1.3, arriba a la derecha, el desplegable del idioma
+1. La app → pestaña **Distribución** → en la versión 1.4, arriba a la derecha, el desplegable del idioma
    (pone *Español (España)*) → **Añadir idioma** → **English (U.S.)**.
 2. En *English (U.S.)* rellena los campos de la tabla de abajo, la descripción, las palabras clave y las
-   novedades (§9.5). Las capturas: si no subes otras, Apple usa las españolas.
+   novedades (§9.6). Las capturas: si no subes otras, Apple usa las españolas.
 3. **Información de la app** (columna izquierda) → idioma **English (U.S.)** → **Nombre** y
    **Subtítulo** de la tabla, y las URL de privacidad. **Guardar**.
 
@@ -670,12 +670,12 @@ versión nueva y su revisión. Lo demás sigue igual:
 Release) es la versión que se publica y tiene que ser mayor que la última aprobada: App Store Connect
 rechaza las compilaciones de una versión ya aprobada y el CI falla al subir (`ITMS-90186`,
 `ITMS-90062`), también la ejecución programada del día 1. Por eso, **en cuanto Apple apruebe una
-versión, se sube** (1.3 → 1.4…) antes del siguiente push que toque la app. Ahora es la 1.3.
+versión, se sube** (1.4 → 1.5…) antes del siguiente push que toque la app. Ahora es la 1.4.
 
 ### 9.2 Probar la compilación (tú, en el iPhone)
 
 1. Tras el push, *Actions* → **iOS** en verde; entre 5 y 30 minutos después TestFlight enseña
-   **1.3 (N)**.
+   **1.4 (N)**.
 2. *TestFlight* → Tasks → **Actualizar**, y probar.
 
 En el iPhone solo cabe una: la de TestFlight (punto naranja junto al nombre) sustituye a la de la App
@@ -740,12 +740,13 @@ Tasks se ha rehecho de arriba abajo.
 Nuevo: agenda con horario, rutinas con emoji que se tachan desde la pantalla de bloqueo, el mes entero de un tirón y modo oscuro.
 ```
 
-### 9.5 La 1.3 (01/10/2026, compilación 30; con el inglés, la siguiente)
+### 9.5 La 1.3 (01/10/2026, compilación 30)
 
-La ficha del compositor y la bienvenida también al actualizar. Desde el 03/10/2026 lleva además el
-**inglés** (Ajustes → Idioma), el **widget de la Bandeja** y una app **más fluida en iPhone antiguos**:
-se envía la compilación que salga de subir eso, no la 30. Con el inglés, añade también la ficha en
-inglés (§3.1). **Detalles** (o tirar del asa de la barra
+Aprobada: el 03/10/2026, al subir lo siguiente, App Store Connect respondió que la 1.3 ya no admite
+compilaciones (*train version '1.3' is closed*). Comprobar en App Store Connect si está publicada o
+*Pendiente de publicación del desarrollador* (entonces, **Publicar esta versión**).
+
+La ficha del compositor y la bienvenida también al actualizar. **Detalles** (o tirar del asa de la barra
 de escribir) la despliega en una ficha con todo lo de una tarea antes de añadirla; y la bienvenida, que
 en la 1.2 solo salía en una instalación nueva, sale ahora también a quien actualiza (a todos los que
 vienen de la 1.2 o antes, entera; después, solo las láminas nuevas). Pasos de §9.3; la ficha de la
@@ -757,6 +758,17 @@ tienda no cambia salvo, si se quiere, una captura de la ficha.
 • Detalles al escribir: toca Detalles (o tira de la barra hacia arriba) y elige el día, la hora, la duración, los avisos, la sección, la importancia o si se repite antes de añadir la tarea.
 • Duración en una regla: arrastra para elegir cuánto dura y mantén el dedo al final para alargarla, hasta medio día.
 • La bienvenida sale también al actualizar, con lo nuevo de cada versión.
+```
+
+### 9.6 La 1.4 (03/10/2026)
+
+El **inglés** (Ajustes → Idioma), el **widget de la Bandeja** y una app **más fluida en iPhone
+antiguos**. Pasos de §9.3 con la versión `1.4`; añade también la ficha en inglés (§3.1), con las
+novedades de abajo. Privacidad sin cambios (en inglés el dictado manda lo mismo, y menos: sin la IA).
+
+**Novedades de esta versión**
+
+```
 • Ahora también en inglés: Ajustes → Idioma.
 • Widget nuevo de la Bandeja: lo que aún no tiene fecha, para tacharlo sin abrir la app.
 • Más fluida en iPhone antiguos.
@@ -765,9 +777,6 @@ tienda no cambia salvo, si se quiere, una captura de la ficha.
 **What’s New in This Version** (la ficha en inglés)
 
 ```
-• Details while writing: tap Details (or pull the bar up) to choose the day, time, duration, reminders, section, importance or whether it repeats before adding the task.
-• Duration on a ruler: drag to choose how long it lasts and hold at the end to stretch it, up to half a day.
-• The welcome also appears after updating, with what’s new in each version.
 • Now in English and Spanish: Settings → Language.
 • New Inbox widget: check off what doesn’t have a date yet, without opening the app.
 • Smoother on older iPhones.
