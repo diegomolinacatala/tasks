@@ -3,6 +3,7 @@ import CoreLocation
 import MapKit
 import UIKit
 import UserNotifications
+import WebKit
 import WidgetKit
 
 /// Lo que la web no puede hacer sola: avisos al llegar o salir de un lugar, buscar sitios,
@@ -26,6 +27,7 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "ackInbox", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "mapSnapshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "screenshot", returnType: CAPPluginReturnPromise),
     ]
 
     private static let searchSpanMeters = 30_000.0
@@ -272,6 +274,26 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         // Los puntos, algo por encima del centro: abajo van sus nombres y el buscador flota sobre el borde.
         let fitted = MKMapRect(x: rect.midX - width / 2, y: rect.midY - height * 0.42, width: width, height: height)
         return MKCoordinateRegion(fitted)
+    }
+
+    /// Foto de lo que enseña la app ahora mismo, para las sugerencias: quien la manda rodea encima lo que
+    /// quiere comentar. Es la del WebView (la web no puede fotografiarse a sí misma), a la escala de la pantalla.
+    @objc func screenshot(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let webView = self.bridge?.webView else {
+                call.reject("No hay nada que fotografiar.")
+                return
+            }
+            let configuration = WKSnapshotConfiguration()
+            configuration.afterScreenUpdates = true
+            webView.takeSnapshot(with: configuration) { image, error in
+                guard let image, let data = image.jpegData(compressionQuality: 0.85) else {
+                    call.reject(error?.localizedDescription ?? "No se pudo hacer la foto.")
+                    return
+                }
+                call.resolve(["image": "data:image/jpeg;base64," + data.base64EncodedString()])
+            }
+        }
     }
 
     /// Lo apuntado con Siri o Atajos sin abrir la app. No se vacía al leerlo: ver `ackInbox`.

@@ -50,6 +50,8 @@ interface TasksNativePlugin {
    * o encuadrando `points`. Devuelve la imagen y dónde cae cada punto, de 0 a 1.
    */
   mapSnapshot(options: MapSnapshotRequest): Promise<{ image: string; points: { x: number; y: number }[] }>
+  /** Foto de lo que enseña la app ahora mismo (el WebView), en JPEG `data:`. Para las sugerencias. */
+  screenshot(): Promise<{ image: string }>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
 }

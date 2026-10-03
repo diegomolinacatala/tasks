@@ -20,6 +20,8 @@ interface SheetProps {
   children: ReactNode
   /** Fijo al pie, fuera del scroll (la acción principal): siempre a mano, también con el teclado fuera. */
   footer?: ReactNode
+  /** Clase de más en la raíz (p. ej. para subirlo por encima de otra capa). */
+  className?: string
 }
 
 /**
@@ -29,7 +31,7 @@ interface SheetProps {
  */
 const COPY = { es: { close: 'Cerrar' }, en: { close: 'Close' } } as const
 
-export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
+export function Sheet({ open, onClose, title, children, footer, className = '' }: SheetProps) {
   const copy = useCopy(COPY)
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
@@ -126,7 +128,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
   }
 
   return createPortal(
-    <div className={`sheet ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`sheet ${shown ? 'is-open' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title}>
       {onClose ? (
         <button
           ref={(node) => {

@@ -155,15 +155,24 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     inglés, la tira deslizando nada más desplegar el mes, arrastrar en la Agenda); 804 tests de la app y
     150 del Worker. Revisado por un segundo agente. El Swift nuevo (widget, textos, `en.lproj`)
     **compila en el CI** (el archivo salió bien; falló solo la subida, por la versión 1.3 cerrada).
+  - **Probada en el iPhone** por el usuario con la TestFlight 32: «va bien».
+- **Sugerencias** (03/10/2026, en `capacitor`, **TestFlight 33**, la 1.4; el buzón en el Worker de
+  `main`): Ajustes → *Sugerir una mejora* deja ir a cualquier sitio de la app, rodear algo con el dedo
+  sobre la pantalla congelada y escribir qué cambiarías. Llega con la captura y lo rodeado al **buzón**
+  (https://tasks-push.diegomolina.workers.dev/buzon, con la clave de `worker/.feedback-key`) y se baja
+  con `npm --prefix worker run feedback`. Ver "Sugerencias". Lo pidió el usuario para sus amigos.
+  Probado con Edge sin ventana y dedo simulado contra el Worker local (español y claro, inglés y
+  oscuro, rodear otra vez, cerrar y seguir, enviar, el buzón y la descarga); la captura del iPhone
+  (`TasksNative.screenshot`) solo se puede probar allí.
 
 **Pendiente, en este orden**
 
-0. **Probar la 1.4 en el iPhone** (TestFlight de `capacitor`). En el iPhone: Ajustes → Idioma → English (los
-   widgets cambian de idioma al volver al inicio), escribir y dictar en inglés, el widget **Bandeja**
-   (tachar sin abrir la app, el +, tocar una tarea), y con el iPhone en inglés, Siri: *«Add to Tasks»*
-   (las frases en inglés salen de `en.lproj/AppShortcuts.strings`; si Siri no las reconoce, abrir la
-   app Atajos una vez). Notar si va más fluido. Si va bien, enviar la 1.4 (`docs/app-store.md` §9.3 y
-   §9.6, con la ficha en inglés de §3.1). Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
+0. **Probar las sugerencias en la TestFlight 33**: Ajustes → *Sugerir una mejora*, ir a otra pestaña,
+   tocar la píldora (destello y pantalla congelada con marco de coñac), rodear algo, ver la miniatura
+   con el trazo en el panel, quitarla y volver a ponerla, enviar, y que llegue al buzón con la captura.
+   Abrir el buzón en el iPhone (Safari → la dirección de arriba → pegar la clave → Compartir → *Añadir a
+   pantalla de inicio*). Si va bien, enviar la 1.4 (`docs/app-store.md` §9.3 y §9.6: **privacidad con
+   *Atención al cliente***, notas nuevas de §5 y ficha en inglés de §3.1). Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
    **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
    en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
    la ficha. La regla de la duración: que arrastrar no mueva el panel, que la vibración de cada paso no
@@ -237,6 +246,7 @@ npm run db:init:query           # crea las tablas en remoto si --file falla por 
 npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {...}", "push no enviado"
 npm run eval -- --local         # banco de frases dictadas contra el analizador local (gratis)
 npm run eval -- cena vuelo      # esos casos contra Workers AI real (EVAL_MODEL=@cf/... para otro modelo)
+npm run feedback                # baja el buzón de sugerencias a feedback/ (-- --archive las borra después)
 npm run eval -- --all           # todos: ~10.500 neuronas, más que la cuota gratuita de un día: mejor en dos mitades, una tras las 00:00 UTC (ver Dictado)
 ```
 
@@ -259,7 +269,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (140,5 el 03/10/2026, con los textos en inglés; el analizador en inglés va aparte. 134,2 el
+gzip (141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
@@ -316,6 +326,7 @@ src/
 │   ├── transition.ts     # View Transitions API con degradación
 │   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
 │   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
+│   ├── feedback.ts       # sugerencias: el trazo, la zona rodeada, qué se cuenta de ella y el envío al buzón
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
@@ -328,6 +339,7 @@ src/
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
     ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, dictado
+    ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
@@ -347,6 +359,8 @@ scripts/app-store-shots.mjs # capturas de la App Store; plantillas en store-fram
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
+├── src/inbox.ts          # la página del buzón de sugerencias (/buzon)
+├── scripts/feedback.mjs  # baja el buzón a feedback/ (fuera de git), una ficha .md y su captura por sugerencia
 └── eval/                 # banco de frases dictadas con la respuesta esperada (`npm run eval`)
 ```
 
@@ -561,6 +575,44 @@ cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir
 - El analizador compila sus expresiones en un rato libre tras el arranque (`warmUpParser`), y no corre
   con la barra vacía.
 - Volver a una pestaña que estaba arriba no toca `scrollTop` (escribirlo obliga a diseñar de golpe).
+
+### Sugerencias
+
+Para que quien usa la app (los amigos del usuario) diga qué cambiaría señalando el sitio exacto. Ajustes
+→ **Sugerir una mejora** (solo si hay servidor: `VITE_PUSH_API`) pone la app en **modo sugerencia**
+(`components/feedback/`, en su propio trozo):
+
+1. **Ir a donde sea**: la app sigue usándose (pestañas, paneles) con una píldora arriba, *Rodea lo que
+   quieras comentar* y una × para salir (`FeedbackMode`, fase `browse`; z 70, por encima de los paneles).
+2. **Tocar la píldora** la quita un fotograma y hace la **foto** (`captureScreen` →
+   `TasksNative.screenshot`, `WKWebView.takeSnapshot`): destello y la pantalla congelada con un marco de
+   coñac (`FeedbackDraw`, z 90). En la PWA no hay foto (una página no puede fotografiarse): se rodea
+   sobre la app en vivo. **Se rodea con el dedo** (el trazo se pinta sin pasar por React); un toque rodea
+   un círculo; *Sin rodear* es la pantalla entera; Cancelar o Escape vuelve a la píldora.
+3. **Al soltar**, `describe.ts` mira qué hay debajo (`elementsFromPoint` en una rejilla de la zona, del
+   centro hacia fuera): el texto de cada cosa y sus clases ("Cena — tl-row › row__title"), y el panel
+   abierto. `composeShot` pinta el trazo sobre la foto, estirada a la pantalla como en la capa (JPEG a
+   2× como mucho, ~500 KB tope; si no sale, se envía sin foto).
+4. **El panel** (`FeedbackSheet`, z 95) enseña la miniatura, la pantalla y lo rodeado, *Rodear otra
+   vez*, y el mensaje. **Sin foto no van los textos** de lo rodeado ni el título del panel (son las
+   tareas de quien escribe), solo las clases: al quitar la miniatura (×), si no se pudo hacer y siempre en
+   la PWA. Cerrar el panel vuelve a la píldora sin perder lo escrito. **Enviar** (espera a que la foto
+   esté lista) → `POST /v1/feedback` (`postFeedback`, `lib/feedback.ts`, 20 s como mucho) → toast y fuera
+   del modo; si falla, el porqué sale en el panel (un toast quedaría debajo).
+
+- **Lo que viaja** (`FeedbackReport`): mensaje (2000 como mucho), foto opcional y contexto: pestaña (en
+  español, para quien lo lee), panel, zona rodeada y tamaño de pantalla, lo rodeado, versión,
+  plataforma, idioma, tema y "iPhone · iOS 18.5" (`deviceLabel`). Nada que identifique a nadie.
+- **Worker**: `POST /v1/feedback` sin cuenta, 10 por hora y IP, 200 guardadas como mucho (comparten la
+  D1 con los avisos), lo de más de un año lo borra el cron; valida y sanea el contexto
+  (`parseFeedback`) y guarda en D1 (`feedback`). El **buzón** es `GET /buzon` (`inbox.ts`): una página sin datos que los pide con la
+  clave (`FEEDBACK_KEY`, secret de Cloudflare; copia en `worker/.feedback-key`, fuera de git) a
+  `GET /v1/feedback`, `GET /v1/feedback/<id>/shot` y `DELETE /v1/feedback/<id>` (archivar = borrar).
+  Todo lo del usuario se pinta con `textContent`; CSP con nonce; las capturas se piden al acercarse
+  (todas de golpe toparían con el límite de 60 por minuto y IP). *Copiar* deja la sugerencia en texto
+  para pegársela a Claude; `npm run feedback` (en `worker/`) las baja a `feedback/` con su captura.
+- **Privacidad**: es lo único que el servidor guarda con contenido; va en la política (`#sugerencias`),
+  en `PrivacyInfo.xcprivacy` (atención al cliente) y en App Store Connect (`docs/app-store.md` §4).
 
 ### Pasar a hoy
 
@@ -997,8 +1049,9 @@ la misma.
   **No** usar `@capacitor/geolocation`: la ubicación va por el plugin propio y su presencia
   provocó ITMS-90683. `Info.plist` lleva igualmente `NSLocationAlwaysAndWhenInUseUsageDescription`
   (Apple la exige si cualquier librería menciona esa API), aunque nunca se pide "siempre".
-- **Privacidad**: `PrivacyInfo.xcprivacy` declara solo el identificador de dispositivo del
-  dictado (sin vínculo ni rastreo). Tiene que coincidir con las respuestas de App Store Connect.
+- **Privacidad**: `PrivacyInfo.xcprivacy` declara el identificador de dispositivo del dictado y, desde
+  la 1.4, la atención al cliente (las sugerencias), los dos sin vínculo ni rastreo. Tiene que coincidir
+  con las respuestas de App Store Connect (`docs/app-store.md` §4).
 - **Sin Mac**: se compila en GitHub Actions (`macos-26`, gratis en repo público). No hay
   simulador ni Safari Web Inspector: lo nativo se prueba en el iPhone vía TestFlight. Los errores
   de compilación salen como anotaciones del workflow.
@@ -1149,8 +1202,9 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
   la web lo aplica al cargar o al volver a primer plano.
 - **El Worker sirve a todas las versiones instaladas.** Se despliega al momento y la gente no
   actualiza a la vez: sus rutas y respuestas cambian solo de forma compatible hacia atrás.
-- **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
-  claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
+- **Backend solo para avisos, dictado y sugerencias**, sin acceso a lo guardado: nada de guardar
+  tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
+  sugerencia es lo único que se guarda con contenido, porque quien la manda lo decide y lo ve antes.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
 - **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:

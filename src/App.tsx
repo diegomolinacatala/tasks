@@ -49,6 +49,7 @@ const SectionSheet = lazy(() => import('./components/section/SectionSheet').then
 const RoutineSheet = lazy(() => import('./components/routines/RoutineSheet').then((module) => ({ default: module.RoutineSheet })))
 const PlacesView = lazy(() => import('./components/places/PlacesView').then((module) => ({ default: module.PlacesView })))
 const SettingsView = lazy(() => import('./components/settings/SettingsView').then((module) => ({ default: module.SettingsView })))
+const FeedbackMode = lazy(() => import('./components/feedback/FeedbackMode').then((module) => ({ default: module.FeedbackMode })))
 const PlaceTasksSheet = lazy(() =>
   import('./components/places/PlaceTasksSheet').then((module) => ({ default: module.PlaceTasksSheet })),
 )
@@ -103,6 +104,9 @@ const COPY = {
   },
 } as const
 
+/** El Worker: avisos, dictado y el buzón de sugerencias. Sin él (en local), no hay sugerencias. */
+const API_URL = import.meta.env.VITE_PUSH_API
+
 /** Lo que se espera tras el arranque para preparar el analizador (la entrada de la app dura menos). */
 const WARM_UP_MS = 1200
 
@@ -145,6 +149,8 @@ export function App() {
   const [sizing, setSizing] = useState(false)
   // La barra de escribir tiene el foco: las pestañas se apartan y la lista queda tras un velo.
   const [composing, setComposing] = useState(false)
+  // Modo sugerencia (desde Ajustes): ir a cualquier sitio, rodearlo y escribir qué cambiarías.
+  const [suggesting, setSuggesting] = useState(false)
   // La bienvenida: entera la primera vez, con lo nuevo tras actualizar, y a petición desde Ajustes.
   const firstRun = useFirstRun()
   const [welcome, setWelcome] = useState<WelcomeRun | null>(() => welcomeOnLaunch(firstRun, state.settings.welcome))
@@ -388,7 +394,10 @@ export function App() {
             {pane('inbox', <InboxView today={today} />)}
             {pane('agenda', <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} />)}
             {pane('places', <PlacesView />)}
-            {pane('settings', <SettingsView onWelcome={() => setWelcome(FULL_WELCOME)} />)}
+            {pane(
+              'settings',
+              <SettingsView onWelcome={() => setWelcome(FULL_WELCOME)} onSuggest={API_URL ? () => setSuggesting(true) : undefined} />,
+            )}
           </SizingContext.Provider>
           {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
           <button type="button" className="app__veil" tabIndex={-1} aria-label={copy.stopWriting} aria-hidden={!composing} onClick={stopComposing} />
@@ -426,6 +435,11 @@ export function App() {
           </Suspense>
         )}
       </div>
+      {suggesting && API_URL && (
+        <Suspense fallback={null}>
+          <FeedbackMode tab={tab} api={API_URL} onDone={() => setSuggesting(false)} />
+        </Suspense>
+      )}
       {welcome && (
         <Suspense fallback={null}>
           <Welcome run={welcome} onReady={finishBoot} onDone={closeWelcome} onUnavailable={() => setWelcome(null)} />

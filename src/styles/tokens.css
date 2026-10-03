@@ -35,6 +35,8 @@
   --danger-line: rgba(158, 59, 46, 0.45);
 
   --scrim: rgba(22, 29, 48, 0.3);
+  /* El destello de una foto (sugerencias): blanco en los dos temas, como el de iOS */
+  --flash: #fff;
 
   --shadow-card: 0 1px 2px rgba(58, 42, 22, 0.06), 0 8px 24px rgba(58, 42, 22, 0.08);
   --shadow-lift: 0 16px 36px rgba(58, 42, 22, 0.18), 0 0 0 1px var(--line);

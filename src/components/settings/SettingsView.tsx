@@ -4,7 +4,7 @@ import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import { IconArrowUpRight, IconChevronRight, IconDownload, IconTrash, IconUpload } from '../ui/Icons'
+import { IconArrowUpRight, IconChevronRight, IconDownload, IconFeather, IconTrash, IconUpload } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AppearancePicker } from './AppearancePicker'
 import { DictationBlock } from './DictationBlock'
@@ -37,6 +37,8 @@ const COPY = {
     clear: 'Borrar todo',
     dataNote: 'Todo se guarda solo en este dispositivo. Importar sustituye lo que haya ahora.',
     welcome: 'Ver la bienvenida',
+    suggest: 'Sugerir una mejora',
+    suggestNote: 'Rodea con el dedo cualquier parte de la app y cuenta qué cambiarías. Le llega al desarrollador.',
     rate: 'Valorar en la App Store',
     support: 'Soporte',
     privacy: 'Privacidad',
@@ -64,6 +66,8 @@ const COPY = {
     clear: 'Delete everything',
     dataNote: 'Everything is stored only on this device. Importing replaces what’s here now.',
     welcome: 'See the welcome',
+    suggest: 'Suggest an improvement',
+    suggestNote: 'Circle any part of the app and say what you’d change. It goes straight to the developer.',
     rate: 'Rate on the App Store',
     support: 'Support',
     privacy: 'Privacy',
@@ -76,10 +80,12 @@ const COPY = {
 interface SettingsViewProps {
   /** Volver a ver la bienvenida del primer día. */
   onWelcome: () => void
+  /** Entrar en el modo sugerencia. Sin servidor (en local) no hay. */
+  onSuggest?: () => void
 }
 
 /** Ajustes: una página propia, en grupos como los de iOS, con el papel y la tinta de la app. */
-export function SettingsView({ onWelcome }: SettingsViewProps) {
+export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -207,6 +213,18 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
 
       <section className="group">
         <h2 className="group__title">Tasks</h2>
+        {onSuggest && (
+          <>
+            <div className="group__card">
+              <button type="button" className="group__row" onClick={onSuggest}>
+                <IconFeather size={18} />
+                <span className="group__label">{copy.suggest}</span>
+                <IconChevronRight size={16} className="group__chevron" />
+              </button>
+            </div>
+            <p className="group__note">{copy.suggestNote}</p>
+          </>
+        )}
         <div className="group__card">
           <button type="button" className="group__row" onClick={onWelcome}>
             <span className="group__label">{copy.welcome}</span>

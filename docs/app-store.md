@@ -397,16 +397,24 @@ es Inter y Source Serif 4, lo más parecido a San Francisco y New York que se pu
 
 ## 4. Privacidad en App Store Connect
 
-*App Privacy* → **Data collection**: *Yes, we collect data* → solo **Identifiers → Device ID**:
+*App Privacy* → **Data collection**: *Yes, we collect data* → **Identifiers → Device ID** y, desde la
+1.4, **User Content → Customer Support** (*Contenido del usuario → Atención al cliente*). Los dos igual:
 
 - Uso: *App Functionality*
 - Vinculado a la identidad: **No**
 - Rastreo: **No**
 
-Motivo: el Worker guarda un identificador aleatorio por dispositivo para limitar el dictado. El audio
-se procesa al momento y no se conserva, así que según la definición de Apple no se recopila. La
-ubicación, las tareas y los lugares nunca salen del iPhone. Debe coincidir con
-`ios/App/App/PrivacyInfo.xcprivacy`.
+Motivo: el Worker guarda un identificador aleatorio por dispositivo para limitar el dictado, y las
+sugerencias que alguien decide enviar desde Ajustes (mensaje, captura opcional y datos técnicos) hasta
+que se leen. El audio se procesa al momento y no se conserva, así que según la definición de Apple no se
+recopila. La ubicación, las tareas y los lugares nunca salen del iPhone (salvo lo que se ve en la captura
+de una sugerencia, si se deja). Debe coincidir con `ios/App/App/PrivacyInfo.xcprivacy`.
+
+**Cómo añadir *Atención al cliente*** (tú, una vez, antes de enviar la 1.4): App Store Connect → la app
+→ columna izquierda, **Privacidad de la app** → **Editar** junto a los tipos de datos → marca **Atención
+al cliente** (en *Contenido del usuario*) → **Guardar** → en su tarjeta, **Configurar**: *Funcionalidad de
+la app* → ¿vinculado a la identidad? **No** → ¿para rastrear? **No** → **Guardar** → arriba a la derecha,
+**Publicar**.
 
 **Cifrado**: `ITSAppUsesNonExemptEncryption = false` en `Info.plist` (solo HTTPS y cifrado estándar del
 sistema), así que TestFlight no pregunta por la exportación.
@@ -414,12 +422,12 @@ sistema), así que TestFlight no pregunta por la exportación.
 ## 5. Notas para la revisión de Apple
 
 En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
-Notas** (máximo 4000 caracteres; estas son unas 3950: van justas, con la bienvenida, los destinos de la barra y
+Notas** (máximo 4000 caracteres; estas son unas 3990: van justas, con la bienvenida, los destinos de la barra y
 el mes de la 1.2). Son lo mismo que pidió Apple en el rechazo del
 22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
 
 ```
-No account or login is needed. Tasks and places are stored only on the device. The interface is in Spanish; bottom tabs: "Bandeja" = Inbox (undated tasks and routines), "Agenda" = day timeline, "Lugares" = Places, "Ajustes" = Settings. "Hoy" = Today, "Rutinas" = Routines, "Recordatorios" = Reminders, "Continuar" = Continue.
+No account or login is needed. Tasks and places are stored only on the device. The interface follows the device language, Spanish or English (also Ajustes → Idioma). Spanish names below: "Bandeja" = Inbox, "Lugares" = Places, "Ajustes" = Settings.
 
 PURPOSE AND AUDIENCE
 A simple daily to-do list for Spanish-speaking iPhone users who want to jot tasks down quickly and be reminded at the right time or place, without signing up. You write or say a task the way you would say it and the app sets the day, time and reminder.
@@ -431,7 +439,7 @@ HOW TO TEST
 - Tap a task to edit date, time, duration, reminders and importance. The "A" button (top right) is importance mode: drag the number on a task; more important tasks get a larger title.
 - Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas with an emoji; tick it for today and it resets the next day. The "Rutinas" Lock Screen widget ticks it with one tap.
 - Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
-- Location reminders: Lugares → "Buscar o añadir un lugar" → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
+- Location reminders: Lugares → search a place (Apple Maps) or use the current location ("while using" only). Then a task → Recordatorios → Añadir → the place. iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
 - Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added without opening the app. Same actions in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions.
 - Ajustes: light or dark appearance; export or import a JSON backup.
@@ -439,11 +447,12 @@ HOW TO TEST
 EXTERNAL SERVICES
 - Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user has seen that notice and granted microphone access (off in Ajustes → Dictado). Otherwise nothing is sent and Siri input is parsed on the device.
 - The backend keeps only a random device ID and a hash of its token, for rate limiting.
+- Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send (message, optional screenshot, app version); only the developer reads them.
 - Apple Maps (MapKit search), iOS local notifications and region monitoring.
 - No analytics, advertising, tracking, third-party SDKs, payments or authentication services.
 
 REGIONAL DIFFERENCES
-None. The interface and language parsing are in Spanish.
+None. Spanish and English, chosen by the device language or in Ajustes.
 
 REGULATED INDUSTRY OR THIRD-PARTY MATERIAL
 Not applicable.
@@ -762,15 +771,23 @@ tienda no cambia salvo, si se quiere, una captura de la ficha.
 
 ### 9.6 La 1.4 (03/10/2026)
 
-El **inglés** (Ajustes → Idioma), el **widget de la Bandeja** y una app **más fluida en iPhone
-antiguos**. Pasos de §9.3 con la versión `1.4`; añade también la ficha en inglés (§3.1), con las
-novedades de abajo. Privacidad sin cambios (en inglés el dictado manda lo mismo, y menos: sin la IA).
+El **inglés** (Ajustes → Idioma), el **widget de la Bandeja**, una app **más fluida en iPhone
+antiguos** y las **sugerencias** (Ajustes → *Sugerir una mejora*: rodear cualquier parte de la app y
+escribir qué cambiarías; llegan al buzón, ver CLAUDE.md, "Sugerencias"). Pasos de §9.3 con la versión
+`1.4`, más:
+
+- **Privacidad de la app**: añadir *Atención al cliente* (§4, "Cómo añadir"). Sin esto Apple puede
+  rechazarla: las sugerencias salen del iPhone.
+- **Notas para la revisión**: copiar otra vez las de §5 (cambian el primer párrafo, una línea de
+  servicios externos y las diferencias regionales).
+- **Ficha en inglés** (§3.1), con las novedades de abajo.
 
 **Novedades de esta versión**
 
 ```
 • Ahora también en inglés: Ajustes → Idioma.
 • Widget nuevo de la Bandeja: lo que aún no tiene fecha, para tacharlo sin abrir la app.
+• Sugerencias: en Ajustes, rodea con el dedo cualquier parte de la app y cuéntanos qué cambiarías.
 • Más fluida en iPhone antiguos.
 ```
 
@@ -779,5 +796,6 @@ novedades de abajo. Privacidad sin cambios (en inglés el dictado manda lo mismo
 ```
 • Now in English and Spanish: Settings → Language.
 • New Inbox widget: check off what doesn’t have a date yet, without opening the app.
+• Suggestions: in Settings, circle any part of the app and tell us what you’d change.
 • Smoother on older iPhones.
 ```
