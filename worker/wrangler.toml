@@ -50,3 +50,4 @@ binding = "AI"
 enabled = true
 
 # Secrets (nunca en el repo): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, IP_HASH_SALT
+# y FEEDBACK_KEY (la clave del buzón de sugerencias, /buzon; sin ella el buzón no se abre)

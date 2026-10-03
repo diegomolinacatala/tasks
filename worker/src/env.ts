@@ -17,6 +17,8 @@ export interface Env {
   VAPID_PRIVATE_KEY: string
   VAPID_SUBJECT: string
   IP_HASH_SALT: string
+  /** Opcional: sin ella el buzón de sugerencias no se abre (las sugerencias se guardan igual). */
+  FEEDBACK_KEY?: string
 }
 
 const SECRETS = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT', 'IP_HASH_SALT'] as const
@@ -55,6 +57,8 @@ export function depsFrom(env: Env): Deps {
       allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
       vapidPublicKey: env.VAPID_PUBLIC_KEY,
       ipSalt: env.IP_HASH_SALT,
+      // Solo letras, números, - y _ (lo que admite `bearerToken`); sin el salto de línea de un fichero.
+      feedbackKey: env.FEEDBACK_KEY?.trim() || null,
     },
     now: () => Date.now(),
   }

@@ -1,5 +1,6 @@
 import { handle } from './app'
 import type { Env } from './env'
+import { FEEDBACK_KEEP_MS } from './app'
 import { depsFrom, reason, schedulerStub } from './env'
 
 export { Scheduler } from './scheduler'
@@ -25,6 +26,8 @@ export default {
         const deps = depsFrom(env)
         const next = await deps.store.nextDueAt()
         if (next !== null) await schedulerStub(env).arm(next)
+        // Las sugerencias que nadie archivó en un año se van solas, aunque no llegue ninguna nueva.
+        await deps.store.deleteFeedbackBefore(deps.now() - FEEDBACK_KEEP_MS)
       } catch (error) {
         console.error('cron fallido:', reason(error))
       }

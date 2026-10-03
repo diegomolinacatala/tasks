@@ -1,7 +1,17 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
+import { inboxPage } from './inbox'
 import { isQuotaExceeded } from './transcribe'
 import type { Deps, Device, InterpretContext, InterpretedTask } from './types'
-import { MAX_AUDIO_CHARS, parseAudio, parseInterpretContext, parseInterpretText, parseSchedule, parseSubscription } from './validate'
+import {
+  MAX_AUDIO_CHARS,
+  MAX_SHOT_CHARS,
+  parseAudio,
+  parseFeedback,
+  parseInterpretContext,
+  parseInterpretText,
+  parseSchedule,
+  parseSubscription,
+} from './validate'
 
 export const MAX_BODY_BYTES = 512_000
 const MAX_AUDIO_BODY_BYTES = MAX_AUDIO_CHARS + 1000
@@ -9,6 +19,17 @@ export const MAX_DEVICES_PER_IP_HOUR = 10
 const HOUR_MS = 60 * 60 * 1000
 /** Pasado este tiempo, el móvil interpreta el texto con su analizador local antes que esperar más. */
 export const INTERPRET_TIMEOUT_MS = 8000
+const MAX_FEEDBACK_BODY_BYTES = MAX_SHOT_CHARS + 40_000
+export const MAX_FEEDBACK_PER_IP_HOUR = 10
+/**
+ * Un tope por si alguien se pone a llenarlo: con el buzón leído y archivado nunca se llega. Comparte la
+ * base de datos con los avisos: 200 de ~700 KB como mucho dejan sitio de sobra en el plan gratuito.
+ */
+export const MAX_FEEDBACK_STORED = 200
+/** Lo que nadie ha archivado en un año se borra solo (lo dice la política de privacidad). */
+export const FEEDBACK_KEEP_MS = 365 * 24 * HOUR_MS
+const FEEDBACK_LIST = 200
+const FEEDBACK_PATH = /^\/v1\/feedback(?:\/([0-9a-f-]{36})(\/shot)?)?$/
 
 class HttpError extends Error {
   constructor(
@@ -122,6 +143,66 @@ async function interpretOrNull(deps: Deps, text: string, context: InterpretConte
   }
 }
 
+/** Sugerencia desde Ajustes: sin cuenta ni dispositivo, con límite por IP. */
+async function addFeedback(request: Request, deps: Deps, ipHash: string) {
+  const input = unwrap(parseFeedback(await readJson(request, MAX_FEEDBACK_BODY_BYTES)))
+  const now = deps.now()
+  if ((await deps.store.countFeedbackSince(ipHash, now - HOUR_MS)) >= MAX_FEEDBACK_PER_IP_HOUR) throw tooMany()
+  await deps.store.deleteFeedbackBefore(now - FEEDBACK_KEEP_MS)
+  if ((await deps.store.countFeedback()) >= MAX_FEEDBACK_STORED) throw new HttpError(507, 'buzón lleno')
+  const id = crypto.randomUUID()
+  await deps.store.addFeedback({ id, at: now, ...input, ipHash })
+  return { id }
+}
+
+/** El buzón solo lo abre quien tiene la clave (`FEEDBACK_KEY`); sin clave configurada, no existe. */
+async function authorizeOwner(request: Request, deps: Deps) {
+  const key = deps.config.feedbackKey
+  if (!key) throw new HttpError(404, 'no encontrado')
+  const token = bearerToken(request)
+  // Se comparan los hashes: siempre igual de largos, así el tiempo no dice cuánto se acertó.
+  if (!token || (await sha256Hex(token)) !== (await sha256Hex(key))) throw new HttpError(401, 'no autorizado')
+}
+
+function fromBase64(data: string): Uint8Array {
+  const binary = atob(data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
+async function ownerRoute(request: Request, deps: Deps, headers: Headers, id: string | null, shot: boolean) {
+  await authorizeOwner(request, deps)
+  headers.set('cache-control', 'no-store')
+  if (request.method === 'GET' && !id) return json(200, { data: await deps.store.listFeedback(FEEDBACK_LIST) }, headers)
+  if (request.method === 'GET' && id && shot) {
+    const data = await deps.store.feedbackShot(id)
+    if (!data) throw new HttpError(404, 'sin captura')
+    headers.set('content-type', 'image/jpeg')
+    return new Response(fromBase64(data), { status: 200, headers })
+  }
+  if (request.method === 'DELETE' && id && !shot) {
+    await deps.store.deleteFeedback(id)
+    return empty(headers)
+  }
+  throw new HttpError(404, 'no encontrado')
+}
+
+/** La página del buzón: sin datos dentro (los pide con la clave), con todo su código atado a un nonce. */
+function inboxResponse(): Response {
+  const nonce = randomToken()
+  return new Response(inboxPage(nonce), {
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'content-security-policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; img-src blob:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      'cache-control': 'no-store',
+      'referrer-policy': 'no-referrer',
+      'x-content-type-options': 'nosniff',
+      'x-robots-tag': 'noindex',
+    },
+  })
+}
+
 type Handler = (device: Device) => Promise<Response>
 
 function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<string, Handler> {
@@ -185,13 +266,18 @@ function deviceHandlers(request: Request, deps: Deps, headers: Headers): Record<
 }
 
 async function route(request: Request, deps: Deps, headers: Headers): Promise<Response> {
-  const key = `${request.method} ${new URL(request.url).pathname}`
+  const { pathname } = new URL(request.url)
+  const key = `${request.method} ${pathname}`
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
   const ipHash = await sha256Hex(`${deps.config.ipSalt}:${ip}`)
   if (!(await deps.limits.ip.allow(ipHash))) throw tooMany()
 
   if (key === 'GET /v1/vapid') return json(200, { data: { publicKey: deps.config.vapidPublicKey } }, headers)
   if (key === 'POST /v1/devices') return json(201, { data: await registerDevice(request, deps, ipHash) }, headers)
+  if (key === 'POST /v1/feedback') return json(201, { data: await addFeedback(request, deps, ipHash) }, headers)
+  if (key === 'GET /buzon') return inboxResponse()
+  const owner = FEEDBACK_PATH.exec(pathname)
+  if (owner) return ownerRoute(request, deps, headers, owner[1] ?? null, Boolean(owner[2]))
 
   const handler = deviceHandlers(request, deps, headers)[key]
   if (!handler) throw new HttpError(404, 'no encontrado')
@@ -203,7 +289,8 @@ async function route(request: Request, deps: Deps, headers: Headers): Promise<Re
 export async function handle(request: Request, deps: Deps): Promise<Response> {
   const headers = corsHeaders(request, deps)
   const origin = request.headers.get('origin')
-  if (origin && !deps.config.allowedOrigins.includes(origin)) {
+  // La página del buzón la sirve el propio Worker: sus peticiones vienen de su mismo origen.
+  if (origin && origin !== new URL(request.url).origin && !deps.config.allowedOrigins.includes(origin)) {
     return json(403, { error: 'origen no permitido' }, headers)
   }
   if (request.method === 'OPTIONS') return empty(headers)

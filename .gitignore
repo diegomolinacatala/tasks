@@ -9,3 +9,6 @@ coverage
 .idea
 dist-native
 build
+dist-shots
+worker/.feedback-key
+/feedback/

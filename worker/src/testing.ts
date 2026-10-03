@@ -1,4 +1,17 @@
-import type { Deps, Device, DueItem, InterpretContext, Limiter, NewDevice, PushResult, ScheduleItem, Sender, Store, Subscription } from './types'
+import type {
+  Deps,
+  Device,
+  DueItem,
+  InterpretContext,
+  Limiter,
+  NewDevice,
+  NewFeedback,
+  PushResult,
+  ScheduleItem,
+  Sender,
+  Store,
+  Subscription,
+} from './types'
 
 interface StoredDevice extends NewDevice {
   seenAt: number
@@ -13,6 +26,7 @@ interface StoredItem extends ScheduleItem {
 export function memoryStore() {
   const devices = new Map<string, StoredDevice>()
   let items: StoredItem[] = []
+  const feedback = new Map<string, NewFeedback>()
 
   const store: Store = {
     async countDevicesSince(ipHash, since) {
@@ -62,9 +76,33 @@ export function memoryStore() {
     async deleteStaleDevices(seenBefore) {
       for (const [id, device] of devices) if (device.seenAt < seenBefore) await store.deleteDevice(id)
     },
+    async countFeedback() {
+      return feedback.size
+    },
+    async countFeedbackSince(ipHash, since) {
+      return [...feedback.values()].filter((f) => f.ipHash === ipHash && f.at >= since).length
+    },
+    async addFeedback(item) {
+      feedback.set(item.id, item)
+    },
+    async listFeedback(limit) {
+      return [...feedback.values()]
+        .sort((a, b) => b.at - a.at)
+        .slice(0, limit)
+        .map(({ id, at, message, context, shot }) => ({ id, at, message, context, hasShot: shot !== null }))
+    },
+    async feedbackShot(id) {
+      return feedback.get(id)?.shot ?? null
+    },
+    async deleteFeedback(id) {
+      feedback.delete(id)
+    },
+    async deleteFeedbackBefore(at) {
+      for (const [id, item] of feedback) if (item.at < at) feedback.delete(id)
+    },
   }
 
-  return { store, devices, items: () => items }
+  return { store, devices, items: () => items, feedback }
 }
 
 export interface SentMessage {
@@ -102,6 +140,9 @@ export function countingLimiter(max = Number.POSITIVE_INFINITY) {
   return { limiter, counts }
 }
 
+/** Clave del buzón en los tests. */
+export const FEEDBACK_KEY = 'clave-del-buzon-de-pruebas-0123456789'
+
 export function testDeps(overrides: Partial<Deps> = {}) {
   const memory = memoryStore()
   const push = fakeSender()
@@ -128,7 +169,12 @@ export function testDeps(overrides: Partial<Deps> = {}) {
         return 'llamar a miguel'
       },
     },
-    config: { allowedOrigins: ['https://diegomolinacatala.github.io'], vapidPublicKey: 'PUBLIC', ipSalt: 'salt' },
+    config: {
+      allowedOrigins: ['https://diegomolinacatala.github.io'],
+      vapidPublicKey: 'PUBLIC',
+      ipSalt: 'salt',
+      feedbackKey: FEEDBACK_KEY,
+    },
     now: () => clock,
     ...overrides,
   }

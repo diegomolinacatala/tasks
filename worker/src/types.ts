@@ -36,6 +36,25 @@ export interface NewDevice {
   now: number
 }
 
+export interface NewFeedback {
+  id: string
+  at: number
+  message: string
+  /** JSON ya saneado (`parseFeedback`). */
+  context: string
+  shot: string | null
+  ipHash: string
+}
+
+/** Una sugerencia tal como la ve el buzón; la captura se pide aparte. */
+export interface FeedbackSummary {
+  id: string
+  at: number
+  message: string
+  context: string
+  hasShot: boolean
+}
+
 /** Acceso a datos. La implementación real es D1 (`store.ts`); los tests usan memoria. */
 export interface Store {
   countDevicesSince(ipHash: string, since: number): Promise<number>
@@ -52,6 +71,14 @@ export interface Store {
   deleteStaleDevices(seenBefore: number): Promise<void>
   /** Instante del aviso pendiente más próximo de cualquier dispositivo. */
   nextDueAt(): Promise<number | null>
+  countFeedback(): Promise<number>
+  countFeedbackSince(ipHash: string, since: number): Promise<number>
+  addFeedback(feedback: NewFeedback): Promise<void>
+  /** Las más recientes primero. */
+  listFeedback(limit: number): Promise<FeedbackSummary[]>
+  feedbackShot(id: string): Promise<string | null>
+  deleteFeedback(id: string): Promise<void>
+  deleteFeedbackBefore(at: number): Promise<void>
 }
 
 /**
@@ -72,6 +99,8 @@ export interface Config {
   vapidPublicKey: string
   /** Sal para anonimizar IPs antes de guardarlas o usarlas como clave de límite. */
   ipSalt: string
+  /** Clave del buzón de sugerencias (secret `FEEDBACK_KEY`). Sin ella, el buzón no se abre. */
+  feedbackKey: string | null
 }
 
 /** Límite de frecuencia por clave. En producción, el binding nativo de Cloudflare. */

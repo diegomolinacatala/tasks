@@ -109,3 +109,68 @@ export function parseSchedule(raw: unknown, now: number): Result<ScheduleItem[]>
   }
   return ok(items)
 }
+
+/** Una sugerencia: más que esto es otra cosa. Lo mismo que limita la app. */
+export const MAX_FEEDBACK_MESSAGE = 2000
+/** La captura en base64 (~500 KB de JPEG): lo mismo que limita la app. */
+export const MAX_SHOT_CHARS = 700_000
+const MAX_FEEDBACK_ELEMENTS = 12
+/** Así empieza en base64 todo JPEG (FF D8 FF). */
+const JPEG_BASE64 = '/9j/'
+
+export interface FeedbackInput {
+  message: string
+  shot: string | null
+  /** El contexto ya saneado, en JSON: solo los campos conocidos y con su tamaño. */
+  context: string
+}
+
+const text = (value: unknown, max: number) => (typeof value === 'string' ? value.slice(0, max) : '')
+const size = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value) ? Math.round(Math.min(Math.max(value, 0), 10_000)) : 0
+
+function feedbackContext(raw: unknown) {
+  const context = isObject(raw) ? raw : {}
+  const region = isObject(context.region)
+    ? { x: size(context.region.x), y: size(context.region.y), width: size(context.region.width), height: size(context.region.height) }
+    : null
+  const viewport = isObject(context.viewport)
+    ? { width: size(context.viewport.width), height: size(context.viewport.height) }
+    : { width: 0, height: 0 }
+  const app = isObject(context.app) ? context.app : {}
+  return {
+    screen: text(context.screen, 60),
+    sheet: text(context.sheet, 120) || null,
+    region,
+    viewport,
+    elements: Array.isArray(context.elements)
+      ? context.elements
+          .filter((line): line is string => typeof line === 'string')
+          .slice(0, MAX_FEEDBACK_ELEMENTS)
+          .map((line) => line.slice(0, 240))
+      : [],
+    app: {
+      version: text(app.version, 40),
+      platform: app.platform === 'ios' ? 'ios' : 'web',
+      language: app.language === 'en' ? 'en' : 'es',
+      theme: app.theme === 'dark' ? 'dark' : 'light',
+    },
+    device: text(context.device, 80),
+  }
+}
+
+/** Mensaje, captura opcional (JPEG en base64) y dónde estaba quien la manda. */
+export function parseFeedback(raw: Record<string, unknown>): Result<FeedbackInput> {
+  const message = typeof raw.message === 'string' ? raw.message.trim() : ''
+  if (!message) return fail('mensaje vacío')
+  if (message.length > MAX_FEEDBACK_MESSAGE) return fail('mensaje demasiado largo')
+  let shot: string | null = null
+  if (raw.shot !== null && raw.shot !== undefined) {
+    if (typeof raw.shot !== 'string' || raw.shot.length > MAX_SHOT_CHARS) return fail('captura demasiado grande')
+    if (!raw.shot.startsWith(JPEG_BASE64) || raw.shot.length % 4 !== 0 || !BASE64.test(raw.shot)) {
+      return fail('captura inválida')
+    }
+    shot = raw.shot
+  }
+  return ok({ message, shot, context: JSON.stringify(feedbackContext(raw.context)) })
+}
