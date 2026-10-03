@@ -266,6 +266,17 @@
   background: var(--gold);
 }
 
+/* Mientras se prepara el día nuevo (en un móvil modesto se nota), lo de antes se apaga un poco; si
+   llega enseguida, ni se ve: el fundido espera un instante */
+.agenda__below {
+  transition: opacity var(--dur-1) var(--ease);
+}
+
+.agenda__below.is-stale {
+  opacity: 0.55;
+  transition-delay: 90ms;
+}
+
 .agenda__below .view__progress {
   margin-top: 4px;
 }
@@ -509,6 +520,16 @@
   align-items: center;
 }
 
+/* En inglés, AM y PM debajo de la hora, en versalitas pequeñas */
+.tl__meridiem {
+  display: block;
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
 .tl--now .tl__time {
   padding-top: 0;
   color: var(--accent);
@@ -520,15 +541,32 @@
   padding: 0;
 }
 
+/* El punto late con un aro que crece por `transform` (lo hace la GPU): animar la sombra obligaba a
+   repintar la pantalla en cada fotograma, también en reposo. */
 .tl__now-dot {
   position: relative;
   z-index: 1;
   width: 9px;
   height: 9px;
+}
+
+.tl__now-dot::before,
+.tl__now-dot::after {
+  content: '';
+  position: absolute;
   border-radius: var(--r-full);
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent-dim);
+}
+
+.tl__now-dot::before {
+  inset: -5px;
+  background: var(--accent-dim);
   animation: now-pulse 2.4s var(--ease) infinite;
+}
+
+.tl__now-dot::after {
+  inset: 0;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
 }
 
 .tl__now-line {
@@ -540,6 +578,6 @@
 
 @keyframes now-pulse {
   50% {
-    box-shadow: 0 0 0 3px var(--bg), 0 0 0 8px var(--accent-dim);
+    transform: scale(1.32);
   }
 }

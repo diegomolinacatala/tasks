@@ -3,6 +3,7 @@ import type { NotificationEvent } from '../nativeEvents'
 import { parseNotificationEvent } from '../nativeEvents'
 import type { NativePlan } from '../nativeSchedule'
 import { ASK_CATEGORY, DIGEST_CATEGORY, OVERDUE_CATEGORY, ROUTINE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
+import { language, pick } from '../i18n'
 import type { PermissionStatus } from './native'
 import { TasksNative } from './native'
 
@@ -22,10 +23,13 @@ export async function requestNotificationPermission(): Promise<PermissionStatus>
   return toStatus((await LocalNotifications.requestPermissions()).display)
 }
 
-let actionsRegistered = false
+/** Idioma con el que se registraron los botones: al cambiarlo, se registran otra vez. */
+let actionsRegistered: string | null = null
 
-const DONE = { id: 'done', title: 'Hecha', foreground: true }
-const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
+const BUTTONS = {
+  es: { done: 'Hecha', yes: 'Sí, hecha', again: 'Todavía no', today: 'Pasar a hoy', allToday: 'Pasar atrasadas a hoy' },
+  en: { done: 'Done', yes: 'Yes, done', again: 'Not yet', today: 'Move to today', allToday: 'Move overdue to today' },
+} as const
 
 /**
  * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy": abren la app (`foreground`),
@@ -34,23 +38,27 @@ const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
  * rutina no la abren ni piden desbloquear: los resuelve el lado nativo (`NotificationResponder.swift`).
  */
 async function registerTaskActions(): Promise<void> {
-  if (actionsRegistered) return
+  const lang = language()
+  if (actionsRegistered === lang) return
+  const words = pick(BUTTONS)
+  const done = { id: 'done', title: words.done, foreground: true }
+  const snooze = { id: 'snooze', title: '+10 min', foreground: true }
   await LocalNotifications.registerActionTypes({
     types: [
-      { id: TASK_CATEGORY, actions: [DONE, SNOOZE] },
-      { id: OVERDUE_CATEGORY, actions: [DONE, { id: 'today', title: 'Pasar a hoy', foreground: true }, SNOOZE] },
-      { id: DIGEST_CATEGORY, actions: [{ id: 'today', title: 'Pasar atrasadas a hoy', foreground: true }] },
+      { id: TASK_CATEGORY, actions: [done, snooze] },
+      { id: OVERDUE_CATEGORY, actions: [done, { id: 'today', title: words.today, foreground: true }, snooze] },
+      { id: DIGEST_CATEGORY, actions: [{ id: 'today', title: words.allToday, foreground: true }] },
       {
         id: ASK_CATEGORY,
         actions: [
-          { id: 'done', title: 'Sí, hecha' },
-          { id: 'again', title: 'Todavía no' },
+          { id: 'done', title: words.yes },
+          { id: 'again', title: words.again },
         ],
       },
-      { id: ROUTINE_CATEGORY, actions: [{ id: 'done', title: 'Hecha' }] },
+      { id: ROUTINE_CATEGORY, actions: [{ id: 'done', title: words.done }] },
     ],
   })
-  actionsRegistered = true
+  actionsRegistered = lang
 }
 
 /**

@@ -296,6 +296,80 @@ PRIVADA
 Tus tareas, lugares y ubicación se quedan en tu iPhone. Sin registro, sin publicidad, sin analítica.
 ```
 
+### 3.1 Ficha en inglés (desde la 1.3)
+
+La app habla inglés desde la 1.3, así que la ficha puede tenerlo también: quien tenga el iPhone en
+inglés (o la tienda de un país de habla inglesa) la verá así.
+
+**Cómo añadirla (tú, en App Store Connect):**
+
+1. La app → pestaña **Distribución** → en la versión 1.3, arriba a la derecha, el desplegable del idioma
+   (pone *Español (España)*) → **Añadir idioma** → **English (U.S.)**.
+2. En *English (U.S.)* rellena los campos de la tabla de abajo, la descripción, las palabras clave y las
+   novedades (§9.5). Las capturas: si no subes otras, Apple usa las españolas.
+3. **Información de la app** (columna izquierda) → idioma **English (U.S.)** → **Nombre** y
+   **Subtítulo** de la tabla, y las URL de privacidad. **Guardar**.
+
+| Campo | Valor |
+|---|---|
+| Name | Tasks: to-dos & places |
+| Subtitle | Reminders by time and place |
+| Support URL | https://diegomolinacatala.github.io/tasks/support.html |
+| Privacy Policy URL | https://diegomolinacatala.github.io/tasks/privacy.html |
+
+**Keywords** (99 caracteres):
+
+```
+reminders,to-do,todo,list,routines,habits,location,dictation,voice,siri,planner,widget,calendar,day
+```
+
+**Description**
+
+```
+Your tasks for the day, with no accounts and nothing to set up.
+
+Write the way you talk: “call Ana tomorrow at 5pm” sets the day, the time and the reminder. “Buy bread when I get to Walmart” reminds you when you arrive.
+
+YOUR DAY, ON TIME
+The agenda puts everything with a time on a schedule, with your free time in between, and everything else in its list. Pull the week down to open the whole month and jump to any date.
+
+ROUTINES
+What repeats —“take creatine every day at 10”, “gym on Mondays and Thursdays”— goes apart, with its emoji and its streak. Every morning they start unchecked and you check them off with one tap, even from the Lock Screen.
+
+REMINDERS WHEN YOU ARRIVE OR LEAVE
+Save your places by searching Maps or with your current location. Your iPhone reminds you when you arrive or leave, even with the app closed, every time until you check the task off.
+
+DICTATION
+Tap the microphone and say it in one go.
+
+REMINDERS
+As many as you like per task: on time, before, at a set time. Mark it done or snooze it right from the notification.
+
+WHEN IT ENDS, A QUESTION
+Tell it how long it lasts —“gym at 7 for an hour”, “meeting from 5 to 6”— and when it ends it asks if you’re done. One tap on “Yes” and it’s checked off, without opening the app.
+
+WHAT MATTERS, BIGGER
+No labels, no colors: important things just look bigger. Whatever was left undone yesterday moves to today with one tap, from the app, the widget or Siri.
+
+WIDGETS, SIRI AND SHORTCUTS
+Check off today’s tasks, your inbox and your routines right from their widgets. “Hey Siri, add to Tasks” and say it in one go, without opening the app, even with your iPhone locked.
+
+DAY AND NIGHT
+Ivory paper by day and midnight blue by night, or let it follow your iPhone.
+
+IN ENGLISH AND SPANISH
+Choose the language in Settings, or let it follow your iPhone.
+
+PRIVATE
+Your tasks, places and location stay on your iPhone. No sign-up, no ads, no analytics.
+```
+
+**Promotional Text** (opcional)
+
+```
+New: English, an Inbox widget to check off what has no date yet, and a smoother app on older iPhones.
+```
+
 **Capturas**: Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Ya están hechas en
 [`docs/capturas/`](capturas/), a ese tamaño exacto y en el orden en que se suben (las tres primeras
 son las que salen en la búsqueda):
@@ -666,9 +740,12 @@ Tasks se ha rehecho de arriba abajo.
 Nuevo: agenda con horario, rutinas con emoji que se tachan desde la pantalla de bloqueo, el mes entero de un tirón y modo oscuro.
 ```
 
-### 9.5 La 1.3 (01/10/2026, compilación 30)
+### 9.5 La 1.3 (01/10/2026, compilación 30; con el inglés, la siguiente)
 
-La ficha del compositor y la bienvenida también al actualizar. **Detalles** (o tirar del asa de la barra
+La ficha del compositor y la bienvenida también al actualizar. Desde el 03/10/2026 lleva además el
+**inglés** (Ajustes → Idioma), el **widget de la Bandeja** y una app **más fluida en iPhone antiguos**:
+se envía la compilación que salga de subir eso, no la 30. Con el inglés, añade también la ficha en
+inglés (§3.1). **Detalles** (o tirar del asa de la barra
 de escribir) la despliega en una ficha con todo lo de una tarea antes de añadirla; y la bienvenida, que
 en la 1.2 solo salía en una instalación nueva, sale ahora también a quien actualiza (a todos los que
 vienen de la 1.2 o antes, entera; después, solo las láminas nuevas). Pasos de §9.3; la ficha de la
@@ -680,4 +757,18 @@ tienda no cambia salvo, si se quiere, una captura de la ficha.
 • Detalles al escribir: toca Detalles (o tira de la barra hacia arriba) y elige el día, la hora, la duración, los avisos, la sección, la importancia o si se repite antes de añadir la tarea.
 • Duración en una regla: arrastra para elegir cuánto dura y mantén el dedo al final para alargarla, hasta medio día.
 • La bienvenida sale también al actualizar, con lo nuevo de cada versión.
+• Ahora también en inglés: Ajustes → Idioma.
+• Widget nuevo de la Bandeja: lo que aún no tiene fecha, para tacharlo sin abrir la app.
+• Más fluida en iPhone antiguos.
+```
+
+**What’s New in This Version** (la ficha en inglés)
+
+```
+• Details while writing: tap Details (or pull the bar up) to choose the day, time, duration, reminders, section, importance or whether it repeats before adding the task.
+• Duration on a ruler: drag to choose how long it lasts and hold at the end to stretch it, up to half a day.
+• The welcome also appears after updating, with what’s new in each version.
+• Now in English and Spanish: Settings → Language.
+• New Inbox widget: check off what doesn’t have a date yet, without opening the app.
+• Smoother on older iPhones.
 ```

@@ -5,7 +5,7 @@ import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { decryptJson } from './lib/push/crypto'
 import { loadContentKey } from './lib/push/keystore'
 import type { NotificationAction, NotificationContent, OpenTaskMessage } from './lib/push/message'
-import { FALLBACK_CONTENT, isNotificationAction, parseContent, parsePushData } from './lib/push/message'
+import { fallbackContent, isNotificationAction, parseContent, parsePushData } from './lib/push/message'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -18,6 +18,9 @@ clientsClaim()
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 registerRoute(new NavigationRoute(createHandlerBoundToURL(`${BASE}index.html`)))
+
+/** Sin poder leer el aviso no se sabe el idioma elegido: el del navegador. */
+const FALLBACK_CONTENT = fallbackContent(!/^es\b/i.test(self.navigator.language))
 
 async function readContent(text: string): Promise<NotificationContent> {
   try {
@@ -62,8 +65,11 @@ self.addEventListener('push', (event) => {
 
 type Button = { action: NotificationAction; title: string }
 
-const DONE: Button = { action: 'done', title: 'Hecha' }
-const SNOOZE: Button = { action: 'snooze', title: '+10 min' }
+/** Los botones en el idioma del aviso (`lang`); los avisos de antes del inglés, en español. */
+const BUTTONS = {
+  es: { done: 'Hecha', yes: 'Sí, hecha', again: 'Todavía no', today: 'Pasar a hoy', allToday: 'Pasar atrasadas a hoy' },
+  en: { done: 'Done', yes: 'Yes, done', again: 'Not yet', today: 'Move to today', allToday: 'Move overdue to today' },
+} as const
 
 /**
  * Aviso de cierre: "Sí, hecha" y "Todavía no", nada más. Tarea: "Hecha" y "+10 min", y "Pasar a
@@ -71,9 +77,12 @@ const SNOOZE: Button = { action: 'snooze', title: '+10 min' }
  * diario con algo atrasado: pasarlo todo a hoy.
  */
 function actionsFor(content: NotificationContent): Button[] {
-  if (content.ask) return [{ action: 'done', title: 'Sí, hecha' }, { action: 'again', title: 'Todavía no' }]
-  if (content.taskId) return content.overdue ? [DONE, { action: 'today', title: 'Pasar a hoy' }, SNOOZE] : [DONE, SNOOZE]
-  return content.overdue ? [{ action: 'today', title: 'Pasar atrasadas a hoy' }] : []
+  const words = BUTTONS[content.lang ?? 'es']
+  const done: Button = { action: 'done', title: words.done }
+  const snooze: Button = { action: 'snooze', title: '+10 min' }
+  if (content.ask) return [{ action: 'done', title: words.yes }, { action: 'again', title: words.again }]
+  if (content.taskId) return content.overdue ? [done, { action: 'today', title: words.today }, snooze] : [done, snooze]
+  return content.overdue ? [{ action: 'today', title: words.allToday }] : []
 }
 
 /** La app aplica la acción: el estado de las tareas solo vive en la página. */

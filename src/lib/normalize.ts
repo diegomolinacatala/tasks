@@ -11,7 +11,8 @@ export interface NormalizedText {
   ends: number[]
 }
 
-const ACCENTS: Record<string, string> = { á: 'a', à: 'a', ä: 'a', é: 'e', è: 'e', í: 'i', ó: 'o', ú: 'u', ü: 'u', ñ: 'n' }
+/** También el apóstrofo curvo de los teclados del iPhone (`’` → `'`): "don’t" se busca como "don't". */
+const ACCENTS: Record<string, string> = { á: 'a', à: 'a', ä: 'a', é: 'e', è: 'e', í: 'i', ó: 'o', ú: 'u', ü: 'u', ñ: 'n', '’': "'" }
 
 const NUMBER_WORDS: Record<string, string> = {
   'cuarenta y cinco': '45',
@@ -46,13 +47,58 @@ const NUMBER_WORDS: Record<string, string> = {
   un: '1',
 }
 
+/** Números en palabras de un idioma y la expresión que los encuentra. */
+export interface NumberWords {
+  words: Readonly<Record<string, string>>
+  regex: RegExp
+}
+
 // Las alternativas más largas primero, para que "veinticinco" no se quede en "veinte".
-const RE_NUMBER_WORD = new RegExp(
-  `(?<![a-z0-9])(?:${Object.keys(NUMBER_WORDS)
-    .sort((a, b) => b.length - a.length)
-    .join('|')})(?![a-z0-9])`,
-  'g',
-)
+const numberWords = (words: Record<string, string>): NumberWords => ({
+  words,
+  regex: new RegExp(
+    `(?<![a-z0-9])(?:${Object.keys(words)
+      .sort((a, b) => b.length - a.length)
+      .join('|')})(?![a-z0-9])`,
+    'g',
+  ),
+})
+
+export const SPANISH_NUMBERS = numberWords(NUMBER_WORDS)
+
+const ONES = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+const TENS: [string, number][] = [
+  ['twenty', 20],
+  ['thirty', 30],
+  ['forty', 40],
+  ['fifty', 50],
+]
+
+/** "one" … "fifty-nine", con guion o sin él ("forty five"). "a" y "an" no: son artículos. */
+export const ENGLISH_NUMBERS = numberWords({
+  ...Object.fromEntries(ONES.map((name, index) => [name, String(index + 1)])),
+  ten: '10',
+  eleven: '11',
+  twelve: '12',
+  thirteen: '13',
+  fourteen: '14',
+  fifteen: '15',
+  sixteen: '16',
+  seventeen: '17',
+  eighteen: '18',
+  nineteen: '19',
+  sixty: '60',
+  ninety: '90',
+  ...Object.fromEntries(
+    TENS.flatMap(([ten, value]) => [
+      [ten, String(value)],
+      ...ONES.flatMap((one, index) => [
+        [`${ten}-${one}`, String(value + index + 1)],
+        [`${ten} ${one}`, String(value + index + 1)],
+      ]),
+    ]),
+  ),
+})
 
 /** Minúsculas sin tildes, unidad a unidad UTF-16: misma longitud que el original. */
 export function fold(input: string): string {
@@ -65,7 +111,7 @@ export function fold(input: string): string {
   return out
 }
 
-export function normalizeText(input: string): NormalizedText {
+export function normalizeText(input: string, numbers: NumberWords = SPANISH_NUMBERS): NormalizedText {
   const folded = fold(input)
   let text = ''
   const starts: number[] = []
@@ -80,10 +126,10 @@ export function normalizeText(input: string): NormalizedText {
   }
 
   let cursor = 0
-  for (const match of folded.matchAll(RE_NUMBER_WORD)) {
+  for (const match of folded.matchAll(numbers.regex)) {
     copy(cursor, match.index)
     const end = match.index + match[0].length
-    for (const digit of NUMBER_WORDS[match[0]] ?? match[0]) {
+    for (const digit of numbers.words[match[0]] ?? match[0]) {
       text += digit
       starts.push(match.index)
       ends.push(end)

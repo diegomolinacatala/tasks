@@ -1,6 +1,6 @@
 import type { IsoDate, IsoTime } from '../types'
+import { language, pick } from './i18n'
 
-const LOCALE = 'es-ES'
 const MS_DAY = 86_400_000
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -65,35 +65,55 @@ export function monthWeeks(iso: IsoDate): IsoDate[] {
   return Array.from({ length: MONTH_WEEKS }, (_, index) => addDays(first, index * 7))
 }
 
-const fmt = (iso: IsoDate, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(LOCALE, options).format(fromIso(iso))
+/** Nombres fijos en lugar de `Intl`: crear un formateador cuesta en los móviles modestos y así sale igual en todas partes. */
+const NAMES = {
+  es: {
+    days: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+    daysShort: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+    months: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+    monthsShort: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'],
+  },
+  en: {
+    days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  },
+} as const
 
-const strip = (value: string) => value.replace(/\.$/, '')
+const weekdayOf = (iso: IsoDate) => fromIso(iso).getDay()
+const monthOf = (iso: IsoDate) => Number(iso.slice(5, 7)) - 1
 
-/** `jue` */
-export const dayNameShort = (iso: IsoDate) => strip(fmt(iso, { weekday: 'short' }))
+/** `jue` · `Thu` */
+export const dayNameShort = (iso: IsoDate): string => pick(NAMES).daysShort[weekdayOf(iso)] ?? ''
 
-/** `jueves` */
-export const dayNameLong = (iso: IsoDate) => fmt(iso, { weekday: 'long' })
+/** `jueves` · `Thursday` */
+export const dayNameLong = (iso: IsoDate): string => pick(NAMES).days[weekdayOf(iso)] ?? ''
 
 /** `11` */
 export const dayNumber = (iso: IsoDate) => String(fromIso(iso).getDate())
 
-/** `sep` */
-export const monthShort = (iso: IsoDate) => strip(fmt(iso, { month: 'short' }))
+/** `sept` · `Sep` */
+export const monthShort = (iso: IsoDate): string => pick(NAMES).monthsShort[monthOf(iso)] ?? ''
 
-/** `septiembre` */
-export const monthLong = (iso: IsoDate) => fmt(iso, { month: 'long' })
+/** `septiembre` · `September` */
+export const monthLong = (iso: IsoDate): string => pick(NAMES).months[monthOf(iso)] ?? ''
 
-/** `jueves, 11 sep` */
+/** `11 sept` · `Sep 11` */
+export const dayMonth = (iso: IsoDate): string =>
+  language() === 'en' ? `${monthShort(iso)} ${dayNumber(iso)}` : `${dayNumber(iso)} ${monthShort(iso)}`
+
+/** `jueves, 11 sept` · `Thursday, Sep 11` */
 export function fullLabel(iso: IsoDate): string {
-  return `${dayNameLong(iso)}, ${dayNumber(iso)} ${monthShort(iso)}`
+  return `${dayNameLong(iso)}, ${dayMonth(iso)}`
 }
 
-/** `8 – 14 sep` o `29 sep – 5 oct` */
+/** `8 – 14 sept` o `29 sept – 5 oct` · `Sep 8 – 14` o `Sep 29 – Oct 5` */
 export function rangeLabel(from: IsoDate, to: IsoDate): string {
-  const left = monthShort(from) === monthShort(to) ? dayNumber(from) : `${dayNumber(from)} ${monthShort(from)}`
-  return `${left} – ${dayNumber(to)} ${monthShort(to)}`
+  const sameName = monthShort(from) === monthShort(to)
+  if (language() === 'en') return `${dayMonth(from)} – ${sameName ? dayNumber(to) : dayMonth(to)}`
+  const left = sameName ? dayNumber(from) : dayMonth(from)
+  return `${left} – ${dayMonth(to)}`
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/
@@ -126,26 +146,54 @@ export function nextUtcMidnight(ms: number): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1)
 }
 
-/** `9:00`, `17:30`: sin cero a la izquierda, como se lee en español. */
-export const shortTime = (time: IsoTime): string => time.replace(/^0(\d)/, '$1')
-
-/** Etiqueta corta y relativa para una tarea: `Hoy`, `Mañana`, `jue 18 sep`. */
-export function relativeLabel(iso: IsoDate, today: IsoDate = todayIso()): string {
-  const delta = diffDays(today, iso)
-  if (delta === 0) return 'Hoy'
-  if (delta === 1) return 'Mañana'
-  if (delta === -1) return 'Ayer'
-  return `${dayNameShort(iso)} ${dayNumber(iso)} ${monthShort(iso)}`
+/** Minutos desde medianoche → `9:05` (`17:30`) en español, `9:05 AM` (`5:30 PM`) en inglés. */
+export function clockLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60) % 24
+  const mins = String(minutes % 60).padStart(2, '0')
+  if (language() !== 'en') return `${hours}:${mins}`
+  return `${hours % 12 || 12}:${mins} ${hours < 12 ? 'AM' : 'PM'}`
 }
 
-/** `septiembre 2026` */
+/** `9:00`, `17:30`: sin cero a la izquierda, como se lee en español; `9:00 AM`, `5:30 PM` en inglés. */
+export const shortTime = (time: IsoTime): string => {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number)
+  return clockLabel(hours * 60 + minutes)
+}
+
+const NEAR = {
+  es: { today: 'Hoy', tomorrow: 'Mañana', yesterday: 'Ayer' },
+  en: { today: 'Today', tomorrow: 'Tomorrow', yesterday: 'Yesterday' },
+} as const
+
+/** `Hoy`, `Mañana`, `Ayer` (`Today`…) o `null` para cualquier otro día. */
+export function nearLabel(iso: IsoDate, today: IsoDate): string | null {
+  const words = pick(NEAR)
+  const delta = diffDays(today, iso)
+  if (delta === 0) return words.today
+  if (delta === 1) return words.tomorrow
+  if (delta === -1) return words.yesterday
+  return null
+}
+
+/** Etiqueta corta y relativa para una tarea: `Hoy`, `Mañana`, `jue 18 sept` · `Today`, `Thu, Sep 18`. */
+export function relativeLabel(iso: IsoDate, today: IsoDate = todayIso()): string {
+  const near = nearLabel(iso, today)
+  if (near) return near
+  return language() === 'en' ? `${dayNameShort(iso)}, ${dayMonth(iso)}` : `${dayNameShort(iso)} ${dayMonth(iso)}`
+}
+
+/** `septiembre 2026` · `September 2026` */
 export const monthYear = (iso: IsoDate) => `${monthLong(iso)} ${iso.slice(0, 4)}`
 
-/** `Hoy`, `Mañana`, `Ayer` o `null` para cualquier otro día. */
-export function nearLabel(iso: IsoDate, today: IsoDate): string | null {
-  const delta = diffDays(today, iso)
-  if (delta === 0) return 'Hoy'
-  if (delta === 1) return 'Mañana'
-  if (delta === -1) return 'Ayer'
-  return null
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/**
+ * Cabecera de un día, en dos partes (la segunda va atenuada): `Hoy` + `martes 29`, `Jueves` +
+ * `1 octubre` · `Today` + `Tuesday 29`, `Thursday` + `October 1`.
+ */
+export function dayHeading(iso: IsoDate, today: IsoDate): { main: string; rest: string } {
+  const near = nearLabel(iso, today)
+  if (near) return { main: near, rest: `${dayNameLong(iso)} ${dayNumber(iso)}` }
+  const rest = language() === 'en' ? `${monthLong(iso)} ${dayNumber(iso)}` : `${dayNumber(iso)} ${monthLong(iso)}`
+  return { main: capitalize(dayNameLong(iso)), rest }
 }

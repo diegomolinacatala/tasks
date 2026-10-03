@@ -4,10 +4,12 @@ import type { ComposeTarget } from '../../lib/compose'
 import type { Details, SummaryIcon } from '../../lib/details'
 import { detailsFrom, detailsSummary, toRoutineDraft, toTaskDraft } from '../../lib/details'
 import { createId } from '../../lib/id'
+import type { ParsedTask } from '../../lib/parse'
 import { parseTask } from '../../lib/parse'
 import { haptic } from '../../lib/platform/feedback'
 import type { RoutineDraft } from '../../lib/repeat'
 import { parseRoutine } from '../../lib/repeat'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { IsoDate, Place, TaskDraft } from '../../types'
 import { IconArrowUp, IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
@@ -43,6 +45,40 @@ interface ComposerProps {
   focusRequest?: number
 }
 
+const COPY = {
+  es: {
+    cancel: 'Cancelar dictado',
+    finish: 'Terminar y crear tarea',
+    add: 'Añadir',
+    dictate: 'Dictar tarea',
+    decided: 'Lo decidido',
+    where: 'Dónde va',
+    clear: 'Quitar los detalles',
+    change: (label: string) => `${label}: cambiar`,
+    importance: (label: string) => `Importancia ${label}: cambiar`,
+    use: (label: string) => `Usar ${label}`,
+    ignore: (label: string) => `Ignorar ${label}`,
+    details: 'Detalles',
+  },
+  en: {
+    cancel: 'Cancel dictation',
+    finish: 'Finish and create the task',
+    add: 'Add',
+    dictate: 'Dictate a task',
+    decided: 'Your choices',
+    where: 'Where it goes',
+    clear: 'Remove the details',
+    change: (label: string) => `${label}: change`,
+    importance: (label: string) => `Importance ${label}: change`,
+    use: (label: string) => `Use ${label}`,
+    ignore: (label: string) => `Ignore ${label}`,
+    details: 'Details',
+  },
+} as const
+
+/** La barra vacía no tiene nada que entender: no hace falta pasarle el analizador. */
+const NOTHING: ParsedTask = { title: '', date: null, time: null, duration: null, reminders: [], label: null }
+
 /** Tocar una píldora no debe quitarle el foco a la barra (en el escritorio, el teclado seguiría abierto igual). */
 const keepFocus = (event: MouseEvent) => event.preventDefault()
 
@@ -66,6 +102,7 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
  */
 export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onVoice, onComposing, places, focusRequest = 0 }: ComposerProps) {
   const state = useAppState()
+  const copy = useCopy(COPY)
   const [value, setValue] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const [literal, setLiteral] = useState(false)
@@ -83,7 +120,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
   const voice = useVoice(onVoice)
   const ready = value.trim().length > 0
   const routine = useMemo(() => (ready && !details ? parseRoutine(value, Date.now()) : null), [value, ready, details])
-  const parsed = useMemo(() => parseTask(value, Date.now(), places), [value, places])
+  const parsed = useMemo(() => (ready ? parseTask(value, Date.now(), places) : NOTHING), [value, ready, places])
   const label = routine?.label ?? parsed.label
   const detected = ready && !details && label !== null
   const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
@@ -213,7 +250,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
   if (dictating) {
     return (
       <div className="composer composer--voice" role="status" aria-live="polite">
-        <button type="button" className="composer__voice-btn" aria-label="Cancelar dictado" onClick={voice.cancel}>
+        <button type="button" className="composer__voice-btn" aria-label={copy.cancel} onClick={voice.cancel}>
           <IconClose size={16} />
         </button>
         <VoiceBar phase={voice.phase} level={voice.level} partial={voice.partial} />
@@ -221,7 +258,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
           <button
             type="button"
             className="composer__voice-btn composer__voice-btn--done"
-            aria-label="Terminar y crear tarea"
+            aria-label={copy.finish}
             onClick={voice.stop}
           >
             <IconCheck size={16} strokeWidth={2.5} />
@@ -270,12 +307,12 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
             onKeyDown={onKeyDown}
           />
           {ready ? (
-            <button type="submit" className="composer__send" aria-label="Añadir" onMouseDown={keepFocus}>
+            <button type="submit" className="composer__send" aria-label={copy.add} onMouseDown={keepFocus}>
               <IconArrowUp size={17} strokeWidth={2.2} />
             </button>
           ) : (
             !details && (
-              <button type="button" className="composer__mic" aria-label="Dictar tarea" onClick={voice.start}>
+              <button type="button" className="composer__mic" aria-label={copy.dictate} onClick={voice.start}>
                 <IconMic size={19} />
               </button>
             )
@@ -283,9 +320,9 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
         </div>
         {tray && (
           <div className="composer__foot">
-            <div className="composer__tray" role="group" aria-label={details ? 'Lo decidido' : 'Dónde va'}>
+            <div className="composer__tray" role="group" aria-label={details ? copy.decided : copy.where}>
               {details && (
-                <button type="button" className="composer__clear" aria-label="Quitar los detalles" onMouseDown={keepFocus} onClick={clearDetails}>
+                <button type="button" className="composer__clear" aria-label={copy.clear} onMouseDown={keepFocus} onClick={clearDetails}>
                   <IconClose size={14} />
                 </button>
               )}
@@ -296,7 +333,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
                     key={item.key}
                     type="button"
                     className={`composer__target is-detail ${item.key === 'when' || item.key === 'repeat' ? 'is-active' : ''}`}
-                    aria-label={item.key === 'importance' ? `Importancia ${item.label}: cambiar` : `${item.label}: cambiar`}
+                    aria-label={item.key === 'importance' ? copy.importance(item.label) : copy.change(item.label)}
                     onMouseDown={keepFocus}
                     onClick={expand}
                   >
@@ -310,7 +347,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
                   type="button"
                   className={`composer__parsed ${literal ? 'is-off' : ''} ${routine ? 'is-routine' : ''}`}
                   aria-pressed={!literal}
-                  aria-label={literal ? `Usar ${label}` : `Ignorar ${label}`}
+                  aria-label={literal ? copy.use(label) : copy.ignore(label)}
                   onMouseDown={keepFocus}
                   onClick={() => setLiteral((current) => !current)}
                 >
@@ -343,14 +380,14 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
             <button
               type="button"
               className={`composer__more ${details ? 'has-details' : ''}`}
-              aria-label="Detalles"
+              aria-label={copy.details}
               aria-haspopup="dialog"
               aria-expanded={expanded}
               onMouseDown={keepFocus}
               onClick={expand}
             >
               <IconSliders size={15} />
-              {!details && <span aria-hidden="true">Detalles</span>}
+              {!details && <span aria-hidden="true">{copy.details}</span>}
             </button>
           </div>
         )}

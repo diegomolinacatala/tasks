@@ -2,8 +2,20 @@ import type { CSSProperties } from 'react'
 import { timeRange } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
 import { nextReminderAt } from '../../lib/reminders'
+import { useCopy } from '../../state/LanguageProvider'
 import type { Task } from '../../types'
 import { IconBell, IconCheck, IconPin } from '../ui/Icons'
+
+const COPY = {
+  es: {
+    undone: (title: string) => `Marcar «${title}» como pendiente`,
+    complete: (title: string) => `Completar «${title}»`,
+  },
+  en: {
+    undone: (title: string) => `Mark “${title}” as pending`,
+    complete: (title: string) => `Complete “${title}”`,
+  },
+} as const
 
 interface TaskRowProps {
   task: Task
@@ -16,6 +28,7 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, meta, overdue = false, importance, onToggle, onOpen }: TaskRowProps) {
+  const copy = useCopy(COPY)
   // Con duración, el tramo entero: `17:30–18:30`.
   const text = [meta, timeRange(task)].filter(Boolean).join(' · ')
   const reminding = nextReminderAt(task, Date.now()) !== null
@@ -32,7 +45,7 @@ export function TaskRow({ task, meta, overdue = false, importance, onToggle, onO
         type="button"
         className="row__check"
         aria-pressed={task.done}
-        aria-label={task.done ? `Marcar «${task.title}» como pendiente` : `Completar «${task.title}»`}
+        aria-label={task.done ? copy.undone(task.title) : copy.complete(task.title)}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={onToggle}
       >

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { shortTime } from '../../lib/date'
 import { endClock, extendedDuration } from '../../lib/duration'
+import { pick } from '../../lib/i18n'
 import { haptic } from '../../lib/platform/feedback'
 import { reminderLabel, snoozeOptions } from '../../lib/reminders'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
@@ -8,6 +9,27 @@ import type { Task } from '../../types'
 import { useTaskActions } from '../task/useTaskActions'
 import { useToast } from '../ui/Toast'
 import { useNotificationOpen } from './useNotificationOpen'
+
+const TEXT = {
+  es: {
+    done: (title: string) => `Hecha: ${title}`,
+    undo: 'Deshacer',
+    doneQuestion: (title: string) => `¿Hecha: ${title}?`,
+    yes: 'Sí',
+    reminder: (label: string) => `Aviso: ${label}`,
+    again: (clock: string) => `Vuelvo a preguntar a las ${clock}`,
+    finished: (title: string) => `¿Has acabado ${title}?`,
+  },
+  en: {
+    done: (title: string) => `Done: ${title}`,
+    undo: 'Undo',
+    doneQuestion: (title: string) => `Done: ${title}?`,
+    yes: 'Yes',
+    reminder: (label: string) => `Reminder: ${label}`,
+    again: (clock: string) => `I’ll ask again at ${clock}`,
+    finished: (title: string) => `Finished ${title}?`,
+  },
+} as const
 
 interface NotificationHandlers {
   onOpenTask: (taskId: string) => void
@@ -52,24 +74,26 @@ export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine 
     }
     if (action === 'done') {
       markDone()
+      const text = pick(TEXT)
       toast({
-        message: `Hecha: ${routine.title}`,
-        actionLabel: 'Deshacer',
+        message: text.done(routine.title),
+        actionLabel: text.undo,
         onAction: () => dispatch({ type: 'routine/set', id: routine.id, date, done: false }),
       })
       return
     }
     onOpenRoutine(routine.id)
-    if (!routine.done.includes(date)) toast({ message: `¿Hecha: ${routine.title}?`, actionLabel: 'Sí', onAction: markDone })
+    if (!routine.done.includes(date)) toast({ message: pick(TEXT).doneQuestion(routine.title), actionLabel: pick(TEXT).yes, onAction: markDone })
   }
 
   const complete = (task: Task) => {
     if (task.done) return
     dispatch({ type: 'task/toggle', id: task.id })
     haptic('success')
+    const text = pick(TEXT)
     toast({
-      message: `Hecha: ${task.title}`,
-      actionLabel: 'Deshacer',
+      message: text.done(task.title),
+      actionLabel: text.undo,
       onAction: () => dispatch({ type: 'task/toggle', id: task.id }),
     })
   }
@@ -79,7 +103,7 @@ export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine 
     const [soon] = snoozeOptions(now)
     if (!soon) return
     dispatch({ type: 'task/snooze', id: task.id, at: soon.at, now })
-    toast({ message: `Aviso: ${reminderLabel({ kind: 'at', at: soon.at }, now)}` })
+    toast({ message: pick(TEXT).reminder(reminderLabel({ kind: 'at', at: soon.at }, now)) })
   }
 
   /** "Todavía no": la tarea se alarga, así que la pregunta vuelve dentro de un rato. */
@@ -89,13 +113,13 @@ export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine 
     if (duration === null || !task.time) return onOpenTask(task.id)
     dispatch({ type: 'task/extend', id: task.id, now })
     haptic('tap')
-    toast({ message: `Vuelvo a preguntar a las ${shortTime(endClock(task.time, duration))}` })
+    toast({ message: pick(TEXT).again(shortTime(endClock(task.time, duration))) })
   }
 
   /** La misma pregunta del aviso, ya dentro de la app: un toque en "Sí" y está hecha. */
   const askAgain = (task: Task) => {
     if (task.done) return
-    toast({ message: `¿Has acabado ${task.title}?`, actionLabel: 'Sí', onAction: () => complete(task) })
+    toast({ message: pick(TEXT).finished(task.title), actionLabel: pick(TEXT).yes, onAction: () => complete(task) })
   }
 
   useNotificationOpen(({ action, taskIds, placeId, ask, routine }) => {

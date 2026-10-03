@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createId } from '../../lib/id'
 import { DEFAULT_RADIUS, MAX_RADIUS, MIN_RADIUS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
 import { haptic } from '../../lib/platform/feedback'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { PlaceLocation } from '../../types'
 import { IconLocate, IconPin, IconSearch, IconTrash } from '../ui/Icons'
@@ -32,6 +33,49 @@ interface PlaceSheetProps {
 }
 
 const CONFIRM_MS = 4000
+
+const COPY = {
+  es: {
+    clash: (name: string) => `Ya hay un lugar llamado ${name}.`,
+    noPermission: 'Sin permiso de ubicación.',
+    settings: 'Ajustes',
+    place: 'Lugar',
+    newPlace: 'Nuevo lugar',
+    name: 'Nombre',
+    placeName: 'Nombre del lugar',
+    where: 'Dónde',
+    saved: 'Ubicación guardada',
+    search: 'Buscar en Mapas',
+    searchFailed: 'No se ha podido buscar. Revisa la conexión.',
+    current: 'Usar mi ubicación actual',
+    radius: 'Radio',
+    radiusLabel: 'Radio del aviso',
+    linked: 'Avisos aquí',
+    actions: 'Acciones',
+    confirm: 'Toca otra vez para borrar',
+    remove: 'Borrar lugar y sus avisos',
+  },
+  en: {
+    clash: (name: string) => `There’s already a place called ${name}.`,
+    noPermission: 'No location permission.',
+    settings: 'Settings',
+    place: 'Place',
+    newPlace: 'New place',
+    name: 'Name',
+    placeName: 'Place name',
+    where: 'Where',
+    saved: 'Saved location',
+    search: 'Search in Maps',
+    searchFailed: 'Search failed. Check your connection.',
+    current: 'Use my current location',
+    radius: 'Radius',
+    radiusLabel: 'Reminder radius',
+    linked: 'Reminders here',
+    actions: 'Actions',
+    confirm: 'Tap again to delete',
+    remove: 'Delete place and its reminders',
+  },
+} as const
 const RADIUS_STEP = 50
 const RADIUS_MARKS = [MIN_RADIUS, 500, MAX_RADIUS] as const
 const MAP_HEIGHT = 190
@@ -43,6 +87,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
+  const copy = useCopy(COPY)
   // Se conserva la última petición para animar el cierre sin que cambie el contenido.
   const [shown, setShown] = useState<PlaceRequest | null>(request)
   const place = shown?.placeId ? (state.places.find((item) => item.id === shown.placeId) ?? null) : null
@@ -77,7 +122,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       if (place) {
         // El reducer no deja dos lugares con el mismo nombre: se conserva el anterior y se avisa.
         const clash = findPlace(state.places, name)
-        if (clash && clash.id !== place.id) toast({ message: `Ya hay un lugar llamado ${clash.name}.` })
+        if (clash && clash.id !== place.id) toast({ message: copy.clash(clash.name) })
         dispatch({ type: 'place/update', id: place.id, name, location: draft.location, radius: draft.radius })
         request.onSaved?.(place.id)
       } else {
@@ -102,8 +147,8 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       haptic('success')
     } catch {
       toast({
-        message: 'Sin permiso de ubicación.',
-        actionLabel: 'Ajustes',
+        message: copy.noPermission,
+        actionLabel: copy.settings,
         onAction: () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings()),
       })
     } finally {
@@ -124,17 +169,17 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   }
 
   return (
-    <Sheet open={request !== null} onClose={close} title={place ? 'Lugar' : 'Nuevo lugar'}>
+    <Sheet open={request !== null} onClose={close} title={place ? copy.place : copy.newPlace}>
       <input
         className="sheet__input"
         value={draft.name}
-        placeholder="Nombre"
-        aria-label="Nombre del lugar"
+        placeholder={copy.name}
+        aria-label={copy.placeName}
         autoComplete="off"
         onChange={(event) => update({ name: event.target.value })}
       />
 
-      <p className="sheet__title">Dónde</p>
+      <p className="sheet__title">{copy.where}</p>
       {draft.location && (
         <>
           <MapSnapshot
@@ -148,7 +193,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
           />
           <p className="place-current">
             <IconPin size={16} />
-            <span>{draft.location.address || 'Ubicación guardada'}</span>
+            <span>{draft.location.address || copy.saved}</span>
           </p>
         </>
       )}
@@ -157,8 +202,8 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
         <IconSearch size={16} />
         <input
           value={query}
-          placeholder="Buscar en Mapas"
-          aria-label="Buscar en Mapas"
+          placeholder={copy.search}
+          aria-label={copy.search}
           enterKeyHint="search"
           autoComplete="off"
           onChange={(event) => setQuery(event.target.value)}
@@ -190,20 +235,20 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
           ))}
         </ul>
       )}
-      {search.failed && <p className="sheet__note">No se ha podido buscar. Revisa la conexión.</p>}
+      {search.failed && <p className="sheet__note">{copy.searchFailed}</p>}
 
       <button type="button" className="sheet__row" disabled={locating} onClick={() => void pickCurrentLocation()}>
         <IconLocate size={18} />
-        Usar mi ubicación actual
+        {copy.current}
       </button>
 
-      <p className="sheet__title">Radio</p>
+      <p className="sheet__title">{copy.radius}</p>
       <Slider
         value={draft.radius}
         min={MIN_RADIUS}
         max={MAX_RADIUS}
         step={RADIUS_STEP}
-        label="Radio del aviso"
+        label={copy.radiusLabel}
         format={(value) => formatDistance(value)}
         marks={RADIUS_MARKS}
         onInput={setLiveRadius}
@@ -215,7 +260,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
 
       {linked.length > 0 && (
         <>
-          <p className="sheet__title">Avisos aquí</p>
+          <p className="sheet__title">{copy.linked}</p>
           <ul className="place-linked">
             {linked.map((task) => (
               <li key={task.id}>{task.title}</li>
@@ -226,10 +271,10 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
 
       {place && (
         <>
-          <p className="sheet__title">Acciones</p>
+          <p className="sheet__title">{copy.actions}</p>
           <button type="button" className="sheet__row sheet__row--danger" onClick={remove}>
             <IconTrash size={18} />
-            {confirming ? 'Toca otra vez para borrar' : 'Borrar lugar y sus avisos'}
+            {confirming ? copy.confirm : copy.remove}
           </button>
         </>
       )}

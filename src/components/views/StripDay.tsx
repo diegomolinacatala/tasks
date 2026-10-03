@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { CSSProperties } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { dayNumber, fullLabel } from '../../lib/date'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate } from '../../types'
 import { dayDropId } from '../dnd/ids'
 
@@ -26,12 +27,18 @@ interface StripDayProps {
 
 const RING = 2 * Math.PI * 16
 
+const COPY = {
+  es: { today: 'Hoy, ', done: (done: number, total: number) => `, ${done} de ${total} hechas` },
+  en: { today: 'Today, ', done: (done: number, total: number) => `, ${done} of ${total} done` },
+} as const
+
 /**
  * Un día de la tira (o del mes): su número y un anillo que se cierra con lo hecho; lo pasado con
  * pendientes, en ladrillo. Soltar aquí una tarea arrastrada la lleva a ese día.
  */
 export const StripDay = memo(function StripDay({ date, selected, isToday, past, outside, load, droppable, onSelect }: StripDayProps) {
   const { setNodeRef, isOver } = useDroppable({ id: dayDropId(date), data: { type: 'day', date }, disabled: !droppable })
+  const copy = useCopy(COPY)
   const pending = load.total - load.done
   const ratio = load.total ? load.done / load.total : 0
   const late = past && pending > 0
@@ -46,7 +53,7 @@ export const StripDay = memo(function StripDay({ date, selected, isToday, past, 
       } ${isOver ? 'is-over' : ''}`}
       aria-pressed={selected}
       aria-current={isToday ? 'date' : undefined}
-      aria-label={`${isToday ? 'Hoy, ' : ''}${fullLabel(date)}${load.total ? `, ${load.done} de ${load.total} hechas` : ''}`}
+      aria-label={`${isToday ? copy.today : ''}${fullLabel(date)}${load.total ? copy.done(load.done, load.total) : ''}`}
       onClick={() => onSelect(date)}
     >
       <span className="strip__num" style={{ '--ring': ratio } as CSSProperties}>

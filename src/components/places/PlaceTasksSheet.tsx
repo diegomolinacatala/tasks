@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import { TaskRow } from '../task/TaskRow'
 import { useTaskActions } from '../task/useTaskActions'
 import { Sheet } from '../ui/Sheet'
 import './places.css'
+
+const COPY = {
+  es: { place: 'Lugar', empty: 'No quedan tareas en este lugar.' },
+  en: { place: 'Place', empty: 'No tasks left at this place.' },
+} as const
 
 interface PlaceTasksSheetProps {
   placeId: string | null
@@ -15,6 +21,7 @@ interface PlaceTasksSheetProps {
 export function PlaceTasksSheet({ placeId, onOpenTask, onClose }: PlaceTasksSheetProps) {
   const state = useAppState()
   const { toggle } = useTaskActions()
+  const copy = useCopy(COPY)
   const [shown, setShown] = useState(placeId)
 
   useEffect(() => {
@@ -29,8 +36,8 @@ export function PlaceTasksSheet({ placeId, onOpenTask, onClose }: PlaceTasksShee
   const sorted = [...tasks].sort((a, b) => Number(a.done) - Number(b.done) || a.createdAt - b.createdAt)
 
   return (
-    <Sheet open={placeId !== null} onClose={onClose} title={place?.name ?? 'Lugar'}>
-      <p className="sheet__title">{place?.name ?? 'Lugar'}</p>
+    <Sheet open={placeId !== null} onClose={onClose} title={place?.name ?? copy.place}>
+      <p className="sheet__title">{place?.name ?? copy.place}</p>
       <div className="place-tasks">
         {sorted.map((task) => (
           <TaskRow
@@ -44,7 +51,7 @@ export function PlaceTasksSheet({ placeId, onOpenTask, onClose }: PlaceTasksShee
           />
         ))}
       </div>
-      {!sorted.length && <p className="sheet__note">No quedan tareas en este lugar.</p>}
+      {!sorted.length && <p className="sheet__note">{copy.empty}</p>}
     </Sheet>
   )
 }

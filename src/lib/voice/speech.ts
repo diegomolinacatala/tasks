@@ -1,3 +1,5 @@
+import { locale, pick } from '../i18n'
+
 /** Web Speech API: dictado del propio navegador, sin servidor. */
 
 interface RecognitionResultList {
@@ -45,10 +47,10 @@ export interface SpeechSession {
 
 export function startSpeech(onPartial: (text: string) => void): SpeechSession {
   const Constructor = recognitionConstructor()
-  if (!Constructor) throw new Error('Este navegador no permite dictar.')
+  if (!Constructor) throw new Error(pick({ es: 'Este navegador no permite dictar.', en: 'This browser cannot dictate.' }))
 
   const recognition = new Constructor()
-  recognition.lang = 'es-ES'
+  recognition.lang = locale()
   recognition.interimResults = true
   recognition.continuous = false
 
@@ -65,8 +67,8 @@ export function startSpeech(onPartial: (text: string) => void): SpeechSession {
       if (event.error === 'aborted' || event.error === 'no-speech') return
       failure = new Error(
         event.error === 'not-allowed' || event.error === 'service-not-allowed'
-          ? 'Permite el acceso al micrófono para dictar.'
-          : 'No se pudo dictar.',
+          ? pick({ es: 'Permite el acceso al micrófono para dictar.', en: 'Allow microphone access to dictate.' })
+          : pick({ es: 'No se pudo dictar.', en: 'Dictation failed.' }),
       )
     }
     recognition.onend = () => {

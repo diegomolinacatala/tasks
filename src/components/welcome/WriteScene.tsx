@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { addLabel, composeTargets } from '../../lib/compose'
+import { todayIso } from '../../lib/date'
 import { suggestEmoji } from '../../lib/emoji'
 import { parseTask } from '../../lib/parse'
 import { parseRoutine } from '../../lib/repeat'
+import { useCopy } from '../../state/LanguageProvider'
 import { IconArrowUp, IconBell, IconPlus, IconRepeat, IconSliders } from '../ui/Icons'
 import { reducedMotion } from './motion'
 import '../compose/composer.css'
@@ -9,7 +12,20 @@ import '../routines/routines.css'
 import '../task/task.css'
 
 /** Una cita, un tramo con su duración y algo que se repite: lo que el compositor entiende solo. */
-const PHRASES = ['Cena con Carlota mañana a las 9 de la noche', 'Dentista el viernes de 17:30 a 18:30', 'Tomar creatina cada día a las 10'] as const
+const COPY = {
+  es: {
+    phrases: ['Cena con Carlota mañana a las 9 de la noche', 'Dentista el viernes de 17:30 a 18:30', 'Tomar creatina cada día a las 10'],
+    example: (first: string, third: string) =>
+      `Por ejemplo, «${first}» se apunta para mañana a las 21:00, y «${third}» pasa a ser una rutina de cada día.`,
+    details: 'Detalles',
+  },
+  en: {
+    phrases: ['Dinner with Carlota tomorrow at 9pm', 'Dentist on Friday from 5:30 to 6:30pm', 'Take creatine every day at 10'],
+    example: (first: string, third: string) =>
+      `For example, “${first}” is set for tomorrow at 9:00 PM, and “${third}” becomes a daily routine.`,
+    details: 'Details',
+  },
+} as const
 
 const TYPE_MS = 44
 /** Con la frase entera, lo que se queda a la vista antes de añadirse. */
@@ -35,8 +51,8 @@ function understand(text: string, now: number): Understood | null {
 type Row = Understood & { id: number }
 
 /** Todas las frases ya añadidas, la última arriba: lo que se enseña cuando no se anima nada. */
-const everything = (now: number): Row[] =>
-  PHRASES.flatMap((phrase, id) => {
+const everything = (phrases: readonly string[], now: number): Row[] =>
+  phrases.flatMap((phrase, id) => {
     const result = understand(phrase, now)
     return result ? [{ ...result, id }] : []
   }).reverse()
@@ -47,11 +63,14 @@ const everything = (now: number): Row[] =>
  * hora. Con el movimiento reducido se enseña el resultado, sin teclear.
  */
 export function WriteScene() {
+  const copy = useCopy(COPY)
+  const phrases = copy.phrases
+  const today = useMemo(() => todayIso(), [])
   const still = useMemo(reducedMotion, [])
   const [turn, setTurn] = useState(0)
   const [typed, setTyped] = useState(0)
-  const [rows, setRows] = useState<Row[]>(() => (still ? everything(Date.now()) : []))
-  const phrase = PHRASES[turn % PHRASES.length] ?? ''
+  const [rows, setRows] = useState<Row[]>(() => (still ? everything(phrases, Date.now()) : []))
+  const phrase = phrases[turn % phrases.length] ?? ''
   const text = still ? '' : phrase.slice(0, typed)
   const found = useMemo(() => understand(text, Date.now()), [text])
 
@@ -72,9 +91,7 @@ export function WriteScene() {
 
   return (
     <div className="scene scene--write">
-      <p className="sr-only">
-        Por ejemplo, «{PHRASES[0]}» se apunta para mañana a las 21:00, y «{PHRASES[2]}» pasa a ser una rutina de cada día.
-      </p>
+      <p className="sr-only">{copy.example(phrases[0], phrases[2])}</p>
       <ul className="scene__list" aria-hidden="true">
         {rows.map((row) => (
           <li key={row.id} className="scene__row">
@@ -100,7 +117,7 @@ export function WriteScene() {
           {/* Como el campo de verdad: si la frase no cabe, se ve el final, donde está el cursor. */}
           <span className="scene__typed">
             <span>
-              {text || <span className="scene__placeholder">Añadir a hoy</span>}
+              {text || <span className="scene__placeholder">{addLabel(today, today)}</span>}
               {!still && <i className="scene__caret" />}
             </span>
           </span>
@@ -118,16 +135,16 @@ export function WriteScene() {
                 {found.label}
               </span>
             ) : (
-              ['Hoy', 'Mañana', 'Sin fecha'].map((label, index) => (
-                <span key={label} className={`composer__target ${index === 0 ? 'is-active' : ''}`}>
-                  {label}
+              composeTargets(today, today).map((target, index) => (
+                <span key={target.label} className={`composer__target ${index === 0 ? 'is-active' : ''}`}>
+                  {target.label}
                 </span>
               ))
             )}
           </div>
           <span className="composer__more">
             <IconSliders size={15} />
-            Detalles
+            {copy.details}
           </span>
         </div>
       </div>

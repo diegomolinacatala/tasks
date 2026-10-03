@@ -1,9 +1,27 @@
 import { useEffect, useState } from 'react'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findSection } from '../../state/selectors'
 import type { Section } from '../../types'
 import { IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
+
+const COPY = {
+  es: {
+    edit: 'Editar sección',
+    name: 'Nombre',
+    sectionName: 'Nombre de la sección',
+    remove: 'Borrar sección',
+    note: 'Las tareas de la sección vuelven a la lista principal del día.',
+  },
+  en: {
+    edit: 'Edit section',
+    name: 'Name',
+    sectionName: 'Section name',
+    remove: 'Delete section',
+    note: 'The section’s tasks go back to the day’s main list.',
+  },
+} as const
 
 interface SectionSheetProps {
   sectionId: string | null
@@ -13,6 +31,7 @@ interface SectionSheetProps {
 export function SectionSheet({ sectionId, onClose }: SectionSheetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
+  const copy = useCopy(COPY)
   const section = findSection(state, sectionId)
   const [shown, setShown] = useState<Section | null>(section)
   const [name, setName] = useState(section?.name ?? '')
@@ -37,14 +56,14 @@ export function SectionSheet({ sectionId, onClose }: SectionSheetProps) {
   }
 
   return (
-    <Sheet open={Boolean(section)} onClose={close} title="Editar sección">
-      <p className="sheet__title">Nombre</p>
+    <Sheet open={Boolean(section)} onClose={close} title={copy.edit}>
+      <p className="sheet__title">{copy.name}</p>
       <input
         className="sheet__input"
         value={name}
         onChange={(event) => setName(event.target.value)}
         onBlur={commit}
-        aria-label="Nombre de la sección"
+        aria-label={copy.sectionName}
       />
       <button
         type="button"
@@ -55,9 +74,9 @@ export function SectionSheet({ sectionId, onClose }: SectionSheetProps) {
         }}
       >
         <IconTrash size={18} />
-        Borrar sección
+        {copy.remove}
       </button>
-      <p className="sheet__note">Las tareas de la sección vuelven a la lista principal del día.</p>
+      <p className="sheet__note">{copy.note}</p>
     </Sheet>
   )
 }

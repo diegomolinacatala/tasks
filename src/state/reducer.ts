@@ -8,15 +8,17 @@ import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } fro
 import { snoozed, withReminder } from '../lib/reminders'
 import { MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { normalizeWelcome } from '../lib/welcome'
+import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
   dictation: false,
   theme: 'auto',
+  language: 'auto',
   welcome: 0,
 })
 
@@ -358,6 +360,10 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!THEMES.includes(action.theme) || state.settings.theme === action.theme) return state
       return { ...state, settings: { ...state.settings, theme: action.theme } }
 
+    case 'settings/language':
+      if (!isLanguageSetting(action.language) || state.settings.language === action.language) return state
+      return { ...state, settings: { ...state.settings, language: action.language } }
+
     // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
     case 'settings/welcome': {
       const welcome = normalizeWelcome(action.version)
@@ -368,8 +374,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado, la apariencia y la bienvenida vista son de este dispositivo: una copia
-    // de otro no los cambia.
+    // El permiso del dictado, la apariencia, el idioma y la bienvenida vista son de este dispositivo:
+    // una copia de otro no los cambia.
     case 'state/import':
       return {
         ...action.state,
@@ -377,13 +383,17 @@ export function reducer(state: AppState, action: Action): AppState {
           ...action.state.settings,
           dictation: state.settings.dictation,
           theme: state.settings.theme,
+          language: state.settings.language,
           welcome: state.settings.welcome,
         },
       }
 
-    // Borrarlo todo no cambia cómo se ve la app ni vuelve a enseñar la bienvenida.
+    // Borrarlo todo no cambia cómo se ve la app, su idioma ni vuelve a enseñar la bienvenida.
     case 'state/clear':
-      return { ...emptyState(), settings: { ...defaultSettings(), theme: state.settings.theme, welcome: state.settings.welcome } }
+      return {
+        ...emptyState(),
+        settings: { ...defaultSettings(), theme: state.settings.theme, language: state.settings.language, welcome: state.settings.welcome },
+      }
 
     default:
       return state

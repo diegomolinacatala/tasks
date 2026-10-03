@@ -1,5 +1,8 @@
 import type { Routine, Task } from '../types'
+import { clockLabel } from './date'
 import { durationLabel, minutesOf } from './duration'
+import { language } from './i18n'
+import { compareText } from './order'
 
 /**
  * El horario de un día, como en Structured: lo que tiene hora, en orden a lo largo de una línea,
@@ -34,7 +37,7 @@ export function timelineItems(tasks: readonly Task[], routines: readonly Routine
     const start = minutesOf(routine.time)
     return [{ kind: 'routine', id: `routine:${routine.id}`, start, end: start, routine }]
   })
-  return [...fromTasks, ...fromRoutines].sort((a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id))
+  return [...fromTasks, ...fromRoutines].sort((a, b) => a.start - b.start || a.end - b.end || compareText(a.id, b.id))
 }
 
 /**
@@ -68,14 +71,12 @@ export function buildTimeline(items: readonly TimelineItem[], now: number | null
   return rows
 }
 
-/** `45 min libres`, `1 h libre`, `1 h 30 libres`. */
+/** `45 min libres`, `1 h libre`, `1 h 30 libres` · `1h 30m free`. */
 export function freeLabel(minutes: number): string {
   const label = durationLabel(minutes)
+  if (language() === 'en') return `${label} free`
   return `${label} ${label === '1 h' ? 'libre' : 'libres'}`
 }
 
-/** `9:05`: sin cero delante, como el resto de horas. */
-export function clockOf(minutes: number): string {
-  const hours = Math.floor(minutes / 60) % 24
-  return `${hours}:${String(minutes % 60).padStart(2, '0')}`
-}
+/** `9:05` (`9:05 AM`): sin cero delante, como el resto de horas. */
+export const clockOf = (minutes: number): string => clockLabel(minutes)

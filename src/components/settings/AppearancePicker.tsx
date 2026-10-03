@@ -1,14 +1,16 @@
 import type { MouseEvent } from 'react'
 import { switchTheme } from '../../lib/theme'
+import { useCopy } from '../../state/LanguageProvider'
 import { useDispatch } from '../../state/StoreProvider'
 import type { Theme } from '../../types'
 import { IconCheck } from '../ui/Icons'
 
-const OPTIONS: { theme: Theme; label: string }[] = [
-  { theme: 'light', label: 'Claro' },
-  { theme: 'dark', label: 'Oscuro' },
-  { theme: 'auto', label: 'Automático' },
-]
+const OPTIONS: readonly Theme[] = ['light', 'dark', 'auto']
+
+const COPY = {
+  es: { title: 'Apariencia', light: 'Claro', dark: 'Oscuro', auto: 'Automático' },
+  en: { title: 'Appearance', light: 'Light', dark: 'Dark', auto: 'Automatic' },
+} as const
 
 /**
  * Tres tarjetas en miniatura (papel, noche y mitad y mitad), como el ajuste de pantalla de iOS. Al
@@ -16,6 +18,7 @@ const OPTIONS: { theme: Theme; label: string }[] = [
  */
 export function AppearancePicker({ value }: { value: Theme }) {
   const dispatch = useDispatch()
+  const copy = useCopy(COPY)
 
   const choose = (theme: Theme, event: MouseEvent<HTMLButtonElement>) => {
     if (theme === value) return
@@ -24,8 +27,8 @@ export function AppearancePicker({ value }: { value: Theme }) {
   }
 
   return (
-    <div className="appearance" role="radiogroup" aria-label="Apariencia">
-      {OPTIONS.map(({ theme, label }) => (
+    <div className="appearance" role="radiogroup" aria-label={copy.title}>
+      {OPTIONS.map((theme) => (
         <button
           key={theme}
           type="button"
@@ -46,7 +49,7 @@ export function AppearancePicker({ value }: { value: Theme }) {
               <i className="appearance__line appearance__line--short" />
             </span>
           </span>
-          <span className="appearance__label">{label}</span>
+          <span className="appearance__label">{copy[theme]}</span>
           <span className="appearance__check" aria-hidden="true">
             <IconCheck size={11} strokeWidth={2.8} />
           </span>

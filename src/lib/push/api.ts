@@ -1,4 +1,5 @@
 /** Cliente del Worker de avisos. Errores explícitos: nada se traga en silencio. */
+import { language, pick } from '../i18n'
 
 export interface PushSubscriptionData {
   endpoint: string
@@ -97,7 +98,7 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
     } catch (error) {
       // Una cancelación pedida no es un fallo de red: quien la pidió decide qué enseñar.
       if (options.signal?.aborted) throw error
-      throw new PushApiError(0, 'Sin conexión con el servidor de avisos.')
+      throw new PushApiError(0, pick({ es: 'Sin conexión con el servidor de avisos.', en: 'Can’t reach the reminders server.' }))
     }
 
     if (response.status === 204) return null
@@ -128,7 +129,10 @@ export function createPushApi(baseUrl: string, fetchImpl: Fetch = (input, init) 
       await call('PUT', '/v1/schedule', { token, body: { items }, keepalive: options.keepalive })
     },
     async transcribe(token, audio, context, options = {}) {
-      const data = await call('POST', '/v1/transcribe', { token, body: { audio, context }, signal: options.signal })
+      // En inglés, Whisper transcribe en inglés y la IA (que solo entiende español) no interpreta: sin
+      // contexto no lo intenta, y el móvil tira de su analizador.
+      const body = language() === 'en' ? { audio, lang: 'en' } : { audio, context }
+      const data = await call('POST', '/v1/transcribe', { token, body, signal: options.signal })
       if (!isRecord(data) || typeof data.text !== 'string') throw new PushApiError(500, 'Respuesta inesperada.')
       return { text: data.text, tasks: data.tasks ?? null }
     },

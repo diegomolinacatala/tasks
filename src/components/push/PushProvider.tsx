@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useToday } from '../../hooks/useToday'
 import { timeOfInstant, todayIso } from '../../lib/date'
+import { pick } from '../../lib/i18n'
 import type { DeviceCredentials } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { currentSupport, disablePush, enablePush, loadDevice, refreshPush } from '../../lib/push/client'
@@ -23,6 +24,21 @@ function initialStatus(): PushStatus {
   if (support !== 'ready') return support
   return Notification.permission === 'denied' ? 'denied' : 'off'
 }
+
+const TEXT = {
+  es: {
+    enableFailed: 'No se pudieron activar los avisos.',
+    disableFailed: 'No se pudieron desactivar los avisos.',
+    enableForDictation: 'Activa los avisos en Ajustes para dictar tareas.',
+    outdatedServer: 'El servidor aún no tiene el dictado: vuelve a desplegar el Worker.',
+  },
+  en: {
+    enableFailed: 'Reminders couldn’t be turned on.',
+    disableFailed: 'Reminders couldn’t be turned off.',
+    enableForDictation: 'Turn on reminders in Settings to dictate tasks.',
+    outdatedServer: 'The server doesn’t support dictation yet.',
+  },
+} as const
 
 const messageOf = (error: unknown, fallback: string) =>
   error instanceof PushApiError || error instanceof Error ? error.message : fallback
@@ -80,7 +96,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
       setDevice(created)
       setStatus('on')
     } catch (error) {
-      toast({ message: messageOf(error, 'No se pudieron activar los avisos.') })
+      toast({ message: messageOf(error, pick(TEXT).enableFailed) })
     } finally {
       setBusy(false)
     }
@@ -94,7 +110,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
       setDevice(null)
       setStatus('off')
     } catch (error) {
-      toast({ message: messageOf(error, 'No se pudieron desactivar los avisos.') })
+      toast({ message: messageOf(error, pick(TEXT).disableFailed) })
     } finally {
       setBusy(false)
     }
@@ -102,7 +118,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
 
   const transcribe = useCallback(
     async (audio: string, signal?: AbortSignal) => {
-      if (!api || !device) throw new Error('Activa los avisos en Ajustes para dictar tareas.')
+      if (!api || !device) throw new Error(pick(TEXT).enableForDictation)
       try {
         const now = Date.now()
         const context = { today: todayIso(new Date(now)), now: timeOfInstant(now) }
@@ -110,7 +126,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof PushApiError && error.status === 401) forget()
         if (error instanceof PushApiError && error.status === 404) {
-          throw new Error('El servidor aún no tiene el dictado: vuelve a desplegar el Worker.')
+          throw new Error(pick(TEXT).outdatedServer)
         }
         throw error
       }

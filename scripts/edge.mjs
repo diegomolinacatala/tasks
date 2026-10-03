@@ -52,8 +52,11 @@ export async function launch({ port = 9333 } = {}) {
   await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }))
   let next = 0
   const pending = new Map()
+  const session = { onEvent: null }
   ws.addEventListener('message', (event) => {
     const message = JSON.parse(event.data)
+    // Eventos del navegador (sin id): las trazas de rendimiento llegan así.
+    if (message.id === undefined) return session.onEvent?.(message)
     const done = pending.get(message.id)
     if (!done) return
     pending.delete(message.id)
@@ -89,7 +92,7 @@ export async function launch({ port = 9333 } = {}) {
 
   await send('Page.enable')
   await send('Runtime.enable')
-  return { send, evaluate, close }
+  return Object.assign(session, { send, evaluate, close })
 }
 
 /**

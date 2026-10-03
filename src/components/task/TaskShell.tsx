@@ -1,6 +1,7 @@
 import { Suspense, lazy, memo, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react'
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
+import { useCopy } from '../../state/LanguageProvider'
 import type { Task } from '../../types'
 import { useSizing } from '../importance/sizing'
 import { IconGrip } from '../ui/Icons'
@@ -13,6 +14,11 @@ import './task.css'
 const ImportanceKnob = lazy(() =>
   import('../importance/ImportanceKnob').then((module) => ({ default: module.ImportanceKnob })),
 )
+
+const COPY = {
+  es: { move: (title: string) => `Mover «${title}»` },
+  en: { move: (title: string) => `Move “${title}”` },
+} as const
 
 interface TaskShellProps {
   task: Task
@@ -45,6 +51,7 @@ export const TaskShell = memo(function TaskShell({
 }: TaskShellProps) {
   const sizing = useSizing()
   const actions = useRowActions()
+  const copy = useCopy(COPY)
   const [sizingTo, setSizingTo] = useState<number | null>(null)
 
   const onGripDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -88,7 +95,7 @@ export const TaskShell = memo(function TaskShell({
         <button
           type="button"
           className="task__grip"
-          aria-label={`Mover «${task.title}»`}
+          aria-label={copy.move(task.title)}
           onContextMenu={(event) => event.preventDefault()}
           {...attributes}
           {...listeners}

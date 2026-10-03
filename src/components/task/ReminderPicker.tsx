@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { toInstant } from '../../lib/date'
 import { isNative } from '../../lib/platform'
 import { isPending, reminderLabel, reminderPresets } from '../../lib/reminders'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { PlaceTrigger, Reminder, ReminderDraft, Task } from '../../types'
 import { usePlaceEditor } from '../places/PlaceEditor'
@@ -20,6 +21,41 @@ interface ReminderPickerProps {
   leading?: ReactNode
 }
 
+const COPY = {
+  es: {
+    past: 'Esa hora ya ha pasado.',
+    title: 'Recordatorios',
+    remove: (label: string) => `Quitar recordatorio ${label}`,
+    add: '+ Añadir',
+    other: 'Otra…',
+    arrive: 'Al llegar',
+    leave: 'Al salir',
+    otherPlace: 'Otro lugar…',
+    place: 'Lugar…',
+    where: (name: string) => `Elegir dónde está ${name}`,
+    enable: 'Activar avisos en este dispositivo',
+    install: 'Para recibir avisos, añade la app a la pantalla de inicio.',
+    blockedOpen: 'Avisos bloqueados: abrir Ajustes',
+    blocked: 'Avisos bloqueados en los ajustes del sistema.',
+  },
+  en: {
+    past: 'That time has already passed.',
+    title: 'Reminders',
+    remove: (label: string) => `Remove reminder ${label}`,
+    add: '+ Add',
+    other: 'Other…',
+    arrive: 'Arriving',
+    leave: 'Leaving',
+    otherPlace: 'Other place…',
+    place: 'Place…',
+    where: (name: string) => `Choose where ${name} is`,
+    enable: 'Turn on reminders on this device',
+    install: 'To get reminders, add the app to your Home Screen.',
+    blockedOpen: 'Reminders blocked: open Settings',
+    blocked: 'Reminders are blocked in the system settings.',
+  },
+} as const
+
 const LOCAL_DATETIME = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/
 /** Más lugares que estos en la fila de opciones abruman; el resto, desde "Otro lugar…". */
 const MAX_PLACE_OPTIONS = 5
@@ -28,6 +64,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
   const { places } = useAppState()
   const openPlace = usePlaceEditor()
   const toast = useToast()
+  const copy = useCopy(COPY)
   const [adding, setAdding] = useState(false)
   const [trigger, setTrigger] = useState<PlaceTrigger>('arrive')
   const now = Date.now()
@@ -38,7 +75,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
     if (!match?.[1] || !match[2]) return
     const at = toInstant(match[1], match[2])
     if (at <= Date.now()) {
-      toast({ message: 'Esa hora ya ha pasado.' })
+      toast({ message: copy.past })
       return
     }
     onAdd({ kind: 'at', at })
@@ -66,7 +103,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
 
   return (
     <>
-      <p className="sheet__title">Recordatorios</p>
+      <p className="sheet__title">{copy.title}</p>
       <div className="sheet__chips">
         {leading}
         {task.reminders.map((reminder) => {
@@ -76,7 +113,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
               key={reminder.id}
               type="button"
               className={`chip chip--reminder ${isActive(reminder) ? '' : 'is-muted'}`}
-              aria-label={`Quitar recordatorio ${label}`}
+              aria-label={copy.remove(label)}
               onClick={() => onRemove(reminder.id)}
             >
               {reminder.kind === 'place' ? <IconPin size={13} /> : <IconBell size={13} />}
@@ -88,7 +125,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
 
         {!adding && (
           <button type="button" className="chip" onClick={() => setAdding(true)}>
-            + Añadir
+            {copy.add}
           </button>
         )}
 
@@ -108,7 +145,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
 
         {adding && (
           <PickerChip type="datetime-local" className="chip chip--option" value="" onCommit={addAt}>
-            Otra…
+            {copy.other}
           </PickerChip>
         )}
       </div>
@@ -121,7 +158,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
             aria-pressed={trigger === 'leave'}
             onClick={() => setTrigger((current) => (current === 'arrive' ? 'leave' : 'arrive'))}
           >
-            {trigger === 'arrive' ? 'Al llegar' : 'Al salir'}
+            {trigger === 'arrive' ? copy.arrive : copy.leave}
           </button>
           {placeOptions.map((place) => (
             <button key={place.id} type="button" className="chip chip--option" onClick={() => addPlace(place.id)}>
@@ -134,7 +171,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
             className="chip chip--option"
             onClick={() => openPlace({ placeId: null, onSaved: (placeId) => addPlace(placeId) })}
           >
-            {places.length ? 'Otro lugar…' : 'Lugar…'}
+            {places.length ? copy.otherPlace : copy.place}
           </button>
         </div>
       )}
@@ -142,7 +179,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
       {unset.map((place) => (
         <button key={place.id} type="button" className="sheet__hint" onClick={() => openPlace({ placeId: place.id })}>
           <IconPin size={14} />
-          Elegir dónde está {place.name}
+          {copy.where(place.name)}
         </button>
       ))}
       <PushHint hasReminders={task.reminders.length > 0} />
@@ -153,27 +190,28 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
 /** Solo aparece si hay recordatorios que no van a llegar. */
 function PushHint({ hasReminders }: { hasReminders: boolean }) {
   const push = usePush()
+  const copy = useCopy(COPY)
   if (!hasReminders) return null
 
   if (push.status === 'off') {
     return (
       <button type="button" className="sheet__hint" disabled={push.busy} onClick={() => void push.enable()}>
         <IconBell size={14} />
-        Activar avisos en este dispositivo
+        {copy.enable}
       </button>
     )
   }
   if (push.status === 'needs-install') {
-    return <p className="sheet__note">Para recibir avisos, añade la app a la pantalla de inicio.</p>
+    return <p className="sheet__note">{copy.install}</p>
   }
   if (push.status === 'denied') {
     return isNative ? (
       <button type="button" className="sheet__hint" onClick={() => void push.disable()}>
         <IconBell size={14} />
-        Avisos bloqueados: abrir Ajustes
+        {copy.blockedOpen}
       </button>
     ) : (
-      <p className="sheet__note">Avisos bloqueados en los ajustes del sistema.</p>
+      <p className="sheet__note">{copy.blocked}</p>
     )
   }
   return null

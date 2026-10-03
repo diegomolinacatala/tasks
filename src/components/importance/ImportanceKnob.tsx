@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { MAX_IMPORTANCE, MIN_IMPORTANCE, clampImportance, importanceFromDrag, nextImportance } from '../../lib/importance'
 import { haptic } from '../../lib/platform/feedback'
+import { useCopy } from '../../state/LanguageProvider'
 import './importance.css'
 
 /** Por debajo de esto, soltar es un toque y no un arrastre. */
@@ -26,7 +27,13 @@ interface Gesture {
  * derecha agranda el título y hacia abajo o a la izquierda lo encoge; tocarlo sube un punto. Cada
  * punto vibra, y el título cambia en vivo mientras se arrastra.
  */
+const COPY = {
+  es: { label: (title: string) => `Importancia de «${title}»` },
+  en: { label: (title: string) => `Importance of “${title}”` },
+} as const
+
 export function ImportanceKnob({ value, title, onPreview, onChange }: ImportanceKnobProps) {
+  const copy = useCopy(COPY)
   const gesture = useRef<Gesture | null>(null)
   // Al soltar hay que leer el último valor real, no el del render anterior.
   const live = useRef(value)
@@ -99,7 +106,7 @@ export function ImportanceKnob({ value, title, onPreview, onChange }: Importance
       type="button"
       role="slider"
       className={`knob ${dragged !== null ? 'is-active' : ''} ${current > MIN_IMPORTANCE ? 'is-set' : ''}`}
-      aria-label={`Importancia de «${title}»`}
+      aria-label={copy.label(title)}
       aria-valuemin={MIN_IMPORTANCE}
       aria-valuemax={MAX_IMPORTANCE}
       aria-valuenow={current}

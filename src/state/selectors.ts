@@ -1,4 +1,4 @@
-import { byDisplay, byOrder, scopeOf } from '../lib/order'
+import { byDisplay, byOrder, compareText, scopeOf } from '../lib/order'
 import type { AppState, IsoDate, Section, Task } from '../types'
 
 export interface Group {
@@ -24,7 +24,7 @@ export const isOverdue = (task: Task, today: IsoDate): boolean =>
 export const overdueTasks = (state: AppState, today: IsoDate): Task[] =>
   state.tasks
     .filter((task) => isOverdue(task, today))
-    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || byOrder(a, b))
+    .sort((a, b) => compareText(a.date ?? '', b.date ?? '') || byOrder(a, b))
 
 export function groupsFor(state: AppState, date: IsoDate): Group[] {
   const inDay = tasksOn(state, date)

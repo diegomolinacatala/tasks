@@ -260,3 +260,25 @@ a.group__row:active {
   background: var(--accent);
   color: var(--on-primary);
 }
+
+/* ── Idioma: lista con una marca, como la de iOS ─────────────────────── */
+
+.language__check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  color: var(--accent);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+.language__option.is-active .language__check {
+  opacity: 1;
+  transform: none;
+}
+
+.language__option.is-active .group__label {
+  font-weight: 600;
+}

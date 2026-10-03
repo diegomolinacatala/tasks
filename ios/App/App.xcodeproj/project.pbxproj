@@ -37,6 +37,13 @@
 		7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
 		7A5C00000000000000000113 /* MoveOverdueWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */; };
 		7A5C00000000000000000114 /* OverdueMover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000015 /* OverdueMover.swift */; };
+		7A5C00000000000000000115 /* WidgetText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000016 /* WidgetText.swift */; };
+		7A5C00000000000000000116 /* WidgetText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000016 /* WidgetText.swift */; };
+		7A5C00000000000000000117 /* InboxWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000017 /* InboxWidget.swift */; };
+		7A5C00000000000000000118 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000801 /* Localizable.strings */; };
+		7A5C00000000000000000119 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000803 /* AppShortcuts.strings */; };
+		7A5C0000000000000000011A /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000805 /* InfoPlist.strings */; };
+		7A5C0000000000000000011B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000807 /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +104,12 @@
 		7A5C00000000000000000701 /* NotificationResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationResponder.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveOverdueWidgetIntent.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000015 /* OverdueMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverdueMover.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000016 /* WidgetText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetText.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000017 /* InboxWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxWidget.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000802 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		7A5C00000000000000000804 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		7A5C00000000000000000806 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		7A5C00000000000000000808 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,6 +166,9 @@
 				7A5C00000000000000000011 /* DictationServer.swift */,
 				7A5C00000000000000000012 /* NotificationPlan.swift */,
 				7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */,
+				7A5C00000000000000000801 /* Localizable.strings */,
+				7A5C00000000000000000803 /* AppShortcuts.strings */,
+				7A5C00000000000000000805 /* InfoPlist.strings */,
 				7A5C00000000000000000007 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -170,11 +186,14 @@
 			isa = PBXGroup;
 			children = (
 				7A5C00000000000000000009 /* TasksWidget.swift */,
+				7A5C00000000000000000017 /* InboxWidget.swift */,
 				7A5C0000000000000000000A /* TasksWidgetViews.swift */,
+				7A5C00000000000000000016 /* WidgetText.swift */,
 				7A5C0000000000000000000B /* ToggleTaskIntent.swift */,
 				7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */,
 				7A5C00000000000000000015 /* OverdueMover.swift */,
 				7A5C00000000000000000008 /* WidgetStore.swift */,
+				7A5C00000000000000000807 /* Localizable.strings */,
 				7A5C0000000000000000000C /* Info.plist */,
 				7A5C0000000000000000000D /* TasksWidget.entitlements */,
 			);
@@ -249,6 +268,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				es,
+				en,
 				Base,
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
@@ -277,6 +297,9 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				7A5C00000000000000000106 /* PrivacyInfo.xcprivacy in Resources */,
+				7A5C00000000000000000118 /* Localizable.strings in Resources */,
+				7A5C00000000000000000119 /* AppShortcuts.strings in Resources */,
+				7A5C0000000000000000011A /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,6 +307,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A5C0000000000000000011B /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -309,6 +333,7 @@
 				7A5C00000000000000000111 /* QuickAdd.swift in Sources */,
 				7A5C00000000000000000702 /* NotificationResponder.swift in Sources */,
 				7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */,
+				7A5C00000000000000000115 /* WidgetText.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -322,6 +347,8 @@
 				7A5C00000000000000000113 /* MoveOverdueWidgetIntent.swift in Sources */,
 				7A5C00000000000000000114 /* OverdueMover.swift in Sources */,
 				7A5C00000000000000000108 /* WidgetStore.swift in Sources */,
+				7A5C00000000000000000116 /* WidgetText.swift in Sources */,
+				7A5C00000000000000000117 /* InboxWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -350,6 +377,38 @@
 				504EC3111FED79650016851F /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		7A5C00000000000000000801 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7A5C00000000000000000802 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		7A5C00000000000000000803 /* AppShortcuts.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7A5C00000000000000000804 /* en */,
+			);
+			name = AppShortcuts.strings;
+			sourceTree = "<group>";
+		};
+		7A5C00000000000000000805 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7A5C00000000000000000806 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		7A5C00000000000000000807 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7A5C00000000000000000808 /* en */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

@@ -1,6 +1,7 @@
 import type { IsoDate, IsoTime, Place, Reminder, ReminderDraft, Section, Task, TaskDraft } from '../types'
 import { isValidTime, relativeLabel } from './date'
 import { normalizeDuration, spanLabel } from './duration'
+import { language } from './i18n'
 import { DEFAULT_IMPORTANCE, clampImportance } from './importance'
 import { MAX_REMINDERS, reminderLabel, sameReminder } from './reminders'
 import type { RoutineDraft } from './repeat'
@@ -177,12 +178,13 @@ export function detailsSummary(
 ): SummaryItem[] {
   if (details.repeat) return [{ key: 'repeat', label: routineLabel(details.repeat, details.time), icon: 'repeat' }]
 
-  const day = details.date ? relativeLabel(details.date, today) : 'Sin fecha'
+  const en = language() === 'en'
+  const day = details.date ? relativeLabel(details.date, today) : en ? 'No date' : 'Sin fecha'
   const items: SummaryItem[] = [
     { key: 'when', label: details.date && details.time ? `${day} · ${spanLabel(details.time, details.duration)}` : day, icon: null },
   ]
   const [only] = details.reminders
-  if (details.reminders.length > 1) items.push({ key: 'reminders', label: `${details.reminders.length} avisos`, icon: 'bell' })
+  if (details.reminders.length > 1) items.push({ key: 'reminders', label: en ? `${details.reminders.length} reminders` : `${details.reminders.length} avisos`, icon: 'bell' })
   else if (only) items.push({ key: 'reminders', label: reminderLabel(only, now, places), icon: only.kind === 'place' ? 'pin' : 'bell' })
   if (details.newPlace) items.push({ key: 'place', label: details.newPlace.name, icon: 'pin' })
   const section = details.sectionId ? sections.find((item) => item.id === details.sectionId) : undefined

@@ -13,6 +13,18 @@ export function scopeKey(date: IsoDate | null, sectionId: string | null): string
 
 export const scopeOf = (task: Pick<Task, 'date' | 'sectionId'>) => scopeKey(task.date, task.sectionId)
 
+/**
+ * Compara textos de máquina (fechas `AAAA-MM-DD`, horas `HH:MM`, ids) sin `localeCompare`: en
+ * JavaScriptCore cada llamada a `localeCompare` monta un cotejador de idioma, y en los móviles
+ * modestos ordenar una lista así se notaba.
+ */
+export const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+
+let collator: Intl.Collator | null = null
+
+/** Nombres escritos por el usuario ("Ávila" junto a "Avenida"): un cotejador, creado una sola vez. */
+export const compareNames = (a: string, b: string): number => (collator ??= new Intl.Collator(undefined, { sensitivity: 'base' })).compare(a, b)
+
 /** Orden persistido. */
 export const byOrder = (a: Task, b: Task) => a.order - b.order || a.createdAt - b.createdAt
 

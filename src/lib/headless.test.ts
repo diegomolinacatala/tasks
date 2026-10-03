@@ -29,7 +29,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   ...partial,
 })
 
-const saved = (tasks: Task[] = []): AppState => ({ ...emptyState(), tasks })
+const saved = (tasks: Task[] = []): AppState => ({ ...emptyState(), settings: { ...emptyState().settings, language: 'es' }, tasks })
 
 const input = (partial: Partial<HeadlessInput> = {}): HeadlessInput => ({
   now: NOW,
@@ -39,6 +39,7 @@ const input = (partial: Partial<HeadlessInput> = {}): HeadlessInput => ({
   state: JSON.parse(JSON.stringify(saved())),
   inbox: [],
   widgetChanges: [],
+  languages: ['es-ES'],
   ...partial,
 })
 
@@ -197,7 +198,7 @@ describe('answerAsk', () => {
   const meeting = task({ id: 'reunion', title: 'Reunión con Jorge', time: '09:00', duration: 60 })
   const stateOf = (tasks: Task[]) => JSON.parse(JSON.stringify(saved(tasks)))
   const answer = (reply: unknown, partial: Partial<AskInput> = {}) =>
-    answerAsk({ now: NOW, taskId: 'reunion', reply, state: stateOf([meeting]), inbox: [], widgetChanges: [], ...partial }, sequence())
+    answerAsk({ now: NOW, taskId: 'reunion', reply, state: stateOf([meeting]), inbox: [], widgetChanges: [], languages: ['es-ES'], ...partial }, sequence())
 
   test('"Sí, hecha": la apunta en la bandeja y el icono y el widget ya la tienen tachada', () => {
     const result = answer('done')

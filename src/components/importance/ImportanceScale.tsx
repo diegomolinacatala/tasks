@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { MAX_IMPORTANCE, MIN_IMPORTANCE, importanceScale } from '../../lib/importance'
 import { haptic } from '../../lib/platform/feedback'
+import { useCopy } from '../../state/LanguageProvider'
 import './importance.css'
 
 const LEVELS = Array.from({ length: MAX_IMPORTANCE - MIN_IMPORTANCE + 1 }, (_, index) => MIN_IMPORTANCE + index)
@@ -11,9 +12,12 @@ interface ImportanceScaleProps {
 }
 
 /** La escala del 1 al 10 en el panel de la tarea: cada número crece como crecería el título. */
+const COPY = { es: { label: 'Importancia' }, en: { label: 'Importance' } } as const
+
 export function ImportanceScale({ value, onChange }: ImportanceScaleProps) {
+  const copy = useCopy(COPY)
   return (
-    <div className="scale" role="radiogroup" aria-label="Importancia">
+    <div className="scale" role="radiogroup" aria-label={copy.label}>
       {LEVELS.map((level) => (
         <button
           key={level}

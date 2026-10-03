@@ -11,6 +11,8 @@ enum WidgetStore {
     static let kind = "TasksToday"
     /** El widget de rutinas (pantalla de bloqueo y de inicio). */
     static let routinesKind = "TasksRoutines"
+    /** El widget de la Bandeja: lo que no tiene fecha. */
+    static let inboxKind = "TasksInbox"
     /** Días por delante que trae la foto (`WIDGET_DAYS`). */
     static let days = 7
 
@@ -45,6 +47,28 @@ enum WidgetStore {
         }
     }
 
+    /**
+     * La Bandeja como la ve el widget, con lo marcado desde él encima. `nil` sin foto o con una de antes
+     * del widget de la Bandeja (la app la reescribe al abrirse).
+     */
+    static func inboxTasks() -> [WidgetInboxTask]? {
+        guard let snapshot = read(WidgetSnapshot.self, snapshotFile), snapshot.version == version, let inbox = snapshot.inbox else {
+            return nil
+        }
+        let marked = loadChanges().done
+        return inbox.map { task in
+            guard let done = marked[task.id] else { return task }
+            var changed = task
+            changed.done = done
+            return changed
+        }
+    }
+
+    /** Idioma de la app (`es` o `en`) según la última foto; `nil` si aún no hay foto o es de antes del inglés. */
+    static func language() -> String? {
+        read(WidgetSnapshot.self, snapshotFile)?.language
+    }
+
     /** Las rutinas como las ve el widget, con lo tachado desde él (o desde su aviso) encima. `nil` sin foto. */
     static func routines() -> [WidgetRoutine]? {
         guard let snapshot = read(WidgetSnapshot.self, snapshotFile), snapshot.version == version else { return nil }
@@ -60,16 +84,18 @@ enum WidgetStore {
         }
     }
 
-    /** Marca o desmarca desde el widget. Devuelve cómo queda, o `nil` si la tarea ya no está en la foto. */
+    /**
+     * Marca o desmarca desde el widget (el de hoy o el de la Bandeja). Devuelve cómo queda, o `nil` si
+     * la tarea ya no está en la foto.
+     */
     static func toggle(_ id: String) -> Bool? {
-        guard
-            let snapshot = read(WidgetSnapshot.self, snapshotFile),
-            let task = snapshot.tasks.first(where: { $0.id == id })
-        else { return nil }
+        guard let snapshot = read(WidgetSnapshot.self, snapshotFile) else { return nil }
+        let saved = snapshot.tasks.first(where: { $0.id == id })?.done ?? snapshot.inbox?.first(where: { $0.id == id })?.done
+        guard let saved else { return nil }
         var changes = loadChanges()
-        let done = !(changes.done[id] ?? task.done)
+        let done = !(changes.done[id] ?? saved)
         // Si vuelve a como está en la app, no hay nada que aplicar.
-        changes.done[id] = done == task.done ? nil : done
+        changes.done[id] = done == saved ? nil : done
         save(changes)
         return done
     }
@@ -207,11 +233,28 @@ struct WidgetRoutine: Codable, Hashable, Identifiable {
     }
 }
 
+/** Tarea de la Bandeja (`WidgetInboxTask` en `src/lib/widget.ts`): sin día ni hora. */
+struct WidgetInboxTask: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    var done: Bool
+    var importance: Int? = nil
+
+    /** Como una tarea más, para pintarla con las mismas filas que el widget de hoy. */
+    var asTask: WidgetTask {
+        WidgetTask(id: id, title: title, date: "", time: nil, done: done, importance: importance)
+    }
+}
+
 struct WidgetSnapshot: Codable {
     let version: Int
     let tasks: [WidgetTask]
     /** Falta en las fotos de antes de las rutinas. */
     let routines: [WidgetRoutine]?
+    /** Falta en las fotos de antes del widget de la Bandeja. */
+    let inbox: [WidgetInboxTask]?
+    /** `es` o `en`, ya resuelto por la app. Falta en las fotos de antes del inglés. */
+    let language: String?
 }
 
 struct WidgetChanges: Codable {
@@ -286,7 +329,10 @@ struct WidgetDay {
     }
 }
 
-/** Enlaces del widget a la app: `<esquema>://today`, `://compose`, `://routines` y `://task/<id>`. */
+/**
+ * Enlaces del widget a la app: `<esquema>://today`, `://compose` (`://compose/inbox` desde la Bandeja),
+ * `://routines`, `://backlog` y `://task/<id>`.
+ */
 enum WidgetLink {
     /** Igual que `CFBundleURLSchemes` en el Info.plist de la app. */
     static let scheme = "io.github.diegomolinacatala.tasks"
@@ -294,6 +340,8 @@ enum WidgetLink {
     static var today: URL { link("today") }
     static var compose: URL { link("compose") }
     static var routines: URL { link("routines") }
+    static var backlog: URL { link("backlog") }
+    static var composeInbox: URL { link("compose", path: "/inbox") }
 
     static func task(_ id: String) -> URL {
         link("task", path: "/" + id)
@@ -306,9 +354,11 @@ enum WidgetLink {
         case "today":
             return ["type": "today"]
         case "compose":
-            return ["type": "compose"]
+            return url.lastPathComponent == "inbox" ? ["type": "compose", "inbox": true] : ["type": "compose"]
         case "routines":
             return ["type": "routines"]
+        case "backlog":
+            return ["type": "backlog"]
         case "task":
             let id = url.lastPathComponent
             return id.isEmpty || id == "/" ? nil : ["type": "open", "taskId": id]

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useCopy } from '../../state/LanguageProvider'
 import './sheet.css'
 
 const EXIT_MS = 220
@@ -26,7 +27,10 @@ interface SheetProps {
  * sigue al dedo en el mismo fotograma (sin pasar por React), el fondo se aclara a la vez y al soltar
  * cuenta la velocidad, así que un tirón corto basta. Hacia arriba solo cede con resistencia.
  */
+const COPY = { es: { close: 'Cerrar' }, en: { close: 'Close' } } as const
+
 export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
+  const copy = useCopy(COPY)
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
   const panel = useRef<HTMLDivElement>(null)
@@ -130,7 +134,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
           }}
           type="button"
           className="sheet__scrim"
-          aria-label="Cerrar"
+          aria-label={copy.close}
           onClick={onClose}
         />
       ) : (

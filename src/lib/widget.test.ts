@@ -3,7 +3,8 @@ import type { AppState, Section, Task } from '../types'
 import { emptyState } from '../state/reducer'
 import { addDays, toInstant } from './date'
 import type { Routine } from '../types'
-import { WIDGET_DAYS, WIDGET_MAX_TASKS, routineSettles, widgetSnapshot, widgetToggles } from './widget'
+import { setLanguage } from './i18n'
+import { WIDGET_DAYS, WIDGET_MAX_INBOX, WIDGET_MAX_TASKS, routineSettles, widgetSnapshot, widgetToggles } from './widget'
 
 const TODAY = '2026-09-16'
 const NOW = toInstant(TODAY, '10:00')
@@ -39,6 +40,8 @@ describe('widgetSnapshot', () => {
       version: 1,
       tasks: [{ id: 'hoy', title: 'Comprar pan', date: TODAY, time: '17:00', done: false, importance: 4 }],
       routines: [],
+      inbox: [],
+      language: 'es',
     })
   })
 
@@ -167,5 +170,40 @@ describe('rutinas en el widget', () => {
         { routineId: 'borrada', date: TODAY, done: true },
       ]),
     ).toEqual([{ routineId: 'b', date: TODAY, done: true }])
+  })
+})
+
+describe('la Bandeja en el widget', () => {
+  test('lleva lo que no tiene fecha, en el orden de la app y lo pendiente primero', () => {
+    const state = stateWith([
+      task({ id: 'segunda', date: null, order: 2, importance: 6 }),
+      task({ id: 'hecha', date: null, order: 0, done: true }),
+      task({ id: 'primera', date: null, order: 1 }),
+      task({ id: 'con-fecha', date: TODAY }),
+    ])
+    expect(widgetSnapshot(state, NOW).inbox).toEqual([
+      { id: 'primera', title: 'primera', done: false, importance: 1 },
+      { id: 'segunda', title: 'segunda', done: false, importance: 6 },
+      { id: 'hecha', title: 'hecha', done: true, importance: 1 },
+    ])
+  })
+
+  test('tiene tope, para no escribir fotos enormes', () => {
+    const many = Array.from({ length: WIDGET_MAX_INBOX + 5 }, (_, index) => task({ id: `t${index}`, date: null, order: index }))
+    expect(widgetSnapshot(stateWith(many), NOW).inbox).toHaveLength(WIDGET_MAX_INBOX)
+  })
+
+  test('tachar desde el widget una tarea de la Bandeja se aplica como las de hoy', () => {
+    const tasks = [task({ id: 'b', date: null })]
+    expect(widgetToggles(tasks, [{ taskId: 'b', done: true }])).toEqual(['b'])
+  })
+
+  test('lleva el idioma de la app para los textos del widget', () => {
+    setLanguage('en')
+    try {
+      expect(widgetSnapshot(stateWith([]), NOW).language).toBe('en')
+    } finally {
+      setLanguage('es')
+    }
   })
 })

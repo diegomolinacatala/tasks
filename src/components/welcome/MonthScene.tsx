@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { DndContext } from '@dnd-kit/core'
-import { addDays, dayNameLong, dayNumber, monthLong, monthYear, nearLabel, todayIso } from '../../lib/date'
+import { addDays, dayHeading, monthYear, todayIso } from '../../lib/date'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate } from '../../types'
 import { IconChevronDown } from '../ui/Icons'
 import type { DayLoad } from '../views/StripDay'
@@ -19,7 +20,10 @@ const SAMPLE: readonly (readonly [number, DayLoad])[] = [
   [15, { total: 1, done: 0 }],
 ]
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+const COPY = {
+  es: { month: (label: string, open: boolean) => `${label}: ${open ? 'recoger el mes' : 'desplegar el mes'}` },
+  en: { month: (label: string, open: boolean) => `${label}: ${open ? 'collapse the month' : 'expand the month'}` },
+} as const
 
 /**
  * La tira de la Agenda, la de verdad (`WeekStrip`): se tira de ella hacia abajo (o se toca el mes) y
@@ -27,13 +31,14 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
  * mueve un poco para decir por dónde se coge.
  */
 export function MonthScene() {
+  const copy = useCopy(COPY)
   const today = useMemo(() => todayIso(), [])
   const [day, setDay] = useState<IsoDate>(today)
   const [open, setOpen] = useState(false)
   const [touched, setTouched] = useState(false)
   const below = useRef<HTMLDivElement>(null)
   const loads = useMemo(() => new Map(SAMPLE.map(([offset, load]) => [addDays(today, offset), load])), [today])
-  const near = nearLabel(day, today)
+  const heading = dayHeading(day, today)
 
   return (
     <div className={`scene scene--month ${touched ? '' : 'is-hinting'}`} onPointerDownCapture={() => setTouched(true)}>
@@ -41,7 +46,7 @@ export function MonthScene() {
         type="button"
         className={`agenda__month ${open ? 'is-open' : ''}`}
         aria-expanded={open}
-        aria-label={`${monthYear(day)}: ${open ? 'recoger el mes' : 'desplegar el mes'}`}
+        aria-label={copy.month(monthYear(day), open)}
         onClick={() => setOpen((current) => !current)}
       >
         <span className="view__kicker">{monthYear(day)}</span>
@@ -53,8 +58,7 @@ export function MonthScene() {
       </DndContext>
       <div ref={below} className="scene__below" aria-hidden="true">
         <p className="scene__day">
-          {near ?? capitalize(dayNameLong(day))}{' '}
-          <span>{near ? `${dayNameLong(day)} ${dayNumber(day)}` : `${dayNumber(day)} ${monthLong(day)}`}</span>
+          {heading.main} <span>{heading.rest}</span>
         </p>
         <i className="scene__ghost" />
         <i className="scene__ghost" />

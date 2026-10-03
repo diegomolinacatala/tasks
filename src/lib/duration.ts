@@ -1,5 +1,6 @@
 import type { IsoTime, Task } from '../types'
 import { formatTime, shortTime } from './date'
+import { language } from './i18n'
 import { taskInstant } from './reminders'
 
 /**
@@ -50,17 +51,26 @@ export function endClock(time: IsoTime, duration: number): IsoTime {
   return formatTime(Math.floor(total / HOUR_MIN), total % HOUR_MIN)
 }
 
-/** `30 min`, `1 h`, `1 h 30`, `2 h`. */
+/** `30 min`, `1 h`, `1 h 30`, `2 h` · `30 min`, `1h`, `1h 30m`, `2h`. */
 export function durationLabel(minutes: number): string {
   if (minutes < HOUR_MIN) return `${minutes} min`
   const hours = Math.floor(minutes / HOUR_MIN)
   const rest = minutes % HOUR_MIN
+  if (language() === 'en') return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
   return rest === 0 ? `${hours} h` : `${hours} h ${rest}`
 }
 
-/** `17:30–18:30`, o solo la hora si no dura nada. */
+/**
+ * `17:30–18:30`, o solo la hora si no dura nada. En inglés, `5:30–6:30 PM`: la marca de la tarde
+ * va una vez si las dos horas la comparten (`11:30 AM–1:00 PM` si no).
+ */
 export function spanLabel(time: IsoTime, duration: number | null): string {
-  return duration === null ? shortTime(time) : `${shortTime(time)}–${shortTime(endClock(time, duration))}`
+  if (duration === null) return shortTime(time)
+  const start = shortTime(time)
+  const end = shortTime(endClock(time, duration))
+  if (language() !== 'en') return `${start}–${end}`
+  const startMark = start.slice(-2)
+  return startMark === end.slice(-2) ? `${start.slice(0, -3)}–${end}` : `${start}–${end}`
 }
 
 /** `17:30–18:30`. `null` si la tarea no tiene día y hora. */

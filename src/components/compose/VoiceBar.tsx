@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useCopy } from '../../state/LanguageProvider'
 import type { VoicePhase } from './useVoice'
 
 interface VoiceBarProps {
@@ -12,9 +13,12 @@ const BARS = [0.45, 0.75, 1, 0.75, 0.45]
 /** Por debajo de este nivel no hay onda que enseñar (o el dictado no da nivel): respira. */
 const QUIET_LEVEL = 0.05
 
+const COPY = { es: { listening: 'Escuchando…', creating: 'Creando tarea…' }, en: { listening: 'Listening…', creating: 'Creating task…' } } as const
+
 export function VoiceBar({ phase, level, partial }: VoiceBarProps) {
+  const copy = useCopy(COPY)
   const listening = phase === 'listening'
-  const text = listening ? partial || 'Escuchando…' : 'Creando tarea…'
+  const text = listening ? partial || copy.listening : copy.creating
 
   return (
     <div className={`voice ${listening ? 'is-listening' : 'is-processing'} ${listening && level < QUIET_LEVEL ? 'is-quiet' : ''}`}>

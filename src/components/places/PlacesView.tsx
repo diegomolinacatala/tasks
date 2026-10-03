@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { compareNames } from '../../lib/order'
 import { distanceMeters, formatDistance } from '../../lib/places'
 import { isNative, showsPlaces } from '../../lib/platform'
 import type { PermissionStatus } from '../../lib/platform/native'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { Place, Task } from '../../types'
 import { IconArrowUpRight, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
@@ -9,9 +11,34 @@ import { MapSnapshot } from './MapSnapshot'
 import { usePlaceEditor } from './PlaceEditor'
 import './places.css'
 
-const APP_STORE = 'https://apps.apple.com/es/app/tasks-tareas-y-lugares/id6812776586'
+const APP_STORE = 'https://apps.apple.com/app/id6812776586'
 const MAP_HEIGHT = 230
 const PREVIEW_TASKS = 3
+
+const COPY = {
+  es: {
+    count: (count: number) => (count === 1 ? '1 sitio' : `${count} sitios`),
+    title: 'Lugares',
+    search: 'Buscar o añadir un lugar',
+    blocked: 'Ubicación bloqueada: los avisos por lugar no pueden sonar.',
+    saved: 'Ubicación guardada',
+    unset: 'Sin ubicación: toca para elegirla',
+    onlyIphone: 'Solo en iPhone',
+    pitch: 'Avisos al llegar o al salir de un sitio: «al pasar por Mercadona, comprar leche».',
+    store: 'Descargar en la App Store',
+  },
+  en: {
+    count: (count: number) => (count === 1 ? '1 place' : `${count} places`),
+    title: 'Places',
+    search: 'Search or add a place',
+    blocked: 'Location blocked: place reminders can’t go off.',
+    saved: 'Saved location',
+    unset: 'No location: tap to choose it',
+    onlyIphone: 'iPhone only',
+    pitch: 'Reminders when you arrive at or leave a place: “when I get to Walmart, buy milk”.',
+    store: 'Download on the App Store',
+  },
+} as const
 
 type Point = { lat: number; lng: number }
 
@@ -28,6 +55,7 @@ export function PlacesView() {
 function PlacesList() {
   const { places, tasks } = useAppState()
   const openPlace = usePlaceEditor()
+  const copy = useCopy(COPY)
   const [permission, setPermission] = useState<PermissionStatus | null>(null)
   const [here, setHere] = useState<Point | null>(null)
 
@@ -66,15 +94,15 @@ function PlacesList() {
 
   const sorted = useMemo(() => {
     const distance = (place: Place) => (here && place.location ? distanceMeters(here, place.location) : Number.POSITIVE_INFINITY)
-    return [...places].sort((a, b) => distance(a) - distance(b) || a.name.localeCompare(b.name, 'es'))
+    return [...places].sort((a, b) => distance(a) - distance(b) || compareNames(a.name, b.name))
   }, [places, here])
 
   return (
     <div className="view places">
       <header className="view__head">
-        <p className="view__kicker">{places.length === 1 ? '1 sitio' : `${places.length} sitios`}</p>
+        <p className="view__kicker">{copy.count(places.length)}</p>
         <div className="view__headline">
-          <h1 className="view__title">Lugares</h1>
+          <h1 className="view__title">{copy.title}</h1>
         </div>
       </header>
 
@@ -105,7 +133,7 @@ function PlacesList() {
 
       <button type="button" className="places__search" onClick={() => openPlace({ placeId: null })}>
         <IconSearch size={17} />
-        <span>Buscar o añadir un lugar</span>
+        <span>{copy.search}</span>
         <span className="places__search-plus" aria-hidden="true">
           <IconPlus size={15} />
         </span>
@@ -118,7 +146,7 @@ function PlacesList() {
           onClick={() => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings())}
         >
           <IconLocate size={16} />
-          <span>Ubicación bloqueada: los avisos por lugar no pueden sonar.</span>
+          <span>{copy.blocked}</span>
           <IconArrowUpRight size={15} />
         </button>
       )}
@@ -136,7 +164,7 @@ function PlacesList() {
                   {distance && <span className="place-card__distance">{distance}</span>}
                 </span>
                 <span className="place-card__address">
-                  {place.location ? place.location.address || 'Ubicación guardada' : 'Sin ubicación: toca para elegirla'}
+                  {place.location ? place.location.address || copy.saved : copy.unset}
                 </span>
                 {pending.length > 0 && (
                   <span className="place-card__tasks">
@@ -160,12 +188,13 @@ function PlacesList() {
 
 /** En la web no hay avisos por lugar: la pestaña lo cuenta en una línea y lleva a la app. */
 function PlacesUnavailable() {
+  const copy = useCopy(COPY)
   return (
     <div className="view places">
       <header className="view__head">
-        <p className="view__kicker">Solo en iPhone</p>
+        <p className="view__kicker">{copy.onlyIphone}</p>
         <div className="view__headline">
-          <h1 className="view__title">Lugares</h1>
+          <h1 className="view__title">{copy.title}</h1>
         </div>
       </header>
       <div className="places__map">
@@ -174,9 +203,9 @@ function PlacesUnavailable() {
           <IconPin size={22} />
         </div>
       </div>
-      <p className="places__pitch">Avisos al llegar o al salir de un sitio: «al pasar por Mercadona, comprar leche».</p>
+      <p className="places__pitch">{copy.pitch}</p>
       <a className="places__store" href={APP_STORE} target="_blank" rel="noopener noreferrer">
-        Descargar en la App Store
+        {copy.store}
         <IconArrowUpRight size={15} />
       </a>
     </div>

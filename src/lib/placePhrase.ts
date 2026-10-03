@@ -54,10 +54,11 @@ export function readPlacePhrase(
   normalized: NormalizedText,
   original: string,
   places: readonly Place[],
+  connector: RegExp = CONNECTOR,
 ): PlacePhrase {
   const [full, , leave, article, saved, generic = ''] = match
   const on: PlaceTrigger = leave ? 'leave' : 'arrive'
-  const withConnector = (end: number) => end + (CONNECTOR.exec(normalized.text.slice(match.index + end))?.[0].length ?? 0)
+  const withConnector = (end: number) => end + (connector.exec(normalized.text.slice(match.index + end))?.[0].length ?? 0)
 
   if (saved) {
     const place = places.find((item) => placeKey(item.name) === saved) ?? null

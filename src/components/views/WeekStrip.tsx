@@ -3,7 +3,8 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, 
 import { flushSync } from 'react-dom'
 import { MONTH_WEEKS, addDays, addMonths, monthWeeks, sameMonth, startOfMonth, startOfWeek, weekDays } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
-import { DAY_LETTERS, isoWeekday } from '../../lib/routines'
+import { dayLetters, isoWeekday } from '../../lib/routines'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate } from '../../types'
 import type { DayLoad } from './StripDay'
 import { StripDay } from './StripDay'
@@ -39,6 +40,11 @@ interface Gesture {
 
 const EMPTY: DayLoad = { total: 0, done: 0 }
 
+const COPY = {
+  es: { week: 'Semana', month: 'Mes', collapse: 'Recoger el mes', expand: 'Desplegar el mes' },
+  en: { week: 'Week', month: 'Month', collapse: 'Collapse the month', expand: 'Expand the month' },
+} as const
+
 const LOCK_PX = 8
 /** Fracción del ancho o velocidad (px/ms) que bastan para pasar de semana o de mes. */
 const PAGE_RATIO = 0.22
@@ -51,6 +57,12 @@ const PULL_SPEED = 0.35
 const VELOCITY_WINDOW_MS = 90
 /** Alto de una semana si aún no se puede medir (`--cal-row` en agenda.css). */
 const ROW_PX = 46
+/**
+ * Los paneles de los lados (la semana o el mes de antes y de después) solo se ven al deslizar: se
+ * pintan pasado este rato, cuando ya ha acabado lo que se esté animando, y no en el mismo toque que
+ * cambia el día o despliega el mes (un mes son 42 días; con los de los lados, 126).
+ */
+const SIDES_DELAY_MS = OPEN_MS + 120
 
 /**
  * Los días de la Agenda. Recogida, la semana del día elegido, como la tira de Structured: el número
@@ -65,9 +77,14 @@ const ROW_PX = 46
  */
 export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, follower }: WeekStripProps) {
   const [layout, setLayout] = useState<Layout>(open ? 'month' : 'week')
+  const copy = useCopy(COPY)
   const monday = startOfWeek(day)
   const weekIndex = Math.max(0, monthWeeks(day).indexOf(monday))
   const pageKey = layout === 'week' ? monday : day.slice(0, 7)
+  const sidesKey = `${layout}:${pageKey}`
+  // Para qué semana o mes están pintados los paneles de los lados; `null` al arrancar.
+  const [sidesFor, setSidesFor] = useState<string | null>(null)
+  const showSides = sidesFor === sidesKey
 
   const frame = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
@@ -170,6 +187,12 @@ export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, fol
     [], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
+  useEffect(() => {
+    if (showSides) return
+    const timer = window.setTimeout(() => setSidesFor(sidesKey), SIDES_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [showSides, sidesKey])
+
   // Tras cambiar de semana o de mes la pista vuelve al centro sin animar: lo nuevo ya está ahí.
   useLayoutEffect(() => {
     const node = track.current
@@ -266,6 +289,8 @@ export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, fol
       } else if (Math.abs(dx) > LOCK_PX) {
         current.mode = 'swipe'
         capture(event)
+        // Si los lados aún no están, ahora sí: el dedo los va a enseñar.
+        if (!showSides) flushSync(() => setSidesFor(sidesKey))
       } else {
         return
       }
@@ -342,20 +367,20 @@ export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, fol
       }}
     >
       <div className="cal__letters" aria-hidden="true">
-        {DAY_LETTERS.map((letter, index) => (
-          <span key={letter} className={`cal__letter ${index === selectedColumn ? 'is-selected' : ''} ${index === todayColumn ? 'is-today' : ''}`}>
+        {dayLetters().map((letter, index) => (
+          <span key={index} className={`cal__letter ${index === selectedColumn ? 'is-selected' : ''} ${index === todayColumn ? 'is-today' : ''}`}>
             {letter}
           </span>
         ))}
       </div>
-      <div ref={frame} className="strip" role="group" aria-label={layout === 'week' ? 'Semana' : 'Mes'}>
+      <div ref={frame} className="strip" role="group" aria-label={layout === 'week' ? copy.week : copy.month}>
         <div ref={track} className="strip__track">
           {panels.map((panel, index) => {
             const center = index === 1
             return (
               <div key={panel.key} className="strip__panel" aria-hidden={!center}>
                 <div ref={center ? rows : undefined} className="strip__rows">
-                  {panel.weeks.map((start) => (
+                  {(center || showSides ? panel.weeks : []).map((start) => (
                     <div key={start} className="strip__week">
                       {weekDays(start).map((date) => (
                         <StripDay
@@ -383,7 +408,7 @@ export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, fol
         type="button"
         className="cal__handle"
         aria-expanded={open}
-        aria-label={open ? 'Recoger el mes' : 'Desplegar el mes'}
+        aria-label={open ? copy.collapse : copy.expand}
         onClick={() => onOpenChange(!open)}
       >
         <span />

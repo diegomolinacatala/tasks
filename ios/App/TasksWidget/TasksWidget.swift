@@ -6,6 +6,7 @@ import WidgetKit
 struct TasksWidgetBundle: WidgetBundle {
     var body: some Widget {
         TasksWidget()
+        InboxWidget()
         RoutinesWidget()
     }
 }
@@ -17,8 +18,8 @@ struct TasksWidget: Widget {
             TasksWidgetView(entry: entry)
                 .containerBackground(for: .widget) { Palette.background }
         }
-        .configurationDisplayName("Hoy")
-        .description("Tareas de hoy y atrasadas.")
+        .configurationDisplayName(WidgetText.current.todayName)
+        .description(WidgetText.current.todayDescription)
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
     }
 }
@@ -27,6 +28,7 @@ struct TasksEntry: TimelineEntry {
     let date: Date
     /** `nil` hasta que la app escribe la primera foto. */
     let tasks: [WidgetTask]?
+    var text = WidgetText.current
 
     var day: WidgetDay {
         WidgetDay(tasks: tasks ?? [], day: WidgetDay.iso(date))
@@ -35,11 +37,13 @@ struct TasksEntry: TimelineEntry {
     /** Para la galería de widgets, antes de tener tareas de verdad. */
     static func sample(_ date: Date) -> TasksEntry {
         let today = WidgetDay.iso(date)
+        let titles = WidgetText.current.sampleTasks
+        let title = { (index: Int) in WidgetText.sample(titles, index) }
         return TasksEntry(date: date, tasks: [
-            WidgetTask(id: "muestra-1", title: "Comprar pan", date: today, time: nil, done: false),
-            WidgetTask(id: "muestra-2", title: "Llamar a Ana", date: today, time: "17:00", done: false),
-            WidgetTask(id: "muestra-3", title: "Enviar el presupuesto", date: today, time: nil, done: false, importance: 6),
-            WidgetTask(id: "muestra-4", title: "Salir a correr", date: today, time: "20:30", done: true),
+            WidgetTask(id: "muestra-1", title: title(0), date: today, time: nil, done: false),
+            WidgetTask(id: "muestra-2", title: title(1), date: today, time: "17:00", done: false),
+            WidgetTask(id: "muestra-3", title: title(2), date: today, time: nil, done: false, importance: 6),
+            WidgetTask(id: "muestra-4", title: title(3), date: today, time: "20:30", done: true),
         ])
     }
 }
@@ -66,10 +70,12 @@ struct TasksProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<TasksEntry>) -> Void) {
         let now = Date()
         let tasks = WidgetStore.tasks()
+        // El idioma se lee una vez (decodifica la foto), no en cada entrada.
+        let text = WidgetText.current
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: now)
         let midnights = (1...WidgetStore.days).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-        let entries = [TasksEntry(date: now, tasks: tasks)] + midnights.map { TasksEntry(date: $0, tasks: tasks) }
+        let entries = [TasksEntry(date: now, tasks: tasks, text: text)] + midnights.map { TasksEntry(date: $0, tasks: tasks, text: text) }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
@@ -83,6 +89,7 @@ struct TasksWidgetView: View {
         content
             .widgetURL(WidgetLink.today)
             .environment(\.colorScheme, lockScreen ? .dark : colorScheme)
+            .environment(\.widgetText, entry.text)
     }
 
     /**
@@ -124,8 +131,8 @@ struct RoutinesWidget: Widget {
             RoutinesWidgetView(entry: entry)
                 .containerBackground(for: .widget) { Palette.background }
         }
-        .configurationDisplayName("Rutinas")
-        .description("Tacha tus rutinas de hoy con un toque, sin abrir Tasks.")
+        .configurationDisplayName(WidgetText.current.routinesName)
+        .description(WidgetText.current.routinesDescription)
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .systemSmall])
     }
 }
@@ -182,6 +189,7 @@ struct RoutinesEntry: TimelineEntry {
     let routines: [WidgetRoutine]?
     /** La rutina elegida al configurar el widget; `nil` = la siguiente. */
     let chosen: String?
+    var text = WidgetText.current
 
     var day: String {
         WidgetDay.iso(date)
@@ -215,10 +223,12 @@ struct RoutinesEntry: TimelineEntry {
 
     static func sample(_ date: Date) -> RoutinesEntry {
         let today = WidgetDay.iso(date)
+        let titles = WidgetText.current.sampleRoutines
+        let title = { (index: Int) in WidgetText.sample(titles, index) }
         return RoutinesEntry(date: date, routines: [
-            WidgetRoutine(id: "muestra-1", title: "Tomar creatina", time: "10:00", days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "💊"),
-            WidgetRoutine(id: "muestra-2", title: "Leer 20 minutos", time: "22:30", days: [1, 2, 3, 4, 5, 6, 7], done: [today], emoji: "📖"),
-            WidgetRoutine(id: "muestra-3", title: "Estirar", time: nil, days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "🧘"),
+            WidgetRoutine(id: "muestra-1", title: title(0), time: "10:00", days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "💊"),
+            WidgetRoutine(id: "muestra-2", title: title(1), time: "22:30", days: [1, 2, 3, 4, 5, 6, 7], done: [today], emoji: "📖"),
+            WidgetRoutine(id: "muestra-3", title: title(2), time: nil, days: [1, 2, 3, 4, 5, 6, 7], done: [], emoji: "🧘"),
         ], chosen: nil)
     }
 }
@@ -241,10 +251,11 @@ struct RoutinesProvider: AppIntentTimelineProvider {
         let now = Date()
         let routines = WidgetStore.routines()
         let chosen = configuration.routine?.id
+        let text = WidgetText.current
         let start = Calendar.current.startOfDay(for: now)
         let midnights = (1...WidgetStore.days).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: start) }
-        let entries = [RoutinesEntry(date: now, routines: routines, chosen: chosen)]
-            + midnights.map { RoutinesEntry(date: $0, routines: routines, chosen: chosen) }
+        let entries = [RoutinesEntry(date: now, routines: routines, chosen: chosen, text: text)]
+            + midnights.map { RoutinesEntry(date: $0, routines: routines, chosen: chosen, text: text) }
         return Timeline(entries: entries, policy: .atEnd)
     }
 }
@@ -254,6 +265,11 @@ struct RoutinesWidgetView: View {
     let entry: RoutinesEntry
 
     var body: some View {
+        content.environment(\.widgetText, entry.text)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch family {
         case .accessoryCircular:
             RoutineCircular(entry: entry)

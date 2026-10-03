@@ -112,6 +112,9 @@ export type BlockId = 'overdue' | 'backlog' | 'routines'
 /** `auto` sigue al sistema. */
 export type Theme = 'light' | 'dark' | 'auto'
 
+/** Idioma de la interfaz; `auto` sigue a los idiomas del sistema (`lib/i18n.ts`). */
+export type LanguageSetting = 'es' | 'en' | 'auto'
+
 /** Aviso diario con lo que hay para ese día. */
 export interface DigestSettings {
   enabled: boolean
@@ -127,6 +130,8 @@ export interface Settings {
   dictation: boolean
   /** Apariencia de este dispositivo. Como el dictado, importar una copia no la cambia. */
   theme: Theme
+  /** Idioma de este dispositivo. Como la apariencia, importar una copia o borrarlo todo no lo cambia. */
+  language: LanguageSetting
   /**
    * Última versión de la bienvenida que se cerró en este dispositivo (`lib/welcome.ts`); 0 = ninguna.
    * Si la app trae láminas posteriores, salen al abrirla. Importar una copia no la cambia.

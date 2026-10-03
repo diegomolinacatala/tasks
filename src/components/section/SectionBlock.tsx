@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ReactNode } from 'react'
+import { useCopy } from '../../state/LanguageProvider'
 import type { Section } from '../../types'
 import { columnId, sectionDragId } from '../dnd/ids'
 import { IconChevronDown, IconGrip, IconMore } from '../ui/Icons'
@@ -16,7 +17,13 @@ interface SectionBlockProps {
   children: ReactNode
 }
 
+const COPY = {
+  es: { options: (name: string) => `Opciones de ${name}`, move: (name: string) => `Mover sección ${name}` },
+  en: { options: (name: string) => `${name} options`, move: (name: string) => `Move section ${name}` },
+} as const
+
 export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, children }: SectionBlockProps) {
+  const copy = useCopy(COPY)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sectionDragId(section.id),
     data: { type: 'section' },
@@ -42,13 +49,13 @@ export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, chil
           </span>
         </button>
 
-        <button type="button" className="section__icon" aria-label={`Opciones de ${section.name}`} onClick={onOpen}>
+        <button type="button" className="section__icon" aria-label={copy.options(section.name)} onClick={onOpen}>
           <IconMore size={16} />
         </button>
         <button
           type="button"
           className="section__icon section__grip"
-          aria-label={`Mover sección ${section.name}`}
+          aria-label={copy.move(section.name)}
           {...attributes}
           {...listeners}
         >

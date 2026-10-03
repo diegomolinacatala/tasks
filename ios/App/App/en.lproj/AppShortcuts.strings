@@ -1,0 +1,7 @@
+/* Frases de Siri en inglés: una por cada frase en español de TasksShortcuts (AppIntents.swift). */
+"Añade una tarea en ${applicationName}" = "Add a task in ${applicationName}";
+"Nueva tarea en ${applicationName}" = "New task in ${applicationName}";
+"Apunta en ${applicationName}" = "Add to ${applicationName}";
+"Pasa lo atrasado a hoy en ${applicationName}" = "Move overdue to today in ${applicationName}";
+"Pasa las atrasadas a hoy en ${applicationName}" = "Move overdue tasks to today in ${applicationName}";
+"Mi semana en ${applicationName}" = "My week in ${applicationName}";

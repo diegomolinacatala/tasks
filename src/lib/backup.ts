@@ -6,6 +6,7 @@ import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
 import { MAX_PLACES, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
+import { isLanguageSetting, pick } from './i18n'
 import { normalizeWelcome } from './welcome'
 
 export interface BackupFile {
@@ -79,6 +80,9 @@ function normalizeSettings(raw: unknown): Settings {
     dictation: settings.dictation === true,
     // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
     theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,
+    // Lo guardado antes del inglés se usaba en español: sigue en español. Una instalación nueva no
+    // pasa por aquí (empieza con el del sistema).
+    language: isLanguageSetting(settings.language) ? settings.language : 'es',
     // Las copias anteriores a la bienvenida no la han visto: al actualizar, sale.
     welcome: normalizeWelcome(settings.welcome),
   }
@@ -156,10 +160,10 @@ export function parseBackup(text: string): AppState {
   try {
     raw = JSON.parse(text)
   } catch {
-    throw new Error('El fichero no es JSON válido.')
+    throw new Error(pick({ es: 'El fichero no es JSON válido.', en: 'The file is not valid JSON.' }))
   }
   const state = normalizeState(raw)
-  if (!state) throw new Error('El fichero no tiene el formato de una copia de Tasks.')
+  if (!state) throw new Error(pick({ es: 'El fichero no tiene el formato de una copia de Tasks.', en: 'The file is not a Tasks backup.' }))
   return state
 }
 

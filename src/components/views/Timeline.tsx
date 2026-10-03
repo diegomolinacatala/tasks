@@ -6,6 +6,7 @@ import { nextReminderAt } from '../../lib/reminders'
 import { daysLabel } from '../../lib/routines'
 import type { TimelineRow } from '../../lib/timeline'
 import { clockOf, freeLabel } from '../../lib/timeline'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate, Routine, Section, Task } from '../../types'
 import { useSizing } from '../importance/sizing'
 import { SwipeRow } from '../task/SwipeRow'
@@ -22,6 +23,36 @@ const PX_PER_MINUTE = 0.75
 const NODE_PX = 24
 const MAX_NODE_PX = 104
 
+const COPY = {
+  es: {
+    schedule: 'Horario',
+    now: (clock: string) => `Ahora, ${clock}`,
+    undone: (title: string) => `Marcar «${title}» como pendiente`,
+    complete: (title: string) => `Completar «${title}»`,
+    unmark: (title: string) => `Desmarcar «${title}»`,
+    doneRoutine: (title: string) => `Hecha: «${title}»`,
+  },
+  en: {
+    schedule: 'Schedule',
+    now: (clock: string) => `Now, ${clock}`,
+    undone: (title: string) => `Mark “${title}” as pending`,
+    complete: (title: string) => `Complete “${title}”`,
+    unmark: (title: string) => `Unmark “${title}”`,
+    doneRoutine: (title: string) => `Done: “${title}”`,
+  },
+} as const
+
+/** La hora de la columna; en inglés, AM y PM debajo, en pequeño, para que quepa en su sitio. */
+function Clock({ minutes }: { minutes: number }) {
+  const [time, meridiem] = clockOf(minutes).split(' ')
+  return (
+    <>
+      {time}
+      {meridiem && <small className="tl__meridiem">{meridiem}</small>}
+    </>
+  )
+}
+
 const nodeHeight = (minutes: number) => Math.round(Math.min(MAX_NODE_PX, Math.max(NODE_PX, minutes * PX_PER_MINUTE)))
 
 interface TimelineProps {
@@ -35,8 +66,9 @@ interface TimelineProps {
  * se rellena al completarla; entre medias, el tiempo libre; y hoy, una marca en el momento actual.
  */
 export function Timeline({ rows, day, sections }: TimelineProps) {
+  const copy = useCopy(COPY)
   return (
-    <ol className="timeline" aria-label="Horario">
+    <ol className="timeline" aria-label={copy.schedule}>
       {rows.map((row) => {
         if (row.kind === 'gap')
           return (
@@ -48,8 +80,10 @@ export function Timeline({ rows, day, sections }: TimelineProps) {
           )
         if (row.kind === 'now')
           return (
-            <li key="now" className="tl tl--now" aria-label={`Ahora, ${clockOf(row.minutes)}`}>
-              <span className="tl__time">{clockOf(row.minutes)}</span>
+            <li key="now" className="tl tl--now" aria-label={copy.now(clockOf(row.minutes))}>
+              <span className="tl__time">
+                <Clock minutes={row.minutes} />
+              </span>
               <span className="tl__rail">
                 <i className="tl__now-dot" />
               </span>
@@ -75,6 +109,7 @@ interface TimelineTaskProps {
 const TimelineTask = memo(function TimelineTask({ task, start, live, section }: TimelineTaskProps) {
   const actions = useRowActions()
   const sizing = useSizing()
+  const copy = useCopy(COPY)
   const [sizingTo, setSizingTo] = useState<number | null>(null)
   const duration = task.duration ?? 0
   const scale = task.done ? 0 : importanceScale(sizingTo ?? task.importance)
@@ -90,13 +125,15 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section }: 
       onLeft={() => actions.remove(task.id)}
     >
       <div className="tl" style={{ '--node': `${nodeHeight(duration)}px`, '--live': live ?? 0, '--imp': scale } as CSSProperties}>
-        <span className="tl__time">{clockOf(start)}</span>
+        <span className="tl__time">
+          <Clock minutes={start} />
+        </span>
         <span className="tl__rail">
           <button
             type="button"
             className="tl__node"
             aria-pressed={task.done}
-            aria-label={task.done ? `Marcar «${task.title}» como pendiente` : `Completar «${task.title}»`}
+            aria-label={task.done ? copy.undone(task.title) : copy.complete(task.title)}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => actions.toggle(task.id)}
           >
@@ -138,18 +175,21 @@ interface TimelineRoutineProps {
 
 const TimelineRoutine = memo(function TimelineRoutine({ routine, day, start }: TimelineRoutineProps) {
   const actions = useRowActions()
+  const copy = useCopy(COPY)
   const done = routine.done.includes(day)
 
   return (
     <SwipeRow className={`tl-row tl-row--routine ${done ? 'is-done' : ''}`} flip={`routine:${routine.id}`} onRight={() => actions.toggleRoutine(routine.id, day)}>
       <div className="tl" style={{ '--node': `${NODE_PX}px` } as CSSProperties}>
-        <span className="tl__time">{clockOf(start)}</span>
+        <span className="tl__time">
+          <Clock minutes={start} />
+        </span>
         <span className="tl__rail">
           <button
             type="button"
             className="tl__node tl__node--routine"
             aria-pressed={done}
-            aria-label={done ? `Desmarcar «${routine.title}»` : `Hecha: «${routine.title}»`}
+            aria-label={done ? copy.unmark(routine.title) : copy.doneRoutine(routine.title)}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => actions.toggleRoutine(routine.id, day)}
           >

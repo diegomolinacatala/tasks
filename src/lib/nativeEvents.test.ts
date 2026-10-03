@@ -144,3 +144,11 @@ describe('rutinas desde el widget y los avisos', () => {
     expect(parseNativeAction({ type: 'widget' })).toEqual({ type: 'widget' })
   })
 })
+
+describe('acciones del widget de la Bandeja', () => {
+  test('el + escribe sin fecha y tocarlo abre la Bandeja', () => {
+    expect(parseNativeAction({ type: 'compose', inbox: true })).toEqual({ type: 'compose', inbox: true })
+    expect(parseNativeAction({ type: 'compose', inbox: 'sí' })).toEqual({ type: 'compose' })
+    expect(parseNativeAction({ type: 'backlog' })).toEqual({ type: 'backlog' })
+  })
+})

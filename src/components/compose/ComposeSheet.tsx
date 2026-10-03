@@ -16,7 +16,8 @@ import {
 import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
 import { routineLabel } from '../../lib/repeat'
-import { ALL_DAYS, DAY_LETTERS, WEEKEND, WORKDAYS } from '../../lib/routines'
+import { ALL_DAYS, WEEKEND, WORKDAYS, daysLabel, dayLetters } from '../../lib/routines'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
 import { DurationPicker } from '../task/DurationPicker'
@@ -40,11 +41,51 @@ interface ComposeSheetProps {
   onClose: () => void
 }
 
-const REPEATS: { label: string; days: readonly number[] }[] = [
-  { label: 'Cada día', days: ALL_DAYS },
-  { label: 'Entre semana', days: WORKDAYS },
-  { label: 'Fines de semana', days: WEEKEND },
-]
+/** Los atajos de "Repetir"; su nombre es el de los días (`daysLabel`: "Cada día", "Entre semana"…). */
+const REPEATS: readonly (readonly number[])[] = [ALL_DAYS, WORKDAYS, WEEKEND]
+
+const COPY = {
+  es: {
+    inbox: 'Bandeja',
+    createRoutine: 'Crear rutina',
+    newRoutine: 'Nueva rutina',
+    newTask: 'Nueva tarea',
+    fold: 'Plegar',
+    routinePlaceholder: 'Tomar creatina',
+    taskPlaceholder: 'Qué hay que hacer',
+    routineName: 'Nombre de la rutina',
+    taskTitle: 'Título de la tarea',
+    removePlace: (name: string) => `Quitar el aviso de ${name}`,
+    arrive: 'Al llegar a',
+    leave: 'Al salir de',
+    repeat: 'Repetir',
+    noRepeat: 'No se repite',
+    weekdays: 'Días de la semana',
+    reminder: 'Aviso',
+    noReminder: 'Sin aviso',
+    importance: 'Importancia',
+  },
+  en: {
+    inbox: 'Inbox',
+    createRoutine: 'Create routine',
+    newRoutine: 'New routine',
+    newTask: 'New task',
+    fold: 'Fold',
+    routinePlaceholder: 'Take creatine',
+    taskPlaceholder: 'What needs doing',
+    routineName: 'Routine name',
+    taskTitle: 'Task title',
+    removePlace: (name: string) => `Remove the reminder at ${name}`,
+    arrive: 'Arriving at',
+    leave: 'Leaving',
+    repeat: 'Repeat',
+    noRepeat: 'Doesn’t repeat',
+    weekdays: 'Days of the week',
+    reminder: 'Reminder',
+    noReminder: 'No reminder',
+    importance: 'Importance',
+  },
+} as const
 
 const sameDays = (a: readonly number[] | null, b: readonly number[]) => a !== null && a.length === b.length && a.every((day, index) => day === b[index])
 
@@ -58,6 +99,7 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
  */
 export function ComposeSheet({ open, title, details, today, onTitle, onChange, onSubmit, onClose }: ComposeSheetProps) {
   // Al añadir, la barra se vacía mientras la ficha aún baja: hasta que se va, se ve lo que había.
+  const copy = useCopy(COPY)
   const [last, setLast] = useState<{ title: string; details: Details } | null>(null)
   if (details && (last?.details !== details || last.title !== title)) setLast({ title, details })
   const shown = details ? { title, details } : last
@@ -84,7 +126,7 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
   const change = (next: Details) => {
     if (next !== view) onChange(next)
   }
-  const where = routine ? routineLabel(view.repeat ?? [], view.time) : view.date ? capitalize(relativeLabel(view.date, today)) : 'Bandeja'
+  const where = routine ? routineLabel(view.repeat ?? [], view.time) : view.date ? capitalize(relativeLabel(view.date, today)) : copy.inbox
 
   const toggleDay = (day: number) => {
     const days = view.repeat ?? []
@@ -97,18 +139,18 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
 
   const footer = (
     <button type="button" className="sheet__primary" disabled={!ready} onClick={onSubmit}>
-      {routine ? 'Crear rutina' : addLabel(view.date, today)}
+      {routine ? copy.createRoutine : addLabel(view.date, today)}
     </button>
   )
 
   return (
-    <Sheet open={open} onClose={onClose} title={routine ? 'Nueva rutina' : 'Nueva tarea'} footer={footer}>
+    <Sheet open={open} onClose={onClose} title={routine ? copy.newRoutine : copy.newTask} footer={footer}>
       <header className="compose-head">
-        <button type="button" className="compose-head__fold" aria-label="Plegar" onClick={onClose}>
+        <button type="button" className="compose-head__fold" aria-label={copy.fold} onClick={onClose}>
           <IconChevronDown size={22} />
         </button>
         <div className="compose-head__text">
-          <p className="compose-head__kicker">{routine ? 'Nueva rutina' : 'Nueva tarea'}</p>
+          <p className="compose-head__kicker">{routine ? copy.newRoutine : copy.newTask}</p>
           <p className="compose-head__where">{where}</p>
         </div>
       </header>
@@ -118,8 +160,8 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
         className="sheet__input compose-sheet__title"
         rows={1}
         value={shown.title}
-        placeholder={routine ? 'Tomar creatina' : 'Qué hay que hacer'}
-        aria-label={routine ? 'Nombre de la rutina' : 'Título de la tarea'}
+        placeholder={routine ? copy.routinePlaceholder : copy.taskPlaceholder}
+        aria-label={routine ? copy.routineName : copy.taskTitle}
         enterKeyHint="done"
         onChange={(event) => onTitle(event.target.value.replace(/\n/g, ' '))}
         onKeyDown={(event) => {
@@ -147,14 +189,14 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
                 <button
                   type="button"
                   className="chip chip--reminder"
-                  aria-label={`Quitar el aviso de ${view.newPlace.name}`}
+                  aria-label={copy.removePlace(view.newPlace.name)}
                   onClick={() => {
                     const { newPlace: _dropped, ...rest } = view
                     change(rest)
                   }}
                 >
                   <IconPin size={13} />
-                  {view.newPlace.on === 'arrive' ? 'Al llegar a' : 'Al salir de'} {view.newPlace.name}
+                  {view.newPlace.on === 'arrive' ? copy.arrive : copy.leave} {view.newPlace.name}
                   <IconClose size={12} className="chip__remove" />
                 </button>
               )
@@ -163,30 +205,30 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
         </>
       )}
 
-      <p className="sheet__title">Repetir</p>
+      <p className="sheet__title">{copy.repeat}</p>
       <div className="sheet__chips">
         <button type="button" className={`chip ${routine ? '' : 'is-active'}`} onClick={() => change(withRepeat(view, null))}>
-          No se repite
+          {copy.noRepeat}
         </button>
-        {REPEATS.map((repeat) => (
+        {REPEATS.map((days) => (
           <button
-            key={repeat.label}
+            key={days.join('')}
             type="button"
-            className={`chip ${sameDays(view.repeat, repeat.days) ? 'is-active' : ''}`}
-            onClick={() => change(withRepeat(view, repeat.days))}
+            className={`chip ${sameDays(view.repeat, days) ? 'is-active' : ''}`}
+            onClick={() => change(withRepeat(view, days))}
           >
-            {repeat.label}
+            {daysLabel(days)}
           </button>
         ))}
       </div>
       {routine && (
-        <div className="days-picker compose-sheet__days" role="group" aria-label="Días de la semana">
-          {DAY_LETTERS.map((letter, index) => {
+        <div className="days-picker compose-sheet__days" role="group" aria-label={copy.weekdays}>
+          {dayLetters().map((letter, index) => {
             const day = index + 1
             const active = view.repeat?.includes(day) ?? false
             return (
               <button
-                key={letter}
+                key={index}
                 type="button"
                 className={`days-picker__day ${active ? 'is-active' : ''}`}
                 aria-pressed={active}
@@ -200,11 +242,11 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
       )}
 
       {routine ? (
-        <TimeField time={view.time} title="Aviso" noneLabel="Sin aviso" onChange={(time) => change(withTime(view, time, createId))} />
+        <TimeField time={view.time} title={copy.reminder} noneLabel={copy.noReminder} onChange={(time) => change(withTime(view, time, createId))} />
       ) : (
         <>
           {view.date !== null && <SectionField sectionId={view.sectionId} onChange={(sectionId) => change(withSection(view, sectionId))} />}
-          <p className="sheet__title">Importancia</p>
+          <p className="sheet__title">{copy.importance}</p>
           <ImportanceScale value={view.importance} onChange={(importance) => change(withImportance(view, importance))} />
         </>
       )}

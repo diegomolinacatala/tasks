@@ -5,16 +5,18 @@ import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
 import {
   ALL_DAYS,
-  DAY_LETTERS,
   WEEKEND,
   WORKDAYS,
   bestStreak,
   cleanDays,
   completionRate,
   createdOn,
+  dayLetters,
+  daysLabel,
   isDue,
   streak,
 } from '../../lib/routines'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate, IsoTime, Routine } from '../../types'
 import { useTaskActions } from '../task/useTaskActions'
@@ -40,11 +42,53 @@ interface Draft {
 
 const blank = (): Draft => ({ title: '', emoji: null, days: [...ALL_DAYS], time: null })
 
-const PRESETS: { label: string; days: readonly number[] }[] = [
-  { label: 'Cada día', days: ALL_DAYS },
-  { label: 'Entre semana', days: WORKDAYS },
-  { label: 'Fines de semana', days: WEEKEND },
-]
+/** Los atajos de días; su nombre es el de `daysLabel` ("Cada día", "Entre semana"…). */
+const PRESETS: readonly (readonly number[])[] = [ALL_DAYS, WORKDAYS, WEEKEND]
+
+const COPY = {
+  es: {
+    newRoutine: 'Nueva rutina',
+    routine: 'Rutina',
+    changeEmoji: (emoji: string) => `Emoji ${emoji}: cambiar`,
+    pickEmoji: 'Elegir emoji',
+    placeholder: 'Tomar creatina',
+    name: 'Nombre de la rutina',
+    days: 'Días',
+    weekdays: 'Días de la semana',
+    reminder: 'Aviso',
+    noReminder: 'Sin aviso',
+    at: (clock: string) => `A las ${clock}`,
+    atTime: 'A una hora',
+    actions: 'Acciones',
+    remove: 'Borrar rutina',
+    add: 'Añadir rutina',
+    consistency: 'Constancia',
+    streak: 'Racha',
+    best: 'Mejor',
+    month: '30 días',
+  },
+  en: {
+    newRoutine: 'New routine',
+    routine: 'Routine',
+    changeEmoji: (emoji: string) => `Emoji ${emoji}: change`,
+    pickEmoji: 'Pick an emoji',
+    placeholder: 'Take creatine',
+    name: 'Routine name',
+    days: 'Days',
+    weekdays: 'Days of the week',
+    reminder: 'Reminder',
+    noReminder: 'No reminder',
+    at: (clock: string) => `At ${clock}`,
+    atTime: 'At a time',
+    actions: 'Actions',
+    remove: 'Delete routine',
+    add: 'Add routine',
+    consistency: 'Consistency',
+    streak: 'Streak',
+    best: 'Best',
+    month: '30 days',
+  },
+} as const
 
 const HISTORY_WEEKS = 5
 
@@ -58,6 +102,7 @@ const same = (a: readonly number[], b: readonly number[]) => a.length === b.leng
  */
 export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   const state = useAppState()
+  const copy = useCopy(COPY)
   const dispatch = useDispatch()
   const { removeRoutine } = useTaskActions()
   // Se conserva la última para animar el cierre sin que cambie el contenido.
@@ -127,13 +172,13 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   const isNew = shownId === ''
 
   return (
-    <Sheet open={routineId !== null} onClose={close} title={isNew ? 'Nueva rutina' : 'Rutina'}>
+    <Sheet open={routineId !== null} onClose={close} title={isNew ? copy.newRoutine : copy.routine}>
       <div className="routine-name">
         <button
           type="button"
           className={`routine-seal ${draft.emoji ? 'is-set' : ''} ${picking ? 'is-open' : ''}`}
           aria-expanded={picking}
-          aria-label={draft.emoji ? `Emoji ${draft.emoji}: cambiar` : 'Elegir emoji'}
+          aria-label={draft.emoji ? copy.changeEmoji(draft.emoji) : copy.pickEmoji}
           onClick={() => setPicking((open) => !open)}
         >
           {draft.emoji ? (
@@ -150,23 +195,23 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
           className="sheet__input"
           rows={1}
           value={draft.title}
-          placeholder={isNew ? 'Tomar creatina' : undefined}
+          placeholder={isNew ? copy.placeholder : undefined}
           autoFocus={isNew}
-          aria-label="Nombre de la rutina"
+          aria-label={copy.name}
           onChange={(event) => rename(event.target.value.replace(/\n/g, ' '))}
           onBlur={commitTitle}
         />
       </div>
       {picking && <EmojiPicker value={draft.emoji} onChange={pickEmoji} />}
 
-      <p className="sheet__title">Días</p>
-      <div className="days-picker" role="group" aria-label="Días de la semana">
-        {DAY_LETTERS.map((letter, index) => {
+      <p className="sheet__title">{copy.days}</p>
+      <div className="days-picker" role="group" aria-label={copy.weekdays}>
+        {dayLetters().map((letter, index) => {
           const day = index + 1
           const active = draft.days.includes(day)
           return (
             <button
-              key={letter}
+              key={index}
               type="button"
               className={`days-picker__day ${active ? 'is-active' : ''}`}
               aria-pressed={active}
@@ -178,22 +223,22 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         })}
       </div>
       <div className="sheet__chips">
-        {PRESETS.map((preset) => (
+        {PRESETS.map((days) => (
           <button
-            key={preset.label}
+            key={days.join('')}
             type="button"
-            className={`chip ${same(draft.days, preset.days) ? 'is-active' : ''}`}
-            onClick={() => update({ days: [...preset.days] })}
+            className={`chip ${same(draft.days, days) ? 'is-active' : ''}`}
+            onClick={() => update({ days: [...days] })}
           >
-            {preset.label}
+            {daysLabel(days)}
           </button>
         ))}
       </div>
 
-      <p className="sheet__title">Aviso</p>
+      <p className="sheet__title">{copy.reminder}</p>
       <div className="sheet__chips">
         <button type="button" className={`chip ${draft.time === null ? 'is-active' : ''}`} onClick={() => update({ time: null })}>
-          Sin aviso
+          {copy.noReminder}
         </button>
         <PickerChip
           type="time"
@@ -201,7 +246,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
           value={draft.time ?? ''}
           onCommit={(value) => update({ time: value || null })}
         >
-          {draft.time ? `A las ${shortTime(draft.time)}` : 'A una hora'}
+          {draft.time ? copy.at(shortTime(draft.time)) : copy.atTime}
         </PickerChip>
       </div>
 
@@ -209,7 +254,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
 
       {routine && (
         <>
-          <p className="sheet__title">Acciones</p>
+          <p className="sheet__title">{copy.actions}</p>
           <button
             type="button"
             className="sheet__row sheet__row--danger"
@@ -219,14 +264,14 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
             }}
           >
             <IconTrash size={18} />
-            Borrar rutina
+            {copy.remove}
           </button>
         </>
       )}
 
       {isNew && (
         <button type="button" className="sheet__primary" disabled={!draft.title.trim()} onClick={close}>
-          Añadir rutina
+          {copy.add}
         </button>
       )}
     </Sheet>
@@ -234,6 +279,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
 }
 
 function RoutineHistory({ routine, today }: { routine: Routine; today: IsoDate }) {
+  const copy = useCopy(COPY)
   const current = streak(routine, today)
   const best = bestStreak(routine, today)
   const rate = completionRate(routine, today)
@@ -246,24 +292,24 @@ function RoutineHistory({ routine, today }: { routine: Routine; today: IsoDate }
 
   return (
     <>
-      <p className="sheet__title">Constancia</p>
+      <p className="sheet__title">{copy.consistency}</p>
       <div className="routine-stats">
         <div className="routine-stats__item">
           <span className="routine-stats__value">{current}</span>
-          <span className="routine-stats__label">Racha</span>
+          <span className="routine-stats__label">{copy.streak}</span>
         </div>
         <div className="routine-stats__item">
           <span className="routine-stats__value">{best}</span>
-          <span className="routine-stats__label">Mejor</span>
+          <span className="routine-stats__label">{copy.best}</span>
         </div>
         <div className="routine-stats__item">
           <span className="routine-stats__value">{rate === null ? '—' : `${Math.round(rate * 100)}%`}</span>
-          <span className="routine-stats__label">30 días</span>
+          <span className="routine-stats__label">{copy.month}</span>
         </div>
       </div>
       <div className="routine-history" aria-hidden="true">
-        {DAY_LETTERS.map((letter) => (
-          <span key={letter} className="routine-history__head">
+        {dayLetters().map((letter, index) => (
+          <span key={index} className="routine-history__head">
             {letter}
           </span>
         ))}

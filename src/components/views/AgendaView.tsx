@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { dayNameLong, dayNumber, monthLong, monthYear, nearLabel, relativeLabel } from '../../lib/date'
+import { dayHeading, monthYear, relativeLabel } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
 import { routinesOn } from '../../lib/routines'
 import { buildTimeline, timelineItems } from '../../lib/timeline'
 import { useNowMinutes } from '../../hooks/useNow'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { progressOf, tasksOn } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
@@ -33,7 +34,38 @@ interface AgendaViewProps {
   onOpenSection: (id: string) => void
 }
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+const COPY = {
+  es: {
+    undo: 'Deshacer',
+    month: (label: string, open: boolean) => `${label}: ${open ? 'recoger el mes' : 'desplegar el mes'}`,
+    today: 'Hoy',
+    overdue: 'Atrasadas',
+    toToday: 'Pasar a hoy',
+    schedule: 'Horario',
+    nothingPending: 'Nada pendiente.',
+    free: 'Día libre.',
+    untimed: 'Sin hora',
+    allTimed: 'Todo tiene hora.',
+    noneUntimed: 'Nada sin hora.',
+    section: 'Sección',
+    sectionName: 'Nombre de la sección',
+  },
+  en: {
+    undo: 'Undo',
+    month: (label: string, open: boolean) => `${label}: ${open ? 'collapse the month' : 'expand the month'}`,
+    today: 'Today',
+    overdue: 'Overdue',
+    toToday: 'Move to today',
+    schedule: 'Schedule',
+    nothingPending: 'Nothing pending.',
+    free: 'Free day.',
+    untimed: 'No time',
+    allTimed: 'Everything has a time.',
+    noneUntimed: 'Nothing without a time.',
+    section: 'Section',
+    sectionName: 'Section name',
+  },
+} as const
 
 /**
  * Agenda, como Structured: arriba el día en el que estás y la tira de su semana, que se despliega
@@ -46,8 +78,16 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
   const dispatch = useDispatch()
   const toast = useToast()
   const sensors = useDragSensors()
+  const copy = useCopy(COPY)
   const { toToday } = useTaskActions()
-  const now = useNowMinutes(day === today)
+  // La cabecera y la tira cambian de día al momento; lo de debajo (el horario, las filas) se prepara
+  // sin bloquear: en un móvil modesto, el toque responde aunque pintar el día nuevo cueste.
+  const deferred = useDeferredValue(day)
+  // Mientras se arrastra, el día de debajo no cambia: el gesto y lo que se confirma al soltar son de él.
+  const [dragDay, setDragDay] = useState<IsoDate | null>(null)
+  const shown = dragDay ?? deferred
+  const stale = shown !== day
+  const now = useNowMinutes(shown === today)
   const [draftSection, setDraftSection] = useState<string | null>(null)
   // La tira desplegada en el mes entero.
   const [monthOpen, setMonthOpen] = useState(false)
@@ -60,18 +100,18 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
     haptic('success')
     toast({
       message: `${task.title} → ${relativeLabel(date, today)}`,
-      actionLabel: 'Deshacer',
+      actionLabel: copy.undo,
       onAction: () => dispatch({ type: 'task/move', id: taskId, date: task.date, sectionId: task.sectionId }),
     })
   }
 
-  const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(day, today, moveToDay)
+  const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(shown, today, moveToDay)
 
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
-  const dayTasks = useMemo(() => tasksOn(state, day), [state, day])
+  const dayTasks = useMemo(() => tasksOn(state, shown), [state, shown])
   const rows = useMemo(
-    () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, day)), day === today ? now : null),
-    [dayTasks, state.routines, day, today, now],
+    () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, shown)), shown === today ? now : null),
+    [dayTasks, state.routines, shown, today, now],
   )
   const progress = progressOf(dayTasks)
 
@@ -98,11 +138,11 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
 
   // Hacia dónde se mueve el día: el contenido entra por ese lado. Se compara con el último día
   // pintado, que se apunta después de pintar (en el render aún es el anterior).
-  const previousDay = useRef(day)
-  const direction = day > previousDay.current ? 'is-next' : day < previousDay.current ? 'is-prev' : ''
+  const previousDay = useRef(shown)
+  const direction = shown > previousDay.current ? 'is-next' : shown < previousDay.current ? 'is-prev' : ''
   useEffect(() => {
-    previousDay.current = day
-  }, [day])
+    previousDay.current = shown
+  }, [shown])
 
   const overdueIds = columns[OVERDUE] ?? []
   const rootIds = columns[ROOT] ?? []
@@ -111,8 +151,8 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
   const pendingOfDay = dayTasks.filter((task) => !task.done).map((task) => task.id)
   // Un día sin tareas es un día libre, aunque tenga rutinas. Hoy siempre enseña su lista (y sus
   // secciones, donde soltar y desde donde crear una); otro día, solo si tiene algo sin hora.
-  const free = !dayTasks.length && !(day === today && hasOverdue)
-  const showUntimed = untimedCount > 0 || day === today
+  const free = !dayTasks.length && !(shown === today && hasOverdue)
+  const showUntimed = untimedCount > 0 || shown === today
 
   const renderTask = (id: string, sectionId: string | null, options: { overdue?: boolean; meta?: string | null } = {}) => {
     const task = byId.get(id)
@@ -122,7 +162,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
         key={id}
         task={task}
         sectionId={sectionId}
-        overdue={options.overdue ?? (day < today && !task.done)}
+        overdue={options.overdue ?? (shown < today && !task.done)}
         meta={options.meta}
         dropDisabled={options.overdue}
       />
@@ -137,17 +177,17 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
     setDraftSection(null)
   }
 
-  const near = nearLabel(day, today)
+  const heading = dayHeading(day, today)
 
   return (
-    <div className="view agenda">
+    <div className={`view agenda ${dragDay ? 'is-dragging' : ''}`}>
       <header className="view__head agenda__head">
         <div className="agenda__kicker">
           <button
             type="button"
             className={`agenda__month ${monthOpen ? 'is-open' : ''}`}
             aria-expanded={monthOpen}
-            aria-label={`${monthYear(day)}: ${monthOpen ? 'recoger el mes' : 'desplegar el mes'}`}
+            aria-label={copy.month(monthYear(day), monthOpen)}
             onClick={() => setMonthOpen((open) => !open)}
           >
             <span className="view__kicker">{monthYear(day)}</span>
@@ -155,17 +195,33 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
           </button>
           {day !== today && (
             <button type="button" className="agenda__today" onClick={() => onSelectDay(today)}>
-              Hoy
+              {copy.today}
             </button>
           )}
         </div>
         <h1 className="view__title agenda__title">
-          {near ?? capitalize(dayNameLong(day))}{' '}
-          <span className="view__title-dim">{near ? `${dayNameLong(day)} ${dayNumber(day)}` : `${dayNumber(day)} ${monthLong(day)}`}</span>
+          {heading.main} <span className="view__title-dim">{heading.rest}</span>
         </h1>
       </header>
 
-      <DndContext sensors={sensors} collisionDetection={scopedCollision} accessibility={{ announcements }} {...handlers}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={scopedCollision}
+        accessibility={{ announcements }}
+        onDragStart={(event) => {
+          setDragDay(shown)
+          handlers.onDragStart(event)
+        }}
+        onDragOver={handlers.onDragOver}
+        onDragEnd={(event) => {
+          handlers.onDragEnd(event)
+          setDragDay(null)
+        }}
+        onDragCancel={() => {
+          handlers.onDragCancel()
+          setDragDay(null)
+        }}
+      >
         <WeekStrip
           day={day}
           today={today}
@@ -176,23 +232,23 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
           follower={below}
         />
         {/* Lo de debajo de la tira va en un bloque: sube y baja con ella al desplegar el mes. */}
-        <div ref={below} className="agenda__below">
+        <div ref={below} className={`agenda__below ${stale ? 'is-stale' : ''}`}>
           <div className="view__progress" aria-hidden="true">
             <span style={{ transform: `scaleX(${progress.ratio})` }} />
           </div>
 
-          <div key={day} className={`agenda__day ${direction}`}>
-            {day === today && hasOverdue && (
+          <div key={shown} className={`agenda__day ${direction}`}>
+            {shown === today && hasOverdue && (
               <section className="block">
                 <BlockHeader
-                  label="Atrasadas"
+                  label={copy.overdue}
                   count={overdueIds.length}
                   tone="danger"
                   collapsed={state.collapsed.overdue}
                   onToggle={() => dispatch({ type: 'block/toggle', block: 'overdue' })}
                   action={
                     <button type="button" className="section__action" onClick={() => toToday()}>
-                      Pasar a hoy
+                      {copy.toToday}
                     </button>
                   }
                 />
@@ -209,31 +265,31 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
 
             {rows.length > 0 && (
               <section className="block">
-                <BlockHeader label="Horario" count={dayTasks.filter((task) => task.time && !task.done).length} />
-                <Timeline rows={rows} day={day} sections={sections} />
+                <BlockHeader label={copy.schedule} count={dayTasks.filter((task) => task.time && !task.done).length} />
+                <Timeline rows={rows} day={shown} sections={sections} />
               </section>
             )}
 
             {free && !showUntimed && (
               <div className="agenda__empty">
                 <IconFeather size={26} />
-                <p>{day < today ? 'Nada pendiente.' : 'Día libre.'}</p>
+                <p>{shown < today ? copy.nothingPending : copy.free}</p>
               </div>
             )}
             {showUntimed && (
               <section className="block">
                 <BlockHeader
-                  label="Sin hora"
+                  label={copy.untimed}
                   count={pending(rootIds) + sections.reduce((sum, section) => sum + pending(columns[section.id] ?? []), 0)}
                   action={
-                    day < today && pendingOfDay.length > 0 ? (
+                    shown < today && pendingOfDay.length > 0 ? (
                       <button type="button" className="section__action" onClick={() => toToday(pendingOfDay)}>
-                        Pasar a hoy
+                        {copy.toToday}
                       </button>
                     ) : undefined
                   }
                 />
-                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={free ? 'Día libre.' : rows.length ? 'Todo tiene hora.' : 'Nada sin hora.'}>
+                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={free ? copy.free : rows.length ? copy.allTimed : copy.noneUntimed}>
                   {rootIds.map((id) => renderTask(id, null))}
                 </TaskColumn>
 
@@ -258,13 +314,13 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
                 {draftSection === null ? (
                   <button type="button" className="view__add-section" onClick={() => setDraftSection('')}>
                     <IconPlus size={14} />
-                    Sección
+                    {copy.section}
                   </button>
                 ) : (
                   <input
                     className="view__section-input"
                     autoFocus
-                    placeholder="Nombre de la sección"
+                    placeholder={copy.sectionName}
                     value={draftSection}
                     onChange={(event) => setDraftSection(event.target.value)}
                     onBlur={() => addSection(draftSection)}

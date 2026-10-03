@@ -1,8 +1,9 @@
 import type { AppState, IsoDate, Reminder, Section, Task } from '../types'
-import { addDays, dayNumber, isoOfInstant, monthShort, relativeLabel, shortTime, toInstant } from './date'
+import { addDays, dayMonth, isoOfInstant, nearLabel, relativeLabel, shortTime, toInstant } from './date'
 import { taskEnd, timeRange } from './duration'
+import { pick, plural } from './i18n'
 import { byImportance } from './importance'
-import { byOrder } from './order'
+import { byOrder, compareText } from './order'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
 import { daysLabel, isDoneOn, isDue, routineEntryId } from './routines'
 
@@ -13,7 +14,42 @@ export const DIGEST_DAYS = 7
 const DIGEST_PREVIEW = 3
 /** Prefijo del id del aviso de cierre. Los ids de recordatorio son base36: nunca chocan. */
 const CHECK_IN_PREFIX = 'ask-'
-const CHECK_IN_QUESTION = '¿Has acabado?'
+
+/** Lo que dicen los avisos, en los dos idiomas. */
+const TEXT = {
+  es: {
+    question: '¿Has acabado?',
+    sinceYesterday: 'Pendiente desde ayer',
+    since: (day: string) => `Pendiente desde el ${day}`,
+    now: (clock: string) => `Ahora · ${clock}`,
+    was: (clock: string) => `Era a las ${clock}`,
+    inMinutes: (minutes: number, clock: string) => `En ${minutes} min · ${clock}`,
+    todayAt: (clock: string) => `Hoy a las ${clock}`,
+    dayAt: (day: string, clock: string) => `${day} a las ${clock}`,
+    noDate: 'Sin fecha',
+    dueToday: 'Para hoy',
+    due: (day: string, near: boolean) => `Para ${near ? day.toLowerCase() : day}`,
+    tasksToday: (count: number) => `${plural(count, 'tarea', 'tareas')} para hoy`,
+    nothingToday: 'Nada nuevo para hoy',
+    overdue: (count: number) => plural(count, 'atrasada', 'atrasadas'),
+  },
+  en: {
+    question: 'Finished?',
+    sinceYesterday: 'Pending since yesterday',
+    since: (day: string) => `Pending since ${day}`,
+    now: (clock: string) => `Now · ${clock}`,
+    was: (clock: string) => `Was at ${clock}`,
+    inMinutes: (minutes: number, clock: string) => `In ${minutes} min · ${clock}`,
+    todayAt: (clock: string) => `Today at ${clock}`,
+    dayAt: (day: string, clock: string) => `${day} at ${clock}`,
+    noDate: 'No date',
+    dueToday: 'Due today',
+    due: (day: string, near: boolean) => `Due ${near ? day.toLowerCase() : day}`,
+    tasksToday: (count: number) => `${plural(count, 'task', 'tasks')} today`,
+    nothingToday: 'Nothing new today',
+    overdue: (count: number) => `${count} overdue`,
+  },
+} as const
 
 export interface ScheduleEntry {
   /** Id del recordatorio o `digest-AAAAMMDD`: único y estable entre sincronizaciones. */
@@ -45,29 +81,28 @@ export function badgeCount(tasks: readonly Task[], at: number): number {
   return tasks.filter((task) => !task.done && task.date !== null && task.date <= day).length
 }
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
-
 function sinceLabel(date: IsoDate, day: IsoDate): string {
-  if (date === addDays(day, -1)) return 'Pendiente desde ayer'
-  return `Pendiente desde el ${dayNumber(date)} ${monthShort(date)}`
+  const text = pick(TEXT)
+  return date === addDays(day, -1) ? text.sinceYesterday : text.since(dayMonth(date))
 }
 
 /** Cuándo toca la tarea, visto desde el momento en que suena el aviso. */
 function whenText(task: Task, at: number): string {
+  const text = pick(TEXT)
   const day = isoOfInstant(at)
   const instant = taskInstant(task)
   if (instant !== null && task.date && task.time) {
     const clock = shortTime(task.time)
     const minutes = Math.round((instant - at) / MINUTE)
-    if (minutes === 0) return `Ahora · ${clock}`
-    if (minutes < 0) return task.date === day ? `Era a las ${clock}` : sinceLabel(task.date, day)
-    if (task.date === day) return minutes < SOON_MINUTES ? `En ${minutes} min · ${clock}` : `Hoy a las ${clock}`
-    return `${relativeLabel(task.date, day)} a las ${clock}`
+    if (minutes === 0) return text.now(clock)
+    if (minutes < 0) return task.date === day ? text.was(clock) : sinceLabel(task.date, day)
+    if (task.date === day) return minutes < SOON_MINUTES ? text.inMinutes(minutes, clock) : text.todayAt(clock)
+    return text.dayAt(relativeLabel(task.date, day), clock)
   }
-  if (!task.date) return 'Sin fecha'
-  if (task.date === day) return 'Para hoy'
+  if (!task.date) return text.noDate
+  if (task.date === day) return text.dueToday
   if (task.date < day) return sinceLabel(task.date, day)
-  return `Para ${relativeLabel(task.date, day).toLowerCase()}`
+  return text.due(relativeLabel(task.date, day), nearLabel(task.date, day) !== null)
 }
 
 export function notificationBody(task: Task, at: number, sections: readonly Section[]): string {
@@ -96,13 +131,13 @@ export function checkInEntries(state: AppState, now: number): Omit<ScheduleEntry
   return state.tasks.flatMap((task) => {
     const end = task.done ? null : taskEnd(task)
     if (end === null || end <= now) return []
-    const body = [CHECK_IN_QUESTION, timeRange(task)].filter(Boolean).join(' · ')
+    const body = [pick(TEXT).question, timeRange(task)].filter(Boolean).join(' · ')
     return [{ id: `${CHECK_IN_PREFIX}${task.id}`, taskId: task.id, at: end, title: task.title, body, overdue: false, ask: true as const }]
   })
 }
 
 /** Lo del día primero por hora y luego por el orden de la lista. */
-const byTimeThenOrder = (a: Task, b: Task) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99') || byOrder(a, b)
+const byTimeThenOrder = (a: Task, b: Task) => compareText(a.time ?? '99:99', b.time ?? '99:99') || byOrder(a, b)
 
 /** Un aviso por día con lo que hay para ese día, si el usuario lo ha activado. */
 export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
@@ -117,10 +152,8 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
     const overdue = state.tasks.filter((task) => !task.done && task.date !== null && task.date < day).length
     if (!due.length && !overdue) return []
 
-    const title = [
-      due.length ? `${plural(due.length, 'tarea', 'tareas')} para hoy` : 'Nada nuevo para hoy',
-      overdue ? plural(overdue, 'atrasada', 'atrasadas') : '',
-    ]
+    const text = pick(TEXT)
+    const title = [due.length ? text.tasksToday(due.length) : text.nothingToday, overdue ? text.overdue(overdue) : '']
       .filter(Boolean)
       .join(' · ')
     // Solo caben unas pocas: primero las más importantes, y a igualdad, por hora y orden.

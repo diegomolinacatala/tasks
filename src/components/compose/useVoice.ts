@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { nextUtcMidnight, shortTime, timeOfInstant } from '../../lib/date'
+import { pick } from '../../lib/i18n'
 import { isNative } from '../../lib/platform'
 import { PushApiError } from '../../lib/push/api'
 import type { Capture } from '../../lib/voice/capture'
@@ -23,19 +24,49 @@ interface Session {
   cancel: () => void
 }
 
+const TEXT = {
+  es: {
+    allowMic: 'Permite el acceso al micrófono para dictar.',
+    noMic: 'No se encuentra ningún micrófono.',
+    quota: (clock: string) => `Dictado agotado por hoy. Vuelve a las ${clock}.`,
+    transcribe: 'No se ha podido transcribir el audio.',
+    failed: 'No se pudo dictar.',
+    notUnderstood: 'No te he entendido.',
+    micDenied: 'Sin acceso al micrófono.',
+    settings: 'Ajustes',
+    notHeard: 'No te he oído.',
+    slow: 'El dictado está tardando demasiado. Prueba otra vez.',
+    unavailable: 'El dictado no está disponible en este navegador.',
+    enableReminders: 'Activa los avisos en Ajustes para dictar tareas.',
+  },
+  en: {
+    allowMic: 'Allow microphone access to dictate.',
+    noMic: 'No microphone found.',
+    quota: (clock: string) => `Dictation is used up for today. Back at ${clock}.`,
+    transcribe: 'The audio couldn’t be transcribed.',
+    failed: 'Dictation failed.',
+    notUnderstood: 'I didn’t catch that.',
+    micDenied: 'No microphone access.',
+    settings: 'Settings',
+    notHeard: 'I didn’t hear you.',
+    slow: 'Dictation is taking too long. Try again.',
+    unavailable: 'Dictation isn’t available in this browser.',
+    enableReminders: 'Turn on reminders in Settings to dictate tasks.',
+  },
+} as const
+
 function micDenied(error: unknown): boolean {
   return error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
 }
 
 function errorMessage(error: unknown): string {
-  if (micDenied(error)) return 'Permite el acceso al micrófono para dictar.'
-  if (error instanceof DOMException && error.name === 'NotFoundError') return 'No se encuentra ningún micrófono.'
+  const text = pick(TEXT)
+  if (micDenied(error)) return text.allowMic
+  if (error instanceof DOMException && error.name === 'NotFoundError') return text.noMic
   // 503: el servidor ha gastado la cuota diaria de Workers AI, que se renueva a las 00:00 UTC.
-  if (error instanceof PushApiError && error.status === 503) {
-    return `Dictado agotado por hoy. Vuelve a las ${shortTime(timeOfInstant(nextUtcMidnight(Date.now())))}.`
-  }
-  if (error instanceof PushApiError && error.status === 502) return 'No se ha podido transcribir el audio.'
-  return error instanceof Error ? error.message : 'No se pudo dictar.'
+  if (error instanceof PushApiError && error.status === 503) return text.quota(shortTime(timeOfInstant(nextUtcMidnight(Date.now()))))
+  if (error instanceof PushApiError && error.status === 502) return text.transcribe
+  return error instanceof Error ? error.message : text.failed
 }
 
 /**
@@ -68,7 +99,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     (text: string | null, interpreted: unknown = null) => {
       if (text === null) return
       if (text.trim()) onText(text, interpreted)
-      else toast({ message: 'No te he entendido.' })
+      else toast({ message: pick(TEXT).notUnderstood })
     },
     [onText, toast],
   )
@@ -77,9 +108,10 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const fail = useCallback(
     (error: unknown) => {
       if (isNative && micDenied(error)) {
+        const text = pick(TEXT)
         toast({
-          message: 'Sin acceso al micrófono.',
-          actionLabel: 'Ajustes',
+          message: text.micDenied,
+          actionLabel: text.settings,
           onAction: () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings()),
         })
         return
@@ -127,7 +159,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
         const audio = await capture.result
         if (audio.status === 'cancelled' || controller.signal.aborted) return
         if (audio.status === 'silent') {
-          toast({ message: 'No te he oído.' })
+          toast({ message: pick(TEXT).notHeard })
           return
         }
         setPhase('processing')
@@ -139,7 +171,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
         const { text, tasks } = await push.transcribe(bytesToBase64(wav), controller.signal)
         if (!controller.signal.aborted) deliver(text, tasks)
       } catch (error) {
-        if (timedOut) toast({ message: 'El dictado está tardando demasiado. Prueba otra vez.' })
+        if (timedOut) toast({ message: pick(TEXT).slow })
         else if (!controller.signal.aborted) fail(error)
       } finally {
         clearTimeout(timer)
@@ -167,10 +199,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     if (push.canTranscribe) return allowed ? record() : setAsking(true)
     if (speechSupported()) return dictate()
     toast({
-      message:
-        push.status === 'unconfigured' || push.status === 'unsupported'
-          ? 'El dictado no está disponible en este navegador.'
-          : 'Activa los avisos en Ajustes para dictar tareas.',
+      message: push.status === 'unconfigured' || push.status === 'unsupported' ? pick(TEXT).unavailable : pick(TEXT).enableReminders,
     })
   }, [allowed, dictate, phase, push.canTranscribe, push.status, record, toast])
 

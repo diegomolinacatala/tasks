@@ -10,7 +10,8 @@ const MAX_ID = 100
 
 export type NativeAction =
   | { type: 'add'; text: string }
-  | { type: 'compose' }
+  /** `inbox`: desde el widget de la Bandeja, lo escrito va sin fecha. */
+  | { type: 'compose'; inbox?: true }
   | { type: 'week' }
   /** Widget: tocarlo fuera de una tarea. */
   | { type: 'today' }
@@ -20,6 +21,8 @@ export type NativeAction =
   | { type: 'inbox' }
   /** Widget de rutinas: tocarlo fuera del círculo. */
   | { type: 'routines' }
+  /** Widget de la Bandeja: tocarlo fuera de una tarea. */
+  | { type: 'backlog' }
   /** Algo se ha marcado fuera de la web (el "Hecha" del aviso de una rutina) con la app abierta. */
   | { type: 'widget' }
 
@@ -59,14 +62,8 @@ const isIsoDate = (value: unknown): value is IsoDate => typeof value === 'string
 
 export function parseNativeAction(raw: unknown): NativeAction | null {
   if (!isObject(raw)) return null
-  if (
-    raw.type === 'compose' ||
-    raw.type === 'week' ||
-    raw.type === 'today' ||
-    raw.type === 'inbox' ||
-    raw.type === 'routines' ||
-    raw.type === 'widget'
-  ) {
+  if (raw.type === 'compose') return raw.inbox === true ? { type: 'compose', inbox: true } : { type: 'compose' }
+  if (raw.type === 'week' || raw.type === 'today' || raw.type === 'inbox' || raw.type === 'routines' || raw.type === 'backlog' || raw.type === 'widget') {
     return { type: raw.type }
   }
   if (raw.type === 'open') return isId(raw.taskId) ? { type: 'open', taskId: raw.taskId } : null

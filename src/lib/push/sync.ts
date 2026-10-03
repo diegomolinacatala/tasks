@@ -1,3 +1,4 @@
+import { language } from '../i18n'
 import type { ScheduleEntry } from '../schedule'
 import type { EncryptedItem } from './api'
 import { encryptJson } from './crypto'
@@ -10,6 +11,7 @@ import { contentOf } from './message'
 export async function scheduleFingerprint(deviceId: string, entries: readonly ScheduleEntry[]): Promise<string> {
   const canonical = JSON.stringify([
     deviceId,
+    language(),
     entries.map((e) => [e.id, e.taskId, e.at, e.title, e.body, e.badge, e.overdue, e.ask]),
   ])
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
@@ -17,6 +19,7 @@ export async function scheduleFingerprint(deviceId: string, entries: readonly Sc
 }
 
 export function encryptSchedule(key: CryptoKey, entries: readonly ScheduleEntry[]): Promise<EncryptedItem[]> {
+  const english = language() === 'en'
   return Promise.all(
     entries.map(async (entry) => ({
       id: entry.id,
@@ -31,6 +34,7 @@ export function encryptSchedule(key: CryptoKey, entries: readonly ScheduleEntry[
           at: entry.at,
           ...(entry.overdue ? { overdue: true } : {}),
           ...(entry.ask ? { ask: true } : {}),
+          ...(english ? { lang: 'en' as const } : {}),
         }),
       ),
     })),

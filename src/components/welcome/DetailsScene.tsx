@@ -5,6 +5,7 @@ import { addDetailReminder, detailsFrom, detailsSummary, removeDetailReminder, w
 import { parseTask } from '../../lib/parse'
 import { haptic } from '../../lib/platform/feedback'
 import { reminderLabel } from '../../lib/reminders'
+import { useCopy } from '../../state/LanguageProvider'
 import { IconArrowUp, IconBell, IconChevronDown, IconClose, IconPlus, IconSliders } from '../ui/Icons'
 import { usePullUp } from '../compose/usePullUp'
 import { DurationPicker } from '../task/DurationPicker'
@@ -14,7 +15,32 @@ import '../compose/compose-sheet.css'
 import '../ui/sheet.css'
 
 /** Una cita con día y hora: al desplegar, cada cosa ya está en su sitio. */
-const PHRASE = 'Cine con Carlota el viernes a las 21:30'
+const COPY = {
+  es: {
+    phrase: 'Cine con Carlota el viernes a las 21:30',
+    explain: 'Al tocar Detalles, la frase se despliega en una ficha con su día, su hora, la duración y los avisos.',
+    clear: 'Quitar los detalles',
+    details: 'Detalles',
+    card: 'Ficha de la tarea',
+    fold: 'Plegar',
+    newTask: 'Nueva tarea',
+    inbox: 'Bandeja',
+    when: 'Cuándo',
+    reminders: 'Avisos',
+  },
+  en: {
+    phrase: 'Movie with Carlota on Friday at 9:30pm',
+    explain: 'Tapping Details unfolds the sentence into a card with its day, time, duration and reminders.',
+    clear: 'Remove the details',
+    details: 'Details',
+    card: 'Task card',
+    fold: 'Fold',
+    newTask: 'New task',
+    inbox: 'Inbox',
+    when: 'When',
+    reminders: 'Reminders',
+  },
+} as const
 const EXTRA_REMINDER = { kind: 'before', minutes: 30 } as const
 
 let ids = 0
@@ -26,9 +52,10 @@ const newId = () => `scene-${++ids}`
  * y la duración, con la regla. Plegarla deja en la barra lo decidido, como el mini reproductor dice qué suena.
  */
 export function DetailsScene() {
+  const copy = useCopy(COPY)
   const still = useMemo(reducedMotion, [])
   const today = useMemo(() => todayIso(), [])
-  const parsed = useMemo(() => parseTask(PHRASE, Date.now(), null), [])
+  const parsed = useMemo(() => parseTask(copy.phrase, Date.now(), null), [copy.phrase])
   const [details, setDetails] = useState<Details | null>(null)
   const [open, setOpen] = useState(false)
   const [touched, setTouched] = useState(false)
@@ -57,7 +84,7 @@ export function DetailsScene() {
 
   return (
     <div className={`scene scene--details ${!touched && !still ? 'is-hinting' : ''}`}>
-      <p className="sr-only">Al tocar Detalles, la frase se despliega en una ficha con su día, su hora, la duración y los avisos.</p>
+      <p className="sr-only">{copy.explain}</p>
 
       <div ref={pull.card} className={`composer is-active has-tray scene__composer ${open ? 'is-expanded' : ''}`} inert={open}>
         <div className="composer__grab" {...pull.handlers}>
@@ -68,7 +95,7 @@ export function DetailsScene() {
             <IconPlus size={15} />
           </span>
           <span className="scene__typed">
-            <span>{details ? parsed.title : PHRASE}</span>
+            <span>{details ? parsed.title : copy.phrase}</span>
           </span>
           <span className="composer__send" aria-hidden="true">
             <IconArrowUp size={17} strokeWidth={2.2} />
@@ -81,7 +108,7 @@ export function DetailsScene() {
                 <button
                   type="button"
                   className="composer__clear"
-                  aria-label="Quitar los detalles"
+                  aria-label={copy.clear}
                   onClick={() => {
                     haptic('selection')
                     setDetails(null)
@@ -110,27 +137,27 @@ export function DetailsScene() {
               )
             )}
           </div>
-          <button type="button" className={`composer__more ${details ? 'has-details' : ''}`} aria-label="Detalles" onClick={expand}>
+          <button type="button" className={`composer__more ${details ? 'has-details' : ''}`} aria-label={copy.details} onClick={expand}>
             <IconSliders size={15} />
-            {!details && <span aria-hidden="true">Detalles</span>}
+            {!details && <span aria-hidden="true">{copy.details}</span>}
           </button>
         </div>
       </div>
 
       {details && (
-        <div className={`scene__sheet ${open ? 'is-open' : ''}`} role="group" aria-label="Ficha de la tarea" inert={!open}>
+        <div className={`scene__sheet ${open ? 'is-open' : ''}`} role="group" aria-label={copy.card} inert={!open}>
           <header className="compose-head">
-            <button type="button" className="compose-head__fold" aria-label="Plegar" onClick={fold}>
+            <button type="button" className="compose-head__fold" aria-label={copy.fold} onClick={fold}>
               <IconChevronDown size={20} />
             </button>
             <div className="compose-head__text">
-              <p className="compose-head__kicker">Nueva tarea</p>
-              <p className="compose-head__where">{details.date ? relativeLabel(details.date, today) : 'Bandeja'}</p>
+              <p className="compose-head__kicker">{copy.newTask}</p>
+              <p className="compose-head__where">{details.date ? relativeLabel(details.date, today) : copy.inbox}</p>
             </div>
           </header>
           <p className="scene__sheet-title">{parsed.title}</p>
 
-          <p className="sheet__title">Cuándo</p>
+          <p className="sheet__title">{copy.when}</p>
           <div className="sheet__chips">
             {days.map((day) => (
               <button
@@ -149,7 +176,7 @@ export function DetailsScene() {
             <DurationPicker time={details.time} duration={details.duration} onChange={(minutes) => setDetails(withDuration(details, minutes))} />
           )}
 
-          <p className="sheet__title">Avisos</p>
+          <p className="sheet__title">{copy.reminders}</p>
           <div className="sheet__chips">
             {details.reminders.map((reminder) => (
               <button key={reminder.id} type="button" className="chip chip--reminder" onClick={() => change(removeDetailReminder(details, reminder.id))}>

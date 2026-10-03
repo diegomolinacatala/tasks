@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { byRoutineOrder, isDue, routineProgress } from '../../lib/routines'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate } from '../../types'
 import { BlockHeader } from '../section/BlockHeader'
@@ -7,6 +8,11 @@ import { useRowActions } from '../task/rowActions'
 import { IconPlus, IconRepeat } from '../ui/Icons'
 import { RoutineRow } from './RoutineRow'
 import './routines.css'
+
+const COPY = {
+  es: { title: 'Rutinas', add: 'Nueva rutina' },
+  en: { title: 'Routines', add: 'New routine' },
+} as const
 
 interface RoutinesBlockProps {
   today: IsoDate
@@ -20,6 +26,7 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
   const { routines, collapsed } = useAppState()
   const dispatch = useDispatch()
   const actions = useRowActions()
+  const copy = useCopy(COPY)
 
   const sorted = useMemo(() => {
     const rank = (due: boolean, done: boolean) => (due ? (done ? 1 : 0) : 2)
@@ -33,7 +40,7 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
   return (
     <section className="block routines">
       <BlockHeader
-        label="Rutinas"
+        label={copy.title}
         collapsed={routines.length ? collapsed.routines : undefined}
         onToggle={routines.length ? () => dispatch({ type: 'block/toggle', block: 'routines' }) : undefined}
         action={
@@ -43,7 +50,7 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
                 {progress.done}/{progress.total}
               </span>
             )}
-            <button type="button" className="section__icon" aria-label="Nueva rutina" onClick={() => actions.openRoutine('')}>
+            <button type="button" className="section__icon" aria-label={copy.add} onClick={() => actions.openRoutine('')}>
               <IconPlus size={17} />
             </button>
           </>
@@ -52,7 +59,7 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
       {!routines.length && (
         <button type="button" className="routines__empty" onClick={() => actions.openRoutine('')}>
           <IconRepeat size={16} />
-          <span>Nueva rutina</span>
+          <span>{copy.add}</span>
         </button>
       )}
       {routines.length > 0 && !collapsed.routines && (

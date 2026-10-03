@@ -4,6 +4,7 @@ import { addDays, fullLabel, shortTime, todayIso } from '../../lib/date'
 import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import { ALL_DAYS, daysLabel, recentDays, streak, withDay } from '../../lib/routines'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate, Routine } from '../../types'
 import { IconCheck } from '../ui/Icons'
 import '../routines/routines.css'
@@ -11,6 +12,31 @@ import '../routines/routines.css'
 /** En la web no hay widgets: la pantalla de bloqueo solo se enseña donde existe (y al desarrollar). */
 const SHOWS_LOCK = isNative || import.meta.env.DEV
 const CREATED_DAYS_AGO = 40
+
+const COPY = {
+  es: {
+    creatine: 'Tomar creatina',
+    read: 'Leer 20 minutos',
+    streak: (run: number) => `racha de ${run}`,
+    unmark: (title: string) => `Desmarcar «${title}» de hoy`,
+    done: (title: string) => `Hecha hoy: «${title}»`,
+    widget: (title: string, done: boolean) => `Widget de la pantalla de bloqueo: ${done ? 'desmarcar' : 'tachar'} «${title}»`,
+    doneWord: 'Hecha',
+    today: 'Hoy',
+    count: (done: number, total: number) => `${done} de ${total} hoy`,
+  },
+  en: {
+    creatine: 'Take creatine',
+    read: 'Read 20 minutes',
+    streak: (run: number) => `${run}-day streak`,
+    unmark: (title: string) => `Unmark “${title}” for today`,
+    done: (title: string) => `Done today: “${title}”`,
+    widget: (title: string, done: boolean) => `Lock Screen widget: ${done ? 'unmark' : 'check off'} “${title}”`,
+    doneWord: 'Done',
+    today: 'Today',
+    count: (done: number, total: number) => `${done} of ${total} today`,
+  },
+} as const
 
 /** Una rutina de muestra con los últimos días hechos, menos los que se dejan sin hacer. */
 function sample(id: string, title: string, emoji: string, time: string | null, today: IsoDate, days: number, skipped: readonly number[]): Routine {
@@ -32,10 +58,11 @@ function sample(id: string, title: string, emoji: string, time: string | null, t
  * tacha en el otro, como pasa de verdad.
  */
 export function RoutineScene() {
+  const copy = useCopy(COPY)
   const today = useMemo(() => todayIso(), [])
   const [routines, setRoutines] = useState<Routine[]>(() => [
-    sample('creatina', 'Tomar creatina', '💊', '10:00', today, 12, [3]),
-    sample('leer', 'Leer 20 minutos', '📖', '22:30', today, 9, [1, 5, 8]),
+    sample('creatina', copy.creatine, '💊', '10:00', today, 12, [3]),
+    sample('leer', copy.read, '📖', '22:30', today, 9, [1, 5, 8]),
   ])
 
   const toggle = (id: string) => {
@@ -55,7 +82,7 @@ export function RoutineScene() {
         {routines.map((routine) => {
           const done = routine.done.includes(today)
           const run = streak(routine, today)
-          const meta = [routine.time ? shortTime(routine.time) : null, daysLabel(routine.days), run >= 2 ? `racha de ${run}` : null]
+          const meta = [routine.time ? shortTime(routine.time) : null, daysLabel(routine.days), run >= 2 ? copy.streak(run) : null]
             .filter(Boolean)
             .join(' · ')
           return (
@@ -65,7 +92,7 @@ export function RoutineScene() {
                   type="button"
                   className="row__check"
                   aria-pressed={done}
-                  aria-label={done ? `Desmarcar «${routine.title}» de hoy` : `Hecha hoy: «${routine.title}»`}
+                  aria-label={done ? copy.unmark(routine.title) : copy.done(routine.title)}
                   onClick={() => toggle(routine.id)}
                 >
                   <IconCheck size={13} strokeWidth={2.5} />
@@ -100,7 +127,7 @@ export function RoutineScene() {
             <button
               type="button"
               className={`lock__ring ${firstDone ? 'is-done' : ''}`}
-              aria-label={`Widget de la pantalla de bloqueo: ${firstDone ? 'desmarcar' : 'tachar'} «${first.title}»`}
+              aria-label={copy.widget(first.title, firstDone)}
               onClick={() => toggle(first.id)}
             >
               <svg className="lock__ring-svg" viewBox="0 0 48 48" aria-hidden="true" style={{ '--ring': doneToday / routines.length } as CSSProperties}>
@@ -116,7 +143,7 @@ export function RoutineScene() {
               <span className="lock__lines">
                 <b className={firstDone ? 'is-done' : ''}>{first.title}</b>
                 <small>
-                  {firstDone ? 'Hecha' : first.time ? shortTime(first.time) : 'Hoy'} · {doneToday} de {routines.length} hoy
+                  {firstDone ? copy.doneWord : first.time ? shortTime(first.time) : copy.today} · {copy.count(doneToday, routines.length)}
                 </small>
               </span>
             </button>

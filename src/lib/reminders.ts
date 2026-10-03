@@ -1,5 +1,6 @@
 import type { Place, Reminder, ReminderDraft, Task } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInstant } from './date'
+import { language, pick } from './i18n'
 import { placeReminderLabel } from './places'
 
 export const MAX_REMINDERS = 20
@@ -63,15 +64,23 @@ export function snoozed(task: Task, at: number, now: number, id: string): Task {
   return withReminder({ ...task, reminders: kept }, { kind: 'at', at }, id)
 }
 
+/** `A la hora`, `15 min antes`, `1 h antes`, `1 día antes` · `On time`, `15 min before`, `1 hr before`, `1 day before`. */
 function beforeLabel(minutes: number): string {
-  if (minutes === 0) return 'A la hora'
+  const en = language() === 'en'
+  if (minutes === 0) return en ? 'On time' : 'A la hora'
   if (minutes % DAY_MIN === 0) {
     const days = minutes / DAY_MIN
+    if (en) return days === 1 ? '1 day before' : `${days} days before`
     return days === 1 ? '1 día antes' : `${days} días antes`
   }
-  if (minutes % HOUR_MIN === 0) return `${minutes / HOUR_MIN} h antes`
-  return `${minutes} min antes`
+  if (minutes % HOUR_MIN === 0) return en ? `${minutes / HOUR_MIN} hr before` : `${minutes / HOUR_MIN} h antes`
+  return en ? `${minutes} min before` : `${minutes} min antes`
 }
+
+const WORDS = {
+  es: { inHour: 'En 1 h', today: 'Hoy', tomorrow: 'Mañana', hour: '+1 h' },
+  en: { inHour: 'In 1 hr', today: 'Today', tomorrow: 'Tomorrow', hour: '+1 hr' },
+} as const
 
 /** `Hoy 18:00`, `Mañana 9:00`, `15 min antes`, `Al llegar a Mercadona`. */
 export function reminderLabel(reminder: ReminderDraft, now: number, places: readonly Place[] = []): string {
@@ -105,9 +114,10 @@ export function reminderPresets(task: Task, now: number): Preset[] {
   if (taskInstant(task) !== null) {
     candidates.push(before('on-time', 0), before('before-15', 15), before('before-60', 60), before('before-1d', DAY_MIN))
   }
-  candidates.push(at('in-1h', 'En 1 h', ceilMinute(now + HOUR_MIN * MINUTE)))
-  candidates.push(at('evening', `Hoy ${EVENING}`, toInstant(today, EVENING)))
-  candidates.push(at('tomorrow', `Mañana ${shortTime(MORNING)}`, toInstant(tomorrow, MORNING)))
+  const words = pick(WORDS)
+  candidates.push(at('in-1h', words.inHour, ceilMinute(now + HOUR_MIN * MINUTE)))
+  candidates.push(at('evening', `${words.today} ${shortTime(EVENING)}`, toInstant(today, EVENING)))
+  candidates.push(at('tomorrow', `${words.tomorrow} ${shortTime(MORNING)}`, toInstant(tomorrow, MORNING)))
   if (task.date && task.date > tomorrow) {
     candidates.push(at('day-of', `${relativeLabel(task.date, today)} ${shortTime(MORNING)}`, toInstant(task.date, MORNING)))
   }
@@ -127,10 +137,11 @@ export interface SnoozeOption {
 
 export function snoozeOptions(now: number): SnoozeOption[] {
   const tomorrow = addDays(isoOfInstant(now), 1)
+  const words = pick(WORDS)
   return [
     { key: '10m', label: '+10 min', at: ceilMinute(now + 10 * MINUTE) },
-    { key: '1h', label: '+1 h', at: ceilMinute(now + HOUR_MIN * MINUTE) },
-    { key: 'tomorrow', label: `Mañana ${shortTime(MORNING)}`, at: toInstant(tomorrow, MORNING) },
+    { key: '1h', label: words.hour, at: ceilMinute(now + HOUR_MIN * MINUTE) },
+    { key: 'tomorrow', label: `${words.tomorrow} ${shortTime(MORNING)}`, at: toInstant(tomorrow, MORNING) },
   ]
 }
 

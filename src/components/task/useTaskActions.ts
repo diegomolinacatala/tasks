@@ -1,11 +1,29 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { todayIso } from '../../lib/date'
 import { placementsOf } from '../../lib/order'
+import { pick } from '../../lib/i18n'
 import { haptic } from '../../lib/platform/feedback'
 import { withTransition } from '../../lib/transition'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { overdueTasks } from '../../state/selectors'
 import { useToast } from '../ui/Toast'
+
+const TEXT = {
+  es: {
+    removed: 'Tarea borrada',
+    undo: 'Deshacer',
+    movedOne: (title: string) => `A hoy: ${title}`,
+    moved: (count: number) => `${count} tareas pasadas a hoy`,
+    routineRemoved: 'Rutina borrada',
+  },
+  en: {
+    removed: 'Task deleted',
+    undo: 'Undo',
+    movedOne: (title: string) => `To today: ${title}`,
+    moved: (count: number) => `${count} tasks moved to today`,
+    routineRemoved: 'Routine deleted',
+  },
+} as const
 
 /**
  * Completar, borrar, pasar a hoy, la importancia y las rutinas. Las funciones no cambian entre
@@ -33,9 +51,10 @@ export function useTaskActions() {
       if (!task) return
       dispatch({ type: 'task/remove', id })
       haptic('warning')
+      const text = pick(TEXT)
       toast({
-        message: 'Tarea borrada',
-        actionLabel: 'Deshacer',
+        message: text.removed,
+        actionLabel: text.undo,
         onAction: () => dispatch({ type: 'task/restore', task }),
       })
     },
@@ -61,9 +80,10 @@ export function useTaskActions() {
       const before = placementsOf(current.tasks, moving.map((task) => task.id))
       withTransition(() => dispatch({ type: 'tasks/reschedule', ids: moving.map((task) => task.id), date: today }))
       haptic('success')
+      const text = pick(TEXT)
       toast({
-        message: moving.length === 1 ? `A hoy: ${first.title}` : `${moving.length} tareas pasadas a hoy`,
-        actionLabel: 'Deshacer',
+        message: moving.length === 1 ? text.movedOne(first.title) : text.moved(moving.length),
+        actionLabel: text.undo,
         onAction: () => withTransition(() => dispatch({ type: 'tasks/place', placements: before })),
       })
     },
@@ -92,9 +112,10 @@ export function useTaskActions() {
       if (!routine) return
       dispatch({ type: 'routine/remove', id })
       haptic('warning')
+      const text = pick(TEXT)
       toast({
-        message: 'Rutina borrada',
-        actionLabel: 'Deshacer',
+        message: text.routineRemoved,
+        actionLabel: text.undo,
         onAction: () => dispatch({ type: 'routine/restore', routine }),
       })
     },

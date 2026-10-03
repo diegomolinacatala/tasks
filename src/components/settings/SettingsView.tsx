@@ -2,17 +2,76 @@ import { useEffect, useRef, useState } from 'react'
 import { backupFilename, parseBackup, serializeBackup } from '../../lib/backup'
 import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconArrowUpRight, IconChevronRight, IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AppearancePicker } from './AppearancePicker'
 import { DictationBlock } from './DictationBlock'
+import { LanguagePicker } from './LanguagePicker'
 import { NotificationsBlock } from './NotificationsBlock'
 import './settings.css'
 
 const SITE = 'https://diegomolinacatala.github.io/tasks/'
-const APP_STORE = 'https://apps.apple.com/es/app/tasks-tareas-y-lugares/id6812776586'
+const APP_STORE = 'https://apps.apple.com/app/id6812776586'
 const CONFIRM_MS = 4000
+
+const COPY = {
+  es: {
+    exportFailed: 'No se pudo exportar la copia.',
+    imported: 'Copia importada.',
+    importFailed: 'No se pudo importar el fichero.',
+    cleared: 'Todo borrado.',
+    title: 'Ajustes',
+    appearance: 'Apariencia',
+    data: 'Datos',
+    stats: [
+      ['pendiente', 'pendientes'],
+      ['tarea', 'tareas'],
+      ['rutina', 'rutinas'],
+      ['sección', 'secciones'],
+    ],
+    export: 'Exportar copia',
+    import: 'Importar copia',
+    confirm: 'Toca otra vez para borrarlo todo',
+    clear: 'Borrar todo',
+    dataNote: 'Todo se guarda solo en este dispositivo. Importar sustituye lo que haya ahora.',
+    welcome: 'Ver la bienvenida',
+    rate: 'Valorar en la App Store',
+    support: 'Soporte',
+    privacy: 'Privacidad',
+    supportPage: 'soporte.html',
+    privacyPage: 'privacidad.html',
+    version: (value: string) => `Versión ${value}`,
+  },
+  en: {
+    exportFailed: 'The backup couldn’t be exported.',
+    imported: 'Backup imported.',
+    importFailed: 'The file couldn’t be imported.',
+    cleared: 'Everything deleted.',
+    title: 'Settings',
+    appearance: 'Appearance',
+    data: 'Data',
+    stats: [
+      ['pending', 'pending'],
+      ['task', 'tasks'],
+      ['routine', 'routines'],
+      ['section', 'sections'],
+    ],
+    export: 'Export backup',
+    import: 'Import backup',
+    confirm: 'Tap again to delete everything',
+    clear: 'Delete everything',
+    dataNote: 'Everything is stored only on this device. Importing replaces what’s here now.',
+    welcome: 'See the welcome',
+    rate: 'Rate on the App Store',
+    support: 'Support',
+    privacy: 'Privacy',
+    supportPage: 'support.html',
+    privacyPage: 'privacy.html',
+    version: (value: string) => `Version ${value}`,
+  },
+} as const
 
 interface SettingsViewProps {
   /** Volver a ver la bienvenida del primer día. */
@@ -24,6 +83,7 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
+  const copy = useCopy(COPY)
   const fileInput = useRef<HTMLInputElement>(null)
   const [confirming, setConfirming] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
@@ -50,7 +110,7 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
         const { shareFile } = await import('../../lib/platform/share')
         await shareFile(backupFilename(), serializeBackup(state))
       } catch {
-        toast({ message: 'No se pudo exportar la copia.' })
+        toast({ message: copy.exportFailed })
       }
       return
     }
@@ -67,9 +127,9 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
     try {
       dispatch({ type: 'state/import', state: parseBackup(await file.text()) })
       haptic('success')
-      toast({ message: 'Copia importada.' })
+      toast({ message: copy.imported })
     } catch (error) {
-      toast({ message: error instanceof Error ? error.message : 'No se pudo importar el fichero.' })
+      toast({ message: error instanceof Error ? error.message : copy.importFailed })
     }
   }
 
@@ -81,7 +141,7 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
     }
     dispatch({ type: 'state/clear' })
     setConfirming(false)
-    toast({ message: 'Todo borrado.' })
+    toast({ message: copy.cleared })
   }
 
   return (
@@ -89,48 +149,46 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
       <header className="view__head">
         <p className="view__kicker">Tasks</p>
         <div className="view__headline">
-          <h1 className="view__title">Ajustes</h1>
+          <h1 className="view__title">{copy.title}</h1>
         </div>
         <div className="view__progress view__progress--plain" aria-hidden="true" />
       </header>
 
       <section className="group">
-        <h2 className="group__title">Apariencia</h2>
+        <h2 className="group__title">{copy.appearance}</h2>
         <AppearancePicker value={state.settings.theme} />
       </section>
+
+      <LanguagePicker value={state.settings.language} />
 
       <NotificationsBlock />
       <DictationBlock />
 
       <section className="group">
-        <h2 className="group__title">Datos</h2>
+        <h2 className="group__title">{copy.data}</h2>
         <div className="group__stats">
-          {(
-            [
-              [pending, 'pendiente', 'pendientes'],
-              [state.tasks.length, 'tarea', 'tareas'],
-              [state.routines.length, 'rutina', 'rutinas'],
-              [state.sections.length, 'sección', 'secciones'],
-            ] as const
-          ).map(([count, one, many]) => (
-            <span key={many}>
-              <b>{count}</b> {count === 1 ? one : many}
-            </span>
-          ))}
+          {[pending, state.tasks.length, state.routines.length, state.sections.length].map((count, index) => {
+            const [one, many] = copy.stats[index] ?? ['', '']
+            return (
+              <span key={index}>
+                <b>{count}</b> {count === 1 ? one : many}
+              </span>
+            )
+          })}
         </div>
         <div className="group__card">
           <button type="button" className="group__row" onClick={() => void exportBackup()}>
             <IconDownload size={18} />
-            <span className="group__label">Exportar copia</span>
+            <span className="group__label">{copy.export}</span>
             <span className="group__value">.json</span>
           </button>
           <button type="button" className="group__row" onClick={() => fileInput.current?.click()}>
             <IconUpload size={18} />
-            <span className="group__label">Importar copia</span>
+            <span className="group__label">{copy.import}</span>
           </button>
           <button type="button" className={`group__row group__row--danger ${confirming ? 'is-confirming' : ''}`} onClick={clearAll}>
             <IconTrash size={18} />
-            <span className="group__label">{confirming ? 'Toca otra vez para borrarlo todo' : 'Borrar todo'}</span>
+            <span className="group__label">{confirming ? copy.confirm : copy.clear}</span>
           </button>
         </div>
         <input
@@ -144,32 +202,32 @@ export function SettingsView({ onWelcome }: SettingsViewProps) {
             if (file) void importBackup(file)
           }}
         />
-        <p className="group__note">Todo se guarda solo en este dispositivo. Importar sustituye lo que haya ahora.</p>
+        <p className="group__note">{copy.dataNote}</p>
       </section>
 
       <section className="group">
         <h2 className="group__title">Tasks</h2>
         <div className="group__card">
           <button type="button" className="group__row" onClick={onWelcome}>
-            <span className="group__label">Ver la bienvenida</span>
+            <span className="group__label">{copy.welcome}</span>
             <IconChevronRight size={16} className="group__chevron" />
           </button>
           {isNative && (
             <a className="group__row" href={`${APP_STORE}?action=write-review`} target="_blank" rel="noopener noreferrer">
-              <span className="group__label">Valorar en la App Store</span>
+              <span className="group__label">{copy.rate}</span>
               <IconArrowUpRight size={16} className="group__chevron" />
             </a>
           )}
-          <a className="group__row" href={`${SITE}soporte.html`} target="_blank" rel="noopener noreferrer">
-            <span className="group__label">Soporte</span>
+          <a className="group__row" href={`${SITE}${copy.supportPage}`} target="_blank" rel="noopener noreferrer">
+            <span className="group__label">{copy.support}</span>
             <IconArrowUpRight size={16} className="group__chevron" />
           </a>
-          <a className="group__row" href={`${SITE}privacidad.html`} target="_blank" rel="noopener noreferrer">
-            <span className="group__label">Privacidad</span>
+          <a className="group__row" href={`${SITE}${copy.privacyPage}`} target="_blank" rel="noopener noreferrer">
+            <span className="group__label">{copy.privacy}</span>
             <IconArrowUpRight size={16} className="group__chevron" />
           </a>
         </div>
-        {version && <p className="group__note group__note--center">Versión {version}</p>}
+        {version && <p className="group__note group__note--center">{copy.version(version)}</p>}
       </section>
     </div>
   )

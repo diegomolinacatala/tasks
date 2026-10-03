@@ -1,3 +1,4 @@
+import { pick } from '../i18n'
 import { mergeChunks, rms } from './wav'
 
 /** Por encima de este nivel se considera que hay voz. */
@@ -30,7 +31,7 @@ type AudioContextConstructor = typeof AudioContext
 export function createAudioContext(): AudioContext {
   const scope = window as Window & { webkitAudioContext?: AudioContextConstructor }
   const Constructor = window.AudioContext ?? scope.webkitAudioContext
-  if (!Constructor) throw new Error('Este navegador no permite grabar audio.')
+  if (!Constructor) throw new Error(pick({ es: 'Este navegador no permite grabar audio.', en: 'This browser cannot record audio.' }))
   return new Constructor()
 }
 

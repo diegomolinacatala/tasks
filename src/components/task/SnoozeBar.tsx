@@ -1,8 +1,14 @@
 import { reminderLabel, snoozeOptions } from '../../lib/reminders'
+import { useCopy } from '../../state/LanguageProvider'
 import { useDispatch } from '../../state/StoreProvider'
 import type { Task } from '../../types'
 import { IconCheck } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
+
+const COPY = {
+  es: { snooze: 'Posponer', reminder: (label: string) => `Aviso: ${label}`, done: 'Hecha' },
+  en: { snooze: 'Snooze', reminder: (label: string) => `Reminder: ${label}`, done: 'Done' },
+} as const
 
 interface SnoozeBarProps {
   task: Task
@@ -13,10 +19,11 @@ interface SnoozeBarProps {
 export function SnoozeBar({ task, onDone }: SnoozeBarProps) {
   const dispatch = useDispatch()
   const toast = useToast()
+  const copy = useCopy(COPY)
 
   return (
     <>
-      <p className="sheet__title">Posponer</p>
+      <p className="sheet__title">{copy.snooze}</p>
       <div className="sheet__chips">
         {snoozeOptions(Date.now()).map((option) => (
           <button
@@ -25,7 +32,7 @@ export function SnoozeBar({ task, onDone }: SnoozeBarProps) {
             className="chip chip--option"
             onClick={() => {
               dispatch({ type: 'task/snooze', id: task.id, at: option.at, now: Date.now() })
-              toast({ message: `Aviso: ${reminderLabel({ kind: 'at', at: option.at }, Date.now())}` })
+              toast({ message: copy.reminder(reminderLabel({ kind: 'at', at: option.at }, Date.now())) })
               onDone()
             }}
           >
@@ -42,7 +49,7 @@ export function SnoozeBar({ task, onDone }: SnoozeBarProps) {
             }}
           >
             <IconCheck size={13} strokeWidth={2.5} />
-            Hecha
+            {copy.done}
           </button>
         )}
       </div>

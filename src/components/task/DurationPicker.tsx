@@ -4,6 +4,7 @@ import { shortTime } from '../../lib/date'
 import { MAX_DURATION, MIN_DURATION, durationFromEnd, durationLabel, endClock } from '../../lib/duration'
 import { haptic } from '../../lib/platform/feedback'
 import { durationAt, nextSpan, rulerTicks, spanFor, stepFor } from '../../lib/ruler'
+import { useCopy } from '../../state/LanguageProvider'
 import type { IsoTime } from '../../types'
 import { IconClose } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
@@ -13,6 +14,23 @@ import './ruler.css'
 const HOLD_MS = 480
 /** Desde aquí (en proporción de la pista, también más allá del borde) el dedo está "al final". */
 const END_ZONE = 0.97
+
+const COPY = {
+  es: {
+    none: 'Sin duración',
+    title: 'Duración',
+    until: 'Hasta…',
+    clear: 'Quitar la duración',
+    ask: (clock: string) => `A las ${clock} te pregunto si has acabado.`,
+  },
+  en: {
+    none: 'No duration',
+    title: 'Duration',
+    until: 'Until…',
+    clear: 'Remove the duration',
+    ask: (clock: string) => `At ${clock} I’ll ask if you’re done.`,
+  },
+} as const
 
 interface DurationPickerProps {
   /** Solo se pinta con hora: sin ella no hay desde cuándo contar ni cuándo preguntar. */
@@ -38,6 +56,7 @@ interface Gesture {
  */
 export function DurationPicker({ time, duration, done = false, onChange }: DurationPickerProps) {
   const track = useRef<HTMLDivElement>(null)
+  const copy = useCopy(COPY)
   const [span, setSpan] = useState(() => spanFor(duration))
   const spanRef = useRef(span)
   // De cuánto venía la regla al estirarse o encogerse: las marcas se animan desde allí.
@@ -146,11 +165,11 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
   const end = current === null ? null : endClock(time, current)
   const ticks = rulerTicks(span)
   const atEnd = ratio >= END_ZONE && span < MAX_DURATION
-  const label = current === null ? 'Sin duración' : durationLabel(current)
+  const label = current === null ? copy.none : durationLabel(current)
 
   return (
     <>
-      <p className="sheet__title">Duración</p>
+      <p className="sheet__title">{copy.title}</p>
       <div
         className={`ruler ${live !== undefined ? 'is-dragging' : ''} ${holding ? 'is-holding' : ''} ${current === null ? 'is-empty' : ''} ${
           atEnd ? 'can-stretch' : ''
@@ -162,11 +181,11 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
           <span className="ruler__span">
             {end && <span className="ruler__start">{shortTime(time)} →</span>}
             <PickerChip type="time" className="ruler__end" value={end ?? ''} onCommit={setEnd}>
-              {end ? shortTime(end) : 'Hasta…'}
+              {end ? shortTime(end) : copy.until}
             </PickerChip>
           </span>
           {duration !== null && (
-            <button type="button" className="ruler__clear" aria-label="Quitar la duración" onClick={() => onChange(null)}>
+            <button type="button" className="ruler__clear" aria-label={copy.clear} onClick={() => onChange(null)}>
               <IconClose size={13} />
             </button>
           )}
@@ -177,7 +196,7 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
           className="ruler__track"
           role="slider"
           tabIndex={0}
-          aria-label="Duración"
+          aria-label={copy.title}
           aria-valuemin={0}
           aria-valuemax={span}
           aria-valuenow={current ?? 0}
@@ -212,7 +231,7 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
           )}
         </div>
       </div>
-      {end && !done && <p className="sheet__note">A las {shortTime(end)} te pregunto si has acabado.</p>}
+      {end && !done && <p className="sheet__note">{copy.ask(shortTime(end))}</p>}
     </>
   )
 }

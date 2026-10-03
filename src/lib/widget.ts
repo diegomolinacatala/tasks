@@ -1,7 +1,10 @@
+import { backlogTasks } from '../state/selectors'
 import type { AppState, IsoDate, IsoTime, Routine, Task } from '../types'
 import type { RoutineChange, WidgetChange } from './nativeEvents'
 import { addDays, isoOfInstant } from './date'
-import { byOrder } from './order'
+import type { Language } from './i18n'
+import { language } from './i18n'
+import { byOrder, compareText } from './order'
 import { byRoutineOrder } from './routines'
 
 /**
@@ -12,6 +15,8 @@ import { byRoutineOrder } from './routines'
 export const WIDGET_DAYS = 7
 /** El widget enseña una decena como mucho; el tope solo evita escribir fotos enormes. */
 export const WIDGET_MAX_TASKS = 200
+/** Lo de la Bandeja: el widget grande enseña ocho; con esto sobra para lo que se tache desde él. */
+export const WIDGET_MAX_INBOX = 40
 const WIDGET_VERSION = 1
 
 export interface WidgetTask {
@@ -40,11 +45,23 @@ export interface WidgetRoutine {
   done: IsoDate[]
 }
 
+/** Tarea de la Bandeja (sin fecha) para su widget: en el orden de la app, lo pendiente primero. */
+export interface WidgetInboxTask {
+  id: string
+  title: string
+  done: boolean
+  importance: number
+}
+
 export interface WidgetSnapshot {
   version: typeof WIDGET_VERSION
   tasks: WidgetTask[]
   /** Falta en las fotos de antes de las rutinas: el widget lo trata como ninguna. */
   routines: WidgetRoutine[]
+  /** Falta en las fotos de antes del widget de la Bandeja: sin ella, el widget pide abrir la app. */
+  inbox: WidgetInboxTask[]
+  /** Idioma de la app (ya resuelto): el de los textos de los widgets. Sin él, el del iPhone. */
+  language: Language
 }
 
 /** Días de diario que lleva la foto: el widget solo mira hoy, y la semana da para sus puntos. */
@@ -72,7 +89,7 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
   // Por día; dentro del día, raíz y secciones como en la pantalla principal. Lo atrasado ignora
   // la sección, igual que el bloque Atrasadas.
   const compare = (a: Dated, b: Dated) =>
-    a.date.localeCompare(b.date) || (a.date < today ? 0 : rank(a) - rank(b)) || byOrder(a, b)
+    compareText(a.date, b.date) || (a.date < today ? 0 : rank(a) - rank(b)) || byOrder(a, b)
 
   const tasks = state.tasks
     .filter((task) => visible(task, today, last))
@@ -80,7 +97,11 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     .slice(0, WIDGET_MAX_TASKS)
     .map(({ id, title, date, time, done, importance }) => ({ id, title, date, time, done, importance }))
 
-  return { version: WIDGET_VERSION, tasks, routines: widgetRoutines(state.routines, today) }
+  const inbox = backlogTasks(state)
+    .slice(0, WIDGET_MAX_INBOX)
+    .map(({ id, title, done, importance }) => ({ id, title, done, importance }))
+
+  return { version: WIDGET_VERSION, tasks, routines: widgetRoutines(state.routines, today), inbox, language: language() }
 }
 
 /** Ids a alternar para que la app refleje lo marcado en el widget. Si una tarea se repite, manda lo último. */

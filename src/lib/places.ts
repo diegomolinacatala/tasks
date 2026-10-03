@@ -1,4 +1,6 @@
 import type { AppState, IsoDate, Place, PlaceLocation, PlaceTrigger, ReminderDraft, Task } from '../types'
+import { language } from './i18n'
+import { compareNames } from './order'
 import { fold } from './normalize'
 
 export const DEFAULT_RADIUS = 150
@@ -13,7 +15,7 @@ export const MAX_PLACE_NAME = 60
 const MAX_ADDRESS = 200
 const BODY_PREVIEW = 3
 
-const ARTICLE = /^(?:el|la|los|las|mi|mis) /
+const ARTICLE = /^(?:el|la|los|las|mi|mis|the|my) /
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
@@ -28,11 +30,15 @@ export function findPlace(places: readonly Place[], name: string): Place | null 
   return places.find((place) => placeKey(place.name) === key) ?? null
 }
 
-/** `Al llegar a Mercadona`, `Al salir de Casa`. */
-export const placeTriggerLabel = (name: string, on: PlaceTrigger) => (on === 'arrive' ? `Al llegar a ${name}` : `Al salir de ${name}`)
+/** `Al llegar a Mercadona`, `Al salir de Casa` · `Arriving at Walmart`, `Leaving Home`. */
+export function placeTriggerLabel(name: string, on: PlaceTrigger): string {
+  if (language() === 'en') return on === 'arrive' ? `Arriving at ${name}` : `Leaving ${name}`
+  return on === 'arrive' ? `Al llegar a ${name}` : `Al salir de ${name}`
+}
 
 export function placeReminderLabel(reminder: Extract<ReminderDraft, { kind: 'place' }>, places: readonly Place[]): string {
-  return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? 'un lugar', reminder.on)
+  const fallback = language() === 'en' ? 'a place' : 'un lugar'
+  return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? fallback, reminder.on)
 }
 
 const EARTH_RADIUS_M = 6_371_000
@@ -46,11 +52,12 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h))
 }
 
-/** `40 m`, `950 m`, `1 km`, `1,2 km`, `25 km`. */
+/** `40 m`, `950 m`, `1 km`, `1,2 km` (`1.2 km` en inglés), `25 km`. */
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`
   const km = meters / 1000
-  return km < 10 ? `${km.toFixed(1).replace(/\.0$/, '').replace('.', ',')} km` : `${Math.round(km)} km`
+  const decimal = language() === 'en' ? '.' : ','
+  return km < 10 ? `${km.toFixed(1).replace(/\.0$/, '').replace('.', decimal)} km` : `${Math.round(km)} km`
 }
 
 export const clampRadius = (radius: number) => Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, Math.round(radius)))
@@ -126,7 +133,7 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
         lat: place.location.lat,
         lng: place.location.lng,
         radius: place.radius,
-        title: on === 'arrive' ? place.name : `Al salir de ${place.name}`,
+        title: on === 'arrive' ? place.name : placeTriggerLabel(place.name, 'leave'),
         body: bodyOf(sorted),
         taskIds: sorted.map((task) => task.id),
         due: hasDayDue(sorted, today),
@@ -135,7 +142,7 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
   })
 
   return alerts
-    .sort((a, b) => Number(b.due) - Number(a.due) || b.taskIds.length - a.taskIds.length || a.title.localeCompare(b.title))
+    .sort((a, b) => Number(b.due) - Number(a.due) || b.taskIds.length - a.taskIds.length || compareNames(a.title, b.title))
     .slice(0, MAX_PLACE_ALERTS)
     .map(({ due: _due, ...alert }) => alert)
 }

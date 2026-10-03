@@ -1,5 +1,5 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, ReminderDraft, Routine, Task, Theme } from '../types'
+import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, LanguageSetting, ReminderDraft, Routine, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -67,6 +67,7 @@ export type Action =
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }
   | { type: 'settings/theme'; theme: Theme }
+  | { type: 'settings/language'; language: LanguageSetting }
   /** Se ha cerrado la bienvenida de esa versión (`lib/welcome.ts`). */
   | { type: 'settings/welcome'; version: number }
   | { type: 'state/replace'; state: AppState }

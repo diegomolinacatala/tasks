@@ -1,14 +1,32 @@
 /* Fila deslizable (SwipeRow). `useSwipe` escribe el desplazamiento en el `transform` de la
    superficie y `--swipe` (de 0 a 1) en la fila, sin pasar por React. */
+/* Las filas fuera de la pantalla no se diseñan ni se pintan hasta que se acercan (iOS 18 en adelante):
+   una lista larga no pesa en un móvil modesto. Ya recortaban lo suyo (`overflow`): a la vista, igual. */
 .swipe {
   position: relative;
   list-style: none;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 49px;
   border-radius: var(--r-sm);
   touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* Lo que mide cada fila sin pintar, hasta que se pinta una vez (`auto` recuerda su alto real) */
+.swipe.tl-row {
+  contain-intrinsic-size: auto 65px;
+}
+
+.swipe.routine {
+  contain-intrinsic-size: auto 64px;
+}
+
+/* Mientras se arrastra se pintan todas: el arrastre mide dónde cae cada fila */
+.view.is-dragging .swipe {
+  content-visibility: visible;
 }
 
 /* Hueco que deja la tarea mientras viaja */

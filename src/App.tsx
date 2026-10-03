@@ -1,4 +1,4 @@
-import { Activity, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, Suspense, lazy, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
 import { addLabel, composeTargets } from './lib/compose'
@@ -8,7 +8,7 @@ import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
 import { draftsFromInterpreted } from './lib/interpret'
 import type { ParsedTask } from './lib/parse'
-import { parseSpoken } from './lib/parse'
+import { parseSpoken, warmUpParser } from './lib/parse'
 import { isNative } from './lib/platform'
 import { haptic } from './lib/platform/feedback'
 import type { RoutineDraft } from './lib/repeat'
@@ -18,6 +18,7 @@ import { applyTheme } from './lib/theme'
 import type { WelcomeRun } from './lib/welcome'
 import { FULL_WELCOME, WELCOME_VERSION, welcomeOnLaunch } from './lib/welcome'
 import { useToday } from './hooks/useToday'
+import { useCopy, useLanguage } from './state/LanguageProvider'
 import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
 import { isOverdue } from './state/selectors'
 import type { TabId, Task, TaskDraft } from './types'
@@ -77,6 +78,34 @@ function WelcomeUnavailable({ onReady, onUnavailable }: WelcomeHandlers) {
   return null
 }
 
+const COPY = {
+  es: {
+    routineLimit: (max: number) => `Ya hay ${max} rutinas: borra alguna para añadir otra.`,
+    routine: (name: string) => `Rutina: ${name}`,
+    undo: 'Deshacer',
+    view: 'Ver',
+    inbox: 'Bandeja',
+    noDate: 'Sin fecha',
+    many: (count: number, titles: string) => `${count} tareas: ${titles}`,
+    sizing: 'Tamaño según importancia',
+    stopWriting: 'Dejar de escribir',
+  },
+  en: {
+    routineLimit: (max: number) => `You already have ${max} routines: delete one to add another.`,
+    routine: (name: string) => `Routine: ${name}`,
+    undo: 'Undo',
+    view: 'View',
+    inbox: 'Inbox',
+    noDate: 'No date',
+    many: (count: number, titles: string) => `${count} tasks: ${titles}`,
+    sizing: 'Size by importance',
+    stopWriting: 'Stop writing',
+  },
+} as const
+
+/** Lo que se espera tras el arranque para preparar el analizador (la entrada de la app dura menos). */
+const WARM_UP_MS = 1200
+
 /** Las pestañas donde se escribe y se ordena: llevan el compositor y el modo "Aa". */
 const WRITING: ReadonlySet<TabId> = new Set(['inbox', 'agenda'])
 
@@ -93,10 +122,15 @@ export function App() {
   const toast = useToast()
   const addTasks = useAddTasks()
   const actions = useTaskActions()
+  const copy = useCopy(COPY)
+  const language = useLanguage()
   // La PWA no puede avisar por lugar: allí esas frases se dejan tal cual.
   const places = isNative ? state.places : null
 
   const [tab, setTab] = useState<TabId>('agenda')
+  // La barra de pestañas cambia al momento; la pestaña nueva se prepara sin bloquear el toque (en un
+  // móvil modesto, montar una lista larga se nota) y aparece en cuanto está.
+  const shownTab = useDeferredValue(tab)
   // Cada pestaña se monta la primera vez que se abre y después se conserva (con su scroll).
   const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set<TabId>(['agenda']))
   const [day, setDay] = useState(today)
@@ -129,6 +163,9 @@ export function App() {
     if (!welcome) finishBoot()
     if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
     void loadSheets()
+    // Con la app ya entrada, en un rato libre: la primera tecla en la barra no espera a compilar nada.
+    const warm = window.setTimeout(() => warmUpParser(Date.now()), WARM_UP_MS)
+    return () => window.clearTimeout(warm)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pasada la medianoche con la app abierta, si se miraba "hoy", se sigue mirando hoy.
@@ -140,11 +177,13 @@ export function App() {
     setDay((current) => (current === previous ? today : current))
   }, [today])
 
-  // Al volver a una pestaña, su scroll donde estaba: oculta pierde la posición.
+  // Al volver a una pestaña, su scroll donde estaba: oculta pierde la posición. Si estaba arriba no
+  // se toca: escribir `scrollTop` obliga a calcular el diseño de golpe, y en un móvil modesto se nota.
   useLayoutEffect(() => {
-    const node = scrollers.current[tab]
-    if (node) node.scrollTop = scrollTops.current[tab] ?? 0
-  }, [tab])
+    const node = scrollers.current[shownTab]
+    const top = scrollTops.current[shownTab] ?? 0
+    if (node && top > 0) node.scrollTop = top
+  }, [shownTab])
 
   const go = useCallback((next: TabId) => {
     const leaving = currentTab.current
@@ -203,7 +242,7 @@ export function App() {
   /** Al llegar al tope, se dice en vez de fingir que se ha creado. */
   const roomForRoutine = () => {
     if (state.routines.length < MAX_ROUTINES) return true
-    toast({ message: `Ya hay ${MAX_ROUTINES} rutinas: borra alguna para añadir otra.` })
+    toast({ message: copy.routineLimit(MAX_ROUTINES) })
     return false
   }
 
@@ -215,8 +254,8 @@ export function App() {
     dispatch({ type: 'routine/add', id, title: draft.title, days: draft.days, time: draft.time, emoji })
     haptic('success')
     toast({
-      message: `Rutina: ${emoji ? `${emoji} ` : ''}${draft.title} · ${draft.label}`,
-      actionLabel: tab === 'inbox' ? 'Deshacer' : 'Ver',
+      message: copy.routine(`${emoji ? `${emoji} ` : ''}${draft.title} · ${draft.label}`),
+      actionLabel: tab === 'inbox' ? copy.undo : copy.view,
       onAction: () => (tab === 'inbox' ? dispatch({ type: 'routine/remove', id }) : go('inbox')),
     })
     return true
@@ -232,8 +271,8 @@ export function App() {
     openTask(null)
     openRoutine(id)
     toast({
-      message: `Rutina: ${task.title}`,
-      actionLabel: 'Deshacer',
+      message: copy.routine(task.title),
+      actionLabel: copy.undo,
       onAction: () => {
         dispatch({ type: 'routine/remove', id })
         dispatch({ type: 'task/restore', task })
@@ -248,8 +287,8 @@ export function App() {
     if (here) return
     const { date } = draft
     toast({
-      message: `${draft.title} → ${date ? relativeLabel(date, today) : 'Bandeja'}`,
-      actionLabel: 'Ver',
+      message: `${draft.title} → ${date ? relativeLabel(date, today) : copy.inbox}`,
+      actionLabel: copy.view,
       onAction: () => {
         if (date) setDay(date)
         go(date ? 'agenda' : 'inbox')
@@ -265,15 +304,15 @@ export function App() {
     toast({
       message:
         drafts.length === 1 && first
-          ? `${first.title} · ${first.label || 'Sin fecha'}`
-          : `${drafts.length} tareas: ${drafts.map((draft) => draft.title).join(', ')}`,
-      actionLabel: 'Deshacer',
+          ? `${first.title} · ${first.label || copy.noDate}`
+          : copy.many(drafts.length, drafts.map((draft) => draft.title).join(', ')),
+      actionLabel: copy.undo,
       onAction: () => ids.forEach((id) => dispatch({ type: 'task/remove', id })),
     })
   }
 
   // "Todos los días…" es una rutina; si no, lo que entendió la IA del servidor manda y, si no hay
-  // nada válido, el analizador local.
+  // nada válido, el analizador local. La IA solo entiende español: en inglés, siempre el local.
   const addFromVoice = (text: string, interpreted: unknown) => {
     const now = Date.now()
     const routine = parseRoutine(text, now)
@@ -281,13 +320,15 @@ export function App() {
       addRoutine(routine)
       return
     }
-    addSpoken(draftsFromInterpreted(interpreted, now, places) ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
+    const understood = language === 'es' ? draftsFromInterpreted(interpreted, now, places) : null
+    addSpoken(understood ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
   }
 
   useNativeActions({
     onAdd: (text) => addSpoken([parseSpoken(text, Date.now(), places)].filter((draft) => draft.title)),
-    onCompose: () => {
-      if (!WRITING.has(tab)) go('agenda')
+    onCompose: (inbox) => {
+      if (inbox) go('inbox')
+      else if (!WRITING.has(tab)) go('agenda')
       setFocusRequest((count) => count + 1)
     },
     onWeek: () => go('agenda'),
@@ -298,17 +339,19 @@ export function App() {
     onOpenTask: openTask,
     onInbox: () => window.dispatchEvent(new Event(INBOX_EVENT)),
     onRoutines: () => go('inbox'),
+    onBacklog: () => go('inbox'),
   })
 
   const hasOverdue = useMemo(() => state.tasks.some((task) => isOverdue(task, today)), [state.tasks, today])
-  const writing = WRITING.has(tab)
-  const inAgenda = tab === 'agenda'
+  // Lo de la barra de escribir va con la pestaña que se ve, no con la que se acaba de tocar.
+  const writing = WRITING.has(shownTab)
+  const inAgenda = shownTab === 'agenda'
   // Adónde puede ir lo escrito: primero donde se está mirando, después los sitios de siempre.
-  const targets = useMemo(() => composeTargets(inAgenda ? day : null, today), [inAgenda, day, today])
+  const targets = useMemo(() => composeTargets(inAgenda ? day : null, today), [inAgenda, day, today, language])
 
   const pane = (id: TabId, content: ReactNode) =>
     visited.has(id) && (
-      <Activity mode={tab === id ? 'visible' : 'hidden'}>
+      <Activity mode={shownTab === id ? 'visible' : 'hidden'}>
         <div
           className="app__scroll"
           ref={(node) => {
@@ -332,7 +375,7 @@ export function App() {
           <button
             type="button"
             className="app__sizing"
-            aria-label="Tamaño según importancia"
+            aria-label={copy.sizing}
             aria-pressed={sizing}
             onClick={() => setSizing((on) => !on)}
           >
@@ -348,7 +391,7 @@ export function App() {
             {pane('settings', <SettingsView onWelcome={() => setWelcome(FULL_WELCOME)} />)}
           </SizingContext.Provider>
           {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
-          <button type="button" className="app__veil" tabIndex={-1} aria-label="Dejar de escribir" aria-hidden={!composing} onClick={stopComposing} />
+          <button type="button" className="app__veil" tabIndex={-1} aria-label={copy.stopWriting} aria-hidden={!composing} onClick={stopComposing} />
         </main>
 
         <div className="app__bar">

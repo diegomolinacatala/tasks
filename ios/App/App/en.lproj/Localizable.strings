@@ -1,0 +1,25 @@
+/*
+  Inglés de lo que el sistema enseña por su cuenta (Siri y la app Atajos), en el idioma del iPhone.
+  Las claves son los textos en español de AppIntents.swift y MoveOverdueWidgetIntent.swift.
+*/
+
+/* Añadir tarea */
+"Añadir tarea" = "Add task";
+"Apunta una tarea sin abrir Tasks. Entiende el día, la hora, los avisos y los lugares: «llamar a Ana mañana a las 5»." = "Add a task without opening Tasks. It understands the day, the time, reminders and places: “call Ana tomorrow at 5pm”.";
+"Tarea" = "Task";
+"¿Qué apunto?" = "What should I add?";
+"Apuntar ${text} en Tasks" = "Add ${text} to Tasks";
+
+/* Pasar atrasadas a hoy */
+"Pasar atrasadas a hoy" = "Move overdue to today";
+"Pasa a hoy las tareas atrasadas sin abrir Tasks." = "Moves overdue tasks to today without opening Tasks.";
+"Atrasadas a hoy" = "Overdue to today";
+
+/* Nueva tarea */
+"Nueva tarea" = "New task";
+"Abre Tasks con el teclado listo para escribir una tarea." = "Opens Tasks with the keyboard ready to write a task.";
+
+/* Ver la semana */
+"Ver la semana" = "See the week";
+"Abre Tasks en la agenda de la semana." = "Opens Tasks on the week’s agenda.";
+"Semana" = "Week";

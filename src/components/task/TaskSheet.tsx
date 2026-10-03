@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { todayIso } from '../../lib/date'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findTask } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
@@ -11,6 +12,25 @@ import { ReminderPicker } from './ReminderPicker'
 import { SectionField, TimeField, WhenField } from './fields'
 import { SnoozeBar } from './SnoozeBar'
 import { useTaskActions } from './useTaskActions'
+
+const COPY = {
+  es: {
+    edit: 'Editar tarea',
+    title: 'Título de la tarea',
+    importance: 'Importancia',
+    actions: 'Acciones',
+    toRoutine: 'Convertir en rutina',
+    remove: 'Borrar tarea',
+  },
+  en: {
+    edit: 'Edit task',
+    title: 'Task title',
+    importance: 'Importance',
+    actions: 'Actions',
+    toRoutine: 'Turn into a routine',
+    remove: 'Delete task',
+  },
+} as const
 
 interface TaskSheetProps {
   taskId: string | null
@@ -25,6 +45,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
   const state = useAppState()
   const dispatch = useDispatch()
   const { remove, setImportance } = useTaskActions()
+  const copy = useCopy(COPY)
   const task = findTask(state, taskId)
   // Se conserva la última tarea para poder animar el cierre del panel.
   const [shown, setShown] = useState<Task | null>(task)
@@ -79,7 +100,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
   }
 
   return (
-    <Sheet open={open} onClose={close} title="Editar tarea">
+    <Sheet open={open} onClose={close} title={copy.edit}>
       {/* Posponer una tarea ya hecha crearía un aviso que nunca suena. */}
       {fromNotification && !shown.done && <SnoozeBar task={shown} onDone={close} />}
 
@@ -90,10 +111,10 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         onBlur={commitTitle}
-        aria-label="Título de la tarea"
+        aria-label={copy.title}
       />
 
-      <p className="sheet__title">Importancia</p>
+      <p className="sheet__title">{copy.importance}</p>
       <ImportanceScale value={shown.importance} onChange={(importance) => task && setImportance(task.id, importance)} />
 
       <WhenField date={shown.date} today={today} onChange={moveTo} />
@@ -118,7 +139,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
       {/* Las secciones agrupan dentro del día: sin fecha no hay dónde agrupar. */}
       {shown.date !== null && <SectionField sectionId={shown.sectionId} onChange={setSection} />}
 
-      <p className="sheet__title">Acciones</p>
+      <p className="sheet__title">{copy.actions}</p>
       <button
         type="button"
         className="sheet__row"
@@ -129,7 +150,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
         }}
       >
         <IconRepeat size={18} />
-        Convertir en rutina
+        {copy.toRoutine}
       </button>
       <button
         type="button"
@@ -141,7 +162,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
         }}
       >
         <IconTrash size={18} />
-        Borrar tarea
+        {copy.remove}
       </button>
     </Sheet>
   )

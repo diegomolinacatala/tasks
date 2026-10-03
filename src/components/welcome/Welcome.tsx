@@ -6,6 +6,7 @@ import { isNative } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import type { PlateId, WelcomeRun } from '../../lib/welcome'
 import { platesAfter } from '../../lib/welcome'
+import { useCopy } from '../../state/LanguageProvider'
 import { IconChevronLeft } from '../ui/Icons'
 import { DetailsScene } from './DetailsScene'
 import { MonthScene } from './MonthScene'
@@ -24,9 +25,6 @@ interface WelcomeProps {
 
 interface Plate {
   id: PlateId
-  kicker: string
-  title: string
-  text: string
   Scene: ComponentType
 }
 
@@ -35,44 +33,79 @@ interface Plate {
  * nueva lleva su versión en `PLATE_SINCE` (`lib/welcome.ts`): así sale también a quien actualiza.
  */
 const PLATES: readonly Plate[] = [
-  {
-    id: 'write',
-    kicker: 'Escribir',
-    title: 'Escribe como hablas.',
-    text: 'El día, la hora y los avisos salen solos de la frase.',
-    Scene: WriteScene,
-  },
-  {
-    id: 'details',
-    kicker: 'Detalles',
-    title: 'Todo, antes de añadir.',
-    text: 'Toca Detalles o tira de la barra hacia arriba: día, hora, avisos y si se repite.',
-    Scene: DetailsScene,
-  },
-  {
-    id: 'swipe',
-    kicker: 'Gestos',
-    title: 'Un gesto y listo.',
-    text: 'A la derecha, hecha. A la izquierda, fuera. Pruébalo.',
-    Scene: SwipeScene,
-  },
-  {
-    id: 'month',
-    kicker: 'Agenda',
-    title: 'De la semana al mes.',
-    text: 'Tira de los días hacia abajo y salta a cualquier fecha.',
-    Scene: MonthScene,
-  },
-  {
-    id: 'routine',
-    kicker: 'Rutinas',
-    title: 'Lo de cada día.',
-    text: isNative
-      ? 'Cada mañana amanecen sin tachar. Se tachan también desde la pantalla de bloqueo.'
-      : 'Cada mañana amanecen sin tachar, con su emoji y su racha.',
-    Scene: RoutineScene,
-  },
+  { id: 'write', Scene: WriteScene },
+  { id: 'details', Scene: DetailsScene },
+  { id: 'swipe', Scene: SwipeScene },
+  { id: 'month', Scene: MonthScene },
+  { id: 'routine', Scene: RoutineScene },
 ]
+
+const device = isNative ? 'iPhone' : null
+
+const COPY = {
+  es: {
+    plates: {
+      write: { kicker: 'Escribir', title: 'Escribe como hablas.', text: 'El día, la hora y los avisos salen solos de la frase.' },
+      details: {
+        kicker: 'Detalles',
+        title: 'Todo, antes de añadir.',
+        text: 'Toca Detalles o tira de la barra hacia arriba: día, hora, avisos y si se repite.',
+      },
+      swipe: { kicker: 'Gestos', title: 'Un gesto y listo.', text: 'A la derecha, hecha. A la izquierda, fuera. Pruébalo.' },
+      month: { kicker: 'Agenda', title: 'De la semana al mes.', text: 'Tira de los días hacia abajo y salta a cualquier fecha.' },
+      routine: {
+        kicker: 'Rutinas',
+        title: 'Lo de cada día.',
+        text: isNative
+          ? 'Cada mañana amanecen sin tachar. Se tachan también desde la pantalla de bloqueo.'
+          : 'Cada mañana amanecen sin tachar, con su emoji y su racha.',
+      },
+    },
+    newsLabel: 'Novedades de Tasks',
+    welcomeLabel: 'Bienvenida a Tasks',
+    news: ['Hay cosas nuevas.', 'Pruébalas con el dedo antes de seguir.'],
+    tagline: ['Tareas, rutinas y lugares.', `Todo se queda en tu ${device ?? 'dispositivo'}, sin cuentas.`],
+    seeNew: 'Ver lo nuevo',
+    start: 'Empezar',
+    skip: 'Saltar',
+    known: 'Ya la conozco',
+    back: 'Atrás',
+    progress: (step: number, total: number) => `Lámina ${step} de ${total}`,
+    done: 'Listo',
+    next: 'Continuar',
+  },
+  en: {
+    plates: {
+      write: { kicker: 'Write', title: 'Write the way you talk.', text: 'The day, the time and the reminders come straight from the sentence.' },
+      details: {
+        kicker: 'Details',
+        title: 'Everything, before adding.',
+        text: 'Tap Details or pull the bar up: day, time, reminders and whether it repeats.',
+      },
+      swipe: { kicker: 'Gestures', title: 'One swipe and done.', text: 'Right, done. Left, gone. Try it.' },
+      month: { kicker: 'Agenda', title: 'From week to month.', text: 'Pull the days down and jump to any date.' },
+      routine: {
+        kicker: 'Routines',
+        title: 'The everyday things.',
+        text: isNative
+          ? 'Every morning they start unchecked. Check them off from the Lock Screen, too.'
+          : 'Every morning they start unchecked, with their emoji and their streak.',
+      },
+    },
+    newsLabel: 'What’s new in Tasks',
+    welcomeLabel: 'Welcome to Tasks',
+    news: ['There’s something new.', 'Try it with your finger before moving on.'],
+    tagline: ['Tasks, routines and places.', `Everything stays on your ${device ?? 'device'}, no accounts.`],
+    seeNew: 'See what’s new',
+    start: 'Get started',
+    skip: 'Skip',
+    known: 'I know it already',
+    back: 'Back',
+    progress: (step: number, total: number) => `Card ${step} of ${total}`,
+    done: 'Done',
+    next: 'Continue',
+  },
+} as const
 
 /** Las láminas se numeran según salen: tras una actualización, lo nuevo empieza en I. */
 const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
@@ -89,6 +122,7 @@ const EXIT_MS = 420
  * Nada obliga: se avanza con el botón, se vuelve atrás y «Saltar» está siempre a mano.
  */
 export function Welcome({ run, onReady, onDone }: WelcomeProps) {
+  const copy = useCopy(COPY)
   // Lo que toca se fija al abrir: no cambia mientras se recorre.
   const [plates] = useState(() => {
     const due = platesAfter(PLATES, run.after)
@@ -132,8 +166,10 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
   })
 
   const plate = plates[step - 1]
+  const text = plate ? copy.plates[plate.id] : null
   const last = step === plates.length
   const { news } = run
+  const [first, second] = news ? copy.news : copy.tagline
 
   return createPortal(
     <div
@@ -142,9 +178,9 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
       className={`welcome ${leaving ? 'is-leaving' : ''}`}
       role="dialog"
       aria-modal="true"
-      aria-label={news ? 'Novedades de Tasks' : 'Bienvenida a Tasks'}
+      aria-label={news ? copy.newsLabel : copy.welcomeLabel}
     >
-      {!plate ? (
+      {!plate || !text ? (
         <section className={`welcome__cover ${backwards ? 'is-back' : ''}`}>
           {/* En el centro exacto y del mismo tamaño que la del arranque: al fundirse aquella, queda esta. */}
           <svg className="welcome__mark" viewBox="0 0 100 100" aria-hidden="true">
@@ -153,42 +189,34 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
           <div className="welcome__hello">
             <i className="welcome__rule" aria-hidden="true" />
             <h1 className="welcome__name">Tasks</h1>
-            {news ? (
-              <p className="welcome__tagline">
-                Hay cosas nuevas.
-                <br />
-                Pruébalas con el dedo antes de seguir.
-              </p>
-            ) : (
-              <p className="welcome__tagline">
-                Tareas, rutinas y lugares.
-                <br />
-                Todo se queda en tu {isNative ? 'iPhone' : 'dispositivo'}, sin cuentas.
-              </p>
-            )}
+            <p className="welcome__tagline">
+              {first}
+              <br />
+              {second}
+            </p>
           </div>
           <footer className="welcome__foot">
             <button type="button" className="welcome__next" onClick={() => go(1)}>
-              {news ? 'Ver lo nuevo' : 'Empezar'}
+              {news ? copy.seeNew : copy.start}
             </button>
             <button type="button" className="welcome__skip" onClick={finish}>
-              {news ? 'Saltar' : 'Ya la conozco'}
+              {news ? copy.skip : copy.known}
             </button>
           </footer>
         </section>
       ) : (
         <>
           <header className="welcome__bar">
-            <button type="button" className="welcome__back" aria-label="Atrás" onClick={() => go(step - 1)}>
+            <button type="button" className="welcome__back" aria-label={copy.back} onClick={() => go(step - 1)}>
               <IconChevronLeft size={20} />
             </button>
-            <ol className="welcome__progress" aria-label={`Lámina ${step} de ${plates.length}`}>
+            <ol className="welcome__progress" aria-label={copy.progress(step, plates.length)}>
               {plates.map((item, index) => (
                 <li key={item.id} className={index < step - 1 ? 'is-done' : index === step - 1 ? 'is-current' : ''} />
               ))}
             </ol>
             <button type="button" className="welcome__skip" onClick={finish}>
-              Saltar
+              {copy.skip}
             </button>
           </header>
           <section key={plate.id} className={`welcome__plate ${backwards ? 'is-back' : ''}`}>
@@ -198,15 +226,15 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
             <div className="welcome__copy">
               <p className="welcome__kicker">
                 <span className="welcome__numeral">{NUMERALS[step - 1] ?? step}</span>
-                {plate.kicker}
+                {text.kicker}
               </p>
-              <h1 className="welcome__title">{plate.title}</h1>
-              <p className="welcome__text">{plate.text}</p>
+              <h1 className="welcome__title">{text.title}</h1>
+              <p className="welcome__text">{text.text}</p>
             </div>
           </section>
           <footer className="welcome__foot">
             <button type="button" className="welcome__next" onClick={last ? finish : () => go(step + 1)}>
-              {last ? (news ? 'Listo' : 'Empezar') : 'Continuar'}
+              {last ? (news ? copy.done : copy.start) : copy.next}
             </button>
           </footer>
         </>

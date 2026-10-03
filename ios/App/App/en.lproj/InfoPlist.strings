@@ -1,0 +1,6 @@
+/* Inglés de los permisos y de los accesos rápidos del icono (Info.plist). */
+NSMicrophoneUsageDescription = "To dictate tasks with your voice. The audio is sent to our server, processed by Cloudflare AI models (Workers AI) and not stored.";
+NSLocationWhenInUseUsageDescription = "To remind you when you arrive at or leave your places, and to find places near you.";
+NSLocationAlwaysAndWhenInUseUsageDescription = "To remind you when you arrive at or leave your places, and to find places near you.";
+"Nueva tarea" = "New task";
+"Agenda" = "Agenda";

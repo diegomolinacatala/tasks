@@ -2,7 +2,9 @@ import { get, set } from 'idb-keyval'
 import { emptyState } from '../state/reducer'
 import type { AppState } from '../types'
 import { normalizeState } from './backup'
+import { deviceLanguages, resolveLanguage, setLanguage } from './i18n'
 import { applyInbox } from './inbox'
+import { loadEnglish } from './parse'
 import { isNative } from './platform'
 
 const KEY = 'tasks:state:v1'
@@ -31,6 +33,10 @@ async function withInbox(state: AppState): Promise<AppState> {
     const { markApplied, readInbox } = await import('./platform/inbox')
     const entries = await readInbox()
     if (!entries.length) return state
+    // Una entrada de solo texto se interpreta aquí, antes de que la app fije su idioma: se fija ya.
+    const language = resolveLanguage(state.settings.language, deviceLanguages())
+    setLanguage(language)
+    if (language === 'en') await loadEnglish()
     const applied = applyInbox(state, entries)
     markApplied(applied.entries)
     return applied.state

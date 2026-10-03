@@ -138,10 +138,33 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   "Duración y aviso de cierre"), en el panel de la tarea, la ficha y la lámina *Detalles*. Y los
   ejemplos de la bienvenida nombran a Carlota. Probado con dedo simulado (arrastrar, estirar dos veces,
   soltar, quitarla, tocar, la ×; claro y oscuro, 390 × 844 y 375 × 667); 676 tests.
+- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, **sin subir**: va en la 1.3,
+  que aún no se ha enviado). Lo pidió el usuario en una sola petición:
+  - **Idioma** (Ajustes → *Idioma*: Automático, Español, English): toda la app, los avisos, los widgets,
+    lo que dice Siri, la bienvenida y un **analizador en inglés** ("call mom tomorrow at 5pm, remind me
+    15 minutes before", "every monday at 7am", "when I get to Walmart"). Ver "Idioma". `SCHEMA_VERSION`
+    12. Páginas `public/support.html` y `public/privacy.html` en inglés.
+  - **Widget Bandeja** (`InboxWidget.swift`): lo que no tiene fecha, con su círculo para tacharlo sin
+    abrir la app; pequeño, mediano, grande y rectangular de bloqueo. Ver "App de iPhone".
+  - **Fluidez en móviles modestos**: ver "Rendimiento". Medido con `scripts/perf.mjs` (CPU 6× más
+    lenta, 230 tareas): en reposo ya no repinta (antes, cada fotograma), desplegar el mes pasa de 542 a
+    ~130 ms de peor fotograma, volver a la Agenda de 216 a ~50 ms de respuesta, tachar de 64 a ~20.
+  - Probado con Edge sin ventana y dedo simulado (inglés y español, instalación nueva con el sistema en
+    inglés, la tira deslizando nada más desplegar el mes, arrastrar en la Agenda); 804 tests de la app y
+    150 del Worker. Revisado por un segundo agente (sin errores de Swift a la vista). El
+    Swift (widget nuevo, textos, `en.lproj`) **no se ha compilado aún**: lo dirá el CI al subir.
 
 **Pendiente, en este orden**
 
-0. **Probar la TestFlight 30 (1.3)** en el iPhone y enviarla. Al instalarla encima de la
+0. **Subir lo del 03/10/2026.** Primero el Worker a `main` (el dictado en inglés necesita su `lang`; es
+   compatible hacia atrás, así que no rompe nada de lo publicado): sin él, una app en inglés transcribiría
+   forzando español. Después push a `capacitor` y mirar que el CI compila el Swift nuevo (widget de
+   la Bandeja, `WidgetText.swift`, los `en.lproj`). En el iPhone: Ajustes → Idioma → English (los
+   widgets cambian de idioma al volver al inicio), escribir y dictar en inglés, el widget **Bandeja**
+   (tachar sin abrir la app, el +, tocar una tarea), y con el iPhone en inglés, Siri: *«Add to Tasks»*
+   (las frases en inglés salen de `en.lproj/AppShortcuts.strings`; si Siri no las reconoce, abrir la
+   app Atajos una vez). Notar si va más fluido. Después, lo de la 1.3 de abajo con esa compilación.
+   **Probar la 1.3** en el iPhone y enviarla. Al instalarla encima de la
    1.2 tiene que salir la portada de novedades ("Hay cosas nuevas"). En la barra de escribir: tocar
    **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
    en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
@@ -203,6 +226,7 @@ npm run build:native  # typecheck + web para la app (dist-native/) + headless.js
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
 node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/)
+node scripts/perf.mjs 6 3         # fluidez con la CPU 6× más lenta, mediana de 3 pasadas (antes: build + preview en :4173)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
 
@@ -236,7 +260,8 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (134,2 el 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
+gzip (140,5 el 03/10/2026, con los textos en inglés; el analizador en inglés va aparte. 134,2 el
+01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
 (Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa", la bienvenida, la ficha del
@@ -249,11 +274,12 @@ La Bandeja y los paneles de tarea y sección van en su propio trozo, pedido nada
 
 ```
 src/
-├── types.ts              # Task, Reminder, Section, Place, Routine, Theme, TabId, AppState
+├── types.ts              # Task, Reminder, Section, Place, Routine, Theme, LanguageSetting, TabId, AppState
 ├── sw.ts                 # precache + push + notificationclick
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
-│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes, semanas de un mes
+│   ├── i18n.ts           # idioma vigente (es/en), automático según el sistema, `pick` de textos
+│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes, nombres en los dos idiomas
 │   ├── compose.ts        # destinos del compositor ("Hoy", "Mañana", "Jue 2", "Sin fecha") y "Añadir a…"
 │   ├── details.ts        # la ficha del compositor: campos, reglas entre ellos, resumen y lo que se añade
 │   ├── emoji.ts          # emoji de una rutina: sanearlo, los del selector y el que le pega a un nombre
@@ -267,8 +293,11 @@ src/
 │   ├── theme.ts          # apariencia: claro, oscuro o del sistema; cambio con un círculo de tinta
 │   ├── mapFrame.ts       # dónde van las chinchetas en el plano dibujado (sin Apple Maps)
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
-│   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
+│   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5"); elige analizador por idioma
+│   ├── parseCore.ts      # el motor que comparten los dos: escáner de tramos y montaje de la tarea
+│   ├── parseEn.ts        # el analizador en inglés (trozo aparte), con su título y sus lugares
 │   ├── when.ts           # piezas de parse.ts: horas, plazos y días
+│   ├── whenEn.ts         # lo mismo en inglés: "5pm", "an hour and a half", meses y días
 │   ├── title.ts          # título limpio: muletillas, "tengo que acudir a una cena" → "Cena"
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
@@ -290,7 +319,7 @@ src/
 │   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
-├── state/                # reducer, acciones, selectores, provider
+├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
     ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, useDayBoard), InboxView (+ DayDock)
@@ -299,15 +328,18 @@ src/
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
-    ├── settings/         # SettingsView (página), AppearancePicker, avisos, dictado
+    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, dictado
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # widgets Hoy y Rutinas; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
+ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText y
+                          # MoveOverdueWidgetIntent se compilan también en la app
+ios/App/*/en.lproj/       # inglés de lo que enseña iOS por su cuenta: Siri, Atajos, permisos, accesos rápidos
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 docs/capturas/            # capturas de la App Store (1320 × 2868), en orden de subida
-public/privacidad.html    # política de privacidad (URL que pide la App Store)
-public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store)
+public/privacidad.html    # política de privacidad (URL que pide la App Store); privacy.html, en inglés
+public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store); support.html
+scripts/perf.mjs          # fluidez con la CPU frenada: tareas largas, respuesta a cada toque y peor fotograma
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
 scripts/brand.mjs         # la marca (señal a pluma) en SVG: icono, favicon, pantalla de carga y #boot
@@ -368,7 +400,7 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
      pendientes lleva **Pasar a hoy**. Un día sin tareas dice "Día libre." (las rutinas no cuentan).
   El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
 - **Lugares** (`PlacesView`, ver "Lugares").
-- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Avisos, Dictado, Datos y
+- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Idioma, Avisos, Dictado, Datos y
   Tasks (ver la bienvenida, valorar, soporte, privacidad, versión).
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
@@ -465,6 +497,71 @@ tema. La pantalla de carga nativa usa el color `LaunchBackground` y la señal `L
 variante oscura (Assets.xcassets), y `SceneDelegate` fija la apariencia guardada
 (`TasksNative.setAppearance`, en `UserDefaults`) antes de crear la vista: con "Oscuro" o "Claro"
 distinto del iPhone, la pantalla del sistema sale un instante en el tema del iPhone.
+
+### Idioma
+
+Español e inglés, en Ajustes → **Idioma**: **Automático** (el del sistema: el primero de sus idiomas que
+la app habla; si no habla ninguno, inglés), **Español** o **English** (`Settings.language`). Es del
+dispositivo, como la apariencia: importar una copia o borrarlo todo no lo cambia. Una instalación nueva
+empieza en automático; lo guardado antes del inglés (sin el campo) sigue en español (`normalizeSettings`).
+
+- **El idioma vigente vive en `lib/i18n.ts`** y no se pasa de función en función: la lógica pura lo lee
+  al componer un texto (`pick({ es, en })`). La web lo fija al pintar (`LanguageProvider`, que además
+  pone `<html lang>`); `headless.js`, al empezar cada petición de Siri (`speakAs`, con
+  `Locale.preferredLanguages` que manda Swift para el automático).
+- **Cada módulo guarda sus textos en los dos idiomas, junto al código** que los usa: en la lógica,
+  tablas `TEXT`/`WORDS` con `pick`; en los componentes, `const COPY = { es: {…}, en: {…} } as const` y
+  `const copy = useCopy(COPY)`. `useCopy` lee el contexto del idioma: así las filas memorizadas se
+  repintan al cambiarlo. En una función que se llama después (un toast), `pick` en el momento.
+- **Texto nuevo = en los dos idiomas.** Inglés de Estados Unidos: horas de 12 h ("5:30 PM", el tramo
+  "5:30–6:30 PM"), fechas "Thu, Sep 18", fechas numéricas mes/día. Apóstrofo curvo (’) en los textos.
+- **Analizador en inglés** (`parseEn.ts` + `whenEn.ts`) sobre el mismo motor que el español
+  (`parseCore.ts`: escáner de tramos y montaje de la tarea; las reglas, iguales: una hora sin día que
+  ya pasó es de mañana, con hora y sin avisos se avisa a la hora, "at 5" es por la tarde…). `parseTask`
+  y `parseSpoken` eligen por idioma. Va en su **propio trozo**: lo pide `LanguageProvider` al estar en
+  inglés (y el selector antes de cambiar); hasta que llega, lo escrito se queda literal. `headless.js`
+  lo lleva dentro (`provideEnglish`). Las rutinas en inglés están en `repeat.ts` ("every day",
+  "weekdays", "on mondays", "every mon, wed and fri"); los emojis sugeridos, en `emoji.ts`.
+- **Dictado en inglés**: la app manda `lang: 'en'` y no manda el contexto (`api.ts`), así que el Worker
+  transcribe con Whisper en inglés y **no pasa por la IA**, cuyo prompt solo entiende español: el
+  texto lo entiende el analizador del móvil. Siri en inglés tampoco va a la IA (`sharesDictation`). Sin
+  `lang` (versiones anteriores), español como siempre.
+- **Avisos**: el texto sale ya en su idioma; los botones del iPhone se registran de nuevo al cambiarlo
+  (`registerTaskActions`) y los del push web van en el idioma del aviso (`lang` en el contenido cifrado,
+  `sw.ts`).
+- **Widgets**: siguen el idioma de la app, no el del iPhone: la foto lleva `language` y Swift elige los
+  textos con `WidgetText` (`WidgetText.swift`, también para los fallos de Siri). Lo que enseña iOS por su
+  cuenta (las frases de Siri, los títulos de Atajos, los permisos, los accesos rápidos del icono) sigue
+  el idioma del iPhone: `ios/App/App/en.lproj` (`Localizable.strings`, `AppShortcuts.strings`,
+  `InfoPlist.strings`) y `ios/App/TasksWidget/en.lproj`. Las claves son los textos en español del Swift:
+  si cambia uno, cambiar su clave. `CFBundleLocalizations` lleva `es` y `en`.
+- **Tests**: los de siempre van en español (el idioma por defecto); los de inglés fijan
+  `setLanguage('en')` y lo devuelven al acabar (`parseEn.test.ts`, `i18n.test.ts`).
+
+### Rendimiento
+
+Tiene que ir fluida en un iPhone de hace unos años. Se mide con `scripts/perf.mjs` (versión de
+producción, CPU 6× más lenta, 230 tareas, mediana de varias pasadas); comparar antes y después de un
+cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir:
+
+- **Nada se anima en reposo si obliga a repintar**: el punto de "ahora" latía animando una sombra y la
+  pantalla se repintaba en cada fotograma, también sin tocar nada. Lo que se mueve solo, con
+  `transform` u `opacity` (lo hace la GPU).
+- **Nada de `localeCompare`** para ordenar fechas, horas o ids: en JavaScriptCore cada llamada monta un
+  cotejador. `compareText` (`order.ts`); para nombres escritos, `compareNames` (un `Intl.Collator`).
+- **Lo que tarda en pintarse no bloquea el toque**: la pestaña nueva (`shownTab`) y el día nuevo de la
+  Agenda (`shown`) van con `useDeferredValue`: la barra de pestañas y la tira cambian al momento y lo
+  de debajo llega en cuanto está (si tarda, lo de antes se apaga un poco: `.agenda__below.is-stale`).
+  Mientras se arrastra, el día de debajo queda fijo (`dragDay`): lo que se confirma al soltar es suyo.
+- **Las filas fuera de la pantalla no se diseñan ni se pintan** (`content-visibility: auto` en `.swipe`,
+  iOS 18 en adelante). Ya recortaban su contenido, así que a la vista no cambia nada. Su alto estimado
+  (`contain-intrinsic-size`) es el medido: 49 px una tarea, 65 una del horario, 64 una rutina. Mientras
+  se arrastra (`.view.is-dragging`) se pintan todas, para que el arrastre mida bien.
+- **La tira pinta solo lo que se ve**: los paneles de los lados (la semana o el mes de antes y de
+  después) llegan pasado el despliegue (`SIDES_DELAY_MS`) o al empezar a deslizar.
+- El analizador compila sus expresiones en un rato libre tras el arranque (`warmUpParser`), y no corre
+  con la barra vacía.
+- Volver a una pestaña que estaba arriba no toca `scrollTop` (escribirlo obliga a diseñar de golpe).
 
 ### Pasar a hoy
 
@@ -867,6 +964,14 @@ la misma.
   - Enlaces `io.github.diegomolinacatala.tasks://today|compose|routines|task/<id>` (`WidgetLink`,
     `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose`, `routines` y `open`.
   - Sin App Group (compilación sin firmar) el widget dice "Abre Tasks" y la web ignora el error.
+- **Widget Bandeja** (`InboxWidget.swift`, pequeño, mediano, grande y rectangular de bloqueo): lo que
+  no tiene fecha, en el orden de la app y lo pendiente primero, con la cifra de pendientes. El círculo
+  lo tacha sin abrir la app (`ToggleTaskIntent`, el mismo de Hoy: `WidgetStore.toggle` busca también en
+  la Bandeja), tocar una tarea la abre, el + abre la barra de escribir en la Bandeja (`://compose/inbox`
+  → acción `compose` con `inbox`) y el resto, la Bandeja (`://backlog` → acción `backlog`). La foto lleva
+  `inbox` (40 como mucho, `WIDGET_MAX_INBOX`); una foto anterior no la trae y el widget pide abrir la
+  app. Una sola entrada (`policy: .never`): sin fecha no hay medianoche que cruzar, y la app recarga
+  todos los widgets al escribir la foto.
 - **Widget Rutinas** (`RoutinesWidget` en `TasksWidget.swift`, vistas en `TasksWidgetViews.swift`):
   pantalla de bloqueo redonda (anillo con lo hecho hoy y el **emoji** de la rutina; sus iniciales si
   no tiene, o la marca si ya está hecha) y rectangular (el emoji en el sitio del círculo, la rutina,
@@ -938,7 +1043,7 @@ que las altas.
 - `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
   `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
   puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
-  lados (4 desde que existe `answer`).
+  lados (5 desde el idioma: las entradas llevan `languages` y `consent` los recibe aparte).
 - Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
   del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
 - Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.
@@ -1060,6 +1165,8 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
   Atajos).
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
+- Dos idiomas, español e inglés, y ninguno más por ahora. La IA del dictado solo en español: en inglés
+  entiende el analizador del móvil.
 - Modo oscuro sí, pero con la misma identidad: colores apagados y pastel, nada chillón. El papel
   marfil sigue siendo la cara de la app (icono, capturas).
 - Cuatro pestañas y ninguna más (Bandeja, Agenda, Lugares, Ajustes). Lo que no es de primer nivel

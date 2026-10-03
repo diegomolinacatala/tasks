@@ -42,6 +42,20 @@ enum Palette {
     }
 }
 
+// MARK: - Idioma
+
+/** Los textos del widget, que cada entrada fija al pintarse (`WidgetText.current`). */
+private struct WidgetTextKey: EnvironmentKey {
+    static let defaultValue = WidgetText.spanish
+}
+
+extension EnvironmentValues {
+    var widgetText: WidgetText {
+        get { self[WidgetTextKey.self] }
+        set { self[WidgetTextKey.self] = newValue }
+    }
+}
+
 // MARK: - Tamaños
 
 struct SmallWidget: View {
@@ -110,6 +124,7 @@ struct LargeWidget: View {
 
 /** Pantalla de bloqueo: solo el número. */
 struct CircularWidget: View {
+    @Environment(\.widgetText) var text
     let day: WidgetDay
 
     var body: some View {
@@ -120,7 +135,7 @@ struct CircularWidget: View {
                     .font(.system(size: 20, weight: .semibold))
                     .monospacedDigit()
                     .minimumScaleFactor(0.5)
-                Text("HOY")
+                Text(verbatim: text.todayCaps)
                     .font(.system(size: 8, weight: .semibold))
                     .tracking(0.5)
             }
@@ -131,17 +146,18 @@ struct CircularWidget: View {
 
 /** Pantalla de bloqueo: el número y, como solo caben dos, las dos pendientes más importantes. */
 struct RectangularWidget: View {
+    @Environment(\.widgetText) var text
     let day: WidgetDay
     let ready: Bool
 
     var body: some View {
         let pending = Array(day.mostImportant.prefix(2))
         VStack(alignment: .leading, spacing: 1) {
-            Text(verbatim: day.pending == 0 ? "Hoy" : "Hoy · \(day.pending)")
+            Text(verbatim: day.pending == 0 ? text.today : "\(text.today) · \(day.pending)")
                 .font(.headline)
                 .widgetAccentable()
             if pending.isEmpty {
-                Text(verbatim: ready ? "Nada para hoy." : "Abre Tasks")
+                Text(verbatim: ready ? text.nothingToday : text.openTasks)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(pending) { task in
@@ -197,6 +213,7 @@ enum WidgetRow: Hashable {
 
 /** Filas de alto fijo (el hueco entre `slots`): no bailan al completar ni cambian con el iPhone. */
 struct TaskList: View {
+    @Environment(\.widgetText) var text
     let day: WidgetDay
     let slots: Int
     let style: RowStyle
@@ -205,7 +222,7 @@ struct TaskList: View {
     var body: some View {
         let rows = WidgetRow.rows(day, slots: slots)
         if rows.isEmpty {
-            Text(verbatim: ready ? "Nada para hoy." : "Abre Tasks")
+            Text(verbatim: ready ? text.nothingToday : text.openTasks)
                 .font(.system(size: style.title))
                 .foregroundStyle(Palette.text3)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -233,7 +250,7 @@ struct TaskList: View {
         case .task(let task, let overdue):
             TaskRow(task: task, overdue: overdue, today: day.day, style: style)
         case .more(let count):
-            Text("\(count) más")
+            Text(verbatim: text.more(count))
                 .font(.system(size: style.title - 2))
                 .foregroundStyle(Palette.text3)
                 .padding(.leading, style.inset)
@@ -245,6 +262,7 @@ struct TaskList: View {
 }
 
 struct TaskRow: View {
+    @Environment(\.widgetText) var text
     let task: WidgetTask
     let overdue: Bool
     let today: String
@@ -260,7 +278,7 @@ struct TaskRow: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(verbatim: task.done ? "Marcar como pendiente" : "Completar"))
+            .accessibilityLabel(Text(verbatim: task.done ? text.markPending : text.complete))
 
             if style.detailed {
                 Link(destination: WidgetLink.task(task.id)) { label }
@@ -299,8 +317,8 @@ struct TaskRow: View {
     /** Lo atrasado dice de cuándo es; lo de hoy, su hora. */
     private var detail: String? {
         guard style.detailed else { return nil }
-        if overdue { return WidgetDates.overdue(task.date, today: today) }
-        return task.time.map(WidgetDates.shortTime)
+        if overdue { return WidgetDates.overdue(task.date, today: today, text: text) }
+        return task.time.map { WidgetDates.shortTime($0, text.language) }
     }
 }
 
@@ -344,10 +362,13 @@ struct CountLabel: View {
     }
 }
 
-/** Como la cabecera del bloque Hoy de la app. */
+/** Como la cabecera del bloque Hoy de la app (o de la Bandeja). */
 struct DayLabel: View {
+    @Environment(\.widgetText) var text
+    var label: String? = nil
+
     var body: some View {
-        Text("HOY")
+        Text(verbatim: label ?? text.todayCaps)
             .font(.system(size: 11, weight: .semibold))
             .tracking(1.4)
             .foregroundStyle(Palette.accent)
@@ -359,9 +380,11 @@ struct DayLabel: View {
  * de la app (`WidgetMoveOverdueIntent`), que después recarga el widget.
  */
 struct MoveOverdueButton: View {
+    @Environment(\.widgetText) var text
+
     var body: some View {
         Button(intent: WidgetMoveOverdueIntent()) {
-            Text(verbatim: "A hoy")
+            Text(verbatim: text.toToday)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Palette.accent)
                 .lineLimit(1)
@@ -372,14 +395,18 @@ struct MoveOverdueButton: View {
                 .widgetAccentable()
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(verbatim: "Pasar atrasadas a hoy"))
+        .accessibilityLabel(Text(verbatim: text.moveOverdue))
     }
 }
 
 /** Abre la app con la barra de escribir enfocada, como el acceso rápido "Nueva tarea". */
 struct AddLink: View {
+    @Environment(\.widgetText) var text
+    var destination = WidgetLink.compose
+    var label: String? = nil
+
     var body: some View {
-        Link(destination: WidgetLink.compose) {
+        Link(destination: destination) {
             Image(systemName: "plus")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Palette.accent)
@@ -387,7 +414,7 @@ struct AddLink: View {
                 .background(Circle().fill(Palette.accentDim))
                 .widgetAccentable()
         }
-        .accessibilityLabel("Nueva tarea")
+        .accessibilityLabel(Text(verbatim: label ?? text.newTask))
     }
 }
 
@@ -407,27 +434,30 @@ enum WidgetDates {
         return formatter
     }()
 
-    private static let dayMonthFormatter: DateFormatter = {
+    private static func dayMonthFormatter(_ language: AppLanguage) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = WidgetDates.calendar
-        formatter.locale = Locale(identifier: "es")
+        formatter.locale = Locale(identifier: language == .en ? "en_US" : "es")
         formatter.timeZone = .current
-        formatter.dateFormat = "d MMM"
+        formatter.dateFormat = language == .en ? "MMM d" : "d MMM"
         return formatter
-    }()
-
-    /** `9:00`: sin cero delante, como `shortTime` en la web. */
-    static func shortTime(_ time: String) -> String {
-        time.hasPrefix("0") ? String(time.dropFirst()) : time
     }
 
-    /** `Ayer` o `14 sept`. */
-    static func overdue(_ date: String, today: String) -> String {
+    /** `9:00` y `17:30` sin cero delante, como `shortTime` en la web; en inglés, `9:00 AM` y `5:30 PM`. */
+    static func shortTime(_ time: String, _ language: AppLanguage) -> String {
+        guard language == .en else { return time.hasPrefix("0") ? String(time.dropFirst()) : time }
+        let parts = time.split(separator: ":")
+        guard parts.count == 2, let hours = Int(parts[0]) else { return time }
+        return "\(hours % 12 == 0 ? 12 : hours % 12):\(parts[1]) \(hours < 12 ? "AM" : "PM")"
+    }
+
+    /** `Ayer` o `14 sept` · `Yesterday` o `Sep 14`. */
+    static func overdue(_ date: String, today: String, text: WidgetText) -> String {
         guard let day = isoFormatter.date(from: date) else { return "" }
         if calendar.date(byAdding: .day, value: 1, to: day).map(WidgetDay.iso) == today {
-            return "Ayer"
+            return text.yesterday
         }
-        return dayMonthFormatter.string(from: day).replacingOccurrences(of: ".", with: "")
+        return dayMonthFormatter(text.language).string(from: day).replacingOccurrences(of: ".", with: "")
     }
 }
 
@@ -438,6 +468,7 @@ enum WidgetDates {
  * de la rutina que toca (sus iniciales si no tiene, o la marca si ya está). Tocarlo la tacha.
  */
 struct RoutineCircular: View {
+    @Environment(\.widgetText) var text
     let entry: RoutinesEntry
 
     var body: some View {
@@ -462,7 +493,7 @@ struct RoutineCircular: View {
                 .widgetAccentable()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+            .accessibilityLabel(Text(verbatim: done ? text.unmark(routine.title) : text.doneTitle(routine.title)))
         } else {
             ZStack {
                 AccessoryWidgetBackground()
@@ -483,6 +514,7 @@ struct RoutineCircular: View {
 
 /** Pantalla de bloqueo, rectangular: la rutina que toca, su hora y cuántas van hoy. Un toque la tacha. */
 struct RoutineRectangular: View {
+    @Environment(\.widgetText) var text
     let entry: RoutinesEntry
 
     var body: some View {
@@ -516,13 +548,13 @@ struct RoutineRectangular: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+            .accessibilityLabel(Text(verbatim: done ? text.unmark(routine.title) : text.doneTitle(routine.title)))
         } else {
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: "Rutinas")
+                Text(verbatim: text.routines)
                     .font(.headline)
                     .widgetAccentable()
-                Text(verbatim: entry.routines == nil ? "Abre Tasks" : "Hoy no toca ninguna.")
+                Text(verbatim: entry.routines == nil ? text.openTasks : text.noneToday)
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
@@ -533,14 +565,15 @@ struct RoutineRectangular: View {
 
     /** `10:00 · 1 de 3 hoy`, o `Hecha · 3 de 3 hoy`. */
     private func detail(_ routine: WidgetRoutine, done: Bool) -> String {
-        let when = done ? "Hecha" : (routine.time.map(WidgetDates.shortTime) ?? "Hoy")
+        let when = done ? text.done : (routine.time.map { WidgetDates.shortTime($0, text.language) } ?? text.today)
         let total = entry.today.count
-        return total > 1 ? "\(when) · \(entry.done) de \(total) hoy" : when
+        return total > 1 ? "\(when) · \(text.doneOf(entry.done, total))" : when
     }
 }
 
 /** Pantalla de inicio: las rutinas de hoy, cada una con su círculo para tacharla. */
 struct RoutineSmall: View {
+    @Environment(\.widgetText) var text
     let entry: RoutinesEntry
 
     private static let slots = 4
@@ -549,7 +582,7 @@ struct RoutineSmall: View {
         let rows = Array(entry.today.prefix(Self.slots))
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(verbatim: "RUTINAS")
+                Text(verbatim: text.routinesCaps)
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.4)
                     .foregroundStyle(Palette.accent)
@@ -562,7 +595,7 @@ struct RoutineSmall: View {
                 }
             }
             if rows.isEmpty {
-                Text(verbatim: entry.routines == nil ? "Abre Tasks" : "Hoy no toca ninguna.")
+                Text(verbatim: entry.routines == nil ? text.openTasks : text.noneToday)
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.text3)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -586,6 +619,7 @@ struct RoutineSmall: View {
 }
 
 struct RoutineRow: View {
+    @Environment(\.widgetText) var text
     let routine: WidgetRoutine
     let day: String
 
@@ -605,7 +639,7 @@ struct RoutineRow: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let time = routine.time, !done {
-                    Text(verbatim: WidgetDates.shortTime(time))
+                    Text(verbatim: WidgetDates.shortTime(time, text.language))
                         .font(.system(size: 11))
                         .monospacedDigit()
                         .foregroundStyle(Palette.text3)
@@ -615,7 +649,7 @@ struct RoutineRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(verbatim: done ? "Desmarcar \(routine.title)" : "Hecha: \(routine.title)"))
+        .accessibilityLabel(Text(verbatim: done ? text.unmark(routine.title) : text.doneTitle(routine.title)))
     }
 }
 

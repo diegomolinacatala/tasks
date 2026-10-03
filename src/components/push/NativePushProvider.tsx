@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useToday } from '../../hooks/useToday'
 import { timeOfInstant, todayIso } from '../../lib/date'
+import { pick } from '../../lib/i18n'
 import type { DeviceCredentials, PushApi } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { clearDevice, loadDevice, saveDevice } from '../../lib/push/keystore'
@@ -65,7 +66,7 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
       const { requestNotificationPermission } = await import('../../lib/platform/notifications')
       setStatus(statusOf(await requestNotificationPermission()))
     } catch {
-      toast({ message: 'No se pudieron activar los avisos.' })
+      toast({ message: pick({ es: 'No se pudieron activar los avisos.', en: 'Reminders couldn’t be turned on.' }) })
     } finally {
       setBusy(false)
     }
@@ -93,7 +94,7 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
 
   const transcribe = useCallback(
     async (audio: string, signal?: AbortSignal) => {
-      if (!api) throw new Error('El dictado no está disponible en esta versión.')
+      if (!api) throw new Error(pick({ es: 'El dictado no está disponible en esta versión.', en: 'Dictation isn’t available in this version.' }))
       const now = Date.now()
       const context = { today: todayIso(new Date(now)), now: timeOfInstant(now) }
       const device = await voiceDevice(api, false)

@@ -1,6 +1,12 @@
 import { ROUTINE_EMOJIS, cleanEmoji } from '../../lib/emoji'
+import { useCopy } from '../../state/LanguageProvider'
 import { IconClose } from '../ui/Icons'
 import './routines.css'
+
+const COPY = {
+  es: { group: 'Emoji de la rutina', none: 'Sin emoji', other: 'Otro', otherLabel: 'Otro emoji' },
+  en: { group: 'Routine emoji', none: 'No emoji', other: 'Other', otherLabel: 'Other emoji' },
+} as const
 
 interface EmojiPickerProps {
   value: string | null
@@ -12,15 +18,16 @@ interface EmojiPickerProps {
  * cualquier otro con el teclado de emojis. El que ya tiene, si no es de la lámina, va el primero.
  */
 export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
+  const copy = useCopy(COPY)
   const options = value && !ROUTINE_EMOJIS.includes(value) ? [value, ...ROUTINE_EMOJIS] : ROUTINE_EMOJIS
 
   return (
-    <div className="emoji-picker" role="group" aria-label="Emoji de la rutina">
+    <div className="emoji-picker" role="group" aria-label={copy.group}>
       <button
         type="button"
         className={`emoji-picker__cell emoji-picker__none ${value === null ? 'is-active' : ''}`}
         aria-pressed={value === null}
-        aria-label="Sin emoji"
+        aria-label={copy.none}
         onClick={() => onChange(null)}
       >
         <IconClose size={14} />
@@ -43,8 +50,8 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
       <input
         className="emoji-picker__other"
         value=""
-        placeholder="Otro"
-        aria-label="Otro emoji"
+        placeholder={copy.other}
+        aria-label={copy.otherLabel}
         autoComplete="off"
         autoCorrect="off"
         onChange={(event) => {

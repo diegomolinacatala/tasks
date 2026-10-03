@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addDays, relativeLabel, shortTime } from '../../lib/date'
 import { createId } from '../../lib/id'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { sortedSections } from '../../state/selectors'
 import type { IsoDate, IsoTime } from '../../types'
@@ -11,6 +12,37 @@ import { PickerChip } from '../ui/PickerChip'
  * nada: dicen lo elegido con `onChange` y cada uno decide qué hacer con ello.
  */
 
+const COPY = {
+  es: {
+    when: 'Cuándo',
+    today: 'Hoy',
+    tomorrow: 'Mañana',
+    noDate: 'Sin fecha',
+    otherDay: 'Otro día',
+    time: 'Hora',
+    noTime: 'Sin hora',
+    pickTime: 'Elegir hora',
+    section: 'Sección',
+    none: 'Ninguna',
+    add: '+ Nueva',
+    name: 'Nombre',
+  },
+  en: {
+    when: 'When',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    noDate: 'No date',
+    otherDay: 'Other day',
+    time: 'Time',
+    noTime: 'No time',
+    pickTime: 'Pick a time',
+    section: 'Section',
+    none: 'None',
+    add: '+ New',
+    name: 'Name',
+  },
+} as const
+
 interface WhenFieldProps {
   date: IsoDate | null
   today: IsoDate
@@ -19,22 +51,23 @@ interface WhenFieldProps {
 
 export function WhenField({ date, today, onChange }: WhenFieldProps) {
   const tomorrow = addDays(today, 1)
+  const copy = useCopy(COPY)
   const isCustomDate = Boolean(date && date !== today && date !== tomorrow)
   return (
     <>
-      <p className="sheet__title">Cuándo</p>
+      <p className="sheet__title">{copy.when}</p>
       <div className="sheet__chips">
         <button type="button" className={`chip ${date === today ? 'is-active' : ''}`} onClick={() => onChange(today)}>
-          Hoy
+          {copy.today}
         </button>
         <button type="button" className={`chip ${date === tomorrow ? 'is-active' : ''}`} onClick={() => onChange(tomorrow)}>
-          Mañana
+          {copy.tomorrow}
         </button>
         <button type="button" className={`chip ${date === null ? 'is-active' : ''}`} onClick={() => onChange(null)}>
-          Sin fecha
+          {copy.noDate}
         </button>
         <PickerChip type="date" className={`chip ${isCustomDate ? 'is-active' : ''}`} value={date ?? ''} onCommit={(value) => onChange(value || null)}>
-          {isCustomDate && date ? relativeLabel(date, today) : 'Otro día'}
+          {isCustomDate && date ? relativeLabel(date, today) : copy.otherDay}
         </PickerChip>
       </div>
     </>
@@ -49,16 +82,17 @@ interface TimeFieldProps {
   noneLabel?: string
 }
 
-export function TimeField({ time, onChange, title = 'Hora', noneLabel = 'Sin hora' }: TimeFieldProps) {
+export function TimeField({ time, onChange, title, noneLabel }: TimeFieldProps) {
+  const copy = useCopy(COPY)
   return (
     <>
-      <p className="sheet__title">{title}</p>
+      <p className="sheet__title">{title ?? copy.time}</p>
       <div className="sheet__chips">
         <button type="button" className={`chip ${time === null ? 'is-active' : ''}`} onClick={() => onChange(null)}>
-          {noneLabel}
+          {noneLabel ?? copy.noTime}
         </button>
         <PickerChip type="time" className={`chip ${time ? 'is-active' : ''}`} value={time ?? ''} onCommit={(value) => onChange(value || null)}>
-          {time ? shortTime(time) : 'Elegir hora'}
+          {time ? shortTime(time) : copy.pickTime}
         </PickerChip>
       </div>
     </>
@@ -75,6 +109,7 @@ export function SectionField({ sectionId, onChange }: SectionFieldProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const sections = sortedSections(state)
+  const copy = useCopy(COPY)
   const [draft, setDraft] = useState<string | null>(null)
 
   const create = (name: string) => {
@@ -87,10 +122,10 @@ export function SectionField({ sectionId, onChange }: SectionFieldProps) {
 
   return (
     <>
-      <p className="sheet__title">Sección</p>
+      <p className="sheet__title">{copy.section}</p>
       <div className="sheet__chips">
         <button type="button" className={`chip ${sectionId === null ? 'is-active' : ''}`} onClick={() => onChange(null)}>
-          Ninguna
+          {copy.none}
         </button>
         {sections.map((section) => (
           <button
@@ -104,13 +139,13 @@ export function SectionField({ sectionId, onChange }: SectionFieldProps) {
         ))}
         {draft === null ? (
           <button type="button" className="chip" onClick={() => setDraft('')}>
-            + Nueva
+            {copy.add}
           </button>
         ) : (
           <input
             className="chip"
             autoFocus
-            placeholder="Nombre"
+            placeholder={copy.name}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => setDraft(null)}

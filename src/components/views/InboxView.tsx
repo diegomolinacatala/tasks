@@ -5,6 +5,7 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { relativeLabel } from '../../lib/date'
 import { BACKLOG_SCOPE } from '../../lib/order'
 import { haptic } from '../../lib/platform/feedback'
+import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { backlogTasks } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
@@ -25,6 +26,29 @@ interface InboxViewProps {
   today: IsoDate
 }
 
+const COPY = {
+  es: {
+    undo: 'Deshacer',
+    cleared: (count: number) => (count === 1 ? 'Hecha borrada' : `${count} hechas borradas`),
+    kicker: 'Sin fecha',
+    title: 'Bandeja',
+    pending: (count: number) => `${count} pendientes`,
+    tasks: 'Tareas',
+    empty: 'Nada sin fecha.',
+    clear: (count: number) => `Borrar las ${count} hechas`,
+  },
+  en: {
+    undo: 'Undo',
+    cleared: (count: number) => (count === 1 ? 'Done task deleted' : `${count} done tasks deleted`),
+    kicker: 'No date',
+    title: 'Inbox',
+    pending: (count: number) => `${count} pending`,
+    tasks: 'Tasks',
+    empty: 'Nothing without a date.',
+    clear: (count: number) => `Delete ${count} done`,
+  },
+} as const
+
 /** Mientras se arrastra, el muelle sube: hay que medir los días donde está de verdad. */
 const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
 
@@ -37,6 +61,7 @@ export function InboxView({ today }: InboxViewProps) {
   const dispatch = useDispatch()
   const toast = useToast()
   const sensors = useDragSensors()
+  const copy = useCopy(COPY)
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const tasks = useMemo(() => backlogTasks(state), [state])
@@ -49,7 +74,7 @@ export function InboxView({ today }: InboxViewProps) {
     haptic('success')
     toast({
       message: `${task.title} → ${relativeLabel(date, today)}`,
-      actionLabel: 'Deshacer',
+      actionLabel: copy.undo,
       onAction: () => dispatch({ type: 'task/move', id: task.id, date: null, sectionId: null }),
     })
   }
@@ -75,8 +100,8 @@ export function InboxView({ today }: InboxViewProps) {
     done.forEach((task) => dispatch({ type: 'task/remove', id: task.id }))
     haptic('warning')
     toast({
-      message: done.length === 1 ? 'Hecha borrada' : `${done.length} hechas borradas`,
-      actionLabel: 'Deshacer',
+      message: copy.cleared(done.length),
+      actionLabel: copy.undo,
       onAction: () => done.forEach((task) => dispatch({ type: 'task/restore', task })),
     })
   }
@@ -84,13 +109,13 @@ export function InboxView({ today }: InboxViewProps) {
   const dragged = activeId ? (tasks.find((task) => task.id === activeId) ?? null) : null
 
   return (
-    <div className="view inbox">
+    <div className={`view inbox ${activeId ? 'is-dragging' : ''}`}>
       <header className="view__head">
-        <p className="view__kicker">Sin fecha</p>
+        <p className="view__kicker">{copy.kicker}</p>
         <div className="view__headline">
-          <h1 className="view__title">Bandeja</h1>
+          <h1 className="view__title">{copy.title}</h1>
           {pending.length > 0 && (
-            <p className="view__stat" aria-label={`${pending.length} pendientes`}>
+            <p className="view__stat" aria-label={copy.pending(pending.length)}>
               {pending.length}
             </p>
           )}
@@ -110,8 +135,8 @@ export function InboxView({ today }: InboxViewProps) {
         onDragCancel={() => setActiveId(null)}
       >
         <section className="block">
-          <BlockHeader label="Tareas" count={pending.length} />
-          <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty="Nada sin fecha.">
+          <BlockHeader label={copy.tasks} count={pending.length} />
+          <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty={copy.empty}>
             {tasks.map((task) => (
               <SortableTask key={task.id} task={task} sectionId={null} />
             ))}
@@ -119,7 +144,7 @@ export function InboxView({ today }: InboxViewProps) {
           {done.length > 1 && (
             <button type="button" className="inbox__clear" onClick={clearDone}>
               <IconTrash size={15} />
-              Borrar las {done.length} hechas
+              {copy.clear(done.length)}
             </button>
           )}
         </section>

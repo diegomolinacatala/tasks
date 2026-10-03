@@ -1,6 +1,8 @@
 import type { IsoDate, Routine } from '../types'
 import { addDays, fromIso, isValidTime, isoOfInstant } from './date'
 import { cleanEmoji } from './emoji'
+import { pick } from './i18n'
+import { compareText } from './order'
 
 /**
  * Rutinas: lo que toca ciertos días de la semana y amanece sin hacer cada uno de ellos ("tomar
@@ -19,10 +21,32 @@ export const ROUTINE_LOG_DAYS = 400
 /** Días que enseñan los puntos de cada rutina. */
 export const RECENT_DAYS = 7
 
-export const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] as const
-/** En plural: "los sábados". */
-const DAY_NAMES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'] as const
-const DAY_SHORT = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'] as const
+const DAYS = {
+  es: {
+    letters: ['L', 'M', 'X', 'J', 'V', 'S', 'D'],
+    /** En plural: "los sábados". */
+    plural: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'],
+    short: ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'],
+    every: 'Cada día',
+    workdays: 'Entre semana',
+    weekend: 'Fines de semana',
+    only: (name: string) => `Los ${name}`,
+    and: 'y',
+  },
+  en: {
+    letters: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    plural: ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'],
+    short: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    every: 'Every day',
+    workdays: 'Weekdays',
+    weekend: 'Weekends',
+    only: (name: string) => name,
+    and: 'and',
+  },
+} as const
+
+/** Iniciales de los días, de lunes a domingo: `L M X J V S D` · `M T W T F S S`. */
+export const dayLetters = (): readonly string[] => pick(DAYS).letters
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -124,23 +148,27 @@ export function recentDays(routine: Pick<Routine, 'days' | 'done' | 'createdAt'>
   })
 }
 
-/** `Cada día`, `Entre semana`, `Fines de semana`, `Los lunes`, `Lun, mié y vie`. */
+/**
+ * `Cada día`, `Entre semana`, `Fines de semana`, `Los lunes`, `Lun, mié y vie` · `Every day`,
+ * `Weekdays`, `Weekends`, `Mondays`, `Mon, Wed and Fri`.
+ */
 export function daysLabel(days: readonly number[]): string {
+  const words = pick(DAYS)
   const clean = cleanDays(days)
-  if (sameDays(clean, ALL_DAYS)) return 'Cada día'
-  if (sameDays(clean, WORKDAYS)) return 'Entre semana'
-  if (sameDays(clean, WEEKEND)) return 'Fines de semana'
+  if (sameDays(clean, ALL_DAYS)) return words.every
+  if (sameDays(clean, WORKDAYS)) return words.workdays
+  if (sameDays(clean, WEEKEND)) return words.weekend
   const [only] = clean
-  if (clean.length === 1 && only) return `Los ${DAY_NAMES[only - 1]}`
-  const names = clean.map((day) => DAY_SHORT[day - 1] ?? '')
+  if (clean.length === 1 && only) return words.only(words.plural[only - 1] ?? '')
+  const names = clean.map((day) => words.short[day - 1] ?? '')
   const last = names.pop()
-  const text = `${names.join(', ')} y ${last}`
+  const text = `${names.join(', ')} ${words.and} ${last}`
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 /** Por hora (las que no tienen, al final) y después en el orden en que se crearon. */
 export const byRoutineOrder = (a: Routine, b: Routine): number =>
-  (a.time ?? '99:99').localeCompare(b.time ?? '99:99') || a.order - b.order || a.createdAt - b.createdAt
+  compareText(a.time ?? '99:99', b.time ?? '99:99') || a.order - b.order || a.createdAt - b.createdAt
 
 /** Las que tocan ese día, en su orden. */
 export const routinesOn = (routines: readonly Routine[], date: IsoDate): Routine[] =>

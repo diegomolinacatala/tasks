@@ -3,6 +3,7 @@ import { WIDGET_EVENT, parseRoutineChanges, parseWidgetChanges } from '../../lib
 import { RESCHEDULE_EVENT } from '../../lib/nativeSchedule'
 import { TasksNative } from '../../lib/platform/native'
 import { routineSettles, widgetSnapshot, widgetToggles } from '../../lib/widget'
+import { useLanguage } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate } from '../../types'
 
@@ -13,13 +14,15 @@ interface NativeWidgetProps {
 }
 
 /**
- * Widgets (solo iPhone): el de hoy en la pantalla de inicio y el de rutinas en la de bloqueo. La app
+ * Widgets (solo iPhone): el de hoy, el de la Bandeja y el de rutinas. La app
  * les deja una foto de las tareas y las rutinas en el App Group y, al volver a primer plano, aplica
  * lo que se haya marcado desde ellos (o desde el botón "Hecha" del aviso de una rutina). No pinta nada.
  */
 export function NativeWidget({ today }: NativeWidgetProps) {
   const state = useAppState()
   const dispatch = useDispatch()
+  // Los textos del widget van en el idioma de la app: cambiarlo reescribe la foto.
+  const language = useLanguage()
   const stateRef = useRef(state)
   const written = useRef<string | null>(null)
 
@@ -56,7 +59,7 @@ export function NativeWidget({ today }: NativeWidgetProps) {
   useEffect(() => {
     const timer = setTimeout(() => void write(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, state.sections, state.routines, today, write])
+  }, [state.tasks, state.sections, state.routines, today, language, write])
 
   useEffect(() => {
     void pull()

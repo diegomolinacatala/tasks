@@ -1,3 +1,5 @@
+import { language } from './i18n'
+
 /**
  * El emoji de una rutina: su seña en la fila, en el horario y en el widget (donde sustituye a las
  * iniciales). Se guarda uno solo, tal cual lo da el teclado; la app lo pinta entonado con el papel
@@ -84,14 +86,53 @@ const HINTS: readonly (readonly [RegExp, string])[] = [
   [/program|codigo|trabaj/, '💻'],
 ]
 
+/** Lo mismo en inglés ("take creatine" → 💊). Palabras cortas con borde: "run" no está en "brunch". */
+const HINTS_EN: readonly (readonly [RegExp, string])[] = [
+  [/\bdogs?\b|puppy/, '🐕'],
+  [/creatine|\bpills?\b|vitamin|\bmeds\b|medicine|medication|supplement|magnesium|omega/, '💊'],
+  [/water the plants|plants|garden/, '🌿'],
+  [/\bwater\b|hydrat/, '💧'],
+  [/teeth|floss|brush/, '🪥'],
+  [/shower/, '🚿'],
+  [/sunscreen|skincare|moisturi/, '🧴'],
+  [/coffee|breakfast/, '☕'],
+  [/study|homework|revise|flashcards|spanish|english|french|language/, '📚'],
+  [/\bread\b|reading|\bbooks?\b/, '📖'],
+  [/journal|diary|\bwrite\b|writing/, '🖋️'],
+  [/\bgym\b|workout|weights|lift|push-?ups|pull-?ups|training/, '🏋️'],
+  [/\brun\b|running|\bjog/, '🏃'],
+  [/\bswim|pool/, '🏊'],
+  [/\bbike|cycling/, '🚴'],
+  [/meditat|breath|stretch|yoga|mobility/, '🧘'],
+  [/\bwalk|steps/, '🚶'],
+  [/sleep|\bbed\b|\bnap\b/, '🌙'],
+  [/wake up|get up/, '🌅'],
+  [/piano|guitar|violin|music|\bsing/, '🎼'],
+  [/\bdraw|paint/, '🎨'],
+  [/\bcook|meal prep/, '🍳'],
+  [/fruit|veggies|vegetables|salad/, '🍎'],
+  [/laundry/, '🧺'],
+  [/clean|tidy|dishes|sweep|vacuum/, '🧹'],
+  [/e-?mail|\bmail\b|inbox/, '✉️'],
+  [/\bcall\b|phone/, '📞'],
+  [/\bsave\b|savings|budget|expenses|money/, '💰'],
+  [/weigh/, '⚖️'],
+  [/\bpray|gratitude|grateful/, '🙏'],
+  [/\bcode\b|coding|program|\bwork\b/, '💻'],
+]
+
 const plain = (text: string) =>
   text
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
 
-/** El emoji que le pega a un nombre ("Tomar creatina" → 💊), o `null` si no se reconoce nada. */
+/**
+ * El emoji que le pega a un nombre ("Tomar creatina" → 💊, "Walk the dog" → 🐕), o `null` si no se
+ * reconoce nada. Primero en el idioma de la app.
+ */
 export function suggestEmoji(title: string): string | null {
   const text = plain(title)
-  return HINTS.find(([pattern]) => pattern.test(text))?.[1] ?? null
+  const hints = language() === 'en' ? [...HINTS_EN, ...HINTS] : [...HINTS, ...HINTS_EN]
+  return hints.find(([pattern]) => pattern.test(text))?.[1] ?? null
 }

@@ -1,0 +1,11 @@
+/*
+  Inglés de lo que el sistema enseña de los widgets por su cuenta (al configurarlos y en Atajos), en el
+  idioma del iPhone. Los textos de dentro de los widgets siguen al idioma de la app (WidgetText.swift).
+*/
+"Completar tarea" = "Complete task";
+"Tarea" = "Task";
+"Tachar rutina" = "Check off routine";
+"Rutina" = "Routine";
+"Día" = "Day";
+"Elige una rutina o deja que enseñe la siguiente que queda por hacer hoy." = "Choose a routine, or let it show the next one left to do today.";
+"Pasar atrasadas a hoy" = "Move overdue to today";
