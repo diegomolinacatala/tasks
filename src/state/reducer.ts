@@ -4,7 +4,8 @@ import { cleanEmoji } from '../lib/emoji'
 import { createId } from '../lib/id'
 import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
-import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
+import { cleanUntil } from '../lib/period'
+import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanAliases, cleanPlaceName, nameTaken } from '../lib/places'
 import { snoozed, withReminder } from '../lib/reminders'
 import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { normalizeWelcome } from '../lib/welcome'
@@ -12,7 +13,7 @@ import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 13
+export const SCHEMA_VERSION = 14
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
@@ -84,6 +85,7 @@ export function reducer(state: AppState, action: Action): AppState {
         title,
         done: false,
         date: action.date,
+        until: cleanUntil(action.date, action.until),
         time: isValidTime(action.time) ? action.time : null,
         duration: normalizeDuration(action.duration),
         reminders: [],
@@ -100,6 +102,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'task/setTime': {
       if (action.time !== null && !isValidTime(action.time)) return state
       return updateTask(state, action.id, (task) => (task.time === action.time ? task : { ...task, time: action.time }))
+    }
+
+    case 'task/until': {
+      if (action.until !== null && !ISO_DATE.test(action.until)) return state
+      return updateTask(state, action.id, (task) => {
+        const until = cleanUntil(task.date, action.until)
+        return task.until === until ? task : { ...task, until }
+      })
     }
 
     case 'task/setDuration': {
@@ -168,10 +178,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'task/move': {
       const current = state.tasks.find((task) => task.id === action.id)
       if (!current) return state
-      const target = { date: action.date, sectionId: sectionFor(action.date, action.sectionId) }
-      // Tocar el día o la sección que ya tiene no debe mandarla al final de su lista.
+      const target = { date: action.date, sectionId: sectionFor(action.date, action.sectionId), until: action.until }
+      // Tocar el día o la sección que ya tiene no debe mandarla al final de su lista (deshacer puede
+      // devolverle solo el plazo).
       const samePlace = current.date === target.date && current.sectionId === target.sectionId
-      if (samePlace && action.index === undefined) return state
+      if (samePlace && action.index === undefined) {
+        const until = action.until === undefined ? current.until : cleanUntil(current.date, action.until)
+        return until === current.until ? state : updateTask(state, action.id, (task) => ({ ...task, until }))
+      }
       return { ...state, tasks: moveTask(state.tasks, action.id, target, action.index) }
     }
 
@@ -190,7 +204,8 @@ export function reducer(state: AppState, action: Action): AppState {
           task.date === next.date && task.sectionId === next.sectionId && task.order === next.order
         if (unchanged) return task
         changed = true
-        return { ...task, ...next }
+        // Lo que un plazo había traído se queda en el día donde se suelta, con el mismo final.
+        return { ...task, ...next, until: cleanUntil(next.date, task.until) }
       })
       // Soltar una tarea donde estaba no debe guardar ni sincronizar nada.
       return changed ? { ...state, tasks } : state
@@ -253,11 +268,12 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'place/add': {
       const name = cleanPlaceName(action.name)
-      const taken = state.places.some((place) => place.id === action.id || placeKey(place.name) === placeKey(name))
+      const taken = state.places.some((place) => place.id === action.id) || nameTaken(state.places, name)
       if (!name || taken || state.places.length >= MAX_PLACES) return state
       const place: Place = {
         id: action.id,
         name,
+        aliases: cleanAliases(action.aliases ?? [], name, state.places),
         location: action.location ?? null,
         radius: action.radius === undefined ? DEFAULT_RADIUS : clampRadius(action.radius),
       }
@@ -269,10 +285,12 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!current) return state
       const wanted = action.name === undefined ? '' : cleanPlaceName(action.name)
       // Dos lugares con el mismo nombre harían ambiguo "al llegar a Mercadona".
-      const clashes = state.places.some((place) => place.id !== current.id && placeKey(place.name) === placeKey(wanted))
+      const name = wanted && !nameTaken(state.places, wanted, current.id) ? wanted : current.name
+      const others = state.places.filter((place) => place.id !== current.id)
       const next: Place = {
         ...current,
-        name: wanted && !clashes ? wanted : current.name,
+        name,
+        aliases: cleanAliases(action.aliases ?? current.aliases, name, others),
         location: action.location === undefined ? current.location : action.location,
         radius: action.radius === undefined ? current.radius : clampRadius(action.radius),
       }

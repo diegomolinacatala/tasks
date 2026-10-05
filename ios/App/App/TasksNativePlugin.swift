@@ -28,6 +28,7 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "mapSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "screenshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pickLocation", returnType: CAPPluginReturnPromise),
     ]
 
     private static let searchSpanMeters = 30_000.0
@@ -293,6 +294,57 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
                 }
                 call.resolve(["image": "data:image/jpeg;base64," + data.base64EncodedString()])
             }
+        }
+    }
+
+    /// Mapa a pantalla completa para atinar dónde está un lugar (`MapPicker.swift`): devuelve el punto, su
+    /// dirección y, si se tocó un comercio del mapa, su nombre; o `cancelled` si se cerró sin elegir.
+    @objc func pickLocation(_ call: CAPPluginCall) {
+        let center: CLLocationCoordinate2D? = call.getObject("center").flatMap { (object: JSObject) -> CLLocationCoordinate2D? in
+            guard let lat = Self.number(object["lat"])?.doubleValue, let lng = Self.number(object["lng"])?.doubleValue else { return nil }
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
+        }
+        let places: [MapPickerOptions.Place] = (call.getArray("places", JSObject.self) ?? []).compactMap { (object: JSObject) -> MapPickerOptions.Place? in
+            guard
+                let name = object["name"] as? String,
+                let lat = Self.number(object["lat"])?.doubleValue,
+                let lng = Self.number(object["lng"])?.doubleValue
+            else { return nil }
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            guard CLLocationCoordinate2DIsValid(coordinate) else { return nil }
+            let radius = min(max(Self.number(object["radius"])?.doubleValue ?? 150, 50), 2000)
+            return MapPickerOptions.Place(name: name, coordinate: coordinate, radius: radius)
+        }
+        let options = MapPickerOptions(
+            title: call.getString("title") ?? "",
+            confirm: call.getString("confirm") ?? "OK",
+            cancel: call.getString("cancel") ?? "",
+            locate: call.getString("locate") ?? "",
+            center: center,
+            radius: min(max(call.getDouble("radius") ?? 150, 50), 2000),
+            places: places
+        )
+        DispatchQueue.main.async {
+            // Ya hay algo encima (otro mapa abierto con un doble toque): este no se abre.
+            guard let presenter = self.bridge?.viewController, presenter.presentedViewController == nil else {
+                call.reject("No se puede abrir el mapa.")
+                return
+            }
+            let picker = MapPickerViewController(options: options) { picked in
+                guard let picked else {
+                    call.resolve(["cancelled": true])
+                    return
+                }
+                var result: [String: Any] = [
+                    "lat": picked.coordinate.latitude,
+                    "lng": picked.coordinate.longitude,
+                    "address": picked.address,
+                ]
+                if let name = picked.name { result["name"] = name }
+                call.resolve(result)
+            }
+            presenter.present(picker, animated: true)
         }
     }
 

@@ -56,6 +56,19 @@ describe('parseRoutine', () => {
   })
 })
 
+describe('cada semana', () => {
+  // Viernes 11 de septiembre de 2026.
+  const friday = new Date(2026, 8, 11, 10).getTime()
+
+  test('sin día, el de hoy', () => {
+    expect(parseRoutine('ir en bici cada semana', friday)).toMatchObject({ title: 'Ir en bici', days: [5], label: 'Los viernes' })
+  })
+
+  test('con un día dicho, ese', () => {
+    expect(parseRoutine('bici todas las semanas el martes a las 7', friday)).toMatchObject({ title: 'Bici', days: [2], time: '19:00' })
+  })
+})
+
 test('readRepeat devuelve el texto sin la frase', () => {
   expect(readRepeat('Tomar creatina todos los días')).toEqual({ days: [1, 2, 3, 4, 5, 6, 7], rest: 'Tomar creatina', part: null })
 })

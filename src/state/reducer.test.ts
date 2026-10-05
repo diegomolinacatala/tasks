@@ -460,7 +460,7 @@ describe('lugares', () => {
 
   test('añadir guarda el nombre limpio, sin ubicación y con el radio por defecto', () => {
     const state = run(emptyState(), { type: 'place/add', id: 'p1', name: '  Mercadona  ' })
-    expect(state.places).toEqual([{ id: 'p1', name: 'Mercadona', location: null, radius: 150 }])
+    expect(state.places).toEqual([{ id: 'p1', name: 'Mercadona', aliases: [], location: null, radius: 150 }])
   })
 
   test('no añade nombres vacíos ni repetidos', () => {
@@ -473,7 +473,7 @@ describe('lugares', () => {
     const state = run(emptyState(), { type: 'place/add', id: 'p1', name: 'Mercadona' })
     const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 50 })
     expect(state.places[0]!.location).toBeNull()
-    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', location, radius: 100 })
+    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', aliases: [], location, radius: 100 })
     expect(reducer(next, { type: 'place/update', id: 'nadie', radius: 300 })).toBe(next)
   })
 
@@ -681,5 +681,50 @@ describe('bienvenida vista', () => {
     expect(run(seen, { type: 'state/clear' }).settings.welcome).toBe(2)
     const elsewhere = run(emptyState(), { type: 'settings/welcome', version: 5 })
     expect(run(emptyState(), { type: 'state/import', state: elsewhere }).settings.welcome).toBe(0)
+  })
+})
+
+describe('plazos', () => {
+  const added = run(emptyState(), { type: 'task/add', id: 'p', title: 'Llamar al banco', date: TODAY, until: '2026-09-13', sectionId: null })
+  const until = (state: AppState) => state.tasks[0]!.until
+
+  test('se guarda al añadir solo si acaba después del día', () => {
+    expect(until(added)).toBe('2026-09-13')
+    expect(until(run(emptyState(), { type: 'task/add', title: 'x', date: TODAY, until: TODAY, sectionId: null }))).toBeNull()
+    expect(until(run(emptyState(), { type: 'task/add', title: 'x', date: null, until: '2026-09-13', sectionId: null }))).toBeNull()
+  })
+
+  test('se pone y se quita; repetirlo no cambia nada', () => {
+    const cleared = reducer(added, { type: 'task/until', id: 'p', until: null })
+    expect(until(cleared)).toBeNull()
+    expect(until(reducer(cleared, { type: 'task/until', id: 'p', until: '2026-09-20' }))).toBe('2026-09-20')
+    expect(reducer(added, { type: 'task/until', id: 'p', until: '2026-09-13' })).toBe(added)
+    expect(reducer(added, { type: 'task/until', id: 'p', until: 'viernes' })).toBe(added)
+  })
+
+  test('moverla dentro del plazo lo conserva; más allá, pasa a ser solo de ese día', () => {
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: '2026-09-12', sectionId: null }))).toBe('2026-09-13')
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: '2026-09-14', sectionId: null }))).toBeNull()
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: null, sectionId: null }))).toBeNull()
+  })
+
+  test('deshacer devuelve también el plazo', () => {
+    const moved = reducer(added, { type: 'task/move', id: 'p', date: '2026-09-20', sectionId: null })
+    const back = reducer(moved, { type: 'task/move', id: 'p', date: TODAY, sectionId: null, until: '2026-09-13' })
+    expect(back.tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13' })
+  })
+
+  test('pasar a hoy lo que se quedó sin hacer después del plazo lo deja solo para hoy', () => {
+    const late = run(emptyState(), { type: 'task/add', id: 'p', title: 'x', date: '2026-09-01', until: '2026-09-04', sectionId: null })
+    const moved = reducer(late, { type: 'tasks/reschedule', ids: ['p'], date: TODAY })
+    expect(moved.tasks[0]).toMatchObject({ date: TODAY, until: null })
+    const undone = reducer(moved, { type: 'tasks/place', placements: placementsOf(late.tasks, ['p']) })
+    expect(undone.tasks[0]).toMatchObject({ date: '2026-09-01', until: '2026-09-04' })
+  })
+
+  test('soltarla en el día que se ve la deja en él con el mismo final', () => {
+    const carried = run(emptyState(), { type: 'task/add', id: 'p', title: 'x', date: '2026-09-07', until: '2026-09-13', sectionId: null })
+    const dropped = reducer(carried, { type: 'board/commit', columns: [{ date: TODAY, sectionId: null, ids: ['p'] }] })
+    expect(dropped.tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13' })
   })
 })

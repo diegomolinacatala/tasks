@@ -1,10 +1,11 @@
-import type { Place } from '../types'
+import type { IsoDate, Place } from '../types'
 import { addDays, isoOfInstant, startOfWeek } from './date'
 import { ENGLISH_NUMBERS, normalizeText } from './normalize'
 import type { ParsedTask, PendingAt } from './parseCore'
 import { Scanner, assemble, durationMinutes, groupCount, readOffset, word } from './parseCore'
-import { readPlacePhrase } from './placePhrase'
-import { placeKey } from './places'
+import type { DayRange } from './period'
+import { between, dayOnOrAfter, nextWeek, onOrAfter, thisMonth, thisWeek, weekendOf } from './period'
+import { readPlacePhrase, savedNames } from './placePhrase'
 import type { Span, TitleRules } from './title'
 import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
 import { resolveDay, resolveDayOfMonth } from './when'
@@ -57,9 +58,20 @@ const RE_REMIND_AT = word(`${REMIND_VERB} ${TIME_SOURCE_EN}`)
 /** "remind me an hour before and at 9", "at 7:30 and again at 7:50": pegado a otro aviso. */
 const RE_CHAIN_AT = word(`and (?:again )?${TIME_SOURCE_EN}`)
 const RE_NEXT_WEEK_DAY = word(`(?:on )?(${WD})(?: of)? next week|next week,? (?:on )?(${WD})`)
-/** "next week" sin día: su lunes. "this weekend": el sábado que viene (o hoy, si ya es fin de semana). */
-const RE_NEXT_WEEK = word('next week')
-const RE_WEEKEND = word('(?:this |on the |this coming )?(next )?weekend')
+/** "next week" sin día: toda la semana, de su lunes a su domingo. Con un día ("friday next week"), ese día. */
+const RE_PERIOD_NEXT_WEEK = word(`(?:sometime |some time |during |at some point )?(?<!(?:${WD})(?: of)? )next week(?!,? (?:on )?(?:${WD}))`)
+/** "this week", "sometime this week", "by the end of the week": de hoy al domingo. */
+const RE_PERIOD_WEEK = word('(?:sometime |some time |at some point |anytime |any time |during )?this week|(?:by )?(?:the )?end of (?:the |this )?week')
+/** "this weekend", "over the weekend": sábado y domingo (o desde hoy, si ya es fin de semana). "Next weekend", el siguiente. */
+const RE_PERIOD_WEEKEND = word('(?:this |on the |over the |this coming |the )?(next )?weekend')
+/** "this month", "by the end of the month": de hoy a su último día. */
+const RE_PERIOD_MONTH = word('(?:sometime |some time |during )?this month|(?:by )?(?:the )?end of (?:the |this )?month')
+/** "until friday", "by friday", "till tomorrow", "until the 15th", "until Oct 15". */
+const RE_PERIOD_UNTIL = word(
+  `(?:until|till|til|by) (?:(next )?(${WD})|(tomorrow|the day after tomorrow)|(?:the )?(\\d{1,2})(?:st|nd|rd|th)|(${MONTH_SOURCE})\\.? (?:the )?(\\d{1,2})${ORDINAL})`,
+)
+/** "between monday and wednesday", "from tuesday to thursday". "Monday to Friday" es una rutina. */
+const RE_PERIOD_RANGE = word(`between (${WD}) and (${WD})|from (${WD}) (?:to|until|till|through|thru) (${WD})`)
 const RE_DATE_MONTH_FIRST = word(`(?:on |by |before )?(${MONTH_SOURCE})\\.? (?:the )?(\\d{1,2})${ORDINAL}(?:,? (\\d{4}))?`)
 const RE_DATE_DAY_FIRST = word(`(?:on |by |before )?(?:the )?(\\d{1,2})${ORDINAL} (?:of )?(${MONTH_SOURCE})\\.?(?:,? (\\d{4}))?`)
 /** Mes/día, como se escribe en Estados Unidos: "10/15", "10/15/2027". */
@@ -127,11 +139,9 @@ const CONNECTOR = /^ (?:and )?to(?= [a-z])/
 const ARRIVE = "get to|get back to|get back(?= home)|get(?= home)|arrive at|arrive in|arrive|reach|pass by|pass|go by|go past|go to|at|near|in"
 const LEAVE = 'leave|leaving|left|get out of|exit'
 
-const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
 /** "when I get to Walmart", "remind me when I'm at the office", "when I leave home". */
 function placePhraseRegex(places: readonly Place[]): RegExp {
-  const names = [...new Set(places.map((place) => escape(placeKey(place.name))).filter(Boolean))].sort((a, b) => b.length - a.length)
+  const names = savedNames(places)
   const target = names.length ? `(?:(${names.join('|')})|(${GENERIC}))` : `(?:()(${GENERIC}))`
   return new RegExp(
     `(?<![a-z0-9])(?:${REMIND_VERB} )?(?:when|once|as soon as|whenever|after) (?:i |i'm |i am )?(?:(${ARRIVE})|(${LEAVE})) ` +
@@ -196,6 +206,39 @@ export const ENGLISH_TITLE: TitleRules = {
 }
 
 const cleanTitleEn = (original: string, spans: readonly Span[]) => cleanTitle(original, spans, ENGLISH_TITLE)
+
+// ── Plazos ───────────────────────────────────────────────────────────────
+
+/**
+ * El plazo que dice la frase ("this week", "until friday", "between monday and wednesday"), si lo dice.
+ * Va antes que los días sueltos: "until Oct 15" no es el 15 con "until" en el título.
+ */
+function readPeriodEn(scanner: Scanner, today: IsoDate, now: number): DayRange | null {
+  const upcoming = (name: string) => onOrAfter(today, weekdayIndex(name))
+  const after = (name: string) => addDays(today, (weekdayIndex(name) - new Date(now).getDay() + 7) % 7 || 7)
+  return (
+    scanner.first(RE_PERIOD_RANGE, ([, first, second, from, to]) => {
+      const start = upcoming(first ?? from ?? '')
+      return between(start, onOrAfter(start, weekdayIndex(second ?? to ?? '')))
+    }) ??
+    scanner.first(RE_PERIOD_UNTIL, ([, next, name, word, d, month, dayOfMonth]): DayRange | null => {
+      const end = name
+        ? next
+          ? after(name)
+          : upcoming(name)
+        : word
+          ? addDays(today, word === 'tomorrow' ? 1 : 2)
+          : month
+            ? dayOnOrAfter(today, Number(dayOfMonth), monthNumber(month))
+            : dayOnOrAfter(today, Number(d))
+      return end ? { start: today, end, kind: 'until' } : null
+    }) ??
+    scanner.first(RE_PERIOD_NEXT_WEEK, () => nextWeek(today)) ??
+    scanner.first(RE_PERIOD_WEEK, () => thisWeek(today)) ??
+    scanner.first(RE_PERIOD_WEEKEND, ([, next]) => weekendOf(today, Boolean(next))) ??
+    scanner.first(RE_PERIOD_MONTH, () => thisMonth(today))
+  )
+}
 
 // ── Analizador ───────────────────────────────────────────────────────────
 
@@ -270,6 +313,7 @@ export function parseTaskEn(input: string, now: number, places: readonly Place[]
   const duration =
     scanner.first(RE_DURATION, (match) => durationAmount(match.slice(1))) ?? scanner.first(RE_DURATION_ADJ, adjectiveDuration)
 
+  const period = readPeriodEn(scanner, today, now)
   const date =
     scanner.first(RE_NEXT_WEEK_DAY, ([, name, other]) => {
       const weekday = weekdayIndex(name ?? other ?? '')
@@ -279,13 +323,7 @@ export function parseTaskEn(input: string, now: number, places: readonly Place[]
     scanner.first(RE_DATE_DAY_FIRST, ([, d, month = '', year]) => resolveDay(Number(d), monthNumber(month), year ? Number(year) : null, today)) ??
     scanner.first(RE_DATE_NUMERIC, ([, m, d, y]) => resolveDay(Number(d), Number(m), y ? Number(y) : null, today)) ??
     scanner.first(RE_WEEKDAY_NUMBER, ([, name = '', d]) => resolveDayOfMonth(Number(d), today, weekdayIndex(name))) ??
-    scanner.first(RE_DAY_OF_MONTH, ([, d, bare]) => resolveDayOfMonth(Number(d ?? bare), today)) ??
-    scanner.first(RE_NEXT_WEEK, () => addDays(startOfWeek(today), 7)) ??
-    scanner.first(RE_WEEKEND, ([, next]) => {
-      const weekday = new Date(now).getDay()
-      if (next) return addDays(startOfWeek(today), 12)
-      return weekday === 6 || weekday === 0 ? today : addDays(today, 6 - weekday)
-    })
+    scanner.first(RE_DAY_OF_MONTH, ([, d, bare]) => resolveDayOfMonth(Number(d ?? bare), today))
 
   const part = scanner.first(RE_PART, ([, thisOne, thisName, inThe, tonight, night, noon, first, afterDay]) => {
     const key = thisName ?? inThe ?? tonight ?? night ?? noon ?? afterDay ?? (first ? 'first thing' : '')
@@ -296,7 +334,7 @@ export function parseTaskEn(input: string, now: number, places: readonly Place[]
   const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
   const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
-  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, part, time, namedDay, weekday }
+  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
   return assemble(input, now, scanner, found, cleanTitleEn, known)
 }
 

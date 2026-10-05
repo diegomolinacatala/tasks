@@ -13,6 +13,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -206,5 +207,17 @@ describe('la Bandeja en el widget', () => {
     } finally {
       setLanguage('es')
     }
+  })
+})
+
+describe('tareas con plazo', () => {
+  test('pendiente, va con su primer día y el final del plazo: el widget la enseña cada día de él', () => {
+    const snapshot = widgetSnapshot(stateWith([task({ id: 'p', date: '2026-09-14', until: '2026-09-18' })]), NOW)
+    expect(snapshot.tasks).toEqual([{ id: 'p', title: 'p', date: '2026-09-14', until: '2026-09-18', time: null, done: false, importance: 1 }])
+  })
+
+  test('hecha, solo el día en que se hizo', () => {
+    const done = task({ id: 'p', date: '2026-09-10', until: '2026-09-18', done: true, completedAt: NOW })
+    expect(widgetSnapshot(stateWith([done]), NOW).tasks).toEqual([{ id: 'p', title: 'p', date: TODAY, time: null, done: true, importance: 1 }])
   })
 })

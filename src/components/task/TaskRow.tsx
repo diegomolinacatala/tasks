@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
+import { todayIso } from '../../lib/date'
 import { timeRange } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
+import { asOf, periodTag } from '../../lib/period'
 import { nextReminderAt } from '../../lib/reminders'
 import { useCopy } from '../../state/LanguageProvider'
 import type { Task } from '../../types'
@@ -31,7 +33,10 @@ export function TaskRow({ task, meta, overdue = false, importance, onToggle, onO
   const copy = useCopy(COPY)
   // Con duración, el tramo entero: `17:30–18:30`.
   const text = [meta, timeRange(task)].filter(Boolean).join(' · ')
-  const reminding = nextReminderAt(task, Date.now()) !== null
+  // Con plazo, hasta cuándo vale ("Hasta el viernes", "Último día"): lo único que la distingue de las demás.
+  const today = todayIso()
+  const period = periodTag(task, today)
+  const reminding = nextReminderAt(asOf(task, today), Date.now()) !== null
   const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
   // Lo hecho ya no pide atención: vuelve al tamaño normal (la importancia se conserva).
   const scale = task.done ? 0 : importanceScale(importance ?? task.importance)
@@ -55,10 +60,12 @@ export function TaskRow({ task, meta, overdue = false, importance, onToggle, onO
         <span className="row__title">
           <span className="row__text">{task.title}</span>
         </span>
-        {(text || reminding || placed) && (
+        {(text || reminding || placed || period) && (
           <span className="row__meta">
             {reminding && <IconBell size={11} strokeWidth={2} />}
             {placed && <IconPin size={11} strokeWidth={2} />}
+            {period && <span className={`row__period ${period.last ? 'is-last' : ''}`}>{period.label}</span>}
+            {period && text && <span aria-hidden="true">·</span>}
             {text}
           </span>
         )}

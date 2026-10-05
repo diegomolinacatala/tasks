@@ -1,29 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { addDays, shortTime, startOfWeek } from '../../lib/date'
+import { shortTime } from '../../lib/date'
 import { suggestEmoji } from '../../lib/emoji'
 import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
-import {
-  ALL_DAYS,
-  WEEKEND,
-  WORKDAYS,
-  bestStreak,
-  cleanDays,
-  completionRate,
-  createdOn,
-  dayLetters,
-  daysLabel,
-  isDue,
-  streak,
-} from '../../lib/routines'
+import { ALL_DAYS, WEEKEND, WORKDAYS, cleanDays, dayLetters, daysLabel, weeklyPreset } from '../../lib/routines'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import type { IsoDate, IsoTime, Routine } from '../../types'
+import type { IsoDate, IsoTime } from '../../types'
 import { useTaskActions } from '../task/useTaskActions'
 import { IconSmile, IconTrash } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
 import { EmojiPicker } from './EmojiPicker'
+import { RoutineLog } from './RoutineLog'
 import './routines.css'
 
 interface RoutineSheetProps {
@@ -42,7 +31,10 @@ interface Draft {
 
 const blank = (): Draft => ({ title: '', emoji: null, days: [...ALL_DAYS], time: null })
 
-/** Los atajos de días; su nombre es el de `daysLabel` ("Cada día", "Entre semana"…). */
+/**
+ * Los atajos de días; su nombre es el de `daysLabel` ("Cada día", "Entre semana"…). El último, una vez
+ * por semana ("Los martes"), lo añade cada panel con su día.
+ */
 const PRESETS: readonly (readonly number[])[] = [ALL_DAYS, WORKDAYS, WEEKEND]
 
 const COPY = {
@@ -62,10 +54,6 @@ const COPY = {
     actions: 'Acciones',
     remove: 'Borrar rutina',
     add: 'Añadir rutina',
-    consistency: 'Constancia',
-    streak: 'Racha',
-    best: 'Mejor',
-    month: '30 días',
   },
   en: {
     newRoutine: 'New routine',
@@ -83,21 +71,15 @@ const COPY = {
     actions: 'Actions',
     remove: 'Delete routine',
     add: 'Add routine',
-    consistency: 'Consistency',
-    streak: 'Streak',
-    best: 'Best',
-    month: '30 days',
   },
 } as const
-
-const HISTORY_WEEKS = 5
 
 const same = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((day, index) => day === b[index])
 
 /**
  * Crear o editar una rutina: nombre, emoji, qué días toca y a qué hora avisa. Una nueva propone el
  * emoji que le pega al nombre hasta que se elige uno a mano. Una existente enseña además
- * su racha, la mejor y lo cumplido en el último mes, y las últimas cinco semanas día a día. Los
+ * su constancia día a día, que se puede corregir (`RoutineLog`). Los
  * cambios de una existente se aplican al momento; una nueva se crea al cerrar si tiene nombre.
  */
 export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
@@ -223,7 +205,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         })}
       </div>
       <div className="sheet__chips">
-        {PRESETS.map((days) => (
+        {[...PRESETS, weeklyPreset(draft.days, today)].map((days) => (
           <button
             key={days.join('')}
             type="button"
@@ -250,7 +232,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         </PickerChip>
       </div>
 
-      {routine && <RoutineHistory routine={routine} today={today} />}
+      {routine && <RoutineLog key={routine.id} routine={routine} today={today} />}
 
       {routine && (
         <>
@@ -275,53 +257,5 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         </button>
       )}
     </Sheet>
-  )
-}
-
-function RoutineHistory({ routine, today }: { routine: Routine; today: IsoDate }) {
-  const copy = useCopy(COPY)
-  const current = streak(routine, today)
-  const best = bestStreak(routine, today)
-  const rate = completionRate(routine, today)
-  const first = addDays(startOfWeek(today), -7 * (HISTORY_WEEKS - 1))
-  const days = Array.from({ length: HISTORY_WEEKS * 7 }, (_, index) => addDays(first, index))
-  const done = new Set(routine.done)
-  const born = createdOn(routine)
-  // Antes de crearla no tocaba (salvo lo que ya aparezca hecho).
-  const due = (day: IsoDate) => done.has(day) || (day >= born && isDue(routine, day))
-
-  return (
-    <>
-      <p className="sheet__title">{copy.consistency}</p>
-      <div className="routine-stats">
-        <div className="routine-stats__item">
-          <span className="routine-stats__value">{current}</span>
-          <span className="routine-stats__label">{copy.streak}</span>
-        </div>
-        <div className="routine-stats__item">
-          <span className="routine-stats__value">{best}</span>
-          <span className="routine-stats__label">{copy.best}</span>
-        </div>
-        <div className="routine-stats__item">
-          <span className="routine-stats__value">{rate === null ? '—' : `${Math.round(rate * 100)}%`}</span>
-          <span className="routine-stats__label">{copy.month}</span>
-        </div>
-      </div>
-      <div className="routine-history" aria-hidden="true">
-        {dayLetters().map((letter, index) => (
-          <span key={index} className="routine-history__head">
-            {letter}
-          </span>
-        ))}
-        {days.map((day) => (
-          <i
-            key={day}
-            className={`routine-history__cell ${done.has(day) ? 'is-done' : ''} ${due(day) ? '' : 'is-free'} ${
-              day > today ? 'is-future' : ''
-            } ${day === today ? 'is-today' : ''}`}
-          />
-        ))}
-      </div>
-    </>
   )
 }

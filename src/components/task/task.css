@@ -117,31 +117,13 @@
 }
 
 
-.task__grip {
-  flex: none;
-  width: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--text-3);
-  opacity: 0.45;
-  border-radius: var(--r-xs);
-  /* El asa no hace scroll: en cuanto la tocas, manda el arrastre */
-  touch-action: none;
-  cursor: grab;
-  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
-}
-
 /* Hueco del asa en las filas hechas durante el modo "Aa": las columnas no se descuadran */
 .task__slot {
   flex: none;
   width: 40px;
 }
 
-.task__grip:active {
-  opacity: 1;
-  background: var(--bg-press);
-  cursor: grabbing;
-}
+
 
 .row {
   /* Importancia: `--imp` va de 0 (normal) a 1 (el doble). Más grande, más peso y más apretado */
@@ -290,4 +272,34 @@
   padding: 0 14px;
   cursor: grabbing;
   transform: scale(1.02) rotate(-0.6deg);
+}
+
+/* Hasta cuándo vale una tarea con plazo: un punto más visible que el resto, y en coñac el último día */
+.row__period {
+  color: var(--text-2);
+}
+
+.row__period.is-last {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Sin asa: el texto no llega al borde */
+.swipe.task .row {
+  padding-right: 8px;
+}
+
+/* Mantenida pulsada, la fila se hunde un poco antes de cogerse (`pressCue`) */
+.swipe.is-pressing .swipe__surface,
+.section.is-pressing .section__head {
+  transform: scale(0.97);
+  background: var(--bg-press);
+  transition: transform 300ms var(--ease-out), background 300ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe.is-pressing .swipe__surface,
+  .section.is-pressing .section__head {
+    transform: none;
+  }
 }

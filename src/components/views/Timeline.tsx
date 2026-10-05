@@ -1,7 +1,9 @@
 import { Suspense, lazy, memo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { todayIso } from '../../lib/date'
 import { spanLabel } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
+import { asOf, periodTag } from '../../lib/period'
 import { nextReminderAt } from '../../lib/reminders'
 import { daysLabel } from '../../lib/routines'
 import type { TimelineRow } from '../../lib/timeline'
@@ -113,9 +115,11 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section }: 
   const [sizingTo, setSizingTo] = useState<number | null>(null)
   const duration = task.duration ?? 0
   const scale = task.done ? 0 : importanceScale(sizingTo ?? task.importance)
-  const reminding = nextReminderAt(task, Date.now()) !== null
+  const today = todayIso()
+  const reminding = nextReminderAt(asOf(task, today), Date.now()) !== null
   const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
-  const meta = [task.time && task.duration ? spanLabel(task.time, task.duration) : null, section].filter(Boolean).join(' · ')
+  const period = periodTag(task, today)
+  const meta = [period?.label, task.time && task.duration ? spanLabel(task.time, task.duration) : null, section].filter(Boolean).join(' · ')
 
   return (
     <SwipeRow

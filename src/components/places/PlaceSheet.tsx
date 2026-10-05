@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createId } from '../../lib/id'
 import { DEFAULT_RADIUS, MAX_RADIUS, MIN_RADIUS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
 import { haptic } from '../../lib/platform/feedback'
+import { pickOnMap } from '../../lib/platform/mapPicker'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { PlaceLocation } from '../../types'
-import { IconLocate, IconPin, IconSearch, IconTrash } from '../ui/Icons'
+import { IconExpand, IconLocate, IconMap, IconPin, IconSearch, IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { Slider } from '../ui/Slider'
 import { useToast } from '../ui/Toast'
 import { MapSnapshot } from './MapSnapshot'
+import { PlaceAliases } from './PlaceAliases'
 import { usePlaceSearch } from './usePlaceSearch'
 import './places.css'
 
@@ -18,11 +20,14 @@ export interface PlaceRequest {
   placeId: string | null
   /** Nombre propuesto para uno nuevo (lo dicho: "Mercadona"). */
   name?: string
+  /** Dónde está uno nuevo, si ya se eligió (en el mapa de la pestaña Lugares). */
+  location?: PlaceLocation
   onSaved?: (placeId: string) => void
 }
 
 interface Draft {
   name: string
+  aliases: string[]
   location: PlaceLocation | null
   radius: number
 }
@@ -48,6 +53,12 @@ const COPY = {
     search: 'Buscar en Mapas',
     searchFailed: 'No se ha podido buscar. Revisa la conexión.',
     current: 'Usar mi ubicación actual',
+    onMap: 'Elegir en el mapa',
+    openMap: 'Abrir el mapa para ajustar el punto',
+    useSpot: 'Usar este punto',
+    close: 'Cerrar',
+    locate: 'Mi ubicación',
+    mapFailed: 'No se ha podido abrir el mapa.',
     radius: 'Radio',
     radiusLabel: 'Radio del aviso',
     linked: 'Avisos aquí',
@@ -68,6 +79,12 @@ const COPY = {
     search: 'Search in Maps',
     searchFailed: 'Search failed. Check your connection.',
     current: 'Use my current location',
+    onMap: 'Choose on the map',
+    openMap: 'Open the map to adjust the spot',
+    useSpot: 'Use this spot',
+    close: 'Close',
+    locate: 'My location',
+    mapFailed: 'Couldn’t open the map.',
     radius: 'Radius',
     radiusLabel: 'Reminder radius',
     linked: 'Reminders here',
@@ -91,7 +108,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   // Se conserva la última petición para animar el cierre sin que cambie el contenido.
   const [shown, setShown] = useState<PlaceRequest | null>(request)
   const place = shown?.placeId ? (state.places.find((item) => item.id === shown.placeId) ?? null) : null
-  const [draft, setDraft] = useState<Draft>({ name: '', location: null, radius: DEFAULT_RADIUS })
+  const [draft, setDraft] = useState<Draft>({ name: '', aliases: [], location: null, radius: DEFAULT_RADIUS })
   const [query, setQuery] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [locating, setLocating] = useState(false)
@@ -108,9 +125,10 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
     setShown(request)
     const current = request.placeId ? state.places.find((item) => item.id === request.placeId) : undefined
     const name = current?.name ?? request.name ?? ''
-    setDraft({ name, location: current?.location ?? null, radius: current?.radius ?? DEFAULT_RADIUS })
+    const location = current?.location ?? request.location ?? null
+    setDraft({ name, aliases: current?.aliases ?? [], location, radius: current?.radius ?? DEFAULT_RADIUS })
     // Sin ubicación todavía, se busca directamente por el nombre.
-    setQuery(current?.location ? '' : name)
+    setQuery(location ? '' : name)
     setConfirming(false)
   }, [request]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -122,15 +140,17 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       if (place) {
         // El reducer no deja dos lugares con el mismo nombre: se conserva el anterior y se avisa.
         const clash = findPlace(state.places, name)
-        if (clash && clash.id !== place.id) toast({ message: copy.clash(clash.name) })
-        dispatch({ type: 'place/update', id: place.id, name, location: draft.location, radius: draft.radius })
+        if (clash && clash.id !== place.id) toast({ message: copy.clash(name) })
+        dispatch({ type: 'place/update', id: place.id, name, aliases: draft.aliases, location: draft.location, radius: draft.radius })
         request.onSaved?.(place.id)
       } else {
         // Si ya hay uno con ese nombre se reutiliza: los avisos casan por nombre.
         const existing = findPlace(state.places, name)
         const id = existing?.id ?? createId()
-        if (existing) dispatch({ type: 'place/update', id, location: draft.location ?? existing.location, radius: draft.radius })
-        else dispatch({ type: 'place/add', id, name, location: draft.location, radius: draft.radius })
+        if (existing) {
+          const aliases = [...existing.aliases, ...draft.aliases]
+          dispatch({ type: 'place/update', id, aliases, location: draft.location ?? existing.location, radius: draft.radius })
+        } else dispatch({ type: 'place/add', id, name, aliases: draft.aliases, location: draft.location, radius: draft.radius })
         request.onSaved?.(id)
       }
     }
@@ -153,6 +173,36 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       })
     } finally {
       setLocating(false)
+    }
+  }
+
+  /** El mapa a pantalla completa: se arrastra bajo la chincheta o se toca el sitio (o un comercio). */
+  const mapOpen = useRef(false)
+  const chooseOnMap = async () => {
+    // Un doble toque no abre dos mapas.
+    if (mapOpen.current) return
+    mapOpen.current = true
+    const others = state.places.flatMap((item) =>
+      item.id !== place?.id && item.location ? [{ name: item.name, lat: item.location.lat, lng: item.location.lng, radius: item.radius }] : [],
+    )
+    try {
+      const picked = await pickOnMap({
+        title: cleanPlaceName(draft.name) || copy.newPlace,
+        confirm: copy.useSpot,
+        cancel: copy.close,
+        locate: copy.locate,
+        ...(draft.location ? { center: { lat: draft.location.lat, lng: draft.location.lng } } : {}),
+        radius: draft.radius,
+        places: others,
+      })
+      if (!picked) return
+      // Un comercio tocado en el mapa da también el nombre, si aún no tiene.
+      setDraft((current) => ({ ...current, location: picked.location, name: current.name.trim() ? current.name : (picked.name ?? '') }))
+      setQuery('')
+    } catch {
+      toast({ message: copy.mapFailed })
+    } finally {
+      mapOpen.current = false
     }
   }
 
@@ -179,18 +229,24 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
         onChange={(event) => update({ name: event.target.value })}
       />
 
+      <PlaceAliases name={draft.name} aliases={draft.aliases} placeId={place?.id ?? null} onChange={(aliases) => update({ aliases })} />
+
       <p className="sheet__title">{copy.where}</p>
       {draft.location && (
         <>
-          <MapSnapshot
-            className="place-sheet__map"
-            points={[draft.location]}
-            center={draft.location}
-            span={mapSpan(draft.radius)}
-            radius={radius}
-            height={MAP_HEIGHT}
-            renderPin={() => <span className="place-sheet__center" />}
-          />
+          <button type="button" className="place-sheet__map" aria-label={copy.openMap} onClick={() => void chooseOnMap()}>
+            <MapSnapshot
+              points={[draft.location]}
+              center={draft.location}
+              span={mapSpan(draft.radius)}
+              radius={radius}
+              height={MAP_HEIGHT}
+              renderPin={() => <span className="place-sheet__center" />}
+            />
+            <span className="map__expand" aria-hidden="true">
+              <IconExpand size={15} />
+            </span>
+          </button>
           <p className="place-current">
             <IconPin size={16} />
             <span>{draft.location.address || copy.saved}</span>
@@ -237,6 +293,10 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       )}
       {search.failed && <p className="sheet__note">{copy.searchFailed}</p>}
 
+      <button type="button" className="sheet__row" onClick={() => void chooseOnMap()}>
+        <IconMap size={18} />
+        {copy.onMap}
+      </button>
       <button type="button" className="sheet__row" disabled={locating} onClick={() => void pickCurrentLocation()}>
         <IconLocate size={18} />
         {copy.current}

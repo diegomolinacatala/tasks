@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { addDays, relativeLabel, shortTime } from '../../lib/date'
+import { untilLabel } from '../../lib/period'
 import { createId } from '../../lib/id'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { sortedSections } from '../../state/selectors'
 import type { IsoDate, IsoTime } from '../../types'
+import { IconClose } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 
 /**
@@ -19,6 +21,8 @@ const COPY = {
     tomorrow: 'Mañana',
     noDate: 'Sin fecha',
     otherDay: 'Otro día',
+    until: 'Hasta…',
+    clearUntil: 'Quitar el plazo: solo ese día',
     time: 'Hora',
     noTime: 'Sin hora',
     pickTime: 'Elegir hora',
@@ -33,6 +37,8 @@ const COPY = {
     tomorrow: 'Tomorrow',
     noDate: 'No date',
     otherDay: 'Other day',
+    until: 'Until…',
+    clearUntil: 'Remove the time frame: just that day',
     time: 'Time',
     noTime: 'No time',
     pickTime: 'Pick a time',
@@ -47,9 +53,16 @@ interface WhenFieldProps {
   date: IsoDate | null
   today: IsoDate
   onChange: (date: IsoDate | null) => void
+  /** Último día del plazo (`lib/period.ts`). Sin `onUntil`, el campo no lo ofrece. */
+  until?: IsoDate | null
+  onUntil?: (until: IsoDate | null) => void
 }
 
-export function WhenField({ date, today, onChange }: WhenFieldProps) {
+/**
+ * El día y, con él, hasta cuándo vale: "Hasta…" lo convierte en un plazo (se ve cada día hasta hacerla
+ * y no queda atrasada antes de tiempo). Elegido, dice "Hasta el viernes" y la × lo quita.
+ */
+export function WhenField({ date, today, onChange, until = null, onUntil }: WhenFieldProps) {
   const tomorrow = addDays(today, 1)
   const copy = useCopy(COPY)
   const isCustomDate = Boolean(date && date !== today && date !== tomorrow)
@@ -69,6 +82,32 @@ export function WhenField({ date, today, onChange }: WhenFieldProps) {
         <PickerChip type="date" className={`chip ${isCustomDate ? 'is-active' : ''}`} value={date ?? ''} onCommit={(value) => onChange(value || null)}>
           {isCustomDate && date ? relativeLabel(date, today) : copy.otherDay}
         </PickerChip>
+        {date !== null && onUntil && (
+          <PickerChip
+            type="date"
+            className={`chip ${until ? 'chip--reminder chip--until' : 'chip--option'}`}
+            value={until ?? ''}
+            min={addDays(date, 1)}
+            onCommit={(value) => onUntil(value || null)}
+          >
+            {until ? untilLabel(until, today) : copy.until}
+            {until && (
+              <button
+                type="button"
+                className="chip__clear"
+                aria-label={copy.clearUntil}
+                onClick={(event) => {
+                  // Dentro de la píldora: quitarlo no debe abrir también el selector.
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onUntil(null)
+                }}
+              >
+                <IconClose size={12} className="chip__remove" />
+              </button>
+            )}
+          </PickerChip>
+        )}
       </div>
     </>
   )

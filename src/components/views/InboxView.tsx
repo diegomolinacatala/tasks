@@ -9,7 +9,7 @@ import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { backlogTasks } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
-import { announcements, buzz, scopedCollision, useDragSensors } from '../dnd/dnd'
+import { announcements, buzz, pressCue, scopedCollision, useDragSensors } from '../dnd/dnd'
 import { BACKLOG, columnId, dayOfDrop } from '../dnd/ids'
 import { RoutinesBlock } from '../routines/RoutinesBlock'
 import { BlockHeader } from '../section/BlockHeader'
@@ -130,6 +130,8 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
       <DndContext
         sensors={sensors}
         collisionDetection={scopedCollision}
+        onDragPending={pressCue.onDragPending}
+        onDragAbort={pressCue.onDragAbort}
         measuring={MEASURING}
         accessibility={{ announcements }}
         onDragStart={onDragStart}

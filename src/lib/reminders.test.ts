@@ -23,6 +23,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -204,7 +205,7 @@ describe('avisos de lugar', () => {
   })
 
   test('la etiqueta usa el nombre del lugar', () => {
-    const places = [{ id: 'm', name: 'Mercadona', location: null, radius: 150 }]
+    const places = [{ id: 'm', name: 'Mercadona', aliases: [], location: null, radius: 150 }]
     expect(reminderLabel(place, NOW, places)).toBe('Al llegar a Mercadona')
   })
 })

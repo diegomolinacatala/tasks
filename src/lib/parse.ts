@@ -1,10 +1,12 @@
-import type { Place } from '../types'
+import type { IsoDate, Place } from '../types'
 import { addDays, isoOfInstant, startOfWeek } from './date'
 import { language } from './i18n'
 import { normalizeText } from './normalize'
 import type { ParsedTask, PendingAt } from './parseCore'
 import { Scanner, assemble, durationMinutes, literal, readOffset, word } from './parseCore'
 import type * as EnglishParser from './parseEn'
+import type { DayRange } from './period'
+import { between, dayOnOrAfter, isWeekend, nextWeek, onOrAfter, thisMonth, thisWeek, weekendOf } from './period'
 import { placePhraseRegex, readPlacePhrase } from './placePhrase'
 import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
 import {
@@ -104,6 +106,26 @@ const RE_PART = word('(por la|esta) (manana|tarde|noche)|(?:a|al) (mediodia)|a (
 const RE_DAY_WORD = word('pasado manana|manana|hoy')
 const RE_WEEKDAY = word(`(?:el |este |el proximo |proximo )?(${WEEKDAY})(?: que viene)?`)
 
+const MONTH = `${MONTHS.join('|')}|setiembre`
+/** "del 5 al 9", "del 28 de septiembre al 3 de octubre", "desde el 5 hasta el 9 de octubre". */
+const RE_PERIOD_DAYS = word(`(?:del|desde el) (?:dia )?(\\d{1,2})(?: de (${MONTH}))? (?:al|hasta el) (?:dia )?(\\d{1,2})(?: de (${MONTH}))?`)
+/** "del lunes al viernes", "desde el martes hasta el jueves", "entre el lunes y el miércoles". "De lunes a viernes" es una rutina. */
+const RE_PERIOD_WEEKDAYS = word(`(?:del|desde el) (${WEEKDAY}) (?:al|hasta el) (${WEEKDAY})|entre el (${WEEKDAY}) y el (${WEEKDAY})`)
+/** "hasta el viernes", "hasta el próximo lunes", "hasta el 15", "hasta el 15 de octubre", "hasta mañana". */
+const RE_PERIOD_UNTIL = word(
+  `hasta (?:el (proximo )?(${WEEKDAY})( que viene)?|el (?:dia )?(\\d{1,2})(?: de (${MONTH}))?|(pasado manana|manana))`,
+)
+/** "la semana que viene", "durante la próxima semana". Con un día detrás ("…, el martes") es ese día. */
+const RE_PERIOD_NEXT_WEEK = word(
+  `(?:durante |a lo largo de )?(?<!(?:${WEEKDAY}) de (?:la )?)(?:la )?${NEXT_WEEK}(?!,? (?:el )?(?:${WEEKDAY}))`,
+)
+/** "esta semana", "durante la semana", "en lo que queda de semana". */
+const RE_PERIOD_WEEK = word('(?:(?:durante|a lo largo de|en lo que queda de) (?:esta |la )?semana|esta semana)(?! que viene| siguiente)')
+/** "este fin de semana", "el finde", "el próximo fin de semana", "el fin de semana que viene". */
+const RE_PERIOD_WEEKEND = word('(?:este|el) (proximo )?(?:fin de semana|finde)( que viene)?')
+/** "este mes", "en lo que queda de mes". */
+const RE_PERIOD_MONTH = word('(?:durante |a lo largo de )?este mes|en lo que queda de mes')
+
 /** Una duración es un rato del día: "de tres días" no lo es y se queda en el título. */
 const durationAmount = (groups: readonly (string | undefined)[]) => durationMinutes(amountOf(groups))
 
@@ -120,6 +142,41 @@ function spanHint(groups: readonly (string | undefined)[]): string | undefined {
   if (part ?? noon) return part ?? noon
   if (meridiem) return meridiem === 'pm' ? 'tarde' : 'manana'
   return undefined
+}
+
+const monthNumber = (name: string | undefined) => (name ? (name === 'setiembre' ? 9 : MONTHS.indexOf(name) + 1) : undefined)
+
+/**
+ * El plazo que dice la frase ("esta semana", "hasta el viernes", "del lunes al viernes"), si lo dice. Va
+ * antes que los días sueltos: "hasta el 15 de octubre" no es el día 15 con "hasta" en el título.
+ */
+function readPeriodEs(scanner: Scanner, today: IsoDate, now: number): DayRange | null {
+  const weekday = (name: string) => WEEKDAYS.indexOf(name)
+  const upcoming = (name: string) => onOrAfter(today, weekday(name))
+  const after = (name: string) => addDays(today, (weekday(name) - new Date(now).getDay() + 7) % 7 || 7)
+  const until = (end: IsoDate | null): DayRange | null => (end ? { start: today, end, kind: 'until' } : null)
+  return (
+    scanner.first(RE_PERIOD_DAYS, ([, d1, m1, d2, m2]) => {
+      // "Del 28 al 3 de octubre": el 28 es de septiembre.
+      const endMonth = monthNumber(m2)
+      const startMonth = monthNumber(m1) ?? (endMonth && Number(d1) > Number(d2) ? ((endMonth + 10) % 12) + 1 : endMonth)
+      const start = dayOnOrAfter(today, Number(d1), startMonth)
+      return between(start, start && dayOnOrAfter(start, Number(d2), endMonth))
+    }) ??
+    scanner.first(RE_PERIOD_WEEKDAYS, ([, from, to, first, second]) => {
+      const start = upcoming(from ?? first ?? '')
+      return between(start, onOrAfter(start, weekday(to ?? second ?? '')))
+    }) ??
+    scanner.first(RE_PERIOD_UNTIL, ([, next, name, coming, d, month, word]) => {
+      if (name) return until(next || coming ? after(name) : upcoming(name))
+      if (word) return until(addDays(today, word === 'manana' ? 1 : 2))
+      return until(dayOnOrAfter(today, Number(d), monthNumber(month)))
+    }) ??
+    scanner.first(RE_PERIOD_NEXT_WEEK, () => nextWeek(today)) ??
+    scanner.first(RE_PERIOD_WEEK, () => thisWeek(today)) ??
+    scanner.first(RE_PERIOD_WEEKEND, ([, next, coming]) => weekendOf(today, Boolean(next ?? coming) && isWeekend(today))) ??
+    scanner.first(RE_PERIOD_MONTH, () => thisMonth(today))
+  )
 }
 
 /** Extrae fecha, hora y avisos de un texto en español. Si no queda título, lo deja literal. */
@@ -192,6 +249,7 @@ function parseTaskEs(input: string, now: number, places: readonly Place[] | null
     scanner.first(RE_DURATION_OF, (match) => durationAmount(match.slice(1))) ??
     scanner.first(RE_DURATION, (match) => durationAmount(match.slice(1)))
 
+  const period = readPeriodEs(scanner, today, now)
   const date =
     scanner.first(RE_NEXT_WEEK_DAY, ([, name, other]) => {
       const weekday = WEEKDAYS.indexOf(name ?? other ?? '')
@@ -216,7 +274,7 @@ function parseTaskEs(input: string, now: number, places: readonly Place[] | null
   const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
   const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
-  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, part, time, namedDay, weekday }
+  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
   return assemble(input, now, scanner, found, cleanTitle, known)
 }
 

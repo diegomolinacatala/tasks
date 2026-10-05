@@ -39,10 +39,16 @@ enum WidgetStore {
     static func tasks() -> [WidgetTask]? {
         guard let snapshot = read(WidgetSnapshot.self, snapshotFile), snapshot.version == version else { return nil }
         let marked = loadChanges().done
+        let today = WidgetDay.iso(Date())
         return snapshot.tasks.map { task in
             guard let done = marked[task.id] else { return task }
             var changed = task
             changed.done = done
+            // Con plazo, tachada aquí es de hoy (como la ve la app): no sale hecha los días que quedaban.
+            if done, let until = changed.until {
+                changed.date = min(max(today, changed.date), until)
+                changed.until = nil
+            }
             return changed
         }
     }
@@ -186,13 +192,27 @@ enum WidgetStore {
 struct WidgetTask: Codable, Hashable, Identifiable {
     let id: String
     let title: String
-    /** `AAAA-MM-DD` local. */
-    let date: String
+    /** `AAAA-MM-DD` local. Con plazo y tachada desde el widget, pasa a ser el día en que se tachó. */
+    var date: String
     /** `HH:MM` o `nil`. */
     let time: String?
     var done: Bool
     /** 1 a 10 (`src/lib/importance.ts`). Falta en las fotos de versiones anteriores: normal. */
     var importance: Int? = nil
+    /**
+     * Último día de su plazo (`AAAA-MM-DD`, `src/lib/period.ts`): pendiente, se ve cada día hasta él y
+     * solo después está atrasada. Falta en las tareas sin plazo y en las fotos de antes de los plazos.
+     */
+    var until: String? = nil
+
+    /** Último día en que vale: después, atrasada. */
+    var lastDay: String { until ?? date }
+
+    /** Se ve ese día: el suyo o, con plazo, cualquiera de él. */
+    func shows(on day: String) -> Bool {
+        guard let until else { return date == day }
+        return date <= day && day <= until
+    }
 
     /** De 0 (normal) a 1 (lo más importante). */
     var weight: Double {
@@ -292,8 +312,8 @@ struct WidgetDay {
 
     init(tasks: [WidgetTask], day: String) {
         self.day = day
-        overdue = tasks.filter { !$0.done && $0.date < day }
-        let inDay = tasks.filter { $0.date == day }
+        overdue = tasks.filter { !$0.done && $0.lastDay < day }
+        let inDay = tasks.filter { $0.shows(on: day) }
         today = inDay.filter { !$0.done } + inDay.filter(\.done)
     }
 

@@ -7,6 +7,7 @@ const task = (id: string, time: string | null, duration: number | null = null): 
   title: id,
   done: false,
   date: '2026-09-29',
+  until: null,
   time,
   duration,
   reminders: [],

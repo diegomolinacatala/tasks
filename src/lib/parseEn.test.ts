@@ -255,7 +255,7 @@ describe('titles', () => {
 })
 
 describe('places', () => {
-  const walmart: Place = { id: 'w', name: 'Walmart', location: { lat: 1, lng: 1, address: '' }, radius: 150 }
+  const walmart: Place = { id: 'w', name: 'Walmart', aliases: [], location: { lat: 1, lng: 1, address: '' }, radius: 150 }
 
   test('a saved place', () => {
     expect(parse('buy milk when I get to Walmart', NOW, [walmart])).toMatchObject({

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { todayIso } from '../../lib/date'
+import { asOf } from '../../lib/period'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { findTask } from '../../state/selectors'
@@ -117,7 +118,13 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
       <p className="sheet__title">{copy.importance}</p>
       <ImportanceScale value={shown.importance} onChange={(importance) => task && setImportance(task.id, importance)} />
 
-      <WhenField date={shown.date} today={today} onChange={moveTo} />
+      <WhenField
+        date={shown.date}
+        today={today}
+        onChange={moveTo}
+        until={shown.until}
+        onUntil={(until) => task && dispatch({ type: 'task/until', id: task.id, until })}
+      />
 
       {shown.date !== null && <TimeField time={shown.time} onChange={setTime} />}
 
@@ -131,7 +138,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
       )}
 
       <ReminderPicker
-        task={shown}
+        task={asOf(shown, today)}
         onAdd={(reminder) => task && dispatch({ type: 'reminder/add', taskId: task.id, reminder })}
         onRemove={(reminderId) => task && dispatch({ type: 'reminder/remove', taskId: task.id, reminderId })}
       />

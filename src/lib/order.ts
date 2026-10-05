@@ -1,4 +1,5 @@
 import type { IsoDate, Task } from '../types'
+import { cleanUntil } from './period'
 
 /**
  * El campo `order` es relativo a un "scope":
@@ -56,17 +57,21 @@ export function applyOrder(tasks: readonly Task[], scope: string, orderedIds: re
   })
 }
 
-/** Mueve una tarea a otro día/sección (o dentro del mismo) insertándola en `index`. */
+/**
+ * Mueve una tarea a otro día/sección (o dentro del mismo) insertándola en `index`. Su plazo sigue si
+ * acaba después del día nuevo; llevarla más allá lo quita: pasa a ser de ese día.
+ */
 export function moveTask(
   tasks: readonly Task[],
   id: string,
-  target: { date: IsoDate | null; sectionId: string | null },
+  target: { date: IsoDate | null; sectionId: string | null; until?: IsoDate | null },
   index = Number.POSITIVE_INFINITY,
 ): Task[] {
   const current = tasks.find((task) => task.id === id)
   if (!current) return tasks as Task[]
 
-  const moved: Task = { ...current, date: target.date, sectionId: target.sectionId }
+  const until = cleanUntil(target.date, target.until === undefined ? current.until : target.until)
+  const moved: Task = { ...current, date: target.date, until, sectionId: target.sectionId }
   const fromScope = scopeOf(current)
   const toScope = scopeOf(moved)
 
@@ -86,6 +91,8 @@ export function moveTask(
 export interface Placement {
   id: string
   date: IsoDate | null
+  /** Final de su plazo, para devolvérselo al deshacer. Sin él, el que tenga. */
+  until?: IsoDate | null
   sectionId: string | null
   index: number
 }
@@ -100,7 +107,7 @@ export function placementsOf(tasks: readonly Task[], ids: readonly string[]): Pl
       const task = tasks.find((item) => item.id === id)
       if (!task) return []
       const index = inScope(tasks, scopeOf(task)).findIndex((item) => item.id === id)
-      return [{ id, date: task.date, sectionId: task.sectionId, index }]
+      return [{ id, date: task.date, until: task.until, sectionId: task.sectionId, index }]
     })
     .sort((a, b) => a.index - b.index)
 }
@@ -108,7 +115,7 @@ export function placementsOf(tasks: readonly Task[], ids: readonly string[]): Pl
 /** Coloca las tareas en orden, una detrás de otra. Sin fecha no hay sección. */
 export function applyPlacements(tasks: readonly Task[], placements: readonly Placement[]): Task[] {
   return placements.reduce<Task[]>(
-    (acc, { id, date, sectionId, index }) => moveTask(acc, id, { date, sectionId: date ? sectionId : null }, index),
+    (acc, { id, date, until, sectionId, index }) => moveTask(acc, id, { date, until, sectionId: date ? sectionId : null }, index),
     tasks as Task[],
   )
 }

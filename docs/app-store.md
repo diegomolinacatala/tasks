@@ -458,7 +458,7 @@ HOW TO TEST
 - Ajustes: light or dark appearance; export or import a JSON backup.
 
 EXTERNAL SERVICES
-- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user has seen that notice and granted microphone access (off in Ajustes → Dictado). Otherwise nothing is sent and Siri input is parsed on the device.
+- Our own backend on Cloudflare Workers, used for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with Whisper and the text interpreted with NVIDIA Nemotron, both on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use it to train models. It is sent only after the user has seen that notice and granted microphone access (off in Ajustes → Dictado). Otherwise nothing is sent and Siri input is parsed on the device.
 - The backend keeps only a random device ID and a hash of its token, for rate limiting.
 - Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send (message, optional screenshot, app version); only the developer reads them.
 - Apple Maps (MapKit search), iOS local notifications and region monitoring.
@@ -610,7 +610,7 @@ No login, credentials or sample files are needed. The interface is in Spanish; l
 - Ajustes: light or dark appearance; export or import a JSON backup.
 
 4. EXTERNAL SERVICES
-- Our own backend on Cloudflare Workers, used only for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with OpenAI Whisper and the text is interpreted with NVIDIA Nemotron, both running on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use this data to train models. This happens only after the user explicitly allows it in the app, and the permission can be withdrawn in Ajustes → Dictado. Without it nothing is sent and Siri input is parsed on the device.
+- Our own backend on Cloudflare Workers, used for dictation. It receives the audio (from Siri, only the text) plus the device's local date and time; the audio is transcribed with OpenAI Whisper and the text is interpreted with NVIDIA Nemotron, both running on Cloudflare Workers AI. Nothing is stored or logged, and Cloudflare does not use this data to train models. This happens only after the user explicitly allows it in the app, and the permission can be withdrawn in Ajustes → Dictado. Without it nothing is sent and Siri input is parsed on the device.
 - The backend keeps only a random device ID and a hash of its access token, for rate limiting.
 - Apple Maps (MapKit local search) to find places; iOS local notifications and region monitoring for reminders.
 - No analytics, advertising, tracking, third-party SDKs, payment or authentication services.

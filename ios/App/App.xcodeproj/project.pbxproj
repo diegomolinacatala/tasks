@@ -19,6 +19,7 @@
 		7A5C00000000000000000101 /* TasksViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000001 /* TasksViewController.swift */; };
 		7A5C00000000000000000102 /* TasksNativePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000002 /* TasksNativePlugin.swift */; };
 		7A5C00000000000000000103 /* LocationRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000003 /* LocationRequester.swift */; };
+		7A5C00000000000000000902 /* MapPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000901 /* MapPicker.swift */; };
 		7A5C00000000000000000104 /* NativeActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000004 /* NativeActions.swift */; };
 		7A5C00000000000000000105 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000005 /* AppIntents.swift */; };
 		7A5C00000000000000000106 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */; };
@@ -85,6 +86,7 @@
 		7A5C00000000000000000001 /* TasksViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksViewController.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000002 /* TasksNativePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksNativePlugin.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000003 /* LocationRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationRequester.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000901 /* MapPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPicker.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000004 /* NativeActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeActions.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000005 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000006 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 				7A5C00000000000000000001 /* TasksViewController.swift */,
 				7A5C00000000000000000002 /* TasksNativePlugin.swift */,
 				7A5C00000000000000000003 /* LocationRequester.swift */,
+				7A5C00000000000000000901 /* MapPicker.swift */,
 				7A5C00000000000000000004 /* NativeActions.swift */,
 				7A5C00000000000000000005 /* AppIntents.swift */,
 				7A5C00000000000000000013 /* QuickAdd.swift */,
@@ -323,6 +326,7 @@
 				7A5C00000000000000000101 /* TasksViewController.swift in Sources */,
 				7A5C00000000000000000102 /* TasksNativePlugin.swift in Sources */,
 				7A5C00000000000000000103 /* LocationRequester.swift in Sources */,
+				7A5C00000000000000000902 /* MapPicker.swift in Sources */,
 				7A5C00000000000000000104 /* NativeActions.swift in Sources */,
 				7A5C00000000000000000105 /* AppIntents.swift in Sources */,
 				7A5C00000000000000000107 /* WidgetStore.swift in Sources */,
@@ -537,7 +541,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -560,7 +564,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
@@ -583,7 +587,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -607,7 +611,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.diegomolinacatala.tasks.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

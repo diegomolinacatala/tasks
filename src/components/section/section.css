@@ -9,6 +9,7 @@
 }
 
 .section__head {
+  -webkit-touch-callout: none;
   display: flex;
   align-items: center;
   gap: var(--sp-1);
@@ -123,17 +124,6 @@
 .section__icon:active {
   background: var(--bg-press);
   color: var(--text-2);
-}
-
-.section__grip {
-  opacity: 0.55;
-  touch-action: none;
-  cursor: grab;
-}
-
-.section__grip:active {
-  opacity: 1;
-  cursor: grabbing;
 }
 
 .column {

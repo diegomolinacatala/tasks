@@ -3,6 +3,8 @@ import { addDays, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInsta
 import { MAX_DURATION, MIN_DURATION, durationFromEnd, durationLabel, spanLabel } from './duration'
 import type { NormalizedText } from './normalize'
 import { originalSpan } from './normalize'
+import type { DayRange } from './period'
+import { periodLabel } from './period'
 import type { PlacePhrase } from './placePhrase'
 import { placeTriggerLabel } from './places'
 import { reminderLabel } from './reminders'
@@ -117,6 +119,8 @@ export interface Extracted {
   until: IsoTime | null
   duration: number | null
   date: IsoDate | null
+  /** Plazo dicho ("esta semana", "hasta el viernes"): la tarea vale cualquier día de él. */
+  period: DayRange | null
   /** "Esta noche" o "tonight": la franja y si es de hoy. */
   part: { time: IsoTime | null; today: boolean } | null
   time: IsoTime | null
@@ -142,9 +146,16 @@ export function assemble(
 
   const today = isoOfInstant(now)
   const { placePhrase, explicit, pending, span, until, time } = found
-  let date = found.date ?? found.namedDay ?? found.weekday ?? found.offsetDate ?? (found.part?.today ? today : null)
+  const named = found.date ?? found.namedDay ?? found.weekday
+  // "El viernes de esta semana": la semana solo dice qué viernes, no es un plazo.
+  const period = found.period && !(named && found.period.kind === 'loose') ? found.period : null
+  // "Hasta el viernes a las 5": una hora límite es la de su último día, no la de cada día del plazo.
+  const deadline = period?.kind === 'until' && time ? period.end : null
+  let date = deadline ?? named ?? found.offsetDate ?? period?.start ?? (found.part?.today ? today : null)
   // Una hora sin día que ya pasó hoy se entiende para mañana.
   if (time && !date) date = toInstant(today, time) > now ? today : addDays(today, 1)
+  // El plazo empieza el día dicho (o hoy) y acaba donde diga: si no acaba después, es solo ese día.
+  const periodEnd = !deadline && period && date && period.end > date ? period.end : null
 
   let duration = found.duration
   if (span) duration = durationFromEnd(span.start, span.end)
@@ -167,7 +178,7 @@ export function assemble(
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-  const draft = { title, date, time, duration, reminders }
+  const draft = { title, date, ...(periodEnd ? { until: periodEnd } : {}), time, duration, reminders }
   const label = draftLabel(draft, isDefault, now, places)
   if (!placePhrase || placePhrase.place) return { ...draft, label }
   const newPlace = { name: placePhrase.name, on: placePhrase.on }
@@ -186,17 +197,17 @@ export function readOffset(offset: number | null, now: number, dayMinutes: numbe
 export const withPlaceLabel = (label: string, place: { name: string; on: PlaceTrigger }) =>
   [label, placeTriggerLabel(place.name, place.on)].filter(Boolean).join(' · ')
 
-/** `Mañana 17:00–18:00 · 1 h antes`. `isDefault`: el único aviso es el automático "a la hora". */
+/** `Mañana 17:00–18:00 · 1 h antes`, `Esta semana`. `isDefault`: el único aviso es el automático "a la hora". */
 export function draftLabel(
-  draft: Pick<TaskDraft, 'date' | 'time' | 'duration' | 'reminders'>,
+  draft: Pick<TaskDraft, 'date' | 'until' | 'time' | 'duration' | 'reminders'>,
   isDefault: boolean,
   now: number,
   places: readonly Place[] = [],
 ): string {
-  const { date, time, duration, reminders } = draft
+  const { date, until, time, duration, reminders } = draft
   const today = isoOfInstant(now)
   const parts: string[] = []
-  if (date) parts.push(relativeLabel(date, today))
+  if (date) parts.push(until && until > date ? periodLabel(date, until, today) : relativeLabel(date, today))
   if (time) parts.push(spanLabel(time, duration))
   // Sin hora la duración no tiene de dónde colgar, pero sí dice algo: "Reunión · 2 h".
   else if (duration !== null) parts.push(durationLabel(duration))

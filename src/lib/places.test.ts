@@ -18,6 +18,7 @@ const TODAY = '2026-09-11'
 
 const place = (partial: Partial<Place> & { id: string }): Place => ({
   name: partial.id,
+  aliases: [],
   location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1, Valencia' },
   radius: DEFAULT_RADIUS,
   ...partial,
@@ -34,6 +35,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: null,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -83,7 +85,7 @@ describe('placeReminderLabel', () => {
 describe('normalizePlace', () => {
   test('acepta un lugar completo', () => {
     const raw = { id: 'm', name: ' Mercadona ', location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 }
-    expect(normalizePlace(raw)).toEqual({ id: 'm', name: 'Mercadona', location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 })
+    expect(normalizePlace(raw)).toEqual({ id: 'm', name: 'Mercadona', aliases: [], location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 })
   })
 
   test('sin ubicación válida queda pendiente de elegir dónde está', () => {

@@ -250,3 +250,12 @@ export function occurrenceDate(day: IsoDate, time: IsoTime, dayStart: IsoTime): 
 
 /** Id del aviso de una rutina un día concreto: `routine-<id>-AAAAMMDD`. Estable entre sincronizaciones. */
 export const routineEntryId = (routineId: string, date: IsoDate): string => `routine-${routineId}-${date.replace(/-/g, '')}`
+
+/**
+ * El atajo de una vez por semana ("Los martes"): el día que ya tiene si es uno solo; si no, el de `day`
+ * (hoy, o el de la tarea). Para entrenar cada lunes sin tener que quitar los otros seis días.
+ */
+export const weeklyPreset = (days: readonly number[], day: IsoDate): number[] => {
+  const [only] = days
+  return [days.length === 1 && only ? only : isoWeekday(day)]
+}

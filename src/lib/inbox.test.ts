@@ -6,7 +6,7 @@ import type { InboxEntry } from './inbox'
 
 const NOW = new Date(2026, 8, 18, 10, 0).getTime()
 
-const place = (id: string, name: string): Place => ({ id, name, location: null, radius: 150 })
+const place = (id: string, name: string): Place => ({ id, name, aliases: [], location: null, radius: 150 })
 
 const draft = (partial: Partial<TaskDraft> = {}): TaskDraft => ({
   title: 'Comprar pan',

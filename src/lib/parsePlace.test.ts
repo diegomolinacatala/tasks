@@ -7,9 +7,10 @@ import { parseSpoken, parseTask } from './parse'
 const TODAY = '2026-09-11'
 const NOW = toInstant(TODAY, '10:00')
 
-const place = (id: string, name: string): Place => ({
+const place = (id: string, name: string, aliases: string[] = []): Place => ({
   id,
   name,
+  aliases,
   location: { lat: 39.47, lng: -0.38, address: '' },
   radius: 150,
 })

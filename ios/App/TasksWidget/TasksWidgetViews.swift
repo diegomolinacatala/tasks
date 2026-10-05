@@ -317,7 +317,7 @@ struct TaskRow: View {
     /** Lo atrasado dice de cuándo es; lo de hoy, su hora. */
     private var detail: String? {
         guard style.detailed else { return nil }
-        if overdue { return WidgetDates.overdue(task.date, today: today, text: text) }
+        if overdue { return WidgetDates.overdue(task.lastDay, today: today, text: text) }
         return task.time.map { WidgetDates.shortTime($0, text.language) }
     }
 }

@@ -242,3 +242,10 @@ export const IconFeather = (props: IconProps) => (
     <path d="M20 4c0 7-4.5 11.5-11.5 11.5M12.5 12.5 16 9" />
   </Icon>
 )
+
+/** Abrir el mapa entero: dos flechas hacia las esquinas. */
+export const IconExpand = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+  </Icon>
+)

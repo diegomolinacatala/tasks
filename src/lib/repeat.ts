@@ -4,8 +4,9 @@ import type { Language } from './i18n'
 import { language } from './i18n'
 import type { NumberWords } from './normalize'
 import { ENGLISH_NUMBERS, SPANISH_NUMBERS, normalizeText, originalSpan } from './normalize'
+import { isoOfInstant } from './date'
 import { parseTask } from './parse'
-import { ALL_DAYS, WEEKEND, WORKDAYS, cleanDays, daysLabel } from './routines'
+import { ALL_DAYS, WEEKEND, WORKDAYS, cleanDays, daysLabel, isoWeekday } from './routines'
 import type { Span } from './title'
 import { capitalize } from './title'
 import { PART_OF_DAY } from './when'
@@ -30,6 +31,7 @@ const word = (source: string) => new RegExp(`(?<![a-z0-9])(?:${source})(?![a-z0-
 
 interface Pattern {
   regex: RegExp
+  /** Vacío en "cada semana": el día lo pone lo que se diga además ("el martes") o, si nada, hoy. */
   days: (match: RegExpExecArray) => readonly number[]
   /** La franja ("todas las mañanas"), que da además la hora. */
   part?: (match: RegExpExecArray) => string | undefined
@@ -95,6 +97,7 @@ const PATTERNS: Record<Language, Pattern[]> = {
       part: (match) => match[1]?.replace(/s$/, ''),
     },
     { regex: word('todos los dias|cada dia|a diario|diariamente'), days: () => ALL_DAYS },
+    { regex: word('cada semana|todas las semanas|semanalmente|una vez (?:a|por) semana'), days: () => [] },
     {
       // "cada lunes", "todos los martes", "los lunes y jueves", "los lunes, miércoles y viernes".
       regex: word(`(?:cada|todos los|todas las|los) (?:${DAY_NAME})(?:(?:, ?| y | e )(?:los )?(?:${DAY_NAME}))*`),
@@ -113,6 +116,7 @@ const PATTERNS: Record<Language, Pattern[]> = {
       part: (match) => (match[1] ?? match[2])?.replace(/s$/, ''),
     },
     { regex: word('every ?day|each day|daily|every single day'), days: () => ALL_DAYS },
+    { regex: word('every week|each week|weekly|once a week'), days: () => [] },
     {
       // "every monday", "on mondays and thursdays", "every mon, wed and fri". "On monday" es un día.
       regex: word(
@@ -158,7 +162,8 @@ export function readRepeat(input: string): { days: number[]; rest: string; part:
     }
   }
   if (!spans.length) return null
-  return { days: cleanDays(days), rest: cut(input, spans), part }
+  // Solo "cada semana", sin días: los decide quien la lee (`parseRoutine`). Vacío no es "todos".
+  return { days: days.length ? cleanDays(days) : [], rest: cut(input, spans), part }
 }
 
 /** La rutina que describe el texto, o `null` si no dice que se repita o no queda título. */
@@ -170,7 +175,9 @@ export function parseRoutine(input: string, now: number): RoutineDraft | null {
   const title = capitalize(parsed.title.trim())
   if (!title) return null
   const time = parsed.time ?? (repeat.part ? (PARTS[language()][repeat.part] ?? null) : null)
-  return { title, days: repeat.days, time, label: routineLabel(repeat.days, time) }
+  // "Bici cada semana el martes": el día dicho; sin él, el de hoy.
+  const days = repeat.days.length ? repeat.days : [isoWeekday(parsed.date ?? isoOfInstant(now))]
+  return { title, days, time, label: routineLabel(days, time) }
 }
 
 /** `Cada día · 10:00`, `Los lunes` · `Every day · 10:00 AM`, `Mondays`. */

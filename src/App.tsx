@@ -3,6 +3,7 @@ import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
 import { addLabel, composeTargets } from './lib/compose'
 import { relativeLabel } from './lib/date'
+import { periodLabel } from './lib/period'
 import { suggestEmoji } from './lib/emoji'
 import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
@@ -295,7 +296,7 @@ export function App() {
     if (here) return
     const { date } = draft
     toast({
-      message: `${draft.title} → ${date ? relativeLabel(date, today) : copy.inbox}`,
+      message: `${draft.title} → ${date ? (draft.until ? periodLabel(date, draft.until, today) : relativeLabel(date, today)) : copy.inbox}`,
       actionLabel: copy.view,
       onAction: () => {
         if (date) setDay(date)
@@ -328,7 +329,7 @@ export function App() {
       addRoutine(routine)
       return
     }
-    const understood = language === 'es' ? draftsFromInterpreted(interpreted, now, places) : null
+    const understood = language === 'es' ? draftsFromInterpreted(interpreted, now, places, text) : null
     addSpoken(understood ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
   }
 

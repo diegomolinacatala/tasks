@@ -18,6 +18,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -58,11 +59,11 @@ describe('tasksOn', () => {
   test('filtra por día y deja lo completado al final', () => {
     // El orden es relativo a cada sección, así que la lista plana solo garantiza
     // que lo pendiente va antes que lo completado.
-    expect(tasksOn(state, TODAY).map((t) => t.id)).toEqual(['a', 'work', 'b', 'done'])
+    expect(tasksOn(state, TODAY, TODAY).map((t) => t.id)).toEqual(['a', 'work', 'b', 'done'])
   })
 
   test('un día sin tareas devuelve lista vacía', () => {
-    expect(tasksOn(state, '2030-01-01')).toEqual([])
+    expect(tasksOn(state, '2030-01-01', TODAY)).toEqual([])
   })
 })
 
@@ -74,7 +75,7 @@ describe('backlogTasks', () => {
 
 describe('groupsFor', () => {
   test('la raíz va primero y luego las secciones en orden', () => {
-    const groups = groupsFor(state, TODAY)
+    const groups = groupsFor(state, TODAY, TODAY)
     expect(groups.map((g) => g.section?.id ?? 'root')).toEqual(['root', 's1', 's2'])
     expect(groups[0]!.tasks.map((t) => t.id)).toEqual(['a', 'b', 'done'])
     expect(groups[1]!.tasks.map((t) => t.id)).toEqual(['work'])
@@ -123,10 +124,32 @@ describe('findTask / findSection', () => {
 
 describe('progressOf', () => {
   test('cuenta completadas y calcula la proporción', () => {
-    expect(progressOf(tasksOn(state, TODAY))).toEqual({ total: 4, done: 1, ratio: 0.25 })
+    expect(progressOf(tasksOn(state, TODAY, TODAY))).toEqual({ total: 4, done: 1, ratio: 0.25 })
   })
 
   test('una lista vacía no divide por cero', () => {
     expect(progressOf([])).toEqual({ total: 0, done: 0, ratio: 0 })
+  })
+})
+
+describe('tareas con plazo', () => {
+  const withPeriod: AppState = {
+    ...state,
+    tasks: [
+      task({ id: 'hoy', order: 0 }),
+      task({ id: 'plazo', date: '2026-09-07', until: '2026-09-13', order: 5 }),
+      task({ id: 'acabado', date: '2026-09-01', until: '2026-09-04' }),
+    ],
+  }
+
+  test('lo que el plazo trae a hoy sale arriba y no está atrasado', () => {
+    expect(tasksOn(withPeriod, TODAY, TODAY).map((t) => t.id)).toEqual(['plazo', 'hoy'])
+    expect(tasksOn(withPeriod, '2026-09-07', TODAY)).toEqual([])
+    expect(isOverdue(withPeriod.tasks[1]!, TODAY)).toBe(false)
+  })
+
+  test('con el plazo acabado, atrasada desde su último día', () => {
+    expect(overdueTasks(withPeriod, TODAY).map((t) => t.id)).toEqual(['acabado'])
+    expect(tasksOn(withPeriod, '2026-09-04', TODAY).map((t) => t.id)).toEqual(['acabado'])
   })
 })

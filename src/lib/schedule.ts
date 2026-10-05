@@ -4,6 +4,7 @@ import { taskEnd, timeRange } from './duration'
 import { pick, plural } from './i18n'
 import { byImportance } from './importance'
 import { byOrder, compareText } from './order'
+import { hasPeriod, lastDay, onDay, periodDays, periodTag, shownDay } from './period'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
 import { daysLabel, isDoneOn, isDue, occurrenceDate, routineDay, routineEntryId } from './routines'
 
@@ -74,6 +75,8 @@ export interface ScheduleEntry {
 
 /** Días por delante para los que se programan los avisos de las rutinas. */
 export const ROUTINE_DAYS = 7
+/** Ídem para los avisos con hora de una tarea con plazo: uno cada día que quede, mientras no se haga. */
+export const PERIOD_DAYS = 7
 
 /** Pendientes con fecha hasta el día indicado: hoy más lo atrasado. */
 export function badgeCount(tasks: readonly Task[], at: number): number {
@@ -90,6 +93,12 @@ function sinceLabel(date: IsoDate, day: IsoDate): string {
 function whenText(task: Task, at: number): string {
   const text = pick(TEXT)
   const day = isoOfInstant(at)
+  // Con plazo, cada día de él es un día más de la tarea; sin hora, lo que importa es hasta cuándo.
+  if (hasPeriod(task)) {
+    const tag = task.time ? null : periodTag(task, day)
+    if (tag && day >= task.date) return tag.label
+    return whenText(onDay(task, shownDay({ ...task, done: false }, day) ?? task.date), at)
+  }
   const instant = taskInstant(task)
   if (instant !== null && task.date && task.time) {
     const clock = shortTime(task.time)
@@ -111,16 +120,22 @@ export function notificationBody(task: Task, at: number, sections: readonly Sect
 }
 
 function reminderEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
-  return state.tasks.flatMap((task) =>
-    task.done
-      ? []
-      : task.reminders.flatMap((reminder: Reminder) => {
-          const at = resolveAt(task, reminder)
-          if (at === null || at <= now) return []
-          const overdue = task.date !== null && task.date < isoOfInstant(at)
-          return [{ id: reminder.id, taskId: task.id, at, title: task.title, body: notificationBody(task, at, state.sections), overdue }]
-        }),
-  )
+  const today = isoOfInstant(now)
+  const entry = (task: Task, reminder: Reminder, id: string, last: IsoDate | null): Omit<ScheduleEntry, 'badge'>[] => {
+    const at = resolveAt(task, reminder)
+    if (at === null || at <= now) return []
+    const overdue = last !== null && last < isoOfInstant(at)
+    return [{ id, taskId: task.id, at, title: task.title, body: notificationBody(task, at, state.sections), overdue }]
+  }
+  return state.tasks.flatMap((task) => {
+    if (task.done) return []
+    const last = lastDay(task)
+    return task.reminders.flatMap((reminder: Reminder) => {
+      // Con plazo, el aviso "a la hora" (o antes) vale para cada día que quede: suena cada día hasta que se haga.
+      if (reminder.kind !== 'before' || !hasPeriod(task)) return entry(task, reminder, reminder.id, last)
+      return periodDays(task, today, PERIOD_DAYS).flatMap((day) => entry(onDay(task, day), reminder, `${reminder.id}-${day.replace(/-/g, '')}`, last))
+    })
+  })
 }
 
 /**
@@ -128,7 +143,10 @@ function reminderEntries(state: AppState, now: number): Omit<ScheduleEntry, 'bad
  * recordatorio guardado, sale de la duración: quitarla lo quita, y cambiar hora o duración lo mueve.
  */
 export function checkInEntries(state: AppState, now: number): Omit<ScheduleEntry, 'badge'>[] {
-  return state.tasks.flatMap((task) => {
+  const today = isoOfInstant(now)
+  return state.tasks.flatMap((real) => {
+    // Con plazo, el del día en que está (mañana, si sigue sin hacer, se programa al abrir la app).
+    const task = hasPeriod(real) ? onDay(real, shownDay(real, today) ?? today) : real
     const end = task.done ? null : taskEnd(task)
     if (end === null || end <= now) return []
     const body = [pick(TEXT).question, timeRange(task)].filter(Boolean).join(' · ')
@@ -148,8 +166,11 @@ export function digestEntries(state: AppState, now: number): Omit<ScheduleEntry,
   return Array.from({ length: DIGEST_DAYS }, (_, offset) => addDays(today, offset)).flatMap((day) => {
     const at = toInstant(day, time)
     if (at <= now) return []
-    const due = state.tasks.filter((task) => !task.done && task.date === day).sort(byTimeThenOrder)
-    const overdue = state.tasks.filter((task) => !task.done && task.date !== null && task.date < day).length
+    const due = state.tasks.filter((task) => !task.done && shownDay(task, day) === day).sort(byTimeThenOrder)
+    const overdue = state.tasks.filter((task) => {
+      const last = lastDay(task)
+      return !task.done && last !== null && last < day
+    }).length
     if (!due.length && !overdue) return []
 
     const text = pick(TEXT)

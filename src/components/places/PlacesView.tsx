@@ -1,18 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareNames } from '../../lib/order'
-import { distanceMeters, formatDistance } from '../../lib/places'
+import { DEFAULT_RADIUS, distanceMeters, formatDistance } from '../../lib/places'
 import { isNative, showsPlaces } from '../../lib/platform'
+import { pickOnMap } from '../../lib/platform/mapPicker'
 import type { PermissionStatus } from '../../lib/platform/native'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { Place, Task } from '../../types'
-import { IconArrowUpRight, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
+import { IconArrowUpRight, IconExpand, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
+import { useToast } from '../ui/Toast'
 import { MapSnapshot } from './MapSnapshot'
 import { usePlaceEditor } from './PlaceEditor'
 import './places.css'
 
 const APP_STORE = 'https://apps.apple.com/app/id6812776586'
 const MAP_HEIGHT = 230
+/** Metros de norte a sur del mapa de donde estás, cuando aún no hay lugares. */
+const NEARBY_SPAN = 1600
 const PREVIEW_TASKS = 3
 
 const COPY = {
@@ -23,6 +27,12 @@ const COPY = {
     blocked: 'Ubicación bloqueada: los avisos por lugar no pueden sonar.',
     saved: 'Ubicación guardada',
     unset: 'Sin ubicación: toca para elegirla',
+    openMap: 'Abrir el mapa',
+    newPlace: 'Nuevo lugar',
+    addHere: 'Añadir aquí',
+    close: 'Cerrar',
+    locate: 'Mi ubicación',
+    mapFailed: 'No se ha podido abrir el mapa.',
     onlyIphone: 'Solo en iPhone',
     pitch: 'Avisos al llegar o al salir de un sitio: «al pasar por Mercadona, comprar leche».',
     store: 'Descargar en la App Store',
@@ -34,6 +44,12 @@ const COPY = {
     blocked: 'Location blocked: place reminders can’t go off.',
     saved: 'Saved location',
     unset: 'No location: tap to choose it',
+    openMap: 'Open the map',
+    newPlace: 'New place',
+    addHere: 'Add here',
+    close: 'Close',
+    locate: 'My location',
+    mapFailed: 'Couldn’t open the map.',
     onlyIphone: 'iPhone only',
     pitch: 'Reminders when you arrive at or leave a place: “when I get to Walmart, buy milk”.',
     store: 'Download on the App Store',
@@ -56,6 +72,7 @@ function PlacesList() {
   const { places, tasks } = useAppState()
   const openPlace = usePlaceEditor()
   const copy = useCopy(COPY)
+  const toast = useToast()
   const [permission, setPermission] = useState<PermissionStatus | null>(null)
   const [here, setHere] = useState<Point | null>(null)
 
@@ -92,6 +109,29 @@ function PlacesList() {
     return map
   }, [tasks])
 
+  /** El mapa de verdad: se elige el punto y se le pone nombre en el panel del lugar nuevo. */
+  const mapOpen = useRef(false)
+  const addOnMap = async () => {
+    // Un doble toque no abre dos mapas.
+    if (mapOpen.current) return
+    mapOpen.current = true
+    try {
+      const picked = await pickOnMap({
+        title: copy.newPlace,
+        confirm: copy.addHere,
+        cancel: copy.close,
+        locate: copy.locate,
+        radius: DEFAULT_RADIUS,
+        places: located.map((place) => ({ name: place.name, lat: place.location.lat, lng: place.location.lng, radius: place.radius })),
+      })
+      if (picked) openPlace({ placeId: null, name: picked.name ?? '', location: picked.location })
+    } catch {
+      toast({ message: copy.mapFailed })
+    } finally {
+      mapOpen.current = false
+    }
+  }
+
   const sorted = useMemo(() => {
     const distance = (place: Place) => (here && place.location ? distanceMeters(here, place.location) : Number.POSITIVE_INFINITY)
     return [...places].sort((a, b) => distance(a) - distance(b) || compareNames(a.name, b.name))
@@ -106,16 +146,26 @@ function PlacesList() {
         </div>
       </header>
 
-      <div className="places__map">
+      {/* Tocar el mapa abre el de verdad (en el iPhone), para añadir un sitio señalándolo. */}
+      <div className="places__map" onClick={() => void addOnMap()}>
         <MapSnapshot
           points={located.map((place) => place.location)}
+          // Sin lugares, el barrio donde estás (si ya hay permiso), no un dibujo.
+          {...(!located.length && here ? { center: here, span: NEARBY_SPAN } : {})}
           height={MAP_HEIGHT}
           renderPin={(index) => {
             const place = located[index]
             if (!place) return null
             const count = pendingAt.get(place.id)?.length ?? 0
             return (
-              <button type="button" className={`pin ${count ? 'has-tasks' : ''}`} onClick={() => openPlace({ placeId: place.id })}>
+              <button
+                type="button"
+                className={`pin ${count ? 'has-tasks' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openPlace({ placeId: place.id })
+                }}
+              >
                 <span className="pin__head">
                   <span>{count || <IconPin size={13} strokeWidth={2.2} />}</span>
                 </span>
@@ -124,11 +174,22 @@ function PlacesList() {
             )
           }}
         />
-        {!located.length && (
+        {!located.length && !here && (
           <div className="places__map-empty">
             <IconMap size={22} />
           </div>
         )}
+        <button
+          type="button"
+          className="map__expand places__expand"
+          aria-label={copy.openMap}
+          onClick={(event) => {
+            event.stopPropagation()
+            void addOnMap()
+          }}
+        >
+          <IconExpand size={15} />
+        </button>
       </div>
 
       <button type="button" className="places__search" onClick={() => openPlace({ placeId: null })}>

@@ -5,6 +5,7 @@ import { addDays, isoOfInstant } from './date'
 import type { Language } from './i18n'
 import { language } from './i18n'
 import { byOrder, compareText } from './order'
+import { hasPeriod, shownDay } from './period'
 import { byRoutineOrder, dayShift, routineDay } from './routines'
 
 /**
@@ -23,6 +24,11 @@ export interface WidgetTask {
   id: string
   title: string
   date: IsoDate
+  /**
+   * Último día del plazo, si lo tiene y sigue pendiente: el widget la enseña cada día de él y solo
+   * después la da por atrasada. Falta en las tareas sin plazo (y en las fotos de antes de los plazos).
+   */
+  until?: IsoDate
   time: IsoTime | null
   done: boolean
   /** 1 a 10: el widget agranda el título y, donde solo caben dos, enseña las más importantes. */
@@ -81,6 +87,15 @@ function widgetRoutines(routines: readonly Routine[], today: IsoDate): WidgetRou
 
 type Dated = Task & { date: IsoDate }
 
+/**
+ * La tarea con el día en que se ve: con plazo, lo pendiente va con el día en que empieza (el widget lo
+ * lleva cada día hasta el último) y lo hecho, con el día en que se hizo.
+ */
+function placed(task: Task, today: IsoDate): Task {
+  if (!hasPeriod(task)) return task
+  return task.done ? { ...task, date: shownDay(task, today), until: null } : task
+}
+
 /** Lo que se ve: pendiente con fecha hasta el último día de la foto; lo hecho, solo de hoy en adelante. */
 const visible = (task: Task, today: IsoDate, last: IsoDate): task is Dated =>
   task.date !== null && task.date <= last && (!task.done || task.date >= today)
@@ -97,10 +112,11 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     compareText(a.date, b.date) || (a.date < today ? 0 : rank(a) - rank(b)) || byOrder(a, b)
 
   const tasks = state.tasks
+    .map((task) => placed(task, today))
     .filter((task) => visible(task, today, last))
     .sort(compare)
     .slice(0, WIDGET_MAX_TASKS)
-    .map(({ id, title, date, time, done, importance }) => ({ id, title, date, time, done, importance }))
+    .map(({ id, title, date, until, time, done, importance }) => ({ id, title, date, ...(until ? { until } : {}), time, done, importance }))
 
   const inbox = backlogTasks(state)
     .slice(0, WIDGET_MAX_INBOX)

@@ -30,6 +30,7 @@ describe('detailsFrom', () => {
   test('sin nada entendido, solo el destino elegido', () => {
     expect(detailsFrom(null, null, TOMORROW, newId)).toEqual({
       date: TOMORROW,
+      until: null,
       time: null,
       duration: null,
       reminders: [],

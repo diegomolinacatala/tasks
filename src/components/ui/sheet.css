@@ -259,3 +259,21 @@
 .sheet__primary:disabled {
   opacity: 0.4;
 }
+
+/* El plazo de una tarea ("Hasta el viernes"): como un aviso añadido, con su × para quitarlo */
+.chip--until {
+  padding-right: 6px;
+}
+
+.chip__clear {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -2px -6px -4px;
+  border-radius: var(--r-full);
+}
+
+.chip__clear:active {
+  background: var(--bg-press);
+}

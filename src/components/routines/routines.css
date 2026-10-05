@@ -338,12 +338,49 @@
   color: var(--text-3);
 }
 
-/* Las últimas cinco semanas, de lunes a domingo, como un cuaderno de asistencia */
+/* Las semanas con sus flechas: hacia atrás, para rehacer lo que no se tachó */
+.routine-log__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-3);
+}
+
+.routine-log__range {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.routine-log__arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.routine-log__arrow:active {
+  background: var(--bg-press);
+}
+
+.routine-log__arrow:disabled {
+  opacity: 0.25;
+}
+
+/* De lunes a domingo, como un cuaderno de asistencia: tocar un día lo marca; pasar el dedo de lado, varios */
 .routine-history {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: var(--sp-3);
+  row-gap: 2px;
+  margin-top: var(--sp-1);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .routine-history__head {
@@ -351,35 +388,72 @@
   font-size: var(--fs-micro);
   font-weight: 600;
   color: var(--text-3);
+  padding-bottom: 2px;
 }
 
+/* Cada día es un botón de 40 px; lo que se ve es el círculo de dentro */
 .routine-history__cell {
-  justify-self: center;
-  width: 22px;
-  height: 22px;
+  display: grid;
+  place-items: center;
+  height: 40px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.routine-history__cell span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   border-radius: var(--r-full);
   box-shadow: inset 0 0 0 1.25px var(--line-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-2) var(--ease-pop);
 }
 
-.routine-history__cell.is-free {
+.routine-history__cell:active span {
+  transform: scale(0.88);
+}
+
+/* No tocaba: sin aro, el número apagado (se puede marcar igual) */
+.routine-history__cell.is-free span {
   box-shadow: none;
-  background: var(--line);
-  transform: scale(0.35);
+  color: var(--text-3);
 }
 
-.routine-history__cell.is-done {
+.routine-history__cell.is-done span {
   box-shadow: none;
   background: var(--accent);
+  color: var(--on-primary);
+  font-weight: 600;
+  animation: log-ink var(--dur-2) var(--ease-pop);
 }
 
-.routine-history__cell.is-future {
-  opacity: 0.25;
+.routine-history__cell.is-future span {
+  opacity: 0.3;
 }
 
-.routine-history__cell.is-today {
+.routine-history__cell.is-today span {
   box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+  font-weight: 600;
 }
 
-.routine-history__cell.is-today.is-done {
+.routine-history__cell.is-today.is-done span {
   box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 3.5px var(--accent-line);
+  color: var(--on-primary);
+}
+
+@keyframes log-ink {
+  from {
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routine-history__cell.is-done span {
+    animation: none;
+  }
 }

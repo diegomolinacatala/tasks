@@ -4,7 +4,8 @@ import { MAX_ROUTINES, normalizeRoutine } from './routines'
 import { isValidTime } from './date'
 import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
-import { MAX_PLACES, normalizePlace, placeKey } from './places'
+import { cleanUntil } from './period'
+import { MAX_PLACES, cleanAliases, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 import { isLanguageSetting, pick } from './i18n'
 import { normalizeWelcome } from './welcome'
@@ -46,6 +47,8 @@ function normalizeTask(raw: unknown): Task | null {
     title,
     done: raw.done === true,
     date,
+    // Las copias anteriores a los plazos no lo traen: solo su día.
+    until: cleanUntil(date, raw.until),
     time: isValidTime(raw.time) ? raw.time : null,
     // Las copias anteriores a la duración no la traen: quedan sin aviso de cierre.
     duration: normalizeDuration(raw.duration),
@@ -100,10 +103,13 @@ function normalizeRoutines(raw: unknown): Routine[] {
     .slice(0, MAX_ROUTINES)
 }
 
-/** Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). */
+/**
+ * Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). Un
+ * otro nombre que choque con el nombre de otro lugar, o con otro nombre de uno anterior, se descarta.
+ */
 function normalizePlaces(raw: unknown): Place[] {
   if (!Array.isArray(raw)) return []
-  return raw
+  const unique = raw
     .map(normalizePlace)
     .filter((place): place is Place => place !== null)
     .reduce<Place[]>(
@@ -112,6 +118,10 @@ function normalizePlaces(raw: unknown): Place[] {
       [],
     )
     .slice(0, MAX_PLACES)
+  return unique.reduce<Place[]>((acc, place, index) => {
+    const later = unique.slice(index + 1).map((other) => ({ ...other, aliases: [] }))
+    return [...acc, { ...place, aliases: cleanAliases(place.aliases, place.name, [...acc, ...later]) }]
+  }, [])
 }
 
 /** Acepta tanto el fichero de backup como un AppState suelto. */

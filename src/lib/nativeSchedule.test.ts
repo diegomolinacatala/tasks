@@ -23,6 +23,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -34,7 +35,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   ...partial,
 })
 
-const mercadona: Place = { id: 'm', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: '' }, radius: 150 }
+const mercadona: Place = { id: 'm', name: 'Mercadona', aliases: [], location: { lat: 39.47, lng: -0.38, address: '' }, radius: 150 }
 
 const stateWith = (tasks: Task[], places: Place[] = []): AppState => ({ ...emptyState(), tasks, places })
 

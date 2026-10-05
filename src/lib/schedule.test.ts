@@ -11,6 +11,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -250,5 +251,49 @@ describe('routineEntries: avisos de las rutinas', () => {
     // Hoy (11) ya está hecha: el siguiente es el del 12, que suena la madrugada del 13.
     expect(first).toMatchObject({ id: 'routine-tarde-20260912', routine: { date: '2026-09-12' } })
     expect(first!.at).toBe(toInstant('2026-09-13', '01:00'))
+  })
+})
+
+describe('tareas con plazo', () => {
+  // Del lunes 7 al domingo 13; hoy es viernes 11.
+  const period = (partial: Partial<Task> = {}) => task({ id: 'p', date: '2026-09-07', until: '2026-09-13', ...partial })
+
+  test('el aviso a la hora suena cada día que queda, con su id por día', () => {
+    const entries = upcomingSchedule(stateOf([period({ time: '18:00', reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })]), NOW)
+    expect(entries.map((entry) => [entry.id, entry.at])).toEqual([
+      ['r-20260911', toInstant('2026-09-11', '18:00')],
+      ['r-20260912', toInstant('2026-09-12', '18:00')],
+      ['r-20260913', toInstant('2026-09-13', '18:00')],
+    ])
+    expect(entries.every((entry) => !entry.overdue && entry.taskId === 'p')).toBe(true)
+    expect(entries[0]?.body).toBe('Ahora · 18:00')
+  })
+
+  test('hecha, no suena', () => {
+    const done = period({ time: '18:00', done: true, reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })
+    expect(upcomingSchedule(stateOf([done]), NOW)).toEqual([])
+  })
+
+  test('sin hora, el aviso dice hasta cuándo vale', () => {
+    expect(notificationBody(period(), NOW, [])).toBe('Hasta el domingo')
+    expect(notificationBody(period(), toInstant('2026-09-13', '9:00'), [])).toBe('Último día')
+    expect(notificationBody(period(), toInstant('2026-09-14', '9:00'), [])).toBe('Pendiente desde ayer')
+  })
+
+  test('el resumen la cuenta como de cada día del plazo, y atrasada solo después', () => {
+    const entries = digestEntries(stateOf([period()], { enabled: true, time: '08:30' }), toInstant(TODAY, '07:00'))
+    const byDay = new Map(entries.map((entry) => [entry.id, entry.title]))
+    expect(byDay.get('digest-20260911')).toBe('1 tarea para hoy')
+    expect(byDay.get('digest-20260913')).toBe('1 tarea para hoy')
+    expect(byDay.get('digest-20260914')).toBe('Nada nuevo para hoy · 1 atrasada')
+  })
+
+  test('el aviso de cierre es el del día en que está', () => {
+    const [ask] = checkInEntries(stateOf([period({ time: '17:00', duration: 60 })]), NOW)
+    expect(ask?.at).toBe(toInstant(TODAY, '18:00'))
+  })
+
+  test('cuenta para el número del icono como lo de hoy', () => {
+    expect(badgeCount([period(), period({ id: 'futura', date: '2026-09-14', until: '2026-09-18' })], NOW)).toBe(1)
   })
 })

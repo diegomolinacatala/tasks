@@ -61,6 +61,9 @@ export function useSwipe({ onLeft, onRight, disabled = false }: SwipeOptions) {
   // Las acciones más recientes, sin volver a crear los manejadores en cada render.
   const actions = useRef({ onLeft, onRight })
   actions.current = { onLeft, onRight }
+  // Si la fila se coge para arrastrarla a medio gesto, deslizar se acaba ahí.
+  const off = useRef(disabled)
+  off.current = disabled
 
   /** Un temporizador que se borra solo al saltar y se cancela si la fila se desmonta u oculta. */
   const later = useCallback((run: () => void, ms: number) => {
@@ -140,6 +143,10 @@ export function useSwipe({ onLeft, onRight, disabled = false }: SwipeOptions) {
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const start = origin.current
       if (!start || mode.current === 'scroll') return
+      if (off.current) {
+        origin.current = null
+        return
+      }
       const dx = event.clientX - start.x
       const dy = event.clientY - start.y
 

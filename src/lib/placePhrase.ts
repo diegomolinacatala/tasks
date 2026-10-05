@@ -2,7 +2,7 @@ import type { Place, PlaceTrigger } from '../types'
 import type { NormalizedText } from './normalize'
 import { originalSpan } from './normalize'
 import { capitalize } from './title'
-import { placeKey } from './places'
+import { findPlace, matchPlace, placeKeys } from './places'
 
 /** "al llegar a", "cuando pase por", "nada más llegar a", "cuando esté en". */
 const ARRIVE = 'llegar|llegue|llego|pasar|pase|paso|estar|este|ir|vaya|entrar|entre'
@@ -26,14 +26,15 @@ export interface PlacePhrase {
   length: number
 }
 
+/** Los nombres guardados (y sus otros nombres) como alternativas de una expresión, los largos primero. */
+export const savedNames = (places: readonly Place[]): string[] => placeKeys(places).map(escape)
+
 /**
  * Expresión del aviso de lugar. `remindVerb`: la petición opcional delante ("recuérdame"), que
- * forma parte del tramo. Los lugares guardados se prueban antes que un nombre suelto.
+ * forma parte del tramo. Los lugares guardados (con sus otros nombres) se prueban antes que un nombre suelto.
  */
 export function placePhraseRegex(remindVerb: string, places: readonly Place[]): RegExp {
-  const names = [...new Set(places.map((place) => escape(placeKey(place.name))).filter(Boolean))].sort(
-    (a, b) => b.length - a.length,
-  )
+  const names = savedNames(places)
   const target = names.length ? `(?:(${names.join('|')})|(${GENERIC}))` : `(?:()(${GENERIC}))`
   return new RegExp(
     `(?<![a-z0-9])(?:${remindVerb} )?(?:al|cuando|en cuanto|nada mas) (?:(${ARRIVE})|(${LEAVE})) ` +
@@ -61,7 +62,7 @@ export function readPlacePhrase(
   const withConnector = (end: number) => end + (connector.exec(normalized.text.slice(match.index + end))?.[0].length ?? 0)
 
   if (saved) {
-    const place = places.find((item) => placeKey(item.name) === saved) ?? null
+    const place = findPlace(places, saved)
     return { on, place, name: place?.name ?? saved, length: withConnector(full.length) }
   }
 
@@ -79,5 +80,7 @@ export function readPlacePhrase(
   const nameStart = article && isCapitalized(original[articleAt]) ? articleStart : genericStart
   const span = originalSpan(normalized, nameStart, genericStart + kept)
   const name = capitalize(original.slice(span.start, span.end))
-  return { on, place: null, name, length: withConnector(full.length - generic.length + kept) }
+  // Escrito o transcrito con otra grafía ("Carrefur"): si se parece mucho a uno guardado, es ese.
+  const close = matchPlace(places, name)
+  return { on, place: close, name: close?.name ?? name, length: withConnector(full.length - generic.length + kept) }
 }

@@ -1,6 +1,7 @@
 import type { IsoTime, Task } from '../types'
-import { formatTime, shortTime } from './date'
+import { formatTime, isoOfInstant, shortTime } from './date'
 import { language } from './i18n'
+import { asOf } from './period'
 import { taskInstant } from './reminders'
 
 /**
@@ -87,10 +88,11 @@ export function durationFromEnd(time: IsoTime, end: IsoTime): number {
 /**
  * "Todavía no": la tarea se alarga hasta `minutes` después de ahora, así que la pregunta vuelve
  * dentro de ese rato. Se cuenta desde ahora y no desde el final previsto para que responder tarde
- * (el aviso lleva un rato en la pantalla) no deje la siguiente pregunta en el pasado.
+ * (el aviso lleva un rato en la pantalla) no deje la siguiente pregunta en el pasado. Con plazo, el
+ * rato empieza a su hora del día en que está, no del primero.
  */
 export function extendedDuration(task: Task, now: number, minutes = AGAIN_MINUTES): number | null {
-  const start = taskInstant(task)
+  const start = taskInstant(asOf(task, isoOfInstant(now)))
   if (start === null || task.duration === null) return null
   const elapsed = Math.round((now - start) / MINUTE)
   const next = clampDuration(Math.max(task.duration, elapsed) + minutes)

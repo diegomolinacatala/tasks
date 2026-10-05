@@ -188,10 +188,39 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     privacidad. Textos en `scripts/store-copy.mjs`; datos de ejemplo en los dos idiomas.
   - **Ficha**: descripción reescrita en el mismo orden (§3 y §3.1 de `docs/app-store.md`), texto
     promocional y novedades nuevos, y el paso a paso para enviarla en §9.6.
+- **Plazos, otros nombres de lugar, elegir en el mapa e historial de rutinas editable** (05/10/2026, en
+  `capacitor`, **sin commitear ni subir**: el Swift nuevo aún no ha pasado por el CI). Lo pidió el
+  usuario en una sola petición; lo del mapa real también lo pidió un amigo por el buzón (04/10/2026).
+  - **Plazos** (`Task.until`, `lib/period.ts`, `SCHEMA_VERSION` 14): "esta semana", "hasta el viernes",
+    "del lunes al viernes" (con artículos; sin ellos es una rutina). La tarea va sola con hoy hasta
+    hacerla y solo queda atrasada pasado el último día. Ver "Plazos".
+  - **Otros nombres** de un lugar (`Place.aliases`: "el piso", "casa de mis padres") y lo dictado con
+    otra grafía ("Carrefur") casa con el guardado (`matchPlace`). Ver "Lugares".
+  - **Elegir en el mapa** (`MapPicker.swift`, `TasksNative.pickLocation`): Apple Maps a pantalla
+    completa, chincheta fija, tocar un punto o un comercio (da su nombre), círculo del radio. Desde el
+    panel del lugar y tocando el mapa de la pestaña (añade uno nuevo). Sin lugares y con permiso, la
+    pestaña enseña el barrio en lugar del dibujo.
+  - **Historial de rutinas editable** (`RoutineLog.tsx`): en *Constancia*, tocar un día lo marca o
+    desmarca, pasar el dedo de lado marca varios y las flechas van a semanas anteriores (un año). Para
+    rehacer una rutina borrada sin querer. Ver "Rutinas".
+  - Probado con Edge sin ventana y dedo simulado (claro y oscuro, 390 × 844): la fila con "Hasta el
+    jueves" y "Último día", el panel con "Hasta…", la barra con "La semana que viene", la ficha, pintar
+    una semana en la rutina (racha 7), las flechas, los otros nombres. 896 tests. Revisado por un segundo
+    agente (sin errores de compilación de Swift a la vista; arreglado lo que encontró: "Todavía no" en un
+    plazo, "el viernes de esta semana", "Piso 1" frente a "Piso 2", la dirección vieja al confirmar el
+    mapa). El mapa nativo solo se puede probar en el iPhone.
 
 **Pendiente, en este orden**
 
-0. **Enviar la 1.4 (35)** siguiendo `docs/app-store.md` §9.6 (lo hace el usuario: capturas, descripción,
+0. **Probar la 1.5 en TestFlight** (plazos, otros nombres, mapa, historial editable, mantener pulsado para
+   arrastrar, atajo "Los martes" en rutinas). Subida a `capacitor` y comprobar que el CI
+   compila `MapPicker.swift` y el `until` del widget. En el iPhone: "Elegir en el mapa" en un lugar
+   (arrastrar, tocar un punto, tocar un comercio y que dé su nombre, "Mi ubicación", el círculo del
+   radio, claro y oscuro), tocar el mapa de la pestaña Lugares para añadir uno; una tarea "esta semana"
+   en el widget de hoy (que al día siguiente siga sin salir en rojo); una con plazo y hora, que avise
+   cada día; dictar "al llegar al piso…" con el otro nombre puesto. Si 1.4 ya está aprobada, subir
+   `MARKETING_VERSION` a 1.5 antes del push.
+1. **Enviar la 1.4 (35)** siguiendo `docs/app-store.md` §9.6 (lo hace el usuario: capturas, descripción,
    ficha en inglés, privacidad con *Atención al cliente*, notas, compilación 35). Antes, en la 35, la
    lámina *Sugerencias* tras actualizar. Lo de abajo, si no se probó en la 34:
    **Probar la TestFlight 34**: Ajustes → *Sugerir una mejora*, ir a otra pestaña, tocar **Señalar** en
@@ -208,7 +237,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    canse y que mantener al final se note (halo de oro y vibración al estirarse). Después, unir
    `capacitor` a `main` para que la web pública lleve la misma interfaz (`main` ya tiene el commit del
    Worker, cogido aparte: la unión será un merge, no un fast-forward).
-1. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
+2. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
    rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
    el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
    pantalla de carga, la rueda de la hora y el teclado); una rutina con hora ("tomar creatina todos
@@ -216,7 +245,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    pantalla de bloqueo (tocarlo la tacha; al día siguiente amanece sin tachar); el mapa de Lugares;
    el widget de hoy en claro y en oscuro. iOS guarda en caché la pantalla de carga: si sale la
    antigua, reiniciar el iPhone.
-2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
+3. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
    (`LiveActivityIntent`); si no hiciera nada, ver "Pasar a hoy". Del aviso de cierre, mirar si
@@ -224,7 +253,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    `task-ask` se registra al abrir la app: hay que abrirla una vez tras instalar) y, desde la
    compilación con `NotificationResponder`, que respondan **sin abrir la app**, también con el
    iPhone bloqueado. Si no hicieran nada, sospechar del delegado (que Capacitor lo recoloque).
-3. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
+4. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
 
@@ -235,7 +264,8 @@ ejecución programada).
 
 **Ideas aplazadas**: sincronización por iCloud (CloudKit), refresco en segundo plano para
 reprogramar avisos, rutinas desde Siri y el dictado con IA (hoy solo el analizador local reconoce
-"todos los días") y un mapa interactivo en Lugares (hoy es una foto de Apple Maps).
+"todos los días"), la IA del dictado entendiendo plazos (hoy los pone el analizador del móvil, ver
+"Plazos") y un mapa que se mueva dentro de la pestaña Lugares (hoy es una foto que abre el de verdad).
 
 ## Trabajar en este repo
 
@@ -298,7 +328,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
+gzip (143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
@@ -322,6 +352,7 @@ src/
 │   ├── details.ts        # la ficha del compositor: campos, reglas entre ellos, resumen y lo que se añade
 │   ├── emoji.ts          # emoji de una rutina: sanearlo, los del selector y el que le pega a un nombre
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
+│   ├── period.ts         # plazos: el día en que se ve una tarea, cuándo queda atrasada, cómo se dicen
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
 │   ├── ruler.ts          # la regla de la duración: tramos que se estiran, paso, minutos en un punto y marcas
@@ -340,7 +371,7 @@ src/
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
 │   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, rutinas, badge
-│   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
+│   ├── places.ts         # lugares: nombres y otros nombres, coincidencia tolerante, saneado, distancia y regiones
 │   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
@@ -348,7 +379,7 @@ src/
 │   ├── inbox.ts          # bandeja de lo hecho fuera de la web (altas, pasar a hoy) y cómo aplicarlo
 │   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
 │   ├── headless.ts       # apuntar o pasar a hoy sin abrir la app: bandeja, avisos, icono y widget
-│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
+│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración, el mapa para elegir (`mapPicker.ts`)…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
@@ -362,15 +393,15 @@ src/
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
     ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, useDayBoard), InboxView (+ DayDock)
-    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet (constancia), EmojiPicker
+    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
     ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes y rutinas
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
-    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador)
+    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases
     ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, dictado
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
-ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
+ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
 ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText y
                           # MoveOverdueWidgetIntent se compilan también en la app
@@ -676,6 +707,51 @@ estar en rojo. Conserva la hora; lo hecho no se mueve (es historia).
   `ToggleTaskIntent`: apuntarlo en `widget-changes.json` y que la web lo aplique al volver (los
   avisos de esas tareas se programarían al abrir la app).
 
+### Plazos
+
+Lo que hay que hacer "esta semana" o "de tal día a tal día" no es de un día ni se repite: tiene un
+**plazo** (`Task.until`, `lib/period.ts`). Vale cualquier día entre `date` y `until` (los dos
+incluidos) y, **mientras siga pendiente, va con hoy**: pasa sola de un día al siguiente, arriba de su
+bloque como lo que se pasa a hoy, sin quedar atrasada ni tener que traerla cada mañana. Pasado el
+último día sí está atrasada (en rojo, en `Atrasadas`, desde su último día). Se hace una vez: no es una
+rutina.
+
+- **Nada se reescribe al cambiar de día**: el día en que se ve sale de la fecha de hoy (`shownDay`:
+  hoy dentro del plazo; antes de empezar, su primer día; hecha, el día en que se hizo) y lo atrasado,
+  del último día (`lastDay`, que usa `isOverdue`). Así el widget, el resumen diario y los avisos
+  programados para los días siguientes aciertan aunque no se abra la app.
+- **Dónde se ve**: la fila dice hasta cuándo ("Hasta el jueves", "Hasta el 15 oct"; el último día,
+  "Último día" en coñac: `periodTag`), también en el horario. En el panel de la tarea y en la ficha del
+  compositor, bajo **Cuándo**, la píldora **Hasta…** abre el selector de fecha (desde el día siguiente)
+  y, elegida, dice "Hasta el viernes" con su × (`WhenField`, `task/until`). Nada más: ni opciones
+  aparte ni otra lista.
+- **Escribiendo o dictando**: "esta semana", "durante la semana", "la semana que viene" (sin un día
+  detrás: "la semana que viene, el martes" es ese día), "este fin de semana", "este mes", "hasta el
+  viernes", "hasta el 15 de octubre", "hasta mañana", "del lunes al viernes", "entre el lunes y el
+  jueves", "del 5 al 9", "del 28 de septiembre al 3 de octubre". **"De lunes a viernes" (sin
+  artículos) sigue siendo una rutina**: el lenguaje ya distingue los días concretos de los de cada
+  semana. En inglés: "this week", "next week", "this weekend", "this month", "until/by friday", "until
+  Oct 15", "between monday and thursday". Se leen antes que los días sueltos (`readPeriodEs`,
+  `readPeriodEn`). La píldora, la ficha y el aviso de "adónde ha ido" dicen el plazo entero
+  (`periodLabel`: "Esta semana", "La semana que viene", "Del 6 al 10 oct").
+- **Tres clases de plazo** (`DayRange.kind`): `until` ("hasta el viernes"), `range` ("del lunes al
+  viernes", como mucho 62 días: más sería leer mal el mes) y `loose` ("esta semana", "este mes"). Con
+  un día dicho, uno `loose` solo dice cuál: "el viernes de esta semana" es el viernes, sin plazo. Con
+  hora, uno `until` es una hora límite: "hasta el viernes a las 5" es el viernes a las 17:00, sin plazo
+  (`assemble` en `parseCore.ts`).
+- **La IA del dictado no sabe de plazos** (su prompt no se ha tocado): si devuelve una sola tarea y lo
+  dicho trae un plazo, el día y el final los pone el analizador del móvil sobre el texto
+  (`draftsFromInterpreted(…, text)`); con varias tareas, manda la IA.
+- **Mover**: llevarla a un día dentro del plazo lo conserva; más allá (o sin fecha), pasa a ser solo de
+  ese día (`cleanUntil` en `moveTask`). "Pasar a hoy" lo atrasado de un plazo acabado lo deja solo para
+  hoy, y deshacer le devuelve el plazo (`Placement.until`). Soltarla al reordenar el día que se ve la
+  deja en ese día con el mismo final (`board/commit`).
+- **Con hora**: es la de cada día del plazo. El horario la pone a esa hora en hoy y los avisos "antes"
+  suenan **cada día que quede** hasta hacerla (7 como mucho, ids `<aviso>-AAAAMMDD`); el aviso de cierre,
+  el del día en que está. Un aviso sin hora dice "Hasta el domingo" o "Último día".
+- **Widget**: la foto lleva `until` en lo pendiente con plazo (`WidgetTask.until`, opcional en Swift) y
+  el widget la enseña cada día de él (`shows(on:)`) y solo después en rojo (`lastDay`).
+
 ### Importancia
 
 `Task.importance`, del 1 (normal) al 10, se ve como **tamaño del título**: sin etiquetas, colores
@@ -726,8 +802,13 @@ que cada día amanece pendiente él solo (en la app, en los avisos y en el widge
   deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba
   (antes de crearla tampoco). Debajo del título, la hora, los días y "racha de N" (desde 2).
 - **Panel** (`RoutineSheet`): emoji y nombre, días (L M X J V S D y atajos: cada día, entre semana,
-  fines de semana), aviso a una hora, y **Constancia**: racha, mejor racha, % de los últimos 30 días y las
-  últimas cinco semanas día a día. Una nueva se crea al cerrar si tiene nombre ("Añadir rutina").
+  fines de semana), aviso a una hora, y **Constancia** (`RoutineLog`): racha, mejor racha, % de los
+  últimos 30 días y cinco semanas día a día con su número, como un cuaderno de asistencia. **Se puede
+  corregir**: tocar un día pasado lo marca o desmarca (`routine/set`) y pasar el dedo de lado marca (o
+  desmarca) varios seguidos; las flechas van de cinco en cinco semanas hacia atrás, hasta lo que guarda
+  el diario. Sirve para rehacer una rutina borrada sin querer (marcar días de antes de crearla los
+  cuenta para la racha) o los días que se olvidó tachar. En vertical, el dedo es del scroll del panel
+  (`touch-action: pan-y`). Una nueva se crea al cerrar si tiene nombre ("Añadir rutina").
 - **Escribiendo**: `parseRoutine` (`lib/repeat.ts`) reconoce "todos los días", "cada día", "a
   diario", "entre semana", "de lunes a viernes", "los fines de semana", "los lunes y jueves", "cada
   martes", "todas las mañanas" (09:00)… La hora sale del analizador de siempre ("a las 7" es 19:00,
@@ -791,9 +872,11 @@ notificación, sin entrar.
 
 ### Drag & drop
 
-- **El arrastre solo se activa desde el asa** (`task__grip`, `section__grip`), con
-  `touch-action: none` y un umbral de 4 px. El resto de la fila queda libre para el scroll
-  vertical y el deslizamiento horizontal, así que los tres gestos no compiten.
+- **Se coge manteniendo pulsado** (300 ms, tolerancia 8 px; `useDragSensors`): la tarea o la cabecera de
+  una sección. Antes era un asa en el borde derecho, donde el pulgar de un diestro hace scroll, y un amigo
+  reordenaba sin querer (buzón, 05/10/2026). Moverse antes de tiempo es scroll o deslizar. Mientras se
+  mantiene, la fila se hunde (`pressCue`); al soltar sin moverse no se abre. Con teclado, el botón "Mover"
+  oculto de cada fila.
 - **Agenda** (`useDayBoard`): mantiene una copia (`preview`) del tablero del día elegido durante el
   gesto y confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
   ref: al soltar hay que leer el estado real del gesto, no el del último render. Cada columna del
@@ -972,8 +1055,25 @@ ver "Duración y aviso de cierre".
 ### Lugares
 
 `AppState.places`: globales como las secciones, con nombre único (sin tildes ni artículo:
-`placeKey`), ubicación (`null` hasta elegirla) y radio (100–1000 m). Borrar un lugar quita sus
-avisos de las tareas.
+`placeKey`), **otros nombres** (`aliases`, hasta 8), ubicación (`null` hasta elegirla) y radio
+(100–1000 m). Borrar un lugar quita sus avisos de las tareas.
+
+- **Otros nombres** ("el piso", "casa de mis padres" para Casa): al escribir o dictar valen como el
+  nombre (`findPlace`, `placeKeys`, las expresiones de `placePhrase.ts` y `parseEn.ts`). Ninguno
+  repite el nombre ni otro nombre de otro lugar (`nameTaken`, `cleanAliases`; el reducer y
+  `normalizeState` descartan los que chocan). Se ponen en el panel del lugar (`PlaceAliases`: píldoras
+  con ×, "+ Otro nombre").
+- **Lo dictado con otra grafía** (`matchPlace`): si no hay uno que se llame así, el que se le parece
+  mucho (una letra cambiada, de más o de menos; dos desde 9 letras; nada por debajo de 5, que "casa" y
+  "caja" no son lo mismo). Si dos se parecen igual, ninguno. Lo usan la IA (`interpret.ts`), un nombre
+  sin guardar al escribir (`readPlacePhrase`) y la bandeja de Siri. Para comprobar que un nombre está
+  libre, `findPlace` (exacto).
+- **Elegir en el mapa** (`MapPicker.swift`, `TasksNative.pickLocation`, `pickOnMap`): Apple Maps a
+  pantalla completa con una chincheta fija en el centro (sube al arrastrar y cae con un saltito), el
+  círculo del radio a escala, los demás lugares con el suyo, "Mi ubicación" y abajo la dirección y
+  **Usar este punto**. Tocar un punto lleva la chincheta allí; tocar un comercio del mapa
+  (`selectableMapFeatures`) además da su nombre, que pasa al lugar si aún no tiene. Los textos llegan
+  de la web, en el idioma de la app. En la web no hay mapa: `pickOnMap` devuelve `null`.
 
 - **Pestaña Lugares** (`PlacesView`), al estilo de Google Maps: arriba un **mapa** de Apple Maps con
   tus sitios (`MapSnapshot`: `TasksNative.mapSnapshot` hace una foto con `MKMapSnapshotter`, estilo
@@ -982,10 +1082,15 @@ avisos de las tareas.
   foto, o si falla, un plano dibujado con los puntos en su sitio relativo (`lib/mapFrame.ts`). Un
   buscador flota sobre el borde ("Buscar o añadir un lugar") y debajo va una tarjeta por lugar:
   nombre, dirección, **distancia** (solo si ya hay permiso de ubicación: abrir la pestaña no lo
-  pide), radio y sus tareas pendientes. En la PWA la pestaña dice que es cosa del iPhone y lleva a
-  la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para poder probarla).
-- **Panel del lugar** (`PlaceSheet`): mapa centrado con el radio a escala, buscar en Apple Maps o
-  usar la ubicación actual, **deslizador de radio** (100 m–1 km, de 50 en 50, el círculo lo sigue en
+  pide), radio y sus tareas pendientes. **Tocar el mapa** (o su esquina con las dos flechas) abre el
+  mapa de verdad para **añadir un lugar señalándolo**: lo elegido abre el panel de un lugar nuevo con
+  la ubicación puesta (`PlaceRequest.location`) para ponerle nombre. Sin lugares y con permiso de
+  ubicación, la foto es del barrio donde estás, no el dibujo. En la PWA la pestaña dice que es cosa
+  del iPhone y lleva a la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para
+  poder probarla).
+- **Panel del lugar** (`PlaceSheet`): nombre y otros nombres, mapa centrado con el radio a escala (se
+  toca para abrir el de verdad y atinar), buscar en Apple Maps, **Elegir en el mapa** o usar la
+  ubicación actual, **deslizador de radio** (100 m–1 km, de 50 en 50, el círculo lo sigue en
   vivo), las tareas con aviso allí y borrar.
 - **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por
   Mercadona"): `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor
@@ -1259,7 +1364,9 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - La duración existe para poder preguntar al acabar, no para planificar el día: no hay calendario,
   ni bloques de tiempo, ni se avisa de solapes. Lo que no se dice no dura.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
-  Atajos).
+  Atajos). Lo único que va solo con hoy es una tarea con plazo, porque el plazo lo puso el usuario.
+- Un plazo no es una rutina ni una tarea recurrente: se hace una vez. "De lunes a viernes" es rutina;
+  "del lunes al viernes", plazo.
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
 - Dos idiomas, español e inglés, y ninguno más por ahora. La IA del dictado solo en español: en inglés

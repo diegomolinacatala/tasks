@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { addLabel } from '../../lib/compose'
 import { relativeLabel } from '../../lib/date'
+import { periodLabel } from '../../lib/period'
 import type { Details } from '../../lib/details'
 import {
   addDetailReminder,
@@ -12,11 +13,12 @@ import {
   withRepeat,
   withSection,
   withTime,
+  withUntil,
 } from '../../lib/details'
 import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
 import { routineLabel } from '../../lib/repeat'
-import { ALL_DAYS, WEEKEND, WORKDAYS, daysLabel, dayLetters } from '../../lib/routines'
+import { ALL_DAYS, WEEKEND, WORKDAYS, daysLabel, dayLetters, weeklyPreset } from '../../lib/routines'
 import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
@@ -126,7 +128,8 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
   const change = (next: Details) => {
     if (next !== view) onChange(next)
   }
-  const where = routine ? routineLabel(view.repeat ?? [], view.time) : view.date ? capitalize(relativeLabel(view.date, today)) : copy.inbox
+  const day = view.date && (view.until ? periodLabel(view.date, view.until, today) : capitalize(relativeLabel(view.date, today)))
+  const where = routine ? routineLabel(view.repeat ?? [], view.time) : (day ?? copy.inbox)
 
   const toggleDay = (day: number) => {
     const days = view.repeat ?? []
@@ -175,7 +178,13 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
 
       {!routine && (
         <>
-          <WhenField date={view.date} today={today} onChange={(date) => change(withDate(view, date))} />
+          <WhenField
+            date={view.date}
+            today={today}
+            onChange={(date) => change(withDate(view, date))}
+            until={view.until}
+            onUntil={(until) => change(withUntil(view, until))}
+          />
           {view.date !== null && <TimeField time={view.time} onChange={(time) => change(withTime(view, time, createId))} />}
           {view.date !== null && view.time !== null && (
             <DurationPicker time={view.time} duration={view.duration} onChange={(duration) => change(withDuration(view, duration))} />
@@ -210,7 +219,7 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
         <button type="button" className={`chip ${routine ? '' : 'is-active'}`} onClick={() => change(withRepeat(view, null))}>
           {copy.noRepeat}
         </button>
-        {REPEATS.map((days) => (
+        {[...REPEATS, weeklyPreset(view.repeat ?? [], view.date ?? today)].map((days) => (
           <button
             key={days.join('')}
             type="button"

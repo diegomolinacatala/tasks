@@ -38,7 +38,7 @@ export function useDayBoard(day: IsoDate, today: IsoDate, onDropOnDay: (taskId: 
   const sections = useMemo(() => sortedSections(state), [state])
   const base = useMemo(() => {
     const columns: Columns = day === today ? { [OVERDUE]: overdueTasks(state, today).map((task) => task.id) } : {}
-    for (const group of untimedGroupsFor(state, day)) {
+    for (const group of untimedGroupsFor(state, day, today)) {
       columns[group.section?.id ?? ROOT] = group.tasks.map((task) => task.id)
     }
     return columns

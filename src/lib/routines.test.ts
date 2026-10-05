@@ -231,3 +231,16 @@ describe('el día de las rutinas', () => {
     expect(occurrenceDate(MONDAY, '01:00', '00:00')).toBe(MONDAY)
   })
 })
+
+describe('rehacer el historial', () => {
+  test('una rutina recreada hoy recupera su racha al marcar los días de antes de crearla', () => {
+    const created = toInstant(TUESDAY, '09:00')
+    const days = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', MONDAY]
+    const rebuilt = days.reduce((acc, day) => ({ ...acc, done: withDay(acc.done, day, true) }), routine({ id: 'a', createdAt: created }))
+    expect(streak(rebuilt, TUESDAY)).toBe(5)
+    expect(bestStreak(rebuilt, TUESDAY)).toBe(5)
+    // Lo marcado antes de crearla cuenta como día que tocaba.
+    expect(recentDays(rebuilt, TUESDAY).filter((mark) => mark.done)).toHaveLength(5)
+    expect(completionRate(rebuilt, TUESDAY)).toBe(1)
+  })
+})

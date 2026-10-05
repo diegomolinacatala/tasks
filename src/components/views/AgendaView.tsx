@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { dayHeading, monthYear, relativeLabel } from '../../lib/date'
+import { lastDay, shownDay } from '../../lib/period'
 import { haptic } from '../../lib/platform/feedback'
 import { routinesOn } from '../../lib/routines'
 import { buildTimeline, timelineItems } from '../../lib/timeline'
@@ -10,7 +11,7 @@ import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { progressOf, tasksOn } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
-import { announcements, scopedCollision, useDragSensors } from '../dnd/dnd'
+import { announcements, pressCue, scopedCollision, useDragSensors } from '../dnd/dnd'
 import { OVERDUE, ROOT, columnId, sectionDragId } from '../dnd/ids'
 import { BlockHeader } from '../section/BlockHeader'
 import { SectionBlock } from '../section/SectionBlock'
@@ -95,20 +96,20 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
 
   const moveToDay = (taskId: string, date: IsoDate) => {
     const task = state.tasks.find((item) => item.id === taskId)
-    if (!task || task.date === date) return
+    if (!task || shownDay(task, today) === date) return
     dispatch({ type: 'task/move', id: taskId, date, sectionId: task.sectionId })
     haptic('success')
     toast({
       message: `${task.title} → ${relativeLabel(date, today)}`,
       actionLabel: copy.undo,
-      onAction: () => dispatch({ type: 'task/move', id: taskId, date: task.date, sectionId: task.sectionId }),
+      onAction: () => dispatch({ type: 'task/move', id: taskId, date: task.date, sectionId: task.sectionId, until: task.until }),
     })
   }
 
   const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(shown, today, moveToDay)
 
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
-  const dayTasks = useMemo(() => tasksOn(state, shown), [state, shown])
+  const dayTasks = useMemo(() => tasksOn(state, shown, today), [state, shown, today])
   const rows = useMemo(
     () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, shown)), shown === today ? now : null),
     [dayTasks, state.routines, shown, today, now],
@@ -121,9 +122,10 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
   const loads = useMemo(() => {
     const counts = new Map<IsoDate, DayLoad>()
     for (const task of state.tasks) {
-      if (!task.date) continue
-      const load = counts.get(task.date) ?? { total: 0, done: 0 }
-      counts.set(task.date, { total: load.total + 1, done: load.done + (task.done ? 1 : 0) })
+      const day = shownDay(task, today)
+      if (!day) continue
+      const load = counts.get(day) ?? { total: 0, done: 0 }
+      counts.set(day, { total: load.total + 1, done: load.done + (task.done ? 1 : 0) })
     }
     const map = new Map<IsoDate, DayLoad>()
     for (const [date, load] of counts) {
@@ -131,7 +133,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
       map.set(date, before && before.total === load.total && before.done === load.done ? before : load)
     }
     return map
-  }, [state.tasks])
+  }, [state.tasks, today])
   useEffect(() => {
     previousLoads.current = loads
   }, [loads])
@@ -207,6 +209,8 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
       <DndContext
         sensors={sensors}
         collisionDetection={scopedCollision}
+        onDragPending={pressCue.onDragPending}
+        onDragAbort={pressCue.onDragAbort}
         accessibility={{ announcements }}
         onDragStart={(event) => {
           setDragDay(shown)
@@ -255,7 +259,8 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
                 {!state.collapsed.overdue && (
                   <TaskColumn columnId={columnId(OVERDUE)} taskIds={overdueIds} droppable={false}>
                     {overdueIds.map((id) => {
-                      const date = byId.get(id)?.date
+                      const task = byId.get(id)
+                      const date = task ? lastDay(task) : null
                       return renderTask(id, null, { overdue: true, meta: date ? relativeLabel(date, today) : null })
                     })}
                   </TaskColumn>

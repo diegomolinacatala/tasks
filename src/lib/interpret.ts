@@ -2,8 +2,8 @@ import type { IsoDate, Place, PlaceTrigger, ReminderDraft } from '../types'
 import { addDays, isValidTime, isoOfInstant, toInstant, toIso } from './date'
 import { normalizeDuration } from './duration'
 import type { ParsedTask } from './parse'
-import { draftLabel, withPlaceLabel } from './parse'
-import { MAX_PLACE_NAME, findPlace } from './places'
+import { draftLabel, parseSpoken, withPlaceLabel } from './parse'
+import { MAX_PLACE_NAME, matchPlace } from './places'
 import { MAX_BEFORE_MINUTES, MAX_REMINDERS } from './reminders'
 
 const MAX_TASKS = 5
@@ -46,12 +46,18 @@ function placeOf(raw: unknown): { name: string; on: PlaceTrigger } | null {
 /**
  * Tareas que devuelve la IA del servidor, validadas otra vez en el móvil (la hora local solo
  * la conoce el móvil). `null` si no hay nada aprovechable: entonces se usa el analizador local.
- * El servidor solo dice el nombre del lugar; aquí se empareja con los guardados (`places`).
+ * El servidor solo dice el nombre del lugar; aquí se empareja con los guardados (`places`), también
+ * por sus otros nombres y con alguna letra cambiada en la transcripción.
  * `null` = sin avisos por lugar en esta plataforma: el lugar se ignora.
+ *
+ * `text`: lo dicho. La IA no sabe de plazos ("esta semana", "hasta el viernes"): si lo dicho trae uno y
+ * es una sola tarea, el plazo lo pone el analizador del móvil.
  */
-export function draftsFromInterpreted(raw: unknown, now: number, places: readonly Place[] | null = []): ParsedTask[] | null {
+export function draftsFromInterpreted(raw: unknown, now: number, places: readonly Place[] | null = [], text?: string): ParsedTask[] | null {
   if (!Array.isArray(raw)) return null
   const today = isoOfInstant(now)
+  const spoken = text && raw.length === 1 ? parseSpoken(text, now, places) : null
+  const period = spoken?.date && spoken.until ? { date: spoken.date, until: spoken.until } : null
 
   const drafts = raw.slice(0, MAX_TASKS).flatMap((item: unknown): ParsedTask[] => {
     if (!isObject(item) || typeof item.title !== 'string') return []
@@ -59,7 +65,7 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
     if (!title) return []
 
     const time = isValidTime(item.time) ? item.time : null
-    let date = isRealDate(item.date) ? item.date : null
+    let date = period?.date ?? (isRealDate(item.date) ? item.date : null)
     // Misma regla que el analizador local: hora sin día → hoy si no ha pasado, si no mañana.
     if (time && !date) date = toInstant(today, time) > now ? today : addDays(today, 1)
 
@@ -70,12 +76,12 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
 
     const duration = normalizeDuration(item.duration)
     const spokenPlace = places === null ? null : placeOf(item.place)
-    const saved = spokenPlace ? findPlace(places ?? [], spokenPlace.name) : null
+    const saved = spokenPlace ? matchPlace(places ?? [], spokenPlace.name) : null
     if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
     const isDefault = time !== null && reminders.length === 0 && !spokenPlace
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-    const draft = { title, date, time, duration, reminders }
+    const draft = { title, date, ...(period ? { until: period.until } : {}), time, duration, reminders }
     const label = draftLabel(draft, isDefault, now, places ?? [])
     if (!spokenPlace || saved) return [{ ...draft, label }]
     return [{ ...draft, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]

@@ -227,6 +227,18 @@
 .places__map {
   position: relative;
   margin-top: var(--sp-2);
+  cursor: pointer;
+}
+
+/* En la pestaña, la esquina es un botón de verdad (y va por encima de las chinchetas) */
+.map__expand.places__expand {
+  z-index: 2;
+  pointer-events: auto;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.map__expand.places__expand:active {
+  transform: scale(0.92);
 }
 
 .places__map-empty {
@@ -422,8 +434,34 @@
 
 /* ── Panel del lugar ──────────────────────────────────────────────────── */
 
+/* El mapa del panel se toca para abrir el de verdad y atinar el punto */
 .place-sheet__map {
+  position: relative;
+  display: block;
+  width: calc(100% + 8px);
   margin: 4px -4px var(--sp-4);
+  border-radius: var(--r-lg);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.place-sheet__map:active {
+  transform: scale(0.985);
+}
+
+/* Esquina del mapa que dice que se abre entero */
+.map__expand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
 }
 
 .place-sheet__center {

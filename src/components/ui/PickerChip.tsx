@@ -11,6 +11,8 @@ interface PickerChipProps {
   onCommit: (value: string) => void
   /** Al tocar la píldora, antes de elegir nada. */
   onOpen?: () => void
+  /** Lo más temprano que se puede elegir (el selector de iOS atenúa lo anterior). */
+  min?: string
   className?: string
   children: ReactNode
 }
@@ -21,7 +23,7 @@ interface PickerChipProps {
  * "Hasta…" anterior al inicio que se recortaba a 12 h y hacía saltar la rueda a otra hora). Por
  * eso lo elegido se queda en borrador y se guarda al cerrar el selector.
  */
-export function PickerChip({ type, value, onCommit, onOpen, className = 'chip', children }: PickerChipProps) {
+export function PickerChip({ type, value, onCommit, onOpen, min, className = 'chip', children }: PickerChipProps) {
   const [draft, setDraft] = useState<string | null>(null)
   // Si el panel se cierra con el selector abierto, el `blur` llega tarde o no llega: se guarda al desmontar.
   const pending = useRef<{ draft: string | null; value: string; onCommit: (value: string) => void }>({
@@ -66,6 +68,7 @@ export function PickerChip({ type, value, onCommit, onOpen, className = 'chip', 
       <input
         type={type}
         className="sr-only"
+        min={min}
         value={draft ?? value}
         onFocus={() => setDraft(value)}
         onChange={(event) => setDraft(event.target.value)}

@@ -165,7 +165,7 @@ export function addFromText(input: HeadlessInput, newId: () => string): Headless
 
   // Lo que entendió la IA manda; si no hay nada válido, el analizador local (como en la app). La IA
   // solo entiende español: en inglés, lo que devuelva no cuenta.
-  const interpreted = lang === 'es' ? draftsFromInterpreted(input.interpreted, now, state.places) : null
+  const interpreted = lang === 'es' ? draftsFromInterpreted(input.interpreted, now, state.places, text) : null
   const drafts = interpreted ?? [parseSpoken(text, now, state.places)].filter((draft) => draft.title)
   if (!drafts.length) return { entry: null, message: pick(TEXT).notUnderstood, plan: null, badge: null, widget: null }
 

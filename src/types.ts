@@ -25,6 +25,12 @@ export interface Task {
   title: string
   done: boolean
   date: IsoDate | null
+  /**
+   * Último día de su plazo ("esta semana", "hasta el viernes"), siempre después de `date`: mientras
+   * siga pendiente se ve en hoy y no queda atrasada hasta pasado ese día (`lib/period.ts`). `null` =
+   * sin plazo, solo su día.
+   */
+  until: IsoDate | null
   /** Solo tiene efecto si hay fecha. */
   time: IsoTime | null
   /**
@@ -50,6 +56,8 @@ export interface Task {
 export interface TaskDraft {
   title: string
   date: IsoDate | null
+  /** Final del plazo, si se dijo ("esta semana", "hasta el viernes"). */
+  until?: IsoDate | null
   time: IsoTime | null
   /** Minutos que dura, si se dijo ("durante una hora", "de 5 a 7"). */
   duration: number | null
@@ -80,6 +88,11 @@ export interface PlaceLocation {
 export interface Place {
   id: string
   name: string
+  /**
+   * Otras formas de llamarlo ("el piso", "casa de mis padres"): al escribir o dictar valen igual que el
+   * nombre. Ninguna repite el nombre de otro lugar ni otra de las suyas (`lib/places.ts`).
+   */
+  aliases: string[]
   /** `null` mientras no se ha elegido dónde está: sus avisos quedan inactivos. */
   location: PlaceLocation | null
   /** Metros. */

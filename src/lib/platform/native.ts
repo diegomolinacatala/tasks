@@ -1,6 +1,7 @@
 import { registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 import type { PlaceNotification } from '../nativeSchedule'
+import type { MapPickRequest } from './mapPicker'
 
 export type PermissionStatus = 'granted' | 'denied' | 'prompt'
 
@@ -50,6 +51,11 @@ interface TasksNativePlugin {
    * o encuadrando `points`. Devuelve la imagen y dónde cae cada punto, de 0 a 1.
    */
   mapSnapshot(options: MapSnapshotRequest): Promise<{ image: string; points: { x: number; y: number }[] }>
+  /**
+   * Mapa de Apple a pantalla completa para elegir un punto (`MapPicker.swift`). Llega sin validar: ver
+   * `pickOnMap` en `mapPicker.ts`.
+   */
+  pickLocation(options: MapPickRequest): Promise<unknown>
   /** Foto de lo que enseña la app ahora mismo (el WebView), en JPEG `data:`. Para las sugerencias. */
   screenshot(): Promise<{ image: string }>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */

@@ -3,6 +3,7 @@ import { isValidTime, relativeLabel } from './date'
 import { normalizeDuration, spanLabel } from './duration'
 import { language } from './i18n'
 import { DEFAULT_IMPORTANCE, clampImportance } from './importance'
+import { cleanUntil, periodLabel } from './period'
 import { MAX_REMINDERS, reminderLabel, sameReminder } from './reminders'
 import type { RoutineDraft } from './repeat'
 import { routineLabel } from './repeat'
@@ -16,6 +17,8 @@ import { cleanDays } from './routines'
  */
 export interface Details {
   date: IsoDate | null
+  /** Último día del plazo (`lib/period.ts`); `null` = solo ese día. */
+  until: IsoDate | null
   time: IsoTime | null
   duration: number | null
   reminders: Reminder[]
@@ -29,6 +32,7 @@ export interface Details {
 
 export const blankDetails = (date: IsoDate | null): Details => ({
   date,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -52,6 +56,7 @@ export function detailsFrom(
   if (!parsed) return blankDetails(date)
   return {
     ...blankDetails(parsed.date),
+    until: cleanUntil(parsed.date, parsed.until),
     time: parsed.date ? parsed.time : null,
     duration: parsed.date && parsed.time ? parsed.duration : null,
     reminders: parsed.reminders.map((reminder) => ({ ...reminder, id: newId() })),
@@ -62,10 +67,14 @@ export function detailsFrom(
 /** Sin hora, los avisos "antes" no tienen de qué ser antes. */
 const withoutRelative = (reminders: Reminder[]) => reminders.filter((reminder) => reminder.kind !== 'before')
 
+/** Otro día: el plazo sigue si acaba después de él. Sin fecha no hay plazo, hora, sección ni avisos "antes". */
 export function withDate(details: Details, date: IsoDate | null): Details {
-  if (date !== null) return { ...details, date }
-  return { ...details, date: null, time: null, duration: null, sectionId: null, reminders: withoutRelative(details.reminders) }
+  if (date !== null) return { ...details, date, until: cleanUntil(date, details.until) }
+  return { ...details, date: null, until: null, time: null, duration: null, sectionId: null, reminders: withoutRelative(details.reminders) }
 }
+
+/** Hasta qué día vale (`null`, solo el suyo). Sin fecha no hay plazo. */
+export const withUntil = (details: Details, until: IsoDate | null): Details => ({ ...details, until: cleanUntil(details.date, until) })
 
 /**
  * Como al escribir "a las 5": poner hora trae el aviso "a la hora", salvo que ya haya uno relativo.
@@ -126,6 +135,7 @@ export function draftTask(details: Details, title: string): Task {
     title,
     done: false,
     date: details.date,
+    until: details.until,
     time: details.time,
     duration: details.duration,
     reminders: details.reminders,
@@ -142,6 +152,7 @@ export function toTaskDraft(details: Details, title: string): TaskDraft {
   return {
     title: title.trim(),
     date: details.date,
+    ...(details.until ? { until: details.until } : {}),
     time: details.time,
     duration: details.duration,
     reminders: details.reminders.map(({ id: _id, ...draft }) => draft as ReminderDraft),
@@ -179,7 +190,13 @@ export function detailsSummary(
   if (details.repeat) return [{ key: 'repeat', label: routineLabel(details.repeat, details.time), icon: 'repeat' }]
 
   const en = language() === 'en'
-  const day = details.date ? relativeLabel(details.date, today) : en ? 'No date' : 'Sin fecha'
+  const day = details.date
+    ? details.until
+      ? periodLabel(details.date, details.until, today)
+      : relativeLabel(details.date, today)
+    : en
+      ? 'No date'
+      : 'Sin fecha'
   const items: SummaryItem[] = [
     { key: 'when', label: details.date && details.time ? `${day} · ${spanLabel(details.time, details.duration)}` : day, icon: null },
   ]

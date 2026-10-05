@@ -13,6 +13,8 @@ export type Action =
       type: 'task/add'
       title: string
       date: IsoDate | null
+      /** Final del plazo ("esta semana"): solo cuenta si va después de `date`. */
+      until?: IsoDate | null
       sectionId: string | null
       time?: IsoTime | null
       duration?: number | null
@@ -24,6 +26,8 @@ export type Action =
     }
   | { type: 'task/toggle'; id: string }
   | { type: 'task/setTime'; id: string; time: IsoTime | null }
+  /** Último día del plazo (`lib/period.ts`); `null` lo quita y la tarea vuelve a ser solo de su día. */
+  | { type: 'task/until'; id: string; until: IsoDate | null }
   /** Minutos que dura; al acabar se pregunta si ya está hecha. `null` = sin duración. */
   | { type: 'task/setDuration'; id: string; duration: number | null }
   /** "Todavía no": alarga la tarea para que vuelva a preguntar dentro de un rato. */
@@ -41,7 +45,8 @@ export type Action =
   | { type: 'tasks/place'; placements: Placement[] }
   | { type: 'task/remove'; id: string }
   | { type: 'task/restore'; task: Task }
-  | { type: 'task/move'; id: string; date: IsoDate | null; sectionId: string | null; index?: number }
+  /** Sin `until`, el plazo sigue si acaba después del día nuevo (`moveTask`). */
+  | { type: 'task/move'; id: string; date: IsoDate | null; sectionId: string | null; index?: number; until?: IsoDate | null }
   /** Resultado de un arrastre: reescribe día, sección y orden de golpe. */
   | { type: 'board/commit'; columns: Column[] }
   | { type: 'scope/reorder'; scope: string; ids: string[] }
@@ -50,8 +55,9 @@ export type Action =
   | { type: 'section/remove'; id: string }
   | { type: 'section/toggle'; id: string }
   | { type: 'sections/reorder'; ids: string[] }
-  | { type: 'place/add'; id: string; name: string; location?: PlaceLocation | null; radius?: number }
-  | { type: 'place/update'; id: string; name?: string; location?: PlaceLocation | null; radius?: number }
+  | { type: 'place/add'; id: string; name: string; aliases?: string[]; location?: PlaceLocation | null; radius?: number }
+  /** Los otros nombres que choquen con otro lugar se descartan. */
+  | { type: 'place/update'; id: string; name?: string; aliases?: string[]; location?: PlaceLocation | null; radius?: number }
   /** Quita también sus avisos de las tareas. */
   | { type: 'place/remove'; id: string }
   | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; emoji?: string | null; id?: string }
