@@ -7,16 +7,17 @@ import { BACKLOG_SCOPE } from '../../lib/order'
 import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
-import { backlogTasks } from '../../state/selectors'
+import { backlogTasks, foldDone } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { announcements, buzz, pressCue, scopedCollision, useDragSensors } from '../dnd/dnd'
 import { BACKLOG, columnId, dayOfDrop } from '../dnd/ids'
 import { RoutinesBlock } from '../routines/RoutinesBlock'
 import { BlockHeader } from '../section/BlockHeader'
 import { TaskColumn } from '../section/TaskColumn'
+import { DraggableTask } from '../task/DraggableTask'
 import { SortableTask } from '../task/SortableTask'
 import { TaskRow } from '../task/TaskRow'
-import { IconTrash } from '../ui/Icons'
+import { IconCheck, IconChevronDown, IconTrash } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { DayDock } from './DayDock'
 import './views.css'
@@ -38,6 +39,7 @@ const COPY = {
     tasks: 'Tareas',
     empty: 'Nada sin fecha.',
     clear: (count: number) => `Borrar las ${count} hechas`,
+    earlier: (count: number) => (count === 1 ? '1 hecha' : `${count} hechas`),
   },
   en: {
     undo: 'Undo',
@@ -48,6 +50,7 @@ const COPY = {
     tasks: 'Tasks',
     empty: 'Nothing without a date.',
     clear: (count: number) => `Delete ${count} done`,
+    earlier: (count: number) => `${count} done`,
   },
 } as const
 
@@ -56,7 +59,8 @@ const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
 
 /**
  * Bandeja: lo que aún no tiene día. Arriba, las rutinas (lo que se repite); debajo, las tareas sin
- * fecha, que se ordenan con el asa y se planifican soltándolas en un día del muelle.
+ * fecha, que se ordenan manteniéndolas pulsadas y se planifican soltándolas en un día del muelle. Lo
+ * tachado en días anteriores se pliega en una línea ("12 hechas"): la lista no crece sin fin.
  */
 export function InboxView({ today, routineDay }: InboxViewProps) {
   const state = useAppState()
@@ -65,9 +69,12 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
   const sensors = useDragSensors()
   const copy = useCopy(COPY)
   const [activeId, setActiveId] = useState<string | null>(null)
+  // Lo tachado otros días, plegado hasta que se pide (no se guarda: cada vez que se vuelve, plegado).
+  const [showEarlier, setShowEarlier] = useState(false)
 
   const tasks = useMemo(() => backlogTasks(state), [state])
-  const ids = useMemo(() => tasks.map((task) => task.id), [tasks])
+  const { shown, earlier } = useMemo(() => foldDone(tasks, today), [tasks, today])
+  const ids = useMemo(() => shown.map((task) => task.id), [shown])
   const pending = tasks.filter((task) => !task.done)
   const done = tasks.filter((task) => task.done)
 
@@ -140,12 +147,31 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
       >
         <section className="block">
           <BlockHeader label={copy.tasks} count={pending.length} />
-          <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty={copy.empty}>
-            {tasks.map((task) => (
+          <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty={tasks.length ? null : copy.empty}>
+            {shown.map((task) => (
               <SortableTask key={task.id} task={task} sectionId={null} />
             ))}
           </TaskColumn>
-          {done.length > 1 && (
+          {earlier.length > 0 && (
+            <button
+              type="button"
+              className={`inbox__fold ${showEarlier ? 'is-open' : ''}`}
+              aria-expanded={showEarlier}
+              onClick={() => setShowEarlier((open) => !open)}
+            >
+              <IconCheck size={14} strokeWidth={2.2} />
+              {copy.earlier(earlier.length)}
+              <IconChevronDown size={14} className="inbox__chevron" />
+            </button>
+          )}
+          {showEarlier && earlier.length > 0 && (
+            <ul className="column inbox__earlier">
+              {earlier.map((task) => (
+                <DraggableTask key={task.id} task={task} />
+              ))}
+            </ul>
+          )}
+          {done.length > 1 && (showEarlier || !earlier.length) && (
             <button type="button" className="inbox__clear" onClick={clearDone}>
               <IconTrash size={15} />
               {copy.clear(done.length)}

@@ -188,9 +188,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     privacidad. Textos en `scripts/store-copy.mjs`; datos de ejemplo en los dos idiomas.
   - **Ficha**: descripción reescrita en el mismo orden (§3 y §3.1 de `docs/app-store.md`), texto
     promocional y novedades nuevos, y el paso a paso para enviarla en §9.6.
+- **La 1.4 está aprobada** (05/10/2026): `MARKETING_VERSION` subido a **1.5**.
 - **Plazos, otros nombres de lugar, elegir en el mapa e historial de rutinas editable** (05/10/2026, en
-  `capacitor`, **sin commitear ni subir**: el Swift nuevo aún no ha pasado por el CI). Lo pidió el
-  usuario en una sola petición; lo del mapa real también lo pidió un amigo por el buzón (04/10/2026).
+  `capacitor`, **TestFlight 37**, la 1.5; el CI compiló `MapPicker.swift` y el widget sin errores). Lo
+  pidió el usuario en una sola petición; lo del mapa real también lo pidió un amigo por el buzón (04/10/2026).
   - **Plazos** (`Task.until`, `lib/period.ts`, `SCHEMA_VERSION` 14): "esta semana", "hasta el viernes",
     "del lunes al viernes" (con artículos; sin ellos es una rutina). La tarea va sola con hoy hasta
     hacerla y solo queda atrasada pasado el último día. Ver "Plazos".
@@ -209,17 +210,25 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     agente (sin errores de compilación de Swift a la vista; arreglado lo que encontró: "Todavía no" en un
     plazo, "el viernes de esta semana", "Piso 1" frente a "Piso 2", la dirección vieja al confirmar el
     mapa). El mapa nativo solo se puede probar en el iPhone.
-
+- **Lo del buzón** (05/10/2026, en `capacitor`, la 1.5): tres sugerencias de amigos, todas hechas.
+  - *"…al aguantar encima de la tarea un tiempo se coja y la puedas arrastrar"* (un diestro reordenaba
+    sin querer al hacer scroll con el pulgar por el borde): **fuera el asa**, las tareas y las secciones se
+    cogen manteniéndolas pulsadas. Ver "Drag & drop". En la TestFlight 37.
+  - *"Debería estar por defecto también cada semana…"*: atajo **"Los martes"** (una vez por semana, el día
+    de la tarea o el de hoy) en el panel de la rutina y en la ficha, y "cada semana" al escribir. En la 37.
+  - *"…que no tuviera una lista que tiende a infinito en mis tareas tachadas"*: en la Bandeja, lo tachado
+    otros días se pliega en **"12 hechas"** (`foldDone`); lo de hoy sigue a la vista. Después de la 37.
+  - Probado con Edge sin ventana y dedo simulado: un deslizamiento rápido no coge la fila, mantenerla y
+    arrastrar la recoloca sin abrirla, el pliegue se abre. 899 tests.
 **Pendiente, en este orden**
 
 0. **Probar la 1.5 en TestFlight** (plazos, otros nombres, mapa, historial editable, mantener pulsado para
-   arrastrar, atajo "Los martes" en rutinas). Subida a `capacitor` y comprobar que el CI
-   compila `MapPicker.swift` y el `until` del widget. En el iPhone: "Elegir en el mapa" en un lugar
+   arrastrar, atajo "Los martes" en rutinas, tachadas plegadas en la Bandeja). En el iPhone: mantener
+   pulsada una tarea (que vibre y se coja, que el scroll por el borde ya no la mueva); "Elegir en el mapa" en un lugar
    (arrastrar, tocar un punto, tocar un comercio y que dé su nombre, "Mi ubicación", el círculo del
    radio, claro y oscuro), tocar el mapa de la pestaña Lugares para añadir uno; una tarea "esta semana"
    en el widget de hoy (que al día siguiente siga sin salir en rojo); una con plazo y hora, que avise
-   cada día; dictar "al llegar al piso…" con el otro nombre puesto. Si 1.4 ya está aprobada, subir
-   `MARKETING_VERSION` a 1.5 antes del push.
+   cada día; dictar "al llegar al piso…" con el otro nombre puesto.
 1. **Enviar la 1.4 (35)** siguiendo `docs/app-store.md` §9.6 (lo hace el usuario: capturas, descripción,
    ficha en inglés, privacidad con *Atención al cliente*, notas, compilación 35). Antes, en la 35, la
    lámina *Sugerencias* tras actualizar. Lo de abajo, si no se probó en la 34:
@@ -455,8 +464,9 @@ React (su estado y su scroll, que `App` guarda al salir). Tocar la pestaña en l
 arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
 
 - **Bandeja** (`InboxView`): lo que no tiene día. Arriba, **Rutinas** (ver "Rutinas"); debajo,
-  **Tareas** sin fecha, ordenables con el asa. Al arrastrar una sube un **muelle** con los próximos
-  siete días (`DayDock`): soltarla en uno la planifica. Con más de una hecha, "Borrar las N hechas".
+  **Tareas** sin fecha, ordenables manteniéndolas pulsadas. Al arrastrar una sube un **muelle** con los
+  próximos siete días (`DayDock`): soltarla en uno la planifica. Lo tachado otros días se pliega en una
+  línea ("12 hechas", `foldDone`) que se abre al tocarla; con más de una hecha, "Borrar las N hechas".
 - **Agenda** (`AgendaView`), como Structured: el mes arriba, el día elegido en grande ("Hoy martes
   29", "Mañana miércoles 30", "Jueves 1 octubre") y la **tira de la semana** (`WeekStrip`): letra,
   número y un anillo que se cierra con lo hecho; lo pasado con pendientes, en ladrillo. Se desliza
@@ -802,7 +812,8 @@ que cada día amanece pendiente él solo (en la app, en los avisos y en el widge
   deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba
   (antes de crearla tampoco). Debajo del título, la hora, los días y "racha de N" (desde 2).
 - **Panel** (`RoutineSheet`): emoji y nombre, días (L M X J V S D y atajos: cada día, entre semana,
-  fines de semana), aviso a una hora, y **Constancia** (`RoutineLog`): racha, mejor racha, % de los
+  fines de semana y una vez por semana, "Los martes": `weeklyPreset`, el día que ya tiene si es uno
+  solo, si no el de hoy; en la ficha, el de la tarea), aviso a una hora, y **Constancia** (`RoutineLog`): racha, mejor racha, % de los
   últimos 30 días y cinco semanas día a día con su número, como un cuaderno de asistencia. **Se puede
   corregir**: tocar un día pasado lo marca o desmarca (`routine/set`) y pasar el dedo de lado marca (o
   desmarca) varios seguidos; las flechas van de cinco en cinco semanas hacia atrás, hasta lo que guarda

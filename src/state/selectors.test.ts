@@ -4,6 +4,7 @@ import {
   backlogTasks,
   findSection,
   findTask,
+  foldDone,
   groupsFor,
   isOverdue,
   overdueTasks,
@@ -129,6 +130,22 @@ describe('progressOf', () => {
 
   test('una lista vacía no divide por cero', () => {
     expect(progressOf([])).toEqual({ total: 0, done: 0, ratio: 0 })
+  })
+})
+
+describe('foldDone', () => {
+  test('lo hecho antes de hoy va aparte; lo pendiente y lo hecho hoy, a la vista', () => {
+    const today = new Date(2026, 8, 11, 12).getTime()
+    const yesterday = new Date(2026, 8, 10, 22).getTime()
+    const tasks = [
+      task({ id: 'p', date: null }),
+      task({ id: 'hoy', date: null, done: true, completedAt: today }),
+      task({ id: 'ayer', date: null, done: true, completedAt: yesterday }),
+      task({ id: 'antigua', date: null, done: true, completedAt: null }),
+    ]
+    const { shown, earlier } = foldDone(tasks, TODAY)
+    expect(shown.map((t) => t.id)).toEqual(['p', 'hoy'])
+    expect(earlier.map((t) => t.id)).toEqual(['ayer', 'antigua'])
   })
 })
 

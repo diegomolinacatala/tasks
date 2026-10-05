@@ -1,3 +1,4 @@
+import { isoOfInstant } from '../lib/date'
 import { byDisplay, byOrder, compareText, scopeOf } from '../lib/order'
 import { isCarried, lastDay, shownDay } from '../lib/period'
 import type { AppState, IsoDate, Section, Task } from '../types'
@@ -24,6 +25,16 @@ export function tasksOn(state: AppState, date: IsoDate, today: IsoDate): Task[] 
 
 export const backlogTasks = (state: AppState): Task[] =>
   state.tasks.filter((task) => task.date === null).sort(byDisplay)
+
+/**
+ * La Bandeja sin crecer sin fin con lo tachado: lo hecho hoy se queda a la vista (se puede desmarcar al
+ * momento) y lo de días anteriores va aparte, plegado. Nada se borra solo.
+ */
+export function foldDone(tasks: readonly Task[], today: IsoDate): { shown: Task[]; earlier: Task[] } {
+  const earlier = tasks.filter((task) => task.done && (task.completedAt === null || isoOfInstant(task.completedAt) < today))
+  const folded = new Set(earlier)
+  return { shown: tasks.filter((task) => !folded.has(task)), earlier }
+}
 
 /** Pendiente de un día ya pasado (o con el plazo acabado). Las completadas no arrastran: son historia. */
 export function isOverdue(task: Task, today: IsoDate): boolean {

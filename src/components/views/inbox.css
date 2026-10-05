@@ -84,3 +84,44 @@
 .dock__day.is-over .dock__num {
   color: var(--on-primary);
 }
+
+/* Lo tachado otros días, plegado en una línea: la Bandeja no crece sin fin */
+.inbox__fold {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 44px;
+  margin-top: var(--sp-2);
+  padding: 10px 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+.inbox__fold svg:first-child {
+  color: var(--accent);
+}
+
+.inbox__chevron {
+  transition: transform var(--dur-2) var(--ease);
+}
+
+.inbox__fold.is-open .inbox__chevron {
+  transform: rotate(180deg);
+}
+
+.inbox__earlier {
+  animation: fold-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes fold-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inbox__earlier {
+    animation: none;
+  }
+}
