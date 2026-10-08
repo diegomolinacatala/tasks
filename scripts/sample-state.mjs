@@ -31,6 +31,9 @@ const WORDS = {
     ingles: 'Clase de inglés',
     padel: 'Partido de pádel',
     mama: 'Llamar a mamá',
+    banco: 'Llamar al banco',
+    informe: 'Entregar el informe',
+    casaOtros: ['el piso', 'casa de mis padres'],
     hecha: 'Hecha',
     pendiente: 'Pendiente',
   },
@@ -62,6 +65,9 @@ const WORDS = {
     ingles: 'Spanish class',
     padel: 'Tennis match',
     mama: 'Call mom',
+    banco: 'Call the bank',
+    informe: 'Hand in the report',
+    casaOtros: ['my flat', 'my parents’ house'],
     hecha: 'Done',
     pendiente: 'Pending',
   },
@@ -80,6 +86,7 @@ const task = (id, title, date, extra = {}) => ({
   title,
   done: false,
   date,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -129,7 +136,7 @@ function monthFiller(w) {
   return [...past, ...ahead]
 }
 
-const place = (w, id, lat, lng, radius) => ({ id, name: w[id][0], location: { lat, lng, address: w[id][1] }, radius })
+const place = (w, id, lat, lng, radius, aliases = []) => ({ id, name: w[id][0], aliases, location: { lat, lng, address: w[id][1] }, radius })
 
 /** `theme`: la apariencia con la que se abre la app (la captura del modo oscuro). `language`: `es` o `en`. */
 export function sampleState({ theme = 'light', language = 'es' } = {}) {
@@ -137,9 +144,9 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 11,
+    schemaVersion: 14,
     sections: [{ id: 'trabajo', name: w.trabajo, order: 0, collapsed: false }],
-    places: [place(w, 'mercadona', 39.4699, -0.3763, 150), place(w, 'casa', 39.4632, -0.3589, 100), place(w, 'uni', 39.4808, -0.3443, 300)],
+    places: [place(w, 'mercadona', 39.4699, -0.3763, 150), place(w, 'casa', 39.4632, -0.3589, 100, w.casaOtros), place(w, 'uni', 39.4808, -0.3443, 300)],
     routines: [
       routine('creatina', w.creatina, '10:00', { emoji: '💊', done: [...history(12, [3]), today], order: 0 }),
       routine('leer', w.leer, '22:30', { emoji: '📖', done: history(9, [1, 5]), order: 1 }),
@@ -165,6 +172,9 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
         order: 2,
       }),
       task('presentacion', w.presentacion, today, { importance: 6, order: 3 }),
+      // Plazos: una que viene de hace dos días y vale hasta dentro de cuatro, y otra cuyo último día es hoy.
+      task('banco', w.banco, iso(-2), { until: iso(4), order: 0 }),
+      task('informe', w.informe, iso(-3), { until: today, order: 1, importance: 3 }),
       task('ropa', w.ropa, today, { done: true, completedAt: Date.now(), order: 4 }),
       task('contrato', w.contrato, today, { importance: 3, sectionId: 'trabajo', order: 1 }),
       task('leche', w.leche, null, { reminders: [{ id: 'r10', kind: 'place', placeId: 'mercadona', on: 'arrive' }], order: 0 }),

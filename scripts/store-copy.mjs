@@ -8,6 +8,9 @@ export const STORE_COPY = {
     sizing: 'Tamaño según importancia',
     untimed: 'Sin hora',
     phrase: 'Cena con Carlota el viernes a las 9 de la noche',
+    // La de los plazos: la tarjeta enseña lo que entiende la barra.
+    periodTitle: 'Llamar al banco',
+    periodChips: ['Esta semana', 'Cada día hasta hacerla'],
     // La de la ficha lleva tramo: así la regla de la duración sale marcada.
     detailsPhrase: 'Cena con Carlota el viernes de 9 a 11 de la noche',
     resultTitle: 'Cena con Carlota',
@@ -46,6 +49,11 @@ export const STORE_COPY = {
       },
       places: { kicker: 'Avisos por lugar', title: 'Te avisa *donde toca*.', sub: '«Al pasar por Mercadona» y salta al llegar, no antes.' },
       agenda: { kicker: 'Agenda', title: 'Tu día, *de un vistazo*.', sub: 'Lo que tiene hora, en su sitio, y el tiempo libre entre medias.' },
+      period: {
+        kicker: 'Plazos',
+        title: 'Para esta semana, *no para un día*.',
+        sub: '«Esta semana» o «hasta el viernes»: sale cada día hasta que la haces, sin quedar atrasada.',
+      },
       routines: { kicker: 'Rutinas', title: 'Hábitos *de un toque*.', sub: 'Táchalos desde la pantalla de bloqueo y mira crecer la racha.' },
       widgets: { kicker: 'Widgets y Siri', title: 'Sin *abrir la app*.', sub: 'Hoy, la Bandeja y tus rutinas, a mano. Y Siri apunta por ti.' },
       ask: { kicker: 'Al acabar', title: 'Táchala *desde el aviso*.', sub: 'Cuando termina, te pregunta si ya está. Sin abrir nada.' },
@@ -60,6 +68,8 @@ export const STORE_COPY = {
     sizing: 'Size by importance',
     untimed: 'No time',
     phrase: 'Dinner with Carlota on Friday at 9pm',
+    periodTitle: 'Call the bank',
+    periodChips: ['This week', 'Every day until done'],
     detailsPhrase: 'Dinner with Carlota on Friday from 9 to 11pm',
     resultTitle: 'Dinner with Carlota',
     atTime: 'On time',
@@ -101,6 +111,11 @@ export const STORE_COPY = {
         sub: '“When I get to the supermarket” pops up as you arrive, not before.',
       },
       agenda: { kicker: 'Agenda', title: 'Your day *at a glance*.', sub: 'Timed things in their place, with your free time in between.' },
+      period: {
+        kicker: 'Time frames',
+        title: 'This week, *not one day*.',
+        sub: '“This week” or “by Friday”: it shows up every day until it’s done, never overdue.',
+      },
       routines: { kicker: 'Routines', title: 'Habits, *one tap away*.', sub: 'Check them off from the Lock Screen and watch your streak grow.' },
       widgets: { kicker: 'Widgets & Siri', title: 'No need to *open it*.', sub: 'Today, Inbox and routines at hand. And Siri adds tasks for you.' },
       ask: { kicker: 'When it ends', title: 'Check it off *from the alert*.', sub: 'When it’s over, it asks if you’re done. Nothing to open.' },

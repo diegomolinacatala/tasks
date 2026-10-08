@@ -1,6 +1,6 @@
 // Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Las tres
 // primeras son las que salen en la búsqueda: dicen lo que hace la app distinta (escribir como se
-// habla, avisos por lugar, el día de un vistazo). Cada una es la app real (build de producción, datos
+// habla, avisos por lugar, el día de un vistazo); la cuarta, los plazos ("esta semana", desde la 1.5). Cada una es la app real (build de producción, datos
 // de ejemplo) dentro de un iPhone, con titular y un detalle que sale del marco (store-frames.mjs).
 //
 //   node scripts/app-store-shots.mjs          # → docs/capturas/01-escribir.png … (en español)
@@ -130,11 +130,16 @@ try {
   await open()
   screens.agenda = await capture()
 
-  // La tira desplegada en el mes entero (tocando el mes de la cabecera).
-  await click('.agenda__month', '')
-  await waitFor(`document.querySelector('.cal.is-month')`)
+  // Plazos: lo que se ve en "Sin hora", con "Hasta el …" y "Último día" en sus filas.
+  await evaluate(`(() => {
+    const head = [...document.querySelectorAll('.section__name')].find((node) => node.textContent === ${JSON.stringify(T.untimed)})
+    const scroller = head.closest('.app__scroll')
+    scroller.scrollTop += head.getBoundingClientRect().top - 150
+    return true
+  })()`)
+  await waitFor(`document.querySelector('.row__period.is-last')`)
   await sleep(900)
-  screens.month = await capture()
+  screens.period = await capture()
 
   await open()
   await click('.tabs__tab', T.tabs.inbox)
@@ -216,7 +221,15 @@ try {
     ],
     ['03-agenda', frame({ ...c.agenda, content: device(screens.agenda, 262) })],
     [
-      '04-rutinas',
+      '04-plazos',
+      frame({
+        theme: 'sand',
+        ...c.period,
+        content: device(screens.period, 262) + resultCard(T.periodTitle, T.periodChips),
+      }),
+    ],
+    [
+      '05-rutinas',
       frame({
         theme: 'night',
         ...c.routines,
@@ -225,9 +238,9 @@ try {
           `<div class="float" style="left:34px;top:652px">${lockScreenRoutines({ date: today, title: T.gym, detail: T.gymDetail, emoji: '🏋️', pending: '📖' })}</div>`,
       }),
     ],
-    ['05-widgets', widgetsFrame(c.widgets, labels)],
+    ['06-widgets', widgetsFrame(c.widgets, labels)],
     [
-      '06-has-acabado',
+      '07-has-acabado',
       frame({
         theme: 'sand',
         ...c.ask,
@@ -236,9 +249,8 @@ try {
           notification({ icon, title: T.lunch, body: T.askBody, when: T.now, actions: T.askActions, style: 'left:34px;right:34px;top:470px' }),
       }),
     ],
-    ['07-detalles', frame({ theme: 'night', ...c.details, content: device(screens.details, 262) })],
-    ['08-mes', frame({ ...c.month, content: device(screens.month, 262) })],
-    ['09-importancia', frame({ theme: 'sand', ...c.importance, content: device(screens.importance, 262) })],
+    ['08-detalles', frame({ theme: 'night', ...c.details, content: device(screens.details, 262) })],
+    ['09-importancia', frame({ ...c.importance, content: device(screens.importance, 262) })],
     [
       '10-privada',
       frame({
