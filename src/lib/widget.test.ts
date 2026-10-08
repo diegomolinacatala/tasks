@@ -221,3 +221,36 @@ describe('tareas con plazo', () => {
     expect(widgetSnapshot(stateWith([done]), NOW).tasks).toEqual([{ id: 'p', title: 'p', date: TODAY, time: null, done: true, importance: 1 }])
   })
 })
+
+describe('el calendario en el widget', () => {
+  const meeting = {
+    key: `reunion@${toInstant(TODAY, '17:00')}`,
+    id: 'reunion',
+    calendarId: 'trabajo',
+    title: 'Reunión',
+    start: toInstant(TODAY, '17:00'),
+    end: toInstant(TODAY, '18:00'),
+    allDay: false,
+    color: '#1a73e8',
+    location: null,
+  }
+  const far = { ...meeting, key: 'lejos', start: toInstant(addDays(TODAY, 20), '09:00'), end: toInstant(addDays(TODAY, 20), '10:00') }
+
+  test('encendido, lleva qué calendarios oculta y los eventos de la semana', () => {
+    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'] } } }
+    const snapshot = widgetSnapshot(state, NOW, [meeting, far])
+    expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
+    expect(snapshot.events).toEqual([{ id: meeting.key, title: 'Reunión', start: meeting.start, end: meeting.end, allDay: false, color: '#1a73e8' }])
+  })
+
+  test('apagado, nada de calendario', () => {
+    expect(widgetSnapshot(emptyState(), NOW, [meeting])).not.toHaveProperty('calendar')
+  })
+
+  test('encendido pero sin eventos a mano (Siri, avisos), el widget sigue leyendo el calendario', () => {
+    const on = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'] } } }
+    const snapshot = widgetSnapshot(on, NOW, null)
+    expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
+    expect(snapshot).not.toHaveProperty('events')
+  })
+})

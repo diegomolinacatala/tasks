@@ -21,6 +21,28 @@ enum Palette {
     static let onAccent = dynamic(0xF7F2E8, night: 0x141B2E)
     static let danger = dynamic(0x9E3B2E, night: 0xE07A68)
 
+    /**
+     * El color de un calendario del iPhone (`#rrggbb`), apagado como en la app (`.cal-tone`): a medias con
+     * la tinta tenue, para que no chille sobre el papel.
+     */
+    static func calendar(_ hex: String) -> Color {
+        let value = UInt32(hex.dropFirst(), radix: 16) ?? 0x8C7B66
+        return Color(uiColor: UIColor { traits in
+            let night = traits.userInterfaceStyle == .dark
+            let tone = color(night ? 0x8A8374 : 0x7D7466, 1)
+            return blend(color(value, 1), tone, 0.6)
+        })
+    }
+
+    private static func blend(_ a: UIColor, _ b: UIColor, _ amount: CGFloat) -> UIColor {
+        var (ar, ag, ab, aa): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+        var (br, bg, bb, ba): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        let mix = { (x: CGFloat, y: CGFloat) in x * amount + y * (1 - amount) }
+        return UIColor(red: mix(ar, br), green: mix(ag, bg), blue: mix(ab, bb), alpha: 1)
+    }
+
     private static func dynamic(
         _ day: UInt32,
         night: UInt32,
@@ -80,6 +102,9 @@ struct SmallWidget: View {
 struct MediumWidget: View {
     let day: WidgetDay
     let ready: Bool
+    /** Lo siguiente del calendario del iPhone (uno como mucho). */
+    var events: [WidgetEvent] = []
+    var now = Date()
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -94,7 +119,7 @@ struct MediumWidget: View {
                 }
             }
             .frame(minWidth: 44, maxHeight: .infinity, alignment: .leading)
-            TaskList(day: day, slots: 4, style: .regular, ready: ready)
+            TaskList(day: day, slots: 4, style: .regular, ready: ready, events: events, now: now)
         }
     }
 }
@@ -102,6 +127,9 @@ struct MediumWidget: View {
 struct LargeWidget: View {
     let day: WidgetDay
     let ready: Bool
+    /** Lo siguiente del calendario del iPhone (dos como mucho). */
+    var events: [WidgetEvent] = []
+    var now = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -117,7 +145,7 @@ struct LargeWidget: View {
                 }
                 AddLink()
             }
-            TaskList(day: day, slots: 8, style: .regular, ready: ready)
+            TaskList(day: day, slots: 8, style: .regular, ready: ready, events: events, now: now)
         }
     }
 }
@@ -144,11 +172,16 @@ struct CircularWidget: View {
     }
 }
 
-/** Pantalla de bloqueo: el número y, como solo caben dos, las dos pendientes más importantes. */
+/**
+ * Pantalla de bloqueo: el número y, como solo caben dos, las dos pendientes más importantes. Si sobra una
+ * línea y hay algo en el calendario, lo siguiente ("17:00 Reunión").
+ */
 struct RectangularWidget: View {
     @Environment(\.widgetText) var text
     let day: WidgetDay
     let ready: Bool
+    var next: WidgetEvent? = nil
+    var now = Date()
 
     var body: some View {
         let pending = Array(day.mostImportant.prefix(2))
@@ -156,13 +189,17 @@ struct RectangularWidget: View {
             Text(verbatim: day.pending == 0 ? text.today : "\(text.today) · \(day.pending)")
                 .font(.headline)
                 .widgetAccentable()
-            if pending.isEmpty {
+            if pending.isEmpty && next == nil {
                 Text(verbatim: ready ? text.nothingToday : text.openTasks)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(pending) { task in
                     Text(task.title)
                         .fontWeight(task.weight >= 0.5 ? .semibold : .regular)
+                }
+                if pending.count < 2, let next {
+                    Text(verbatim: "\(WidgetDates.eventTime(next, now: now, text: text)) \(next.title.isEmpty ? text.untitledEvent : next.title)")
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -200,14 +237,20 @@ struct RowStyle {
 
 enum WidgetRow: Hashable {
     case task(WidgetTask, overdue: Bool)
+    case event(WidgetEvent)
     case more(Int)
 
-    /** Atrasadas y después hoy. Si no caben, la última fila dice cuántas quedan. */
-    static func rows(_ day: WidgetDay, slots: Int) -> [WidgetRow] {
+    /**
+     * Lo siguiente del calendario arriba; después atrasadas y hoy. Si las tareas no caben, la última fila
+     * dice cuántas quedan.
+     */
+    static func rows(_ day: WidgetDay, slots: Int, events: [WidgetEvent] = []) -> [WidgetRow] {
+        let lead = events.prefix(max(slots - 1, 0)).map { WidgetRow.event($0) }
         let all = day.overdue.map { WidgetRow.task($0, overdue: true) } + day.today.map { WidgetRow.task($0, overdue: false) }
-        guard all.count > slots else { return all }
-        let shown = max(slots - 1, 0)
-        return Array(all.prefix(shown)) + [.more(all.count - shown)]
+        let room = slots - lead.count
+        guard all.count > room else { return lead + all }
+        let shown = max(room - 1, 0)
+        return lead + Array(all.prefix(shown)) + [.more(all.count - shown)]
     }
 }
 
@@ -218,9 +261,11 @@ struct TaskList: View {
     let slots: Int
     let style: RowStyle
     let ready: Bool
+    var events: [WidgetEvent] = []
+    var now = Date()
 
     var body: some View {
-        let rows = WidgetRow.rows(day, slots: slots)
+        let rows = WidgetRow.rows(day, slots: slots, events: events)
         if rows.isEmpty {
             Text(verbatim: ready ? text.nothingToday : text.openTasks)
                 .font(.system(size: style.title))
@@ -249,6 +294,8 @@ struct TaskList: View {
         switch row {
         case .task(let task, let overdue):
             TaskRow(task: task, overdue: overdue, today: day.day, style: style)
+        case .event(let event):
+            EventRow(event: event, now: now, style: style)
         case .more(let count):
             Text(verbatim: text.more(count))
                 .font(.system(size: style.title - 2))
@@ -319,6 +366,49 @@ struct TaskRow: View {
         guard style.detailed else { return nil }
         if overdue { return WidgetDates.overdue(task.lastDay, today: today, text: text) }
         return task.time.map { WidgetDates.shortTime($0, text.language) }
+    }
+}
+
+/**
+ * Un evento del calendario del iPhone: una cinta con el color de su calendario (apagado, como en la app)
+ * donde las tareas llevan el círculo, el título un punto por debajo de ellas y a la derecha su hora, o
+ * "Ahora" si está en curso. Tocarlo abre la Agenda de hoy.
+ */
+struct EventRow: View {
+    @Environment(\.widgetText) var text
+    let event: WidgetEvent
+    let now: Date
+    let style: RowStyle
+
+    var body: some View {
+        let ongoing = event.isOngoing(at: now)
+        let title = event.title.isEmpty ? text.untitledEvent : event.title
+        let time = WidgetDates.eventTime(event, now: now, text: text)
+        Link(destination: WidgetLink.today) {
+            HStack(spacing: 0) {
+                Capsule()
+                    .fill(Palette.calendar(event.color))
+                    .frame(width: 4, height: style.circle)
+                    .frame(width: style.circle)
+                    .frame(width: style.inset, alignment: .leading)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(verbatim: title)
+                        .font(.system(size: style.title))
+                        .foregroundStyle(Palette.text2)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(verbatim: time)
+                        .font(.system(size: style.title - 3, weight: ongoing ? .semibold : .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(ongoing ? Palette.accent : Palette.text3)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(Text(verbatim: text.event(title, time)))
     }
 }
 
@@ -449,6 +539,14 @@ enum WidgetDates {
         let parts = time.split(separator: ":")
         guard parts.count == 2, let hours = Int(parts[0]) else { return time }
         return "\(hours % 12 == 0 ? 12 : hours % 12):\(parts[1]) \(hours < 12 ? "AM" : "PM")"
+    }
+
+    /** La hora de un evento como la de una tarea (`17:00`, `5:00 PM`); `Ahora` en curso, `Todo el día`. */
+    static func eventTime(_ event: WidgetEvent, now: Date, text: WidgetText) -> String {
+        if event.allDay { return text.allDay }
+        if event.isOngoing(at: now) { return text.now }
+        let parts = calendar.dateComponents([.hour, .minute], from: event.startDate)
+        return shortTime(String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0), text.language)
     }
 
     /** `Ayer` o `14 sept` · `Yesterday` o `Sep 14`. */

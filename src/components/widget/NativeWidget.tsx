@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CalendarEvent } from '../../lib/calendar'
+import { addDays, fromIso } from '../../lib/date'
 import { WIDGET_EVENT, parseRoutineChanges, parseWidgetChanges } from '../../lib/nativeEvents'
 import { RESCHEDULE_EVENT } from '../../lib/nativeSchedule'
 import { TasksNative } from '../../lib/platform/native'
@@ -6,6 +8,7 @@ import { routineSettles, widgetSnapshot, widgetToggles } from '../../lib/widget'
 import { useLanguage } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate } from '../../types'
+import { useCalendar } from '../calendar/CalendarProvider'
 
 const SYNC_DEBOUNCE_MS = 400
 
@@ -25,13 +28,38 @@ export function NativeWidget({ today }: NativeWidgetProps) {
   const language = useLanguage()
   const stateRef = useRef(state)
   const written = useRef<string | null>(null)
+  // La semana del calendario del iPhone, si se enseña: el widget la lee él mismo, pero la foto lleva una
+  // copia por si no pudiera.
+  const calendar = useCalendar()
+  const [events, setEvents] = useState<CalendarEvent[] | null>(null)
+  const eventsRef = useRef(events)
+  const hiddenKey = state.settings.calendar.hidden.join(',')
 
   useEffect(() => {
     stateRef.current = state
   }, [state])
 
+  useEffect(() => {
+    eventsRef.current = events
+  }, [events])
+
+  useEffect(() => {
+    const { source, active } = calendar
+    if (!source || !active) {
+      setEvents(null)
+      return
+    }
+    let alive = true
+    const from = fromIso(today).getTime()
+    const to = fromIso(addDays(today, 9)).getTime()
+    void source.events(from, to, stateRef.current.settings.calendar.hidden).then((found) => alive && setEvents(found), () => undefined)
+    return () => {
+      alive = false
+    }
+  }, [calendar.source, calendar.active, calendar.revision, today, hiddenKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const write = useCallback(async () => {
-    const json = JSON.stringify(widgetSnapshot(stateRef.current, Date.now()))
+    const json = JSON.stringify(widgetSnapshot(stateRef.current, Date.now(), eventsRef.current))
     if (json === written.current) return
     written.current = json
     try {
@@ -59,7 +87,7 @@ export function NativeWidget({ today }: NativeWidgetProps) {
   useEffect(() => {
     const timer = setTimeout(() => void write(), SYNC_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [state.tasks, state.sections, state.routines, today, language, write])
+  }, [state.tasks, state.sections, state.routines, state.settings.calendar, events, today, language, write])
 
   useEffect(() => {
     void pull()

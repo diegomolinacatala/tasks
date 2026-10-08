@@ -20,6 +20,8 @@ interface StripDayProps {
   /** Con el mes desplegado: un día del mes de antes o del de después, que asoma atenuado. */
   outside: boolean
   load: DayLoad
+  /** Tiene algo en el calendario del iPhone: un punto debajo del número. */
+  events: boolean
   /** Solo los días que se ven: los de los lados no reciben tareas ni el foco del teclado. */
   droppable: boolean
   onSelect: (date: IsoDate) => void
@@ -28,15 +30,15 @@ interface StripDayProps {
 const RING = 2 * Math.PI * 16
 
 const COPY = {
-  es: { today: 'Hoy, ', done: (done: number, total: number) => `, ${done} de ${total} hechas` },
-  en: { today: 'Today, ', done: (done: number, total: number) => `, ${done} of ${total} done` },
+  es: { today: 'Hoy, ', done: (done: number, total: number) => `, ${done} de ${total} hechas`, events: ', con eventos' },
+  en: { today: 'Today, ', done: (done: number, total: number) => `, ${done} of ${total} done`, events: ', with events' },
 } as const
 
 /**
  * Un día de la tira (o del mes): su número y un anillo que se cierra con lo hecho; lo pasado con
  * pendientes, en ladrillo. Soltar aquí una tarea arrastrada la lleva a ese día.
  */
-export const StripDay = memo(function StripDay({ date, selected, isToday, past, outside, load, droppable, onSelect }: StripDayProps) {
+export const StripDay = memo(function StripDay({ date, selected, isToday, past, outside, load, events, droppable, onSelect }: StripDayProps) {
   const { setNodeRef, isOver } = useDroppable({ id: dayDropId(date), data: { type: 'day', date }, disabled: !droppable })
   const copy = useCopy(COPY)
   const pending = load.total - load.done
@@ -53,7 +55,7 @@ export const StripDay = memo(function StripDay({ date, selected, isToday, past, 
       } ${isOver ? 'is-over' : ''}`}
       aria-pressed={selected}
       aria-current={isToday ? 'date' : undefined}
-      aria-label={`${isToday ? copy.today : ''}${fullLabel(date)}${load.total ? copy.done(load.done, load.total) : ''}`}
+      aria-label={`${isToday ? copy.today : ''}${fullLabel(date)}${load.total ? copy.done(load.done, load.total) : ''}${events ? copy.events : ''}`}
       onClick={() => onSelect(date)}
     >
       <span className="strip__num" style={{ '--ring': ratio } as CSSProperties}>
@@ -64,6 +66,7 @@ export const StripDay = memo(function StripDay({ date, selected, isToday, past, 
           )}
         </svg>
         <span className="strip__digit">{dayNumber(date)}</span>
+        {events && <i className="strip__event" aria-hidden="true" />}
       </span>
     </button>
   )

@@ -1,4 +1,5 @@
 import type { Routine, Task } from '../types'
+import type { CalendarEvent, TimedEvent } from './calendar'
 import { clockLabel } from './date'
 import { durationLabel, minutesOf } from './duration'
 import { language } from './i18n'
@@ -18,15 +19,21 @@ interface Placed {
   live?: number
 }
 
-export type TimelineItem = (Placed & { kind: 'task'; task: Task }) | (Placed & { kind: 'routine'; routine: Routine })
+export type TimelineItem =
+  | (Placed & { kind: 'task'; task: Task })
+  | (Placed & { kind: 'routine'; routine: Routine })
+  | (Placed & { kind: 'event'; event: CalendarEvent })
 
 export type TimelineRow = TimelineItem | { kind: 'gap'; id: string; minutes: number } | { kind: 'now'; id: 'now'; minutes: number }
 
 /** Hueco a partir del cual se dice cuánto tiempo libre queda entre dos cosas. */
 export const MIN_GAP = 45
 
-/** Lo que tiene hora ese día: tareas (con su duración) y rutinas. */
-export function timelineItems(tasks: readonly Task[], routines: readonly Routine[]): TimelineItem[] {
+/**
+ * Lo que tiene hora ese día: tareas (con su duración), rutinas y los eventos del calendario del iPhone,
+ * que cuentan para el tiempo libre como cualquier otra cosa.
+ */
+export function timelineItems(tasks: readonly Task[], routines: readonly Routine[], events: readonly TimedEvent[] = []): TimelineItem[] {
   const fromTasks = tasks.flatMap((task): TimelineItem[] => {
     if (!task.time) return []
     const start = minutesOf(task.time)
@@ -37,7 +44,8 @@ export function timelineItems(tasks: readonly Task[], routines: readonly Routine
     const start = minutesOf(routine.time)
     return [{ kind: 'routine', id: `routine:${routine.id}`, start, end: start, routine }]
   })
-  return [...fromTasks, ...fromRoutines].sort((a, b) => a.start - b.start || a.end - b.end || compareText(a.id, b.id))
+  const fromEvents = events.map(({ event, start, end }): TimelineItem => ({ kind: 'event', id: `event:${event.key}`, start, end, event }))
+  return [...fromEvents, ...fromTasks, ...fromRoutines].sort((a, b) => a.start - b.start || a.end - b.end || compareText(a.id, b.id))
 }
 
 /**

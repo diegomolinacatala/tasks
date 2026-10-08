@@ -249,3 +249,12 @@ export const IconExpand = (props: IconProps) => (
     <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
   </Icon>
 )
+
+/** El calendario del iPhone: una hoja con sus dos anillas. */
+export const IconCalendar = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.75" y="5.25" width="16.5" height="15" rx="2.5" />
+    <path d="M8 3v4.5M16 3v4.5M3.75 10h16.5" />
+    <path d="M8 14h2M12 14h2M8 17h2" />
+  </Icon>
+)

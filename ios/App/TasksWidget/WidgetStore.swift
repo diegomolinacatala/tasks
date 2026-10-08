@@ -70,6 +70,25 @@ enum WidgetStore {
         }
     }
 
+    /**
+     * Eventos del calendario del iPhone para el widget de hoy, si la app lo tiene encendido. Se leen de
+     * EventKit al momento (así salen aunque no se abra la app); si no se puede, los de la última foto.
+     */
+    /** La app enseña el calendario (la foto lo dice). */
+    static var showsCalendar: Bool {
+        read(WidgetSnapshot.self, snapshotFile)?.calendar != nil
+    }
+
+    static func events(from: Date, to: Date) -> [WidgetEvent] {
+        guard let snapshot = read(WidgetSnapshot.self, snapshotFile), let calendar = snapshot.calendar else { return [] }
+        if CalendarReader.canRead {
+            return CalendarReader.widgetEvents(from: from, to: to, hidden: Set(calendar.hidden))
+        }
+        let start = CalendarReader.millis(from)
+        let end = CalendarReader.millis(to)
+        return (snapshot.events ?? []).filter { $0.end >= start && $0.start < end }
+    }
+
     /** Idioma de la app (`es` o `en`) según la última foto; `nil` si aún no hay foto o es de antes del inglés. */
     static func language() -> String? {
         read(WidgetSnapshot.self, snapshotFile)?.language
@@ -282,6 +301,15 @@ struct WidgetSnapshot: Codable {
     let language: String?
     /** Minutos que el día de las rutinas va detrás del calendario. Falta en las fotos de antes: medianoche. */
     let dayShift: Int?
+    /** El calendario del iPhone, si la app lo enseña (sin él, apagado; también en las fotos de antes). */
+    let calendar: WidgetCalendarConfig?
+    /** Los eventos de la semana, por si el widget no pudiera leerlos de EventKit. */
+    let events: [WidgetEvent]?
+}
+
+/** Qué calendarios oculta la app (`settings.calendar.hidden`). */
+struct WidgetCalendarConfig: Codable {
+    let hidden: [String]
 }
 
 struct WidgetChanges: Codable {

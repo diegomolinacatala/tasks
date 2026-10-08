@@ -58,8 +58,20 @@ interface TasksNativePlugin {
   pickLocation(options: MapPickRequest): Promise<unknown>
   /** Foto de lo que enseña la app ahora mismo (el WebView), en JPEG `data:`. Para las sugerencias. */
   screenshot(): Promise<{ image: string }>
+  /** Permiso del calendario (EventKit): `granted`, `prompt` o `denied`. Llega sin validar. */
+  calendarStatus(): Promise<{ status: unknown }>
+  /** Pide el permiso del calendario (acceso completo: solo se lee). */
+  requestCalendarAccess(): Promise<{ status: unknown }>
+  /** Los calendarios del iPhone, de todas sus cuentas. Llega sin validar: ver `parseCalendars`. */
+  calendars(): Promise<{ calendars: unknown }>
+  /** Eventos entre dos instantes (epoch ms), sin los calendarios ocultos. Ver `parseCalendarEvents`. */
+  calendarEvents(options: { from: number; to: number; hidden: string[] }): Promise<{ events: unknown }>
+  /** Abre un evento con la ficha de Calendario de iOS (se puede editar ahí). */
+  showEvent(options: { id: string; start: number }): Promise<void>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
+  /** El calendario cambió (un evento nuevo, una cuenta añadida en Ajustes, algo editado en la ficha). */
+  addListener(event: 'calendarChanged', listener: () => void): Promise<PluginListenerHandle>
 }
 
 export const TasksNative = registerPlugin<TasksNativePlugin>('TasksNative')

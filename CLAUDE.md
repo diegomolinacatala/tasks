@@ -220,9 +220,43 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     otros días se pliega en **"12 hechas"** (`foldDone`); lo de hoy sigue a la vista. Después de la 37.
   - Probado con Edge sin ventana y dedo simulado: un deslizamiento rápido no coge la fila, mantenerla y
     arrastrar la recoloca sin abrirla, el pliegue se abre. 899 tests.
+- **Ficha de la 1.5 preparada** (05/10/2026): **diez capturas** nuevas en `docs/capturas/` y `en/`, con
+  una nueva, `04-plazos` («Para esta semana, no para un día»), en lugar de la del mes; los datos de
+  ejemplo llevan dos tareas con plazo y otros nombres en Casa. En `docs/app-store.md`: descripción y
+  texto promocional nuevos (§3 y §3.1), notas para la revisión (§5, mantener pulsado, plazos, mapa; 3934
+  caracteres) y el paso a paso con las novedades en §9.7. Se envía la **1.5 (38)**.
+- **El calendario del iPhone en la Agenda y el + de cada sección** (08/10/2026, en `capacitor`, la 1.5; sin
+  probar aún en el iPhone). Lo pidió el usuario "muy orgánico, que no abrume", con un tutorial claro para
+  añadir Google u Outlook al Calendario de iOS (casi nadie lo tiene) y plegado en Ajustes:
+  - **Calendario** (`lib/calendar.ts`, `CalendarBridge.swift`, `CalendarReader.swift`): EventKit, solo
+    lectura, en el propio iPhone. Los eventos salen en el **horario** con el color de su calendario
+    apagado y cuentan para el tiempo libre; los de todo el día, como cintas encima del día; un **punto** en
+    los días de la tira y del mes que tienen algo; tocar uno abre la ficha de Calendario de iOS. En
+    **Ajustes → Calendario**: conectar, encender o apagar, elegir calendarios y, plegado en una fila,
+    **Añadir Google u Outlook** (paso a paso con la ruta de Ajustes y un dibujo de lo que hay que tocar).
+    El **widget Hoy** enseña lo siguiente (uno en el mediano, dos en el grande, una línea en el de
+    bloqueo). Lámina nueva en la bienvenida (*Calendario*, versión 4, solo en el iPhone) con el botón
+    para conectarlo. Ver "Calendario del iPhone". `SCHEMA_VERSION` 15.
+  - **+ en cada sección** de la Agenda: abre la barra con esa sección como destino ("Añadir a Compra").
+  - Probado con Edge sin ventana y el calendario de muestra (`calendarDemo.ts`): conectar, el tutorial,
+    elegir calendarios, los eventos en el horario y de todo el día, los puntos del mes, el + de una
+    sección, la lámina en español e inglés, claro y oscuro. 934 tests. Revisado por un segundo agente (sin
+    errores de compilación a la vista; arreglado lo que encontró: la foto que escribe `headless.js` borraba
+    el calendario del widget, el widget no se enteraba de cambios hechos en otro dispositivo, y la PWA cargaba
+    la bienvenida solo para cerrarla). El Swift solo se puede compilar en
+    el CI y probar en el iPhone.
+
 **Pendiente, en este orden**
 
-0. **Probar la 1.5 en TestFlight** (plazos, otros nombres, mapa, historial editable, mantener pulsado para
+0. **Probar el calendario en el iPhone** con la TestFlight que salga de este push: Ajustes → Calendario →
+   conectar (sale el permiso de iOS), que los eventos salgan en el horario y los de todo el día arriba,
+   tocar uno (se abre la ficha de Calendario y se puede editar; al cerrarla, la Agenda se pone al día),
+   ocultar un calendario, añadir una cuenta de Google siguiendo el paso a paso y volver (aviso de
+   calendarios nuevos), el widget Hoy mediano y grande con un evento próximo, y la lámina *Calendario*
+   tras actualizar. Y el + de una sección: que salga el teclado en el mismo toque. Si el widget no
+   enseñara eventos (EventKit en la extensión), la foto lleva una copia de la semana: mirar `WidgetStore.events`.
+   Después, **enviar la 1.5** con `docs/app-store.md` §9.7.
+1. **Probar la 1.5 (38)**. Antes, **probar la 1.5 en TestFlight** (plazos, otros nombres, mapa, historial editable, mantener pulsado para
    arrastrar, atajo "Los martes" en rutinas, tachadas plegadas en la Bandeja). En el iPhone: mantener
    pulsada una tarea (que vibre y se coja, que el scroll por el borde ya no la mueva); "Elegir en el mapa" en un lugar
    (arrastrar, tocar un punto, tocar un comercio y que dé su nombre, "Mi ubicación", el círculo del
@@ -337,7 +371,8 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
+gzip (147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
 iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
@@ -367,7 +402,8 @@ src/
 │   ├── ruler.ts          # la regla de la duración: tramos que se estiran, paso, minutos en un punto y marcas
 │   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
 │   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
-│   ├── timeline.ts       # horario de un día: lo que tiene hora, tiempo libre y "ahora"
+│   ├── timeline.ts       # horario de un día: lo que tiene hora (también los eventos), tiempo libre y "ahora"
+│   ├── calendar.ts       # calendario del iPhone: validar lo de EventKit, repartirlo por días, ventana, widget
 │   ├── theme.ts          # apariencia: claro, oscuro o del sistema; cambio con un círculo de tinta
 │   ├── mapFrame.ts       # dónde van las chinchetas en el plano dibujado (sin Apple Maps)
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
@@ -388,7 +424,8 @@ src/
 │   ├── inbox.ts          # bandeja de lo hecho fuera de la web (altas, pasar a hoy) y cómo aplicarlo
 │   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
 │   ├── headless.ts       # apuntar o pasar a hoy sin abrir la app: bandeja, avisos, icono y widget
-│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración, el mapa para elegir (`mapPicker.ts`)…
+│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración, el mapa para elegir (`mapPicker.ts`),
+│   │                     # el calendario (`calendar.ts`; `calendarNative.ts` en el iPhone, `calendarDemo.ts` en local)…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
@@ -401,18 +438,19 @@ src/
 ├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
-    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, useDayBoard), InboxView (+ DayDock)
+    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, AllDayEvents, useDayBoard), InboxView (+ DayDock)
+    ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
-    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes y rutinas
+    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, sugerencias y calendario
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases
-    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, dictado
+    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, CalendarBlock (+ CalendarPicker, CalendarGuide, Switch), dictado
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
-ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, Info.plist…
+ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText y
+ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText, CalendarReader y
                           # MoveOverdueWidgetIntent se compilan también en la app
 ios/App/*/en.lproj/       # inglés de lo que enseña iOS por su cuenta: Siri, Atajos, permisos, accesos rápidos
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
@@ -475,16 +513,19 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
   filete con el avance del día y:
   1. `Atrasadas` (solo hoy), en rojo, con **Pasar a hoy**. Se puede sacar de aquí pero no soltar
      dentro: sus tareas conservan la fecha hasta que se mueven.
-  2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas y rutinas) a lo largo de
-     una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
+  2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas, rutinas y los eventos del
+     calendario del iPhone, ver "Calendario del iPhone") a lo largo de una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
      si está en curso, se va llenando; entre medias, "1 h 30 libres" (desde ahora, si el hueco ya
      empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora).
-  3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Un día pasado con
-     pendientes lleva **Pasar a hoy**. Un día sin tareas dice "Día libre." (las rutinas no cuentan).
+  3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Cada sección lleva un **+** en
+     su cabecera: abre la barra con ella como destino ("Añadir a Compra", la píldora en versalitas), en el
+     mismo toque para que salga el teclado (`focusRef`), y la despliega si estaba plegada. Un día pasado con
+     pendientes lleva **Pasar a hoy**. Un día sin tareas ni eventos con hora dice "Día libre." (las rutinas
+     y lo de todo el día no cuentan).
   El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
 - **Lugares** (`PlacesView`, ver "Lugares").
-- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Idioma, Avisos, Dictado, Datos y
-  Tasks (ver la bienvenida, valorar, soporte, privacidad, versión).
+- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Idioma, Avisos, Calendario,
+  Dictado, Datos y Tasks (ver la bienvenida, valorar, soporte, privacidad, versión).
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -538,13 +579,16 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
   entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
   (`onReady`): no llega a verse la app vacía.
-- **Seis láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+- **Siete láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
   `lib/details.ts`; al plegarla queda el resumen), *Gestos* (dos `SwipeRow` reales: tachar y
   borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
   iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez) y *Sugerencias* (versión 3,
-  la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar"). Hasta que se tocan, las
+  la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
+  *Calendario* (versión 4, la 1.5, solo donde hay calendario: un día con tareas en el que entran los
+  eventos con su color, y **Conectar mi calendario**). En la PWA no existe: `welcomeOnLaunch` recibe las
+  láminas de la plataforma (`availablePlates`) y lo que no hay ahí no cuenta como nuevo. Hasta que se tocan, las
   escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
   (`composer__foot`, `composer__more`…): si cambia la barra de escribir, mirarlas.
 - Nada obliga: **Continuar**, atrás, **Saltar** y Escape. Con `prefers-reduced-motion`, la primera
@@ -647,6 +691,51 @@ cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir
 - El analizador compila sus expresiones en un rato libre tras el arranque (`warmUpParser`), y no corre
   con la barra vacía.
 - Volver a una pestaña que estaba arriba no toca `scrollTop` (escribirlo obliga a diseñar de golpe).
+
+### Calendario del iPhone
+
+Lo que hay en la app Calendario del iPhone (iCloud, Google, Outlook… las cuentas de Ajustes → Apps →
+Calendario) sale en la Agenda, **solo para leer**: Tasks no es un calendario, pero enseña el tuyo. Con
+EventKit, en el propio iPhone: los eventos no se guardan en el estado, ni en las copias, ni salen del
+dispositivo. Pensado para que no abrume: nada de pestañas ni vistas nuevas.
+
+- **Dónde se ve**: en el `Horario`, entre las tareas, con una cápsula rellena del color de su calendario
+  (`.cal-tone`: el color de iOS a medias con la tinta tenue, para que no chille) y el título un punto por
+  debajo de las tareas; la hora y el sitio debajo; lo que ya acabó, apagado; cuenta para el tiempo libre
+  y se va llenando si está en curso. Lo de todo el día (y lo que cubre el día entero aunque tenga hora,
+  un viaje), como **cintas** encima del día (`AllDayEvents`; con más de tres, dos y "+N"). En la tira y
+  en el mes, un **punto** bajo el número de los días con algo (`eventDays`). Tocar un evento abre la ficha
+  de Calendario de iOS (`EKEventViewController`, se puede editar; al cambiar algo, iOS avisa y se vuelve a
+  leer). No se desliza ni se tacha.
+- **Estado** (`Settings.calendar`: `enabled` y `hidden`, los ids de los calendarios ocultos): es del
+  dispositivo, como la apariencia (importar una copia o borrarlo todo no lo cambia). Se enciende al
+  conceder el permiso.
+- **`CalendarProvider`** (`components/calendar/`): pregunta el permiso al arrancar, lee los calendarios y
+  los eventos de la ventana del día que se mira (`eventWindow`: su mes, una semana antes y dos después;
+  `useDayEvents` la mueve al cambiar de mes) y vuelve a leer cuando iOS avisa de un cambio
+  (`calendarChanged`), al volver a la app y al ocultar calendarios. Si al volver hay calendarios nuevos (se
+  acaba de añadir Google en Ajustes), un aviso lo dice.
+- **Ajustes → Calendario** (`CalendarBlock`): sin permiso, **Ver mi calendario en la Agenda** (pide el
+  acceso completo de iOS: el de "solo añadir" no deja leer); negado, abre los Ajustes del iPhone; con él,
+  un interruptor **En la Agenda**, **Calendarios** ("Todos" / "3 de 5", `CalendarPicker`, por cuentas) y,
+  siempre, **Añadir Google u Outlook** → `CalendarGuide`: pestañas Google / Outlook / Otro, la ruta de
+  Ajustes como botones (Apps › Calendario › Cuentas de calendario › Añadir cuenta), la lista de cuentas
+  de iOS con lo que hay que tocar marcado, *Calendarios* activado y *Guardar*, y una nota para iOS 17 o
+  para buscar «Cuentas». **Abrir Ajustes** abre la página de Tasks (es lo único que deja Apple; las rutas
+  `App-prefs:` son privadas y arriesgan el rechazo): desde ahí, atrás hasta Apps.
+- **Nativo**: `CalendarBridge.swift` (solo la app: permiso con `requestFullAccessToEvents`, calendarios,
+  eventos fuera del hilo principal, la ficha) y `CalendarReader.swift` (app y widget: leer, colores en
+  `#rrggbb`, `WidgetEvent`). La ocurrencia de un evento que se repite se distingue por su inicio (`key` =
+  id@inicio). `Info.plist` lleva `NSCalendarsFullAccessUsageDescription` (y la antigua), también el del
+  widget.
+- **Widget Hoy**: lee él mismo EventKit (si hay permiso y la foto dice que está encendido, con sus
+  ocultos: `WidgetSnapshot.calendar`); si no pudiera, usa la copia de la semana que lleva la foto
+  (`events`, que solo escribe la app; la foto de `headless.js` lleva `calendar` sin `events`). Mediano: el
+  siguiente evento de hoy encima de las tareas; grande: dos; bloqueo rectangular: si sobra una línea.
+  Entradas al empezar y acabar cada evento de hoy y mañana y, con calendario, se vuelve a leer cada media
+  hora (`.after`): lo que se crea en otro dispositivo no avisa al widget.
+- **En local** (`npm run dev`) y en las capturas, `calendarDemo.ts`: tres calendarios (Google, iCloud,
+  suscritos) y eventos que se repiten, para verlo sin iPhone. En la PWA publicada no hay calendario.
 
 ### Sugerencias
 
@@ -1372,8 +1461,11 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
-- La duración existe para poder preguntar al acabar, no para planificar el día: no hay calendario,
-  ni bloques de tiempo, ni se avisa de solapes. Lo que no se dice no dura.
+- La duración existe para poder preguntar al acabar, no para planificar el día: no hay bloques de
+  tiempo ni se avisa de solapes. Lo que no se dice no dura.
+- Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se leen y se
+  enseñan en la Agenda, nunca se crean ni se cambian desde la app (para eso, su ficha de Calendario) ni se
+  guardan. Sin cuentas de Google ni Microsoft: lo que no esté en el Calendario del iPhone se añade allí.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
   Atajos). Lo único que va solo con hoy es una tarea con plazo, porque el plazo lo puso el usuario.
 - Un plazo no es una rutina ni una tarea recurrente: se hace una vez. "De lunes a viernes" es rutina;

@@ -220,6 +220,24 @@
   color: var(--on-primary);
 }
 
+/* Algo en el calendario del iPhone: un punto bajo el número, dentro del anillo */
+.strip__event {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: var(--r-full);
+  background: var(--text-3);
+  opacity: 0.8;
+  transition: background var(--dur-2) var(--ease);
+}
+
+.strip__day.is-selected .strip__event {
+  background: var(--on-primary);
+}
+
 .strip__day:active .strip__num {
   transform: scale(0.92);
 }
@@ -581,3 +599,107 @@
     transform: scale(1.32);
   }
 }
+
+/* ── Calendario del iPhone ─────────────────────────────────────────────── */
+
+/* Un evento en el horario: cápsula rellena con el color de su calendario (ya está decidido, no se tacha) */
+.tl--event {
+  min-height: 44px;
+}
+
+.tl__node--event {
+  border-color: color-mix(in oklab, var(--cal-ink) 60%, transparent);
+  background: color-mix(in oklab, var(--cal-ink) 16%, var(--bg));
+}
+
+.tl__node--event::before {
+  background: color-mix(in oklab, var(--cal-ink) 34%, transparent);
+}
+
+.tl--event .tl__body:active {
+  opacity: 0.6;
+}
+
+.tl--event .tl__title {
+  font-size: var(--fs-md);
+  color: var(--text-2);
+}
+
+.tl--event.is-live .tl__node--event {
+  border-color: var(--cal-ink);
+}
+
+.tl--event.is-live .tl__meta {
+  color: var(--cal-ink);
+}
+
+/* Lo que ya acabó se apaga, como lo hecho */
+.tl--event.is-over .tl__title,
+.tl--event.is-over .tl__time {
+  color: var(--text-3);
+}
+
+.tl--event.is-over .tl__node--event {
+  opacity: 0.55;
+}
+
+/* Lo de todo el día: cintas encima del día, cada una con el color de su calendario */
+.allday {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 var(--sp-3);
+  padding: 0;
+  list-style: none;
+}
+
+.allday__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 12px 4px 10px;
+  border-radius: var(--r-full);
+  background: color-mix(in oklab, var(--cal-ink) 11%, var(--bg-elev));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cal-ink) 22%, transparent);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+/* Área de toque de 44 px de alto sin separar las cintas */
+.allday__item::after {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.allday__item:active {
+  transform: scale(0.96);
+}
+
+.allday__mark {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--cal-ink);
+}
+
+.allday__title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.allday__item--more {
+  padding: 4px 11px;
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+

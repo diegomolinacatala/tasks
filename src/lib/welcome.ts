@@ -4,12 +4,13 @@
  * versión de la bienvenida que cerró (`Settings.welcome`; 0 = ninguna, también las copias de antes).
  */
 
-export type PlateId = 'write' | 'details' | 'swipe' | 'month' | 'routine' | 'suggest'
+export type PlateId = 'write' | 'details' | 'swipe' | 'month' | 'routine' | 'suggest' | 'calendar'
 
 /**
  * Versión de la bienvenida en que entró cada lámina. Una lámina nueva, o una que cambie para enseñar
  * algo nuevo, lleva la siguiente a la mayor de aquí: quien ya la vio la verá al actualizar, solo con eso.
- * 1: la 1.2. 2: la 1.3 (la ficha del compositor). 3: la 1.4 (las sugerencias).
+ * 1: la 1.2. 2: la 1.3 (la ficha del compositor). 3: la 1.4 (las sugerencias). 4: la 1.5 (el calendario
+ * del iPhone en la Agenda; solo en el iPhone, ver `platesAfter`).
  */
 export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   write: 1,
@@ -18,9 +19,15 @@ export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   month: 1,
   routine: 1,
   suggest: 3,
+  calendar: 4,
 }
 
 export const WELCOME_VERSION = Math.max(...Object.values(PLATE_SINCE))
+
+/** Las láminas que existen en esta plataforma: el calendario solo donde lo hay (el iPhone). */
+export function availablePlates(calendar: boolean): PlateId[] {
+  return (Object.keys(PLATE_SINCE) as PlateId[]).filter((id) => calendar || id !== 'calendar')
+}
 
 export interface WelcomeRun {
   /** Se enseñan las láminas que entraron después de esta versión: con 0, todas. */
@@ -32,10 +39,13 @@ export interface WelcomeRun {
 /** La entera, presentando la app: la primera vez y desde Ajustes. */
 export const FULL_WELCOME: WelcomeRun = { after: 0, news: false }
 
-/** Al abrir: entera si no había nada guardado, lo nuevo si hay láminas sin ver, y si no, nada. */
-export function welcomeOnLaunch(fresh: boolean, seen: number): WelcomeRun | null {
+/**
+ * Al abrir: entera si no había nada guardado, lo nuevo si hay láminas sin ver, y si no, nada. `plates`:
+ * las de esta plataforma; una lámina que aquí no existe (el calendario en la PWA) no cuenta como nueva.
+ */
+export function welcomeOnLaunch(fresh: boolean, seen: number, plates: readonly PlateId[] = Object.keys(PLATE_SINCE) as PlateId[]): WelcomeRun | null {
   if (fresh) return FULL_WELCOME
-  return seen < WELCOME_VERSION ? { after: seen, news: true } : null
+  return plates.some((id) => PLATE_SINCE[id] > seen) ? { after: seen, news: true } : null
 }
 
 /** Las láminas posteriores a `after`, en el orden en que se dan. */

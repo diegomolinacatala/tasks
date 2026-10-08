@@ -5,7 +5,7 @@ import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { useCopy } from '../../state/LanguageProvider'
 import type { Section } from '../../types'
 import { columnId, sectionDragId } from '../dnd/ids'
-import { IconChevronDown, IconMore } from '../ui/Icons'
+import { IconChevronDown, IconMore, IconPlus } from '../ui/Icons'
 import { splitListeners } from '../dnd/dnd'
 import { TaskColumn } from './TaskColumn'
 import './section.css'
@@ -16,19 +16,29 @@ interface SectionBlockProps {
   pending: number
   onToggle: () => void
   onOpen: () => void
+  /** Escribir una tarea directamente en esta sección. */
+  onAdd?: () => void
   children: ReactNode
 }
 
 const COPY = {
-  es: { options: (name: string) => `Opciones de ${name}`, move: (name: string) => `Mover sección ${name}` },
-  en: { options: (name: string) => `${name} options`, move: (name: string) => `Move section ${name}` },
+  es: {
+    options: (name: string) => `Opciones de ${name}`,
+    move: (name: string) => `Mover sección ${name}`,
+    add: (name: string) => `Añadir una tarea a ${name}`,
+  },
+  en: {
+    options: (name: string) => `${name} options`,
+    move: (name: string) => `Move section ${name}`,
+    add: (name: string) => `Add a task to ${name}`,
+  },
 } as const
 
 /**
  * Una sección del día: su cabecera la pliega al tocarla y, mantenida pulsada, la coge para cambiarla de
  * sitio (como las tareas: sin asa). Con el teclado, su botón "Mover", que no se ve.
  */
-export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, children }: SectionBlockProps) {
+export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, onAdd, children }: SectionBlockProps) {
   const copy = useCopy(COPY)
   const id = sectionDragId(section.id)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, data: { type: 'section' } })
@@ -71,6 +81,11 @@ export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, chil
           </span>
         </button>
 
+        {onAdd && (
+          <button type="button" className="section__icon section__icon--add" aria-label={copy.add(section.name)} onClick={onAdd}>
+            <IconPlus size={16} />
+          </button>
+        )}
         <button type="button" className="section__icon" aria-label={copy.options(section.name)} onClick={onOpen}>
           <IconMore size={16} />
         </button>

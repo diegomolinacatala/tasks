@@ -17,7 +17,8 @@ import { parseRoutine } from './lib/repeat'
 import { ALL_DAYS, MAX_ROUTINES } from './lib/routines'
 import { applyTheme } from './lib/theme'
 import type { WelcomeRun } from './lib/welcome'
-import { FULL_WELCOME, WELCOME_VERSION, welcomeOnLaunch } from './lib/welcome'
+import { FULL_WELCOME, WELCOME_VERSION, availablePlates, welcomeOnLaunch } from './lib/welcome'
+import { showsCalendar } from './lib/platform/calendar'
 import { useRoutineDay, useToday } from './hooks/useToday'
 import { useCopy, useLanguage } from './state/LanguageProvider'
 import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
@@ -148,6 +149,9 @@ export function App() {
   const [routineLoaded, setRoutineLoaded] = useState(false)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [focusRequest, setFocusRequest] = useState(0)
+  // El + de una sección de la Agenda: la barra se abre con esa sección como destino.
+  const [composeSection, setComposeSection] = useState<string | null>(null)
+  const focusComposer = useRef<(() => void) | null>(null)
   // Modo "Aa": las filas enseñan su mando de importancia en lugar del asa de mover.
   const [sizing, setSizing] = useState(false)
   // La barra de escribir tiene el foco: las pestañas se apartan y la lista queda tras un velo.
@@ -156,7 +160,9 @@ export function App() {
   const [suggesting, setSuggesting] = useState(false)
   // La bienvenida: entera la primera vez, con lo nuevo tras actualizar, y a petición desde Ajustes.
   const firstRun = useFirstRun()
-  const [welcome, setWelcome] = useState<WelcomeRun | null>(() => welcomeOnLaunch(firstRun, state.settings.welcome))
+  const [welcome, setWelcome] = useState<WelcomeRun | null>(() =>
+    welcomeOnLaunch(firstRun, state.settings.welcome, availablePlates(showsCalendar)),
+  )
   // Tras el primer cambio de pestaña, las pestañas entran con su animación (en el arranque, no).
   const [switched, setSwitched] = useState(false)
   const scrollers = useRef<Partial<Record<TabId, HTMLDivElement | null>>>({})
@@ -356,7 +362,23 @@ export function App() {
   const writing = WRITING.has(shownTab)
   const inAgenda = shownTab === 'agenda'
   // Adónde puede ir lo escrito: primero donde se está mirando, después los sitios de siempre.
-  const targets = useMemo(() => composeTargets(inAgenda ? day : null, today), [inAgenda, day, today, language])
+  const section = inAgenda && composeSection ? state.sections.find((item) => item.id === composeSection) : undefined
+  const targets = useMemo(
+    () => composeTargets(inAgenda ? day : null, today, section ? { id: section.id, name: section.name } : null),
+    [inAgenda, day, today, section, language],
+  )
+
+  /** El + de una sección: la barra se abre ahí mismo (en el mismo toque, para que salga el teclado). */
+  const addToSection = useCallback((id: string) => {
+    setComposeSection(id)
+    focusComposer.current?.()
+  }, [])
+
+  // Al soltar la barra, la sección deja de ser el destino.
+  const onComposing = useCallback((active: boolean) => {
+    setComposing(active)
+    if (!active) setComposeSection(null)
+  }, [])
 
   const pane = (id: TabId, content: ReactNode) =>
     visited.has(id) && (
@@ -395,7 +417,10 @@ export function App() {
         <main className="app__views">
           <SizingContext.Provider value={sizing}>
             {pane('inbox', <InboxView today={today} routineDay={routineToday} />)}
-            {pane('agenda', <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} />)}
+            {pane(
+              'agenda',
+              <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} onAddToSection={addToSection} />,
+            )}
             {pane('places', <PlacesView />)}
             {pane(
               'settings',
@@ -411,14 +436,15 @@ export function App() {
             <div className="app__dock">
               <Composer
                 targets={targets}
-                placeholder={addLabel(inAgenda ? day : null, today)}
+                placeholder={addLabel(inAgenda ? day : null, today, section?.name)}
                 today={today}
                 places={places}
                 focusRequest={focusRequest}
+                focusRef={focusComposer}
                 onSubmit={addTask}
                 onRoutine={addRoutine}
                 onVoice={addFromVoice}
-                onComposing={setComposing}
+                onComposing={onComposing}
               />
             </div>
           )}

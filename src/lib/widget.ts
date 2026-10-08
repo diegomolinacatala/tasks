@@ -1,7 +1,9 @@
 import { backlogTasks } from '../state/selectors'
 import type { AppState, IsoDate, IsoTime, Routine, Task } from '../types'
+import type { CalendarEvent, WidgetEvent } from './calendar'
+import { widgetEvents } from './calendar'
 import type { RoutineChange, WidgetChange } from './nativeEvents'
-import { addDays, isoOfInstant } from './date'
+import { addDays, fromIso, isoOfInstant } from './date'
 import type { Language } from './i18n'
 import { language } from './i18n'
 import { byOrder, compareText } from './order'
@@ -73,6 +75,15 @@ export interface WidgetSnapshot {
    * de día a esa hora. Sin él (fotos anteriores), a medianoche.
    */
   dayShift: number
+  /**
+   * El calendario del iPhone, si la app lo enseña: el widget de hoy lee los eventos de EventKit sin
+   * ocultos. Sin él (apagado, o fotos anteriores), el widget no enseña calendario. Va aunque no haya
+   * eventos a mano: la foto que escribe `headless.js` (Siri, los botones de los avisos) no los tiene, y
+   * sin esto el widget dejaría de enseñar el calendario hasta abrir la app.
+   */
+  calendar?: { hidden: string[] }
+  /** Los eventos de la semana, por si el widget no pudiera leerlos él mismo (solo los escribe la app). */
+  events?: WidgetEvent[]
 }
 
 /** Días de diario que lleva la foto: el widget solo mira hoy, y la semana da para sus puntos. */
@@ -100,7 +111,11 @@ function placed(task: Task, today: IsoDate): Task {
 const visible = (task: Task, today: IsoDate, last: IsoDate): task is Dated =>
   task.date !== null && task.date <= last && (!task.done || task.date >= today)
 
-export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
+/**
+ * `events`: los del calendario del iPhone de hoy en adelante, si la app los tiene (`null` si no: sin
+ * permiso, o fuera de la app, en `headless.js`).
+ */
+export function widgetSnapshot(state: AppState, now: number, events: readonly CalendarEvent[] | null = null): WidgetSnapshot {
   const today = isoOfInstant(now)
   const last = addDays(today, WIDGET_DAYS)
   const sectionRank = new Map([...state.sections].sort((a, b) => a.order - b.order).map((section, index) => [section.id, index]))
@@ -122,7 +137,8 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     .slice(0, WIDGET_MAX_INBOX)
     .map(({ id, title, done, importance }) => ({ id, title, done, importance }))
 
-  const { dayStart } = state.settings
+  const { dayStart, calendar } = state.settings
+  const week = events && widgetEvents(events, fromIso(today).getTime(), fromIso(addDays(last, 1)).getTime())
   return {
     version: WIDGET_VERSION,
     tasks,
@@ -130,6 +146,7 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
     inbox,
     language: language(),
     dayShift: dayShift(dayStart),
+    ...(calendar.enabled ? { calendar: { hidden: calendar.hidden }, ...(week ? { events: week } : {}) } : {}),
   }
 }
 

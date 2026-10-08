@@ -126,6 +126,24 @@
   color: var(--text-2);
 }
 
+/* El + de una sección: escribir directamente en ella. En coñac, como todo lo que añade; el área de
+   toque crece hacia arriba y abajo hasta los 44 px sin separar más la cabecera */
+.section__icon--add {
+  position: relative;
+  color: var(--accent);
+}
+
+.section__icon--add::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.section__icon--add:active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
 .column {
   display: flex;
   flex-direction: column;

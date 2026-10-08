@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
-import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent } from 'react'
+import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent, MutableRefObject } from 'react'
 import type { ComposeTarget } from '../../lib/compose'
 import type { Details, SummaryIcon } from '../../lib/details'
 import { detailsFrom, detailsSummary, toRoutineDraft, toTaskDraft } from '../../lib/details'
@@ -43,6 +43,11 @@ interface ComposerProps {
   places: readonly Place[] | null
   /** Cambia para pedir el foco (acceso rápido "Nueva tarea" del icono). */
   focusRequest?: number
+  /**
+   * Para dar el foco dentro del mismo toque (el + de una sección): iOS solo saca el teclado si el foco
+   * llega durante el gesto, no en un render posterior.
+   */
+  focusRef?: MutableRefObject<(() => void) | null>
 }
 
 const COPY = {
@@ -100,15 +105,15 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
  * ficha, como el mini reproductor de Spotify se abre en el reproductor entero. Lo decidido allí se
  * queda en la barra en unas píldoras (el día y la hora, los avisos…) hasta que se añade; la × lo quita.
  */
-export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onVoice, onComposing, places, focusRequest = 0 }: ComposerProps) {
+export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onVoice, onComposing, places, focusRequest = 0, focusRef }: ComposerProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
   const [value, setValue] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const [literal, setLiteral] = useState(false)
   const [active, setActive] = useState(false)
-  // El destino elegido a mano; `undefined` = donde se está mirando (el primero).
-  const [chosen, setChosen] = useState<IsoDate | null | undefined>(undefined)
+  // El destino elegido a mano (su `key`); `undefined` = donde se está mirando (el primero).
+  const [chosen, setChosen] = useState<string | undefined>(undefined)
   // Lo decidido en la ficha; `null` mientras no se ha desplegado (manda lo que dice la frase).
   const [details, setDetails] = useState<Details | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -124,14 +129,28 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
   const label = routine?.label ?? parsed.label
   const detected = ready && !details && label !== null
   const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
-  const fallback = targets[0]?.date ?? null
-  const target = chosen === undefined || !targets.some((item) => item.date === chosen) ? fallback : chosen
+  const fallback = targets[0]?.key
+  const targetItem = targets.find((item) => item.key === chosen) ?? targets[0]
+  const target = targetItem?.date ?? null
+  // El + de una sección: lo que se añada va a ella (si tiene día; sin fecha no hay secciones).
+  const targetSection = targetItem?.sectionId ?? null
 
   useEffect(() => {
     if (!focusRequest) return
     setExpanded(false)
     input.current?.focus()
   }, [focusRequest])
+
+  useEffect(() => {
+    if (!focusRef) return
+    focusRef.current = () => {
+      setExpanded(false)
+      input.current?.focus()
+    }
+    return () => {
+      focusRef.current = null
+    }
+  }, [focusRef])
 
   const dictating = voice.phase !== 'idle'
 
@@ -160,7 +179,10 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     setAbsorbed(null)
   }
 
-  const literalDraft = (date: IsoDate | null): TaskDraft => ({ title: value, date, time: null, duration: null, reminders: [] })
+  /** La sección elegida (el + de una sección), si lo añadido tiene día. */
+  const inSection = (date: IsoDate | null) => (date && targetSection ? { sectionId: targetSection } : {})
+
+  const literalDraft = (date: IsoDate | null): TaskDraft => ({ title: value, date, time: null, duration: null, reminders: [], ...inSection(date) })
 
   /** Con la ficha: lo que dice ella, tarea o rutina. */
   const submitDetails = (current: Details) => {
@@ -188,7 +210,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     const { title, date, time, duration, reminders, newPlace } = parsedNow
     onSubmit(
       parsedNow.label !== null && !literal
-        ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}) }
+        ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}), ...inSection(date) }
         : literalDraft(target),
     )
     reset()
@@ -205,7 +227,8 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
       const now = Date.now()
       const repeat = applied ? parseRoutine(value, now) : null
       const parsedNow = applied && !repeat ? parseTask(value, now, places) : null
-      setDetails(detailsFrom(parsedNow, repeat, target, createId))
+      const fresh = detailsFrom(parsedNow, repeat, target, createId)
+      setDetails(fresh.date && targetSection ? { ...fresh, sectionId: targetSection } : fresh)
       const title = repeat?.title ?? parsedNow?.title
       if (title !== undefined) {
         setAbsorbed({ phrase: value, title })
@@ -241,9 +264,9 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     setChosen(undefined)
   }
 
-  const choose = (date: IsoDate | null) => {
+  const choose = (key: string) => {
     haptic('selection')
-    setChosen(date)
+    setChosen(key)
     input.current?.focus()
   }
 
@@ -365,12 +388,12 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
                 !details &&
                 targets.map((item) => (
                   <button
-                    key={item.date ?? 'none'}
+                    key={item.key}
                     type="button"
-                    className={`composer__target ${item.date === target ? 'is-active' : ''}`}
-                    aria-pressed={item.date === target}
+                    className={`composer__target ${item.sectionId ? 'is-section' : ''} ${item.key === targetItem?.key ? 'is-active' : ''}`}
+                    aria-pressed={item.key === targetItem?.key}
                     onMouseDown={keepFocus}
-                    onClick={() => choose(item.date)}
+                    onClick={() => choose(item.key)}
                   >
                     {item.label}
                   </button>

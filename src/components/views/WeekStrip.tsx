@@ -15,6 +15,8 @@ interface WeekStripProps {
   today: IsoDate
   /** Lo que hay cada día; lo que falta, nada. */
   loads: ReadonlyMap<IsoDate, DayLoad>
+  /** Días con algo en el calendario del iPhone: llevan un punto, como en la app Calendario. */
+  eventDays?: ReadonlySet<IsoDate>
   /** Desplegada: el mes entero en lugar de la semana. */
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -75,7 +77,7 @@ const SIDES_DELAY_MS = OPEN_MS + 120
  * (`clip-path`) y tres `transform` (las semanas, el asa y lo de debajo), que siguen al dedo sin pasar
  * por React.
  */
-export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, follower }: WeekStripProps) {
+export function WeekStrip({ day, today, loads, eventDays, open, onOpenChange, onSelect, follower }: WeekStripProps) {
   const [layout, setLayout] = useState<Layout>(open ? 'month' : 'week')
   const copy = useCopy(COPY)
   const monday = startOfWeek(day)
@@ -391,6 +393,7 @@ export function WeekStrip({ day, today, loads, open, onOpenChange, onSelect, fol
                           past={date < today}
                           outside={panel.month !== null && !sameMonth(date, panel.month)}
                           load={loads.get(date) ?? EMPTY}
+                          events={eventDays?.has(date) ?? false}
                           droppable={center}
                           onSelect={pick}
                         />

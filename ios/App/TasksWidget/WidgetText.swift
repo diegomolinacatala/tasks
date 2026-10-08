@@ -46,6 +46,12 @@ struct WidgetText {
     let newTask: String
     let yesterday: String
     let sampleTasks: [String]
+    // Calendario del iPhone, en el widget de hoy
+    let allDay: String
+    let now: String
+    let untitledEvent: String
+    let event: (String, String) -> String
+    let sampleEvent: String
     // Rutinas
     let routinesName: String
     let routinesDescription: String
@@ -80,7 +86,7 @@ struct WidgetText {
     static let spanish = WidgetText(
         language: .es,
         todayName: "Hoy",
-        todayDescription: "Tareas de hoy y atrasadas.",
+        todayDescription: "Tareas de hoy, atrasadas y lo siguiente de tu calendario.",
         today: "Hoy",
         todayCaps: "HOY",
         nothingToday: "Nada para hoy.",
@@ -93,6 +99,11 @@ struct WidgetText {
         newTask: "Nueva tarea",
         yesterday: "Ayer",
         sampleTasks: ["Comprar pan", "Llamar a Ana", "Enviar el presupuesto", "Salir a correr"],
+        allDay: "Todo el día",
+        now: "Ahora",
+        untitledEvent: "Evento",
+        event: { "\($0), \($1). Abrir Tasks" },
+        sampleEvent: "Reunión de equipo",
         routinesName: "Rutinas",
         routinesDescription: "Tacha tus rutinas de hoy con un toque, sin abrir Tasks.",
         routines: "Rutinas",
@@ -121,7 +132,7 @@ struct WidgetText {
     static let english = WidgetText(
         language: .en,
         todayName: "Today",
-        todayDescription: "Today’s and overdue tasks.",
+        todayDescription: "Today’s and overdue tasks, and what’s next on your calendar.",
         today: "Today",
         todayCaps: "TODAY",
         nothingToday: "Nothing for today.",
@@ -134,6 +145,11 @@ struct WidgetText {
         newTask: "New task",
         yesterday: "Yesterday",
         sampleTasks: ["Buy bread", "Call Ana", "Send the quote", "Go for a run"],
+        allDay: "All day",
+        now: "Now",
+        untitledEvent: "Event",
+        event: { "\($0), \($1). Open Tasks" },
+        sampleEvent: "Team meeting",
         routinesName: "Routines",
         routinesDescription: "Check off today’s routines with one tap, without opening Tasks.",
         routines: "Routines",

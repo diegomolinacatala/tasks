@@ -9,6 +9,8 @@ import { buildTimeline, timelineItems } from '../../lib/timeline'
 import { useNowMinutes } from '../../hooks/useNow'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
+import { eventDays as markedDays } from '../../lib/calendar'
+import { useCalendar, useDayEvents } from '../calendar/CalendarProvider'
 import { progressOf, tasksOn } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { announcements, pressCue, scopedCollision, useDragSensors } from '../dnd/dnd'
@@ -21,6 +23,7 @@ import { TaskRow } from '../task/TaskRow'
 import { useTaskActions } from '../task/useTaskActions'
 import { IconChevronDown, IconFeather, IconPlus } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
+import { AllDayEvents } from './AllDayEvents'
 import type { DayLoad } from './StripDay'
 import { Timeline } from './Timeline'
 import { WeekStrip } from './WeekStrip'
@@ -33,6 +36,8 @@ interface AgendaViewProps {
   today: IsoDate
   onSelectDay: (day: IsoDate) => void
   onOpenSection: (id: string) => void
+  /** El + de una sección: escribir una tarea directamente en ella, en el día que se mira. */
+  onAddToSection: (id: string) => void
 }
 
 const COPY = {
@@ -74,7 +79,7 @@ const COPY = {
  * lo que tiene hora y la lista de lo que no la tiene, con sus secciones. Una tarea se lleva a otro
  * día soltándola sobre él en la tira o en el mes.
  */
-export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaViewProps) {
+export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSection }: AgendaViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -110,9 +115,13 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
 
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
   const dayTasks = useMemo(() => tasksOn(state, shown, today), [state, shown, today])
+  // El calendario del iPhone, si está conectado: lo de todo el día encima y lo demás en el horario.
+  const events = useDayEvents(shown)
+  const calendar = useCalendar()
+  const eventDays = useMemo(() => markedDays(calendar.events), [calendar.events])
   const rows = useMemo(
-    () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, shown)), shown === today ? now : null),
-    [dayTasks, state.routines, shown, today, now],
+    () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, shown), events.timed), shown === today ? now : null),
+    [dayTasks, state.routines, events.timed, shown, today, now],
   )
   const progress = progressOf(dayTasks)
 
@@ -151,9 +160,11 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
   const pending = (ids: string[]) => ids.filter((id) => !byId.get(id)?.done).length
   const untimedCount = rootIds.length + sections.reduce((sum, section) => sum + (columns[section.id]?.length ?? 0), 0)
   const pendingOfDay = dayTasks.filter((task) => !task.done).map((task) => task.id)
-  // Un día sin tareas es un día libre, aunque tenga rutinas. Hoy siempre enseña su lista (y sus
-  // secciones, donde soltar y desde donde crear una); otro día, solo si tiene algo sin hora.
-  const free = !dayTasks.length && !(shown === today && hasOverdue)
+  // Un día sin tareas ni eventos con hora es un día libre, aunque tenga rutinas (o un cumpleaños). Hoy
+  // siempre enseña su lista (y sus secciones, donde soltar y desde donde crear una); otro día, solo si
+  // tiene algo sin hora.
+  const free = !dayTasks.length && !events.timed.length && !(shown === today && hasOverdue)
+  const timedTasks = dayTasks.some((task) => task.time)
   const showUntimed = untimedCount > 0 || shown === today
 
   const renderTask = (id: string, sectionId: string | null, options: { overdue?: boolean; meta?: string | null } = {}) => {
@@ -230,6 +241,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
           day={day}
           today={today}
           loads={loads}
+          eventDays={eventDays}
           open={monthOpen}
           onOpenChange={setMonthOpen}
           onSelect={onSelectDay}
@@ -242,6 +254,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
           </div>
 
           <div key={shown} className={`agenda__day ${direction}`}>
+            <AllDayEvents events={events.allDay} />
             {shown === today && hasOverdue && (
               <section className="block">
                 <BlockHeader
@@ -271,7 +284,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
             {rows.length > 0 && (
               <section className="block">
                 <BlockHeader label={copy.schedule} count={dayTasks.filter((task) => task.time && !task.done).length} />
-                <Timeline rows={rows} day={shown} sections={sections} />
+                <Timeline rows={rows} day={shown} sections={sections} now={shown === today ? now : null} past={shown < today} />
               </section>
             )}
 
@@ -294,7 +307,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
                     ) : undefined
                   }
                 />
-                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={free ? copy.free : rows.length ? copy.allTimed : copy.noneUntimed}>
+                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={free ? copy.free : timedTasks ? copy.allTimed : copy.noneUntimed}>
                   {rootIds.map((id) => renderTask(id, null))}
                 </TaskColumn>
 
@@ -309,6 +322,11 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection }: AgendaVie
                         pending={pending(ids)}
                         onToggle={() => dispatch({ type: 'section/toggle', id: section.id })}
                         onOpen={() => onOpenSection(section.id)}
+                        onAdd={() => {
+                          // Lo que se escriba va a parar aquí: que se vea al añadirlo.
+                          if (section.collapsed) dispatch({ type: 'section/toggle', id: section.id })
+                          onAddToSection(section.id)
+                        }}
                       >
                         {ids.map((id) => renderTask(id, section.id))}
                       </SectionBlock>

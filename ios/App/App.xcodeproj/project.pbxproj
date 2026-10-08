@@ -45,6 +45,9 @@
 		7A5C00000000000000000119 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000803 /* AppShortcuts.strings */; };
 		7A5C0000000000000000011A /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000805 /* InfoPlist.strings */; };
 		7A5C0000000000000000011B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000807 /* Localizable.strings */; };
+		7A5C0000000000000000011C /* CalendarReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000018 /* CalendarReader.swift */; };
+		7A5C0000000000000000011D /* CalendarReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000018 /* CalendarReader.swift */; };
+		7A5C00000000000000000A02 /* CalendarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000A01 /* CalendarBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +111,8 @@
 		7A5C00000000000000000015 /* OverdueMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverdueMover.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000016 /* WidgetText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetText.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000017 /* InboxWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxWidget.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000018 /* CalendarReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarReader.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000A01 /* CalendarBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarBridge.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000802 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		7A5C00000000000000000804 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		7A5C00000000000000000806 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -160,6 +165,7 @@
 				7A5C00000000000000000002 /* TasksNativePlugin.swift */,
 				7A5C00000000000000000003 /* LocationRequester.swift */,
 				7A5C00000000000000000901 /* MapPicker.swift */,
+				7A5C00000000000000000A01 /* CalendarBridge.swift */,
 				7A5C00000000000000000004 /* NativeActions.swift */,
 				7A5C00000000000000000005 /* AppIntents.swift */,
 				7A5C00000000000000000013 /* QuickAdd.swift */,
@@ -196,6 +202,7 @@
 				7A5C00000000000000000014 /* MoveOverdueWidgetIntent.swift */,
 				7A5C00000000000000000015 /* OverdueMover.swift */,
 				7A5C00000000000000000008 /* WidgetStore.swift */,
+				7A5C00000000000000000018 /* CalendarReader.swift */,
 				7A5C00000000000000000807 /* Localizable.strings */,
 				7A5C0000000000000000000C /* Info.plist */,
 				7A5C0000000000000000000D /* TasksWidget.entitlements */,
@@ -338,6 +345,8 @@
 				7A5C00000000000000000702 /* NotificationResponder.swift in Sources */,
 				7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */,
 				7A5C00000000000000000115 /* WidgetText.swift in Sources */,
+				7A5C0000000000000000011C /* CalendarReader.swift in Sources */,
+				7A5C00000000000000000A02 /* CalendarBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,6 +362,7 @@
 				7A5C00000000000000000108 /* WidgetStore.swift in Sources */,
 				7A5C00000000000000000116 /* WidgetText.swift in Sources */,
 				7A5C00000000000000000117 /* InboxWidget.swift in Sources */,
+				7A5C0000000000000000011D /* CalendarReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

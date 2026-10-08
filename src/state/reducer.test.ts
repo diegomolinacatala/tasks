@@ -728,3 +728,35 @@ describe('plazos', () => {
     expect(dropped.tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13' })
   })
 })
+
+describe('el calendario del iPhone', () => {
+  const on = (state: AppState) => reducer(state, { type: 'settings/calendar', enabled: true })
+
+  test('se enciende y se apaga sin tocar los ocultos', () => {
+    const hidden = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['festivos'] })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'] })
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'] })
+  })
+
+  test('lo que no cambia nada devuelve el mismo estado', () => {
+    const state = on(emptyState())
+    expect(reducer(state, { type: 'settings/calendar', enabled: true })).toBe(state)
+    expect(reducer(state, { type: 'settings/calendar', hidden: [] })).toBe(state)
+  })
+
+  test('es de este dispositivo: importar una copia o borrarlo todo no lo cambia', () => {
+    const state = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['trabajo'] })
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'] } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'] })
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'] })
+  })
+})
+
+describe('el + de una sección', () => {
+  test('la tarea cae en esa sección del día', () => {
+    const withSection = reducer(emptyState(), { type: 'section/add', name: 'Compra' })
+    const id = withSection.sections[0]!.id
+    const added = reducer(withSection, { type: 'task/add', title: 'Leche', date: '2026-10-08', sectionId: id })
+    expect(added.tasks[0]).toMatchObject({ title: 'Leche', date: '2026-10-08', sectionId: id })
+  })
+})

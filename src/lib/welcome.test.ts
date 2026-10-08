@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { PlateId } from './welcome'
-import { FULL_WELCOME, PLATE_SINCE, WELCOME_VERSION, normalizeWelcome, platesAfter, welcomeOnLaunch } from './welcome'
+import { FULL_WELCOME, PLATE_SINCE, WELCOME_VERSION, availablePlates, normalizeWelcome, platesAfter, welcomeOnLaunch } from './welcome'
 
 describe('welcomeOnLaunch', () => {
   test('la primera vez, entera y presentando la app', () => {
@@ -20,21 +20,40 @@ describe('welcomeOnLaunch', () => {
   test('tras una actualización con láminas nuevas, solo lo posterior a lo visto', () => {
     expect(welcomeOnLaunch(false, WELCOME_VERSION - 1)).toEqual({ after: WELCOME_VERSION - 1, news: true })
   })
+
+  test('sin calendario (la PWA), la lámina del calendario no cuenta como nueva', () => {
+    expect(availablePlates(false)).not.toContain('calendar')
+    expect(welcomeOnLaunch(false, 3, availablePlates(false))).toBeNull()
+    expect(welcomeOnLaunch(false, 3, availablePlates(true))).toEqual({ after: 3, news: true })
+    expect(welcomeOnLaunch(false, 2, availablePlates(false))).toEqual({ after: 2, news: true })
+  })
 })
 
 describe('platesAfter', () => {
-  const plates: { id: PlateId }[] = [{ id: 'write' }, { id: 'details' }, { id: 'swipe' }, { id: 'month' }, { id: 'routine' }, { id: 'suggest' }]
+  const plates: { id: PlateId }[] = [
+    { id: 'write' },
+    { id: 'details' },
+    { id: 'swipe' },
+    { id: 'month' },
+    { id: 'routine' },
+    { id: 'suggest' },
+    { id: 'calendar' },
+  ]
 
   test('con 0 van todas, en su orden', () => {
-    expect(platesAfter(plates, 0).map((plate) => plate.id)).toEqual(['write', 'details', 'swipe', 'month', 'routine', 'suggest'])
+    expect(platesAfter(plates, 0).map((plate) => plate.id)).toEqual(['write', 'details', 'swipe', 'month', 'routine', 'suggest', 'calendar'])
   })
 
-  test('quien vio la de la 1.2 ve lo de la 1.3 y la 1.4: la ficha del compositor y las sugerencias', () => {
-    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'suggest'])
+  test('quien vio la de la 1.2 ve lo de después: la ficha del compositor, las sugerencias y el calendario', () => {
+    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'suggest', 'calendar'])
   })
 
-  test('quien vio la de la 1.3 solo ve las sugerencias', () => {
-    expect(platesAfter(plates, 2).map((plate) => plate.id)).toEqual(['suggest'])
+  test('quien vio la de la 1.4 solo ve el calendario', () => {
+    expect(platesAfter(plates, 3).map((plate) => plate.id)).toEqual(['calendar'])
+  })
+
+  test('sin el calendario (la PWA), quien vio la de la 1.4 no tiene nada nuevo', () => {
+    expect(platesAfter(plates.filter((plate) => plate.id !== 'calendar'), 3)).toEqual([])
   })
 
   test('con la versión actual no queda ninguna', () => {

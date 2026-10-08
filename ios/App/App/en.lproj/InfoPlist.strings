@@ -1,5 +1,7 @@
 /* Inglés de los permisos y de los accesos rápidos del icono (Info.plist). */
 NSMicrophoneUsageDescription = "To dictate tasks with your voice. The audio is sent to our server, processed by Cloudflare AI models (Workers AI) and not stored.";
+NSCalendarsFullAccessUsageDescription = "To show your calendar events in the Agenda, next to your tasks. They’re only read, on this iPhone: never stored or uploaded to any server.";
+NSCalendarsUsageDescription = "To show your calendar events in the Agenda, next to your tasks. They’re only read, on this iPhone: never stored or uploaded to any server.";
 NSLocationWhenInUseUsageDescription = "To remind you when you arrive at or leave your places, and to find places near you.";
 NSLocationAlwaysAndWhenInUseUsageDescription = "To remind you when you arrive at or leave your places, and to find places near you.";
 "Nueva tarea" = "New task";

@@ -123,3 +123,9 @@ html.theme-switching::view-transition-new(root) {
 html.theme-switching::view-transition-new(root) {
   z-index: 1;
 }
+
+/* El color de un calendario del iPhone (el de iOS, chillón) se apaga mezclándolo con la tinta tenue:
+   casa con el papel y de noche sale más claro solo. `--cal` lo pone cada evento o calendario */
+.cal-tone {
+  --cal-ink: color-mix(in oklab, var(--cal, var(--text-3)) 58%, var(--text-3));
+}

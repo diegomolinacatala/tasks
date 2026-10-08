@@ -1,5 +1,7 @@
 import { Suspense, lazy, memo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import type { CalendarEvent } from '../../lib/calendar'
+import { eventSpan } from '../../lib/calendar'
 import { todayIso } from '../../lib/date'
 import { spanLabel } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
@@ -10,6 +12,7 @@ import type { TimelineRow } from '../../lib/timeline'
 import { clockOf, freeLabel } from '../../lib/timeline'
 import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate, Routine, Section, Task } from '../../types'
+import { useCalendar } from '../calendar/CalendarProvider'
 import { useSizing } from '../importance/sizing'
 import { SwipeRow } from '../task/SwipeRow'
 import { useRowActions } from '../task/rowActions'
@@ -33,6 +36,8 @@ const COPY = {
     complete: (title: string) => `Completar «${title}»`,
     unmark: (title: string) => `Desmarcar «${title}»`,
     doneRoutine: (title: string) => `Hecha: «${title}»`,
+    untitled: 'Evento',
+    event: (title: string, span: string, calendar: string) => `${title}, ${span}${calendar ? `, calendario ${calendar}` : ''}. Abrir en Calendario`,
   },
   en: {
     schedule: 'Schedule',
@@ -41,11 +46,13 @@ const COPY = {
     complete: (title: string) => `Complete “${title}”`,
     unmark: (title: string) => `Unmark “${title}”`,
     doneRoutine: (title: string) => `Done: “${title}”`,
+    untitled: 'Event',
+    event: (title: string, span: string, calendar: string) => `${title}, ${span}${calendar ? `, ${calendar} calendar` : ''}. Open in Calendar`,
   },
 } as const
 
 /** La hora de la columna; en inglés, AM y PM debajo, en pequeño, para que quepa en su sitio. */
-function Clock({ minutes }: { minutes: number }) {
+export function Clock({ minutes }: { minutes: number }) {
   const [time, meridiem] = clockOf(minutes).split(' ')
   return (
     <>
@@ -61,14 +68,21 @@ interface TimelineProps {
   rows: TimelineRow[]
   day: IsoDate
   sections: readonly Section[]
+  /** Minutos de ahora si el día es hoy (lo que ya acabó se apaga); `null` otro día. */
+  now: number | null
+  /** El día ya pasó: sus eventos, apagados. */
+  past: boolean
 }
 
 /**
  * Lo que tiene hora, a lo largo de una línea: una cápsula por tarea, tan alta como lo que dura, que
  * se rellena al completarla; entre medias, el tiempo libre; y hoy, una marca en el momento actual.
+ * Los eventos del calendario del iPhone van en la misma línea, con el color de su calendario: no se
+ * tachan (no son tareas) y tocarlos abre su ficha de Calendario.
  */
-export function Timeline({ rows, day, sections }: TimelineProps) {
+export function Timeline({ rows, day, sections, now, past }: TimelineProps) {
   const copy = useCopy(COPY)
+  const calendar = useCalendar()
   return (
     <ol className="timeline" aria-label={copy.schedule}>
       {rows.map((row) => {
@@ -93,6 +107,19 @@ export function Timeline({ rows, day, sections }: TimelineProps) {
             </li>
           )
         if (row.kind === 'routine') return <TimelineRoutine key={row.id} routine={row.routine} day={day} start={row.start} />
+        if (row.kind === 'event')
+          return (
+            <TimelineEvent
+              key={row.id}
+              event={row.event}
+              start={row.start}
+              end={row.end}
+              live={row.live}
+              over={past || (now !== null && row.end <= now && row.end > row.start)}
+              calendar={calendar.calendars.find((item) => item.id === row.event.calendarId)?.title ?? ''}
+              onOpen={calendar.open}
+            />
+          )
         const section = row.task.sectionId ? sections.find((item) => item.id === row.task.sectionId) : undefined
         return <TimelineTask key={row.id} task={row.task} start={row.start} live={row.live} section={section?.name} />
       })}
@@ -219,5 +246,45 @@ const TimelineRoutine = memo(function TimelineRoutine({ routine, day, start }: T
         </button>
       </div>
     </SwipeRow>
+  )
+})
+
+interface TimelineEventProps {
+  event: CalendarEvent
+  start: number
+  end: number
+  live?: number
+  /** Ya acabó: se apaga, como lo hecho. */
+  over: boolean
+  calendar: string
+  onOpen: (event: CalendarEvent) => void
+}
+
+/**
+ * Un evento del calendario: su cápsula lleva el color de su calendario, apagado para que case con el
+ * papel; el título va un punto por debajo de las tareas (son lo que hay que hacer) y la hora y el
+ * sitio debajo. No se desliza ni se tacha: tocarlo abre la ficha de Calendario de iOS.
+ */
+const TimelineEvent = memo(function TimelineEvent({ event, start, end, live, over, calendar, onOpen }: TimelineEventProps) {
+  const copy = useCopy(COPY)
+  const span = eventSpan({ start, end })
+  const title = event.title || copy.untitled
+  const meta = [span, event.location].filter(Boolean).join(' · ')
+  return (
+    <li
+      className={`tl tl--event cal-tone ${live !== undefined ? 'is-live' : ''} ${over ? 'is-over' : ''}`}
+      style={{ '--node': `${nodeHeight(end - start)}px`, '--live': live ?? 0, '--cal': event.color } as CSSProperties}
+    >
+      <span className="tl__time">
+        <Clock minutes={start} />
+      </span>
+      <span className="tl__rail">
+        <span className="tl__node tl__node--event" aria-hidden="true" />
+      </span>
+      <button type="button" className="tl__body" aria-label={copy.event(title, span, calendar)} onClick={() => onOpen(event)}>
+        <span className="tl__title">{title}</span>
+        <span className="tl__meta">{meta}</span>
+      </button>
+    </li>
   )
 })

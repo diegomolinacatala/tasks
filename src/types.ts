@@ -134,8 +134,20 @@ export interface DigestSettings {
   time: IsoTime
 }
 
+/**
+ * El calendario del iPhone en la Agenda (`lib/calendar.ts`). Es de este dispositivo, como la apariencia:
+ * los ids de sus calendarios no valen en otro, así que importar una copia o borrarlo todo no lo cambia.
+ */
+export interface CalendarSettings {
+  /** Enseñar los eventos. Se enciende al conceder el permiso y se puede apagar sin quitarlo. */
+  enabled: boolean
+  /** Calendarios que no se enseñan (ids de EventKit). */
+  hidden: string[]
+}
+
 export interface Settings {
   digest: DigestSettings
+  calendar: CalendarSettings
   /**
    * Permiso para enviar lo dictado (el audio, o el texto de Siri) a la IA del servidor. Sin él, nada
    * de lo dicho sale del dispositivo: Siri usa el analizador local y el micrófono pregunta antes.

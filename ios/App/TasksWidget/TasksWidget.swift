@@ -11,7 +11,10 @@ struct TasksWidgetBundle: WidgetBundle {
     }
 }
 
-/** Lo pendiente de hoy y lo atrasado, como el bloque Hoy de la pantalla principal. */
+/**
+ * Lo pendiente de hoy y lo atrasado, como el bloque Hoy de la pantalla principal. Con el calendario del
+ * iPhone conectado en la app, encima va lo siguiente que tienes (uno en el mediano, dos en el grande).
+ */
 struct TasksWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetStore.kind, provider: TasksProvider()) { entry in
@@ -28,10 +31,26 @@ struct TasksEntry: TimelineEntry {
     let date: Date
     /** `nil` hasta que la app escribe la primera foto. */
     let tasks: [WidgetTask]?
+    /** Del calendario del iPhone, de aquí a una semana (vacío si la app no lo enseña). */
+    var events: [WidgetEvent] = []
     var text = WidgetText.current
 
     var day: WidgetDay {
         WidgetDay(tasks: tasks ?? [], day: WidgetDay.iso(date))
+    }
+
+    /**
+     * Lo siguiente del calendario hoy: lo que aún no ha acabado, en orden, y si sobra sitio, lo de todo el
+     * día (un cumpleaños, un festivo). Lo que ocupa el día entero aunque tenga hora cuenta como de todo el día.
+     */
+    func upcomingEvents(_ count: Int) -> [WidgetEvent] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard count > 0, let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
+        let todays = events.filter { $0.startDate < end && $0.shownUntil > start }
+        let wholeDay = { (event: WidgetEvent) in event.allDay || (event.startDate <= start && event.endDate >= end) }
+        let timed = todays.filter { !wholeDay($0) && $0.shownUntil > date }.sorted { $0.start < $1.start }
+        return Array((timed + todays.filter(wholeDay)).prefix(count))
     }
 
     /** Para la galería de widgets, antes de tener tareas de verdad. */
@@ -39,11 +58,22 @@ struct TasksEntry: TimelineEntry {
         let today = WidgetDay.iso(date)
         let titles = WidgetText.current.sampleTasks
         let title = { (index: Int) in WidgetText.sample(titles, index) }
+        // Un evento de muestra dentro de un rato, para que la galería enseñe cómo sale el calendario.
+        let meeting = Calendar.current.date(bySetting: .minute, value: 0, of: date.addingTimeInterval(3600)) ?? date
         return TasksEntry(date: date, tasks: [
             WidgetTask(id: "muestra-1", title: title(0), date: today, time: nil, done: false),
             WidgetTask(id: "muestra-2", title: title(1), date: today, time: "17:00", done: false),
             WidgetTask(id: "muestra-3", title: title(2), date: today, time: nil, done: false, importance: 6),
             WidgetTask(id: "muestra-4", title: title(3), date: today, time: "20:30", done: true),
+        ], events: [
+            WidgetEvent(
+                id: "muestra-evento",
+                title: WidgetText.current.sampleEvent,
+                start: CalendarReader.millis(meeting),
+                end: CalendarReader.millis(meeting.addingTimeInterval(3600)),
+                allDay: false,
+                color: "#1a73e8"
+            ),
         ])
     }
 }
@@ -59,24 +89,51 @@ struct TasksProvider: TimelineProvider {
         if context.isPreview && (tasks?.isEmpty ?? true) {
             completion(TasksEntry.sample(now))
         } else {
-            completion(TasksEntry(date: now, tasks: tasks))
+            completion(TasksEntry(date: now, tasks: tasks, events: Self.events(from: now)))
         }
     }
 
     /**
      * La foto trae los próximos días: una entrada por medianoche basta para que lo de hoy pase a
-     * atrasado y aparezca lo del día siguiente sin abrir la app. La app pide recargar al cambiar algo.
+     * atrasado y aparezca lo del día siguiente sin abrir la app. Con el calendario, además una al
+     * empezar y al acabar cada evento de hoy y de mañana, para que "lo siguiente" vaya cambiando. La app
+     * pide recargar al cambiar algo (también cuando cambia el calendario, si está abierta).
      */
     func getTimeline(in context: Context, completion: @escaping (Timeline<TasksEntry>) -> Void) {
         let now = Date()
         let tasks = WidgetStore.tasks()
+        let events = Self.events(from: now)
         // El idioma se lee una vez (decodifica la foto), no en cada entrada.
         let text = WidgetText.current
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: now)
         let midnights = (1...WidgetStore.days).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-        let entries = [TasksEntry(date: now, tasks: tasks, text: text)] + midnights.map { TasksEntry(date: $0, tasks: tasks, text: text) }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        let soon = now.addingTimeInterval(Self.eventHorizon)
+        let changes = events
+            .filter { !$0.allDay }
+            .flatMap { [$0.startDate, $0.shownUntil] }
+            .filter { $0 > now && $0 < soon }
+        let dates = Array(Set(midnights + changes)).sorted().prefix(Self.maxEntries)
+        let entries = [TasksEntry(date: now, tasks: tasks, events: events, text: text)]
+            + dates.map { TasksEntry(date: $0, tasks: tasks, events: events, text: text) }
+        // Con el calendario, lo que se crea o se mueve en otro dispositivo no avisa al widget: se vuelve a
+        // leer cada media hora (dentro de lo que iOS permite). Sin él, basta con las medianoches.
+        let policy: TimelineReloadPolicy = WidgetStore.showsCalendar ? .after(now.addingTimeInterval(Self.calendarRefresh)) : .atEnd
+        completion(Timeline(entries: entries, policy: policy))
+    }
+
+    /** Cada cuánto se vuelve a leer el calendario con la app cerrada. */
+    private static let calendarRefresh: TimeInterval = 30 * 60
+    /** Hasta dónde se programan entradas por los eventos: hoy y mañana. */
+    private static let eventHorizon: TimeInterval = 36 * 3600
+    private static let maxEntries = 48
+
+    /** Lo del calendario de hoy al final de la semana de la foto. */
+    private static func events(from now: Date) -> [WidgetEvent] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: now)
+        guard let end = calendar.date(byAdding: .day, value: WidgetStore.days + 1, to: start) else { return [] }
+        return WidgetStore.events(from: start, to: end)
     }
 }
 
@@ -107,13 +164,13 @@ struct TasksWidgetView: View {
         case .accessoryCircular:
             CircularWidget(day: entry.day)
         case .accessoryRectangular:
-            RectangularWidget(day: entry.day, ready: entry.tasks != nil)
+            RectangularWidget(day: entry.day, ready: entry.tasks != nil, next: entry.upcomingEvents(1).first, now: entry.date)
         case .systemSmall:
             SmallWidget(day: entry.day, ready: entry.tasks != nil)
         case .systemLarge:
-            LargeWidget(day: entry.day, ready: entry.tasks != nil)
+            LargeWidget(day: entry.day, ready: entry.tasks != nil, events: entry.upcomingEvents(2), now: entry.date)
         default:
-            MediumWidget(day: entry.day, ready: entry.tasks != nil)
+            MediumWidget(day: entry.day, ready: entry.tasks != nil, events: entry.upcomingEvents(1), now: entry.date)
         }
     }
 }

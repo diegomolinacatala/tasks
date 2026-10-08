@@ -7,8 +7,8 @@ import WebKit
 import WidgetKit
 
 /// Lo que la web no puede hacer sola: avisos al llegar o salir de un lugar, buscar sitios,
-/// la ubicación actual, el número del icono, abrir los ajustes de la app, el widget y la bandeja
-/// de lo apuntado con Siri o Atajos.
+/// la ubicación actual, el número del icono, abrir los ajustes de la app, el widget, la bandeja
+/// de lo apuntado con Siri o Atajos y el calendario del iPhone (`CalendarBridge.swift`).
 @objc(TasksNativePlugin)
 public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "TasksNativePlugin"
@@ -29,15 +29,26 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "mapSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "screenshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "pickLocation", returnType: CAPPluginReturnPromise),
+        // El calendario del iPhone (`CalendarBridge.swift`).
+        CAPPluginMethod(name: "calendarStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestCalendarAccess", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendars", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "calendarEvents", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "showEvent", returnType: CAPPluginReturnPromise),
     ]
 
     private static let searchSpanMeters = 30_000.0
     private static let maxResults = 10
 
     private lazy var location = LocationRequester()
+    private var calendarObserver: NSObjectProtocol?
 
     override public func load() {
         NativeActions.shared.attach(self)
+        // Un evento nuevo, una cuenta añadida en Ajustes, algo editado en la ficha: la web vuelve a leer.
+        calendarObserver = CalendarBridge.observe { [weak self] in
+            self?.notifyListeners("calendarChanged", data: [:])
+        }
     }
 
     /// `retainUntilConsumed`: si la web aún no escucha, el evento espera a que lo haga.

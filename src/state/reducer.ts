@@ -1,3 +1,4 @@
+import { defaultCalendarSettings, normalizeCalendarSettings } from '../lib/calendar'
 import { isValidTime } from '../lib/date'
 import { extendedDuration, normalizeDuration } from '../lib/duration'
 import { cleanEmoji } from '../lib/emoji'
@@ -13,10 +14,11 @@ import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 14
+export const SCHEMA_VERSION = 15
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
+  calendar: defaultCalendarSettings(),
   dictation: false,
   theme: 'auto',
   language: 'auto',
@@ -387,6 +389,14 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!isValidTime(action.time) || state.settings.dayStart === action.time) return state
       return { ...state, settings: { ...state.settings, dayStart: action.time } }
 
+    case 'settings/calendar': {
+      const current = state.settings.calendar
+      const calendar = normalizeCalendarSettings({ enabled: action.enabled ?? current.enabled, hidden: action.hidden ?? current.hidden })
+      const sameHidden = calendar.hidden.length === current.hidden.length && calendar.hidden.every((id, index) => id === current.hidden[index])
+      if (calendar.enabled === current.enabled && sameHidden) return state
+      return { ...state, settings: { ...state.settings, calendar } }
+    }
+
     // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
     case 'settings/welcome': {
       const welcome = normalizeWelcome(action.version)
@@ -397,8 +407,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado, la apariencia, el idioma y la bienvenida vista son de este dispositivo:
-    // una copia de otro no los cambia.
+    // El permiso del dictado, la apariencia, el idioma, el calendario y la bienvenida vista son de este
+    // dispositivo: una copia de otro no los cambia.
     case 'state/import':
       return {
         ...action.state,
@@ -407,15 +417,22 @@ export function reducer(state: AppState, action: Action): AppState {
           dictation: state.settings.dictation,
           theme: state.settings.theme,
           language: state.settings.language,
+          calendar: state.settings.calendar,
           welcome: state.settings.welcome,
         },
       }
 
-    // Borrarlo todo no cambia cómo se ve la app, su idioma ni vuelve a enseñar la bienvenida.
+    // Borrarlo todo no cambia cómo se ve la app, su idioma, su calendario ni vuelve a enseñar la bienvenida.
     case 'state/clear':
       return {
         ...emptyState(),
-        settings: { ...defaultSettings(), theme: state.settings.theme, language: state.settings.language, welcome: state.settings.welcome },
+        settings: {
+          ...defaultSettings(),
+          theme: state.settings.theme,
+          language: state.settings.language,
+          calendar: state.settings.calendar,
+          welcome: state.settings.welcome,
+        },
       }
 
     default:

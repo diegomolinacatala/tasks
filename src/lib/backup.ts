@@ -1,6 +1,7 @@
 import type { AppState, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
 import { SCHEMA_VERSION, THEMES, defaultSettings } from '../state/reducer'
 import { MAX_ROUTINES, normalizeRoutine } from './routines'
+import { normalizeCalendarSettings } from './calendar'
 import { isValidTime } from './date'
 import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
@@ -80,6 +81,8 @@ function normalizeSettings(raw: unknown): Settings {
       enabled: digest.enabled === true,
       time: isValidTime(digest.time) ? digest.time : defaults.digest.time,
     },
+    // Las anteriores al calendario no lo traen: apagado, hasta que se conecte.
+    calendar: normalizeCalendarSettings(settings.calendar),
     dictation: settings.dictation === true,
     // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
     theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,

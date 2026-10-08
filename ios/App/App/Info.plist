@@ -45,6 +45,10 @@
 	<string>public.app-category.productivity</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Para enseñar los eventos de tu calendario en la Agenda, junto a tus tareas. Solo se leen, en este iPhone: no se guardan ni se suben a ningún servidor.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Para enseñar los eventos de tu calendario en la Agenda, junto a tus tareas. Solo se leen, en este iPhone: no se guardan ni se suben a ningún servidor.</string>
 	<!-- La app nunca pide "siempre" (los avisos por lugar los vigila iOS con "mientras se usa"),
 	     pero Apple exige la clave si alguna librería menciona esa API (ITMS-90683). -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

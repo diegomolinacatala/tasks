@@ -236,6 +236,9 @@ private struct InboxList: View {
         switch row {
         case .task(let task, _):
             TaskRow(task: task, overdue: false, today: "", style: style)
+        case .event:
+            // La Bandeja no lleva calendario.
+            Color.clear
         case .more(let count):
             Text(verbatim: text.more(count))
                 .font(.system(size: style.title - 2))

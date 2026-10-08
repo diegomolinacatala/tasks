@@ -3,11 +3,13 @@ import type { ComponentType } from 'react'
 import { createPortal } from 'react-dom'
 import { MARK_PATH } from '../../lib/boot'
 import { isNative } from '../../lib/platform'
+import { showsCalendar } from '../../lib/platform/calendar'
 import { haptic } from '../../lib/platform/feedback'
 import type { PlateId, WelcomeRun } from '../../lib/welcome'
 import { platesAfter } from '../../lib/welcome'
 import { useCopy } from '../../state/LanguageProvider'
 import { IconChevronLeft } from '../ui/Icons'
+import { CalendarScene } from './CalendarScene'
 import { DetailsScene } from './DetailsScene'
 import { MonthScene } from './MonthScene'
 import { RoutineScene } from './RoutineScene'
@@ -40,6 +42,8 @@ const PLATES: readonly Plate[] = [
   { id: 'month', Scene: MonthScene },
   { id: 'routine', Scene: RoutineScene },
   { id: 'suggest', Scene: SuggestScene },
+  // El calendario solo existe en el iPhone (y en local, con el de muestra).
+  ...(showsCalendar ? [{ id: 'calendar' as const, Scene: CalendarScene }] : []),
 ]
 
 const device = isNative ? 'iPhone' : null
@@ -66,6 +70,11 @@ const COPY = {
         kicker: 'Sugerencias',
         title: 'Rodéalo y cuéntalo.',
         text: 'En Ajustes, Sugerir una mejora: rodea con el dedo lo que cambiarías y escríbelo. Pruébalo aquí.',
+      },
+      calendar: {
+        kicker: 'Calendario',
+        title: 'Tu calendario, en tu día.',
+        text: 'Tus eventos de iCloud, Google u Outlook, en el horario junto a tus tareas. Google u Outlook se añaden en Ajustes → Calendario.',
       },
     },
     newsLabel: 'Novedades de Tasks',
@@ -103,6 +112,11 @@ const COPY = {
         title: 'Circle it, say it.',
         text: 'In Settings, Suggest an improvement: circle what you’d change and write it down. Try it here.',
       },
+      calendar: {
+        kicker: 'Calendar',
+        title: 'Your calendar, in your day.',
+        text: 'Your iCloud, Google or Outlook events in your schedule, next to your tasks. Add Google or Outlook in Settings → Calendar.',
+      },
     },
     newsLabel: 'What’s new in Tasks',
     welcomeLabel: 'Welcome to Tasks',
@@ -135,10 +149,11 @@ const EXIT_MS = 420
  */
 export function Welcome({ run, onReady, onDone }: WelcomeProps) {
   const copy = useCopy(COPY)
-  // Lo que toca se fija al abrir: no cambia mientras se recorre.
+  // Lo que toca se fija al abrir: no cambia mientras se recorre. Tras actualizar, si lo nuevo no es de
+  // esta plataforma no hay nada que enseñar (`welcomeOnLaunch` ya no la abre; esto es por si acaso).
   const [plates] = useState(() => {
     const due = platesAfter(PLATES, run.after)
-    return due.length ? due : PLATES
+    return due.length || run.news ? due : PLATES
   })
   // 0 es la portada; del 1 en adelante, las láminas.
   const [step, setStep] = useState(0)
@@ -151,10 +166,15 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
 
   useEffect(() => {
     callbacks.current.onReady?.()
+    // Nada nuevo para esta plataforma: se da por vista sin enseñar nada.
+    if (!plates.length) {
+      callbacks.current.onDone()
+      return
+    }
     // La app de debajo queda inerte: el foco (y el lector de pantalla) pasan aquí.
     root.current?.focus({ preventScroll: true })
     return () => window.clearTimeout(exit.current)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finish = () => {
     if (leaving) return
@@ -176,6 +196,8 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   })
+
+  if (!plates.length) return null
 
   const plate = plates[step - 1]
   const text = plate ? copy.plates[plate.id] : null

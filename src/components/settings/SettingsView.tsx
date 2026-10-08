@@ -7,6 +7,7 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconArrowUpRight, IconChevronRight, IconDownload, IconFeather, IconTrash, IconUpload } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AppearancePicker } from './AppearancePicker'
+import { CalendarBlock } from './CalendarBlock'
 import { DictationBlock } from './DictationBlock'
 import { LanguagePicker } from './LanguagePicker'
 import { NotificationsBlock } from './NotificationsBlock'
@@ -168,6 +169,7 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
       <LanguagePicker value={state.settings.language} />
 
       <NotificationsBlock />
+      <CalendarBlock />
       <DictationBlock />
 
       <section className="group">

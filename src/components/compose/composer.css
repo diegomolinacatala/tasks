@@ -232,6 +232,14 @@
   transform: scale(0.95);
 }
 
+/* Una sección (el + de su cabecera): en versalitas espaciadas, como su nombre en la lista */
+.composer__target.is-section {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  animation: quick-in var(--dur-2) var(--ease-out);
+}
+
 /* Lo que se ha entendido del texto: tocar alterna entre aplicarlo o no */
 .composer__parsed {
   flex: none;

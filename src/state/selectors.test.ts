@@ -47,7 +47,7 @@ const state: AppState = {
   places: [],
   routines: [],
   collapsed: { overdue: false, backlog: false, routines: false },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
+  settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [] }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }
 
 describe('sortedSections', () => {
