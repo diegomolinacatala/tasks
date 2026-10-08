@@ -225,8 +225,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   ejemplo llevan dos tareas con plazo y otros nombres en Casa. En `docs/app-store.md`: descripción y
   texto promocional nuevos (§3 y §3.1), notas para la revisión (§5, mantener pulsado, plazos, mapa; 3934
   caracteres) y el paso a paso con las novedades en §9.7. Se envía la **1.5 (38)**.
-- **El calendario del iPhone en la Agenda y el + de cada sección** (08/10/2026, en `capacitor`, la 1.5; sin
-  probar aún en el iPhone). Lo pidió el usuario "muy orgánico, que no abrume", con un tutorial claro para
+- **La 1.5 está aprobada** (08/10/2026: la subida respondió *train version '1.5' is closed*).
+  `MARKETING_VERSION` subido a **1.6**.
+- **El calendario del iPhone en la Agenda y el + de cada sección** (08/10/2026, en `capacitor`, la **1.6**;
+  el Swift compila en el CI; sin probar aún en el iPhone). Lo pidió el usuario "muy orgánico, que no abrume", con un tutorial claro para
   añadir Google u Outlook al Calendario de iOS (casi nadie lo tiene) y plegado en Ajustes:
   - **Calendario** (`lib/calendar.ts`, `CalendarBridge.swift`, `CalendarReader.swift`): EventKit, solo
     lectura, en el propio iPhone. Los eventos salen en el **horario** con el color de su calendario
@@ -248,15 +250,14 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar el calendario en el iPhone** con la TestFlight que salga de este push: Ajustes → Calendario →
+0. **Probar la 1.6 en el iPhone** (`docs/app-store.md` §9.8) y enviarla. El calendario: Ajustes → Calendario →
    conectar (sale el permiso de iOS), que los eventos salgan en el horario y los de todo el día arriba,
    tocar uno (se abre la ficha de Calendario y se puede editar; al cerrarla, la Agenda se pone al día),
    ocultar un calendario, añadir una cuenta de Google siguiendo el paso a paso y volver (aviso de
    calendarios nuevos), el widget Hoy mediano y grande con un evento próximo, y la lámina *Calendario*
    tras actualizar. Y el + de una sección: que salga el teclado en el mismo toque. Si el widget no
    enseñara eventos (EventKit en la extensión), la foto lleva una copia de la semana: mirar `WidgetStore.events`.
-   Después, **enviar la 1.5** con `docs/app-store.md` §9.7.
-1. **Probar la 1.5 (38)**. Antes, **probar la 1.5 en TestFlight** (plazos, otros nombres, mapa, historial editable, mantener pulsado para
+1. (Ya aprobada la 1.5.) Lo que quedaba por mirar de ella en el iPhone: (plazos, otros nombres, mapa, historial editable, mantener pulsado para
    arrastrar, atajo "Los martes" en rutinas, tachadas plegadas en la Bandeja). En el iPhone: mantener
    pulsada una tarea (que vibre y se coja, que el scroll por el borde ya no la mueva); "Elegir en el mapa" en un lugar
    (arrastrar, tocar un punto, tocar un comercio y que dé su nombre, "Mi ubicación", el círculo del
@@ -586,7 +587,7 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
   iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez) y *Sugerencias* (versión 3,
   la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
-  *Calendario* (versión 4, la 1.5, solo donde hay calendario: un día con tareas en el que entran los
+  *Calendario* (versión 4, la 1.6, solo donde hay calendario: un día con tareas en el que entran los
   eventos con su color, y **Conectar mi calendario**). En la PWA no existe: `welcomeOnLaunch` recibe las
   láminas de la plataforma (`availablePlates`) y lo que no hay ahí no cuenta como nuevo. Hasta que se tocan, las
   escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
@@ -1501,7 +1502,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.4,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.6,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.

@@ -889,23 +889,17 @@ La 1.4 se aprobó el 05/10/2026. Lo nuevo, casi todo pedido por amigos en el buz
   semana** («Los martes»).
 - **Mantener pulsada** una tarea para moverla: ya no hay asa en el borde derecho.
 - Lo **tachado otros días** en la Bandeja se pliega.
-- **El calendario del iPhone en la Agenda** (08/10/2026): los eventos de iCloud, Google u Outlook en el
-  horario, lo de todo el día encima y lo siguiente en el widget Hoy; en Ajustes → Calendario, el paso a
-  paso para añadir Google u Outlook. Y un **+ en cada sección** para escribir directamente en ella.
 
-Se envía la compilación **1.5** que salga del push del calendario (la siguiente a la 38: mira el número
-en TestFlight). Cambian las capturas (una nueva, *Plazos*), la descripción, el texto promocional y las
-notas para la revisión. La privacidad **no cambia**: el mapa es de Apple, y el calendario se lee en el
-propio iPhone (EventKit) y no sale de él, así que no es un dato que se recoja. Al pedir el permiso,
-iOS enseña el texto de `NSCalendarsFullAccessUsageDescription`.
+Se envió la compilación **1.5 (38)** y se aprobó (el 08/10/2026 la subida respondió *train version '1.5'
+is closed*). Cambiaron las capturas (una nueva, *Plazos*), la descripción, el texto promocional y las
+notas para la revisión. La privacidad no cambió: el mapa es de Apple y no se recoge nada nuevo.
 
 **Antes (en el iPhone, 10 minutos)**
 
-1. *TestFlight* → Tasks → **Actualizar** a la última **1.5** y probar lo de arriba: escribir «llamar al
+1. *TestFlight* → Tasks → **Actualizar** a la **1.5 (38)** y probar lo de arriba: escribir «llamar al
    banco esta semana»; mantener pulsada una tarea y moverla; un lugar → **Elegir en el mapa** (arrastrar,
-   tocar un comercio, *Usar este punto*); una rutina → *Constancia* → tocar un día pasado; Ajustes →
-   **Calendario** → conectar y mirar la Agenda (y tocar un evento); el **+** de una sección. Si algo
-   falla, dímelo antes de enviar.
+   tocar un comercio, *Usar este punto*); una rutina → *Constancia* → tocar un día pasado. Si algo falla,
+   dímelo antes de enviar.
 
 **En App Store Connect** (https://appstoreconnect.apple.com → **Apps** → *Tasks: tareas y lugares*)
 
@@ -922,10 +916,10 @@ iOS enseña el texto de `NSCalendarsFullAccessUsageDescription`.
 5. **Texto promocional**: el de §3 (empieza por «Nuevo: tareas para «esta semana»…»).
 6. **Descripción**: la de §3, entera (la anterior se borra). **Palabras clave**: sin cambios.
 7. **Novedades de esta versión**: las de abajo.
-8. Baja hasta **Compilación** → **Añadir compilación** → la **1.5** más alta → **Listo**. Si pregunta por el
+8. Baja hasta **Compilación** → **Añadir compilación** → **1.5 (38)** → **Listo**. Si pregunta por el
    cifrado: *Ninguno de los algoritmos mencionados*.
 9. **Información para la revisión de la app** → **Notas**: borra lo que haya y pega las de §5 (cambian:
-   mantener pulsado en lugar del asa, los plazos, *Elegir en el mapa* y el calendario).
+   mantener pulsado en lugar del asa, los plazos y *Elegir en el mapa*).
 10. **Publicación de la versión**: *Publicar automáticamente esta versión*.
 11. Arriba a la derecha, **Guardar**.
 
@@ -953,8 +947,6 @@ iOS enseña el texto de `NSCalendarsFullAccessUsageDescription`.
 • Rutinas: corrige su historial tocando los días y repítelas una vez por semana de un toque.
 • Para mover una tarea, mantenla pulsada: ya no hay asa en el borde.
 • Lo tachado otros días se pliega en la Bandeja.
-• Tu calendario en la Agenda: los eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas, y lo siguiente en el widget. Solo se leen, en tu iPhone (Ajustes → Calendario).
-• Un + en cada sección para escribir directamente en ella.
 ```
 
 **What’s New in This Version** (la ficha en inglés)
@@ -965,6 +957,62 @@ iOS enseña el texto de `NSCalendarsFullAccessUsageDescription`.
 • Routines: fix their history by tapping the days, and repeat them once a week with one tap.
 • To move a task, touch and hold it: no more handle on the edge.
 • Tasks checked off on earlier days fold away in the Inbox.
-• Your calendar in the Agenda: iCloud, Google or Outlook events show up in your schedule next to your tasks, and what’s next in the widget. Only read, on your iPhone (Settings → Calendar).
+```
+
+### 9.8 La 1.6 (08/10/2026)
+
+Lo nuevo:
+
+- **El calendario del iPhone en la Agenda**: los eventos de iCloud, Google u Outlook (lo que tenga la app
+  Calendario) salen en el horario, junto a las tareas, con el color de su calendario; lo de todo el día,
+  encima; un punto en los días de la tira y del mes; tocar uno abre su ficha. El widget Hoy enseña lo
+  siguiente. En **Ajustes → Calendario**: conectarlo, elegir calendarios y el paso a paso para añadir
+  Google u Outlook. Lámina nueva en la bienvenida.
+- Un **+ en cada sección** para escribir directamente en ella.
+
+Se envía la compilación **1.6** que salga del CI (la primera, la 40). Las capturas y la descripción no
+cambian; las **notas para la revisión sí** (§5: el calendario y qué hacer si el iPhone de pruebas no
+tiene eventos). La privacidad **no cambia**: el calendario se lee en el propio iPhone (EventKit) y no se
+sube a ningún servidor, así que no es un dato que se recoja. Al pedir el permiso, iOS enseña el texto de
+`NSCalendarsFullAccessUsageDescription`.
+
+**Antes (en el iPhone, 10 minutos)**
+
+1. *TestFlight* → Tasks → **Actualizar** a la **1.6**. Al abrir sale *Hay cosas nuevas* con la lámina
+   *Calendario*: toca **Conectar mi calendario** y acepta el permiso.
+2. Mira la Agenda: tus eventos en el horario, lo de todo el día arriba. Toca uno (se abre su ficha;
+   ciérrala con *OK* o deslizando hacia abajo).
+3. **Ajustes → Calendario → Añadir Google u Outlook**: sigue el paso a paso con tu cuenta de Google (o la
+   que uses) y vuelve a Tasks: debería salir un aviso con los calendarios nuevos.
+4. Ajustes → Calendario → **Calendarios**: quita uno y comprueba que desaparece de la Agenda.
+5. Pon el widget **Hoy** mediano o grande con algún evento próximo. Y en la Agenda, el **+** de una
+   sección: que salga el teclado y que la tarea caiga en esa sección.
+
+Si algo falla, dímelo antes de enviar.
+
+**En App Store Connect** (https://appstoreconnect.apple.com → **Apps** → *Tasks: tareas y lugares*)
+
+6. Si la 1.5 sale como *Pendiente de publicación del desarrollador*: ábrela → **Publicar esta versión**.
+7. **Distribución** → **+** junto a *App para iOS* → `1.6` → **Crear** (copia la ficha de la 1.5).
+8. **Novedades de esta versión**: las de abajo (en español y, en *English (U.S.)*, las inglesas).
+9. **Compilación** → **Añadir compilación** → la **1.6** → **Listo** (cifrado: *Ninguno de los
+   algoritmos mencionados*).
+10. **Información para la revisión de la app** → **Notas**: borra lo que haya y pega las de §5.
+11. **Guardar** → **Añadir para revisión** → **Enviar a App Review**.
+12. Cuando la aprueben, dímelo: hay que subir `MARKETING_VERSION` a 1.7 (§9.1).
+
+**Novedades de esta versión**
+
+```
+• Tu calendario en la Agenda: los eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas, y lo siguiente en el widget. Solo se leen, en tu iPhone. Para conectarlo: Ajustes → Calendario.
+• ¿Usas Google u Outlook? En Ajustes → Calendario tienes el paso a paso para añadirlo.
+• Un + en cada sección para escribir una tarea directamente en ella.
+```
+
+**What’s New in This Version** (la ficha en inglés)
+
+```
+• Your calendar in the Agenda: iCloud, Google or Outlook events show up in your schedule next to your tasks, and what’s next in the widget. Only read, on your iPhone. To connect it: Settings → Calendar.
+• Use Google or Outlook? Settings → Calendar walks you through adding it.
 • A + on each section to add a task right into it.
 ```
