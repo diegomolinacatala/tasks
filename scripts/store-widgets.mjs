@@ -20,10 +20,20 @@ const circle = (size, { done = false, overdue = false } = {}) =>
     ? `<span style="flex:none;display:grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:${C.accent}"><svg width="${size * 0.5}" height="${size * 0.5}" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5" fill="none" stroke="#f7f2e8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
     : `<span style="flex:none;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${overdue ? 'rgba(158,59,46,.5)' : C.line2}"></span>`
 
-/** Filas de alto fijo, como `TaskList` en Swift. */
+/** Un evento del calendario del iPhone: una cinta con su color donde las tareas llevan el círculo (`EventRow`). */
+const ribbon = (size, color) =>
+  `<span style="flex:none;display:grid;place-items:center;width:${size}px"><span style="width:4px;height:${size}px;border-radius:2px;background:color-mix(in oklab, ${color} 60%, ${C.text3})"></span></span>`
+
+/** Filas de alto fijo, como `TaskList` en Swift. Con `event` (un color), un evento del calendario. */
 function rows(tasks, { circleSize, title, detailed }) {
   return tasks
     .map((task, index) => {
+      if (task.event)
+        return `<div style="flex:1;display:flex;align-items:center;gap:${detailed ? 10 : 8}px;${index ? `border-top:.5px solid ${C.line}` : ''}">
+        ${ribbon(circleSize, task.event)}
+        <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 ${title}px Inter;color:#5a544a">${task.title}</span>
+        ${detailed && task.detail ? `<span style="flex:none;font:400 ${title - 3}px Inter;color:${C.text3}">${task.detail}</span>` : ''}
+      </div>`
       const color = task.done ? C.text3 : task.overdue ? C.danger : C.text
       const size = title + (task.weight ?? 0) * 5
       const weight = (task.weight ?? 0) >= 0.5 ? 600 : 400

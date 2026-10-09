@@ -31,7 +31,10 @@ enum CalendarReader {
         }
     }
 
-    /** Eventos entre dos instantes, sin los calendarios ocultos ni los cancelados, en orden. */
+    /**
+     * Eventos entre dos instantes, sin los calendarios ocultos ni los cancelados, en orden. Tampoco los que
+     * son tareas de Tasks (`CalendarExport.swift`, llevan el enlace a la tarea): ya se ven como tareas.
+     */
     static func events(in store: EKEventStore, from: Date, to: Date, hidden: Set<String>) -> [EKEvent] {
         guard canRead, from < to else { return [] }
         let calendars = store.calendars(for: .event).filter { !hidden.contains($0.calendarIdentifier) }
@@ -39,7 +42,7 @@ enum CalendarReader {
         let predicate = store.predicateForEvents(withStart: from, end: to, calendars: calendars)
         return Array(
             store.events(matching: predicate)
-                .filter { $0.status != .canceled }
+                .filter { $0.status != .canceled && $0.url?.scheme != WidgetLink.scheme }
                 .sorted { $0.startDate < $1.startDate }
                 .prefix(maxEvents)
         )

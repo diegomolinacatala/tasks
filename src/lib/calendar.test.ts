@@ -39,7 +39,7 @@ const event = (id: string, start: number, end: number, extra: Partial<CalendarEv
 
 const at = (day: string, time: string) => toInstant(day, time)
 
-const calendar = (id: string, source: string, title = id): CalendarInfo => ({ id, title, color: '#34c759', source, kind: 'calendar' })
+const calendar = (id: string, source: string, title = id): CalendarInfo => ({ id, title, color: '#34c759', source, kind: 'calendar', writable: true, own: false })
 
 afterEach(() => setLanguage('es'))
 
@@ -103,28 +103,33 @@ describe('parseCalendars', () => {
   test('con id y nombre; el tipo desconocido es un calendario normal', () => {
     expect(
       parseCalendars([
-        { id: 'c1', title: 'Trabajo', color: '#1a73e8', source: 'Gmail', kind: 'calendar' },
+        { id: 'c1', title: 'Trabajo', color: '#1a73e8', source: 'Gmail', kind: 'calendar', writable: true },
         { id: 'c2', title: 'Festivos', color: '#ff3b30', source: 'Suscritos', kind: 'subscribed' },
-        { id: 'c3', title: 'Raro', source: 'iCloud', kind: 'otra-cosa' },
+        { id: 'c3', title: 'Raro', source: 'iCloud', kind: 'otra-cosa', own: true },
         { id: '', title: 'Sin id' },
         { id: 'c4' },
       ]),
     ).toEqual([
-      { id: 'c1', title: 'Trabajo', color: '#1a73e8', source: 'Gmail', kind: 'calendar' },
-      { id: 'c2', title: 'Festivos', color: '#ff3b30', source: 'Suscritos', kind: 'subscribed' },
-      { id: 'c3', title: 'Raro', color: FALLBACK_COLOR, source: 'iCloud', kind: 'calendar' },
+      { id: 'c1', title: 'Trabajo', color: '#1a73e8', source: 'Gmail', kind: 'calendar', writable: true, own: false },
+      { id: 'c2', title: 'Festivos', color: '#ff3b30', source: 'Suscritos', kind: 'subscribed', writable: false, own: false },
+      { id: 'c3', title: 'Raro', color: FALLBACK_COLOR, source: 'iCloud', kind: 'calendar', writable: false, own: true },
     ])
   })
 })
 
 describe('normalizeCalendarSettings', () => {
   test('lo de antes del calendario está apagado', () => {
-    expect(normalizeCalendarSettings(undefined)).toEqual({ enabled: false, hidden: [] })
+    expect(normalizeCalendarSettings(undefined)).toEqual({ enabled: false, hidden: [], export: null })
+    expect(normalizeCalendarSettings({ enabled: true, hidden: [] }).export).toBeNull()
   })
 
   test('ocultos: solo textos, sin repetir y con tope', () => {
     const many = Array.from({ length: MAX_HIDDEN + 5 }, (_, index) => `c${index}`)
-    expect(normalizeCalendarSettings({ enabled: true, hidden: ['a', 'a', 3, '', 'b'] })).toEqual({ enabled: true, hidden: ['a', 'b'] })
+    expect(normalizeCalendarSettings({ enabled: true, hidden: ['a', 'a', 3, '', 'b'], export: 'trabajo' })).toEqual({
+      enabled: true,
+      hidden: ['a', 'b'],
+      export: 'trabajo',
+    })
     expect(normalizeCalendarSettings({ enabled: 'sí', hidden: many }).hidden).toHaveLength(MAX_HIDDEN)
   })
 })
@@ -219,6 +224,7 @@ describe('addedCalendars', () => {
     const before = [calendar('casa', 'iCloud')]
     expect(addedCalendars(before, [...before, calendar('trabajo', 'Gmail')]).map((item) => item.id)).toEqual(['trabajo'])
     expect(addedCalendars([], before)).toEqual([])
+    expect(addedCalendars(before, [...before, { ...calendar('tasks', 'iCloud'), own: true }])).toEqual([])
   })
 })
 

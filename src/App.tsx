@@ -57,6 +57,13 @@ const PlaceTasksSheet = lazy(() =>
 )
 const NativeWidget = lazy(() => import('./components/widget/NativeWidget').then((module) => ({ default: module.NativeWidget })))
 const NativeInbox = lazy(() => import('./components/shell/NativeInbox').then((module) => ({ default: module.NativeInbox })))
+// Avisa de las versiones nuevas de la App Store (en local, con una de muestra si se pide).
+const UpdatePrompt = lazy(() => import('./components/update/UpdatePrompt').then((module) => ({ default: module.UpdatePrompt })))
+// Las tareas con hora al calendario del iPhone, si se ha elegido uno (en local, al de muestra).
+// Solo hace algo con el permiso del calendario.
+const CalendarExportSync = lazy(() =>
+  import('./components/calendar/CalendarExportSync').then((module) => ({ default: module.CalendarExportSync })),
+)
 // La bienvenida sale la primera vez, tras una actualización que traiga láminas nuevas y desde Ajustes.
 // Si su trozo no llegara a cargarse, la app se abre igual (y no se da por vista).
 const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
@@ -456,6 +463,17 @@ export function App() {
           <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
           {routineLoaded && <RoutineSheet routineId={routineId} today={routineToday} onClose={() => setRoutineId(null)} />}
         </Suspense>
+        {(isNative || import.meta.env.DEV) && (
+          <Suspense fallback={null}>
+            <UpdatePrompt paused={welcome !== null || suggesting} />
+          </Suspense>
+        )}
+        {/* También con el ajuste quitado: así borra lo que había añadido. */}
+        {showsCalendar && (
+          <Suspense fallback={null}>
+            <CalendarExportSync />
+          </Suspense>
+        )}
         {isNative && (
           <Suspense fallback={null}>
             <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />

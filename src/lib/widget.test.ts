@@ -237,7 +237,7 @@ describe('el calendario en el widget', () => {
   const far = { ...meeting, key: 'lejos', start: toInstant(addDays(TODAY, 20), '09:00'), end: toInstant(addDays(TODAY, 20), '10:00') }
 
   test('encendido, lleva qué calendarios oculta y los eventos de la semana', () => {
-    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'] } } }
+    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null } } }
     const snapshot = widgetSnapshot(state, NOW, [meeting, far])
     expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
     expect(snapshot.events).toEqual([{ id: meeting.key, title: 'Reunión', start: meeting.start, end: meeting.end, allDay: false, color: '#1a73e8' }])
@@ -248,7 +248,7 @@ describe('el calendario en el widget', () => {
   })
 
   test('encendido pero sin eventos a mano (Siri, avisos), el widget sigue leyendo el calendario', () => {
-    const on = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'] } } }
+    const on = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null } } }
     const snapshot = widgetSnapshot(on, NOW, null)
     expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
     expect(snapshot).not.toHaveProperty('events')

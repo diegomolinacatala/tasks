@@ -734,8 +734,15 @@ describe('el calendario del iPhone', () => {
 
   test('se enciende y se apaga sin tocar los ocultos', () => {
     const hidden = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['festivos'] })
-    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'] })
-    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'] })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null })
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'], export: null })
+  })
+
+  test('el calendario donde van las tareas se elige y se quita sin tocar lo demás', () => {
+    const chosen = reducer(on(emptyState()), { type: 'settings/calendar', export: 'trabajo' })
+    expect(chosen.settings.calendar).toEqual({ enabled: true, hidden: [], export: 'trabajo' })
+    expect(reducer(chosen, { type: 'settings/calendar', export: null }).settings.calendar.export).toBeNull()
+    expect(reducer(chosen, { type: 'settings/calendar', export: 'trabajo' })).toBe(chosen)
   })
 
   test('lo que no cambia nada devuelve el mismo estado', () => {
@@ -746,9 +753,9 @@ describe('el calendario del iPhone', () => {
 
   test('es de este dispositivo: importar una copia o borrarlo todo no lo cambia', () => {
     const state = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['trabajo'] })
-    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'] } } }
-    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'] })
-    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'] })
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'], export: 'x' } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null })
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null })
   })
 })
 

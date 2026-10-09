@@ -5,6 +5,7 @@ import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { IconArrowUpRight, IconChevronRight, IconDownload, IconFeather, IconTrash, IconUpload } from '../ui/Icons'
+import { useAvailableUpdate } from '../update/updateState'
 import { useToast } from '../ui/Toast'
 import { AppearancePicker } from './AppearancePicker'
 import { CalendarBlock } from './CalendarBlock'
@@ -46,6 +47,7 @@ const COPY = {
     supportPage: 'soporte.html',
     privacyPage: 'privacidad.html',
     version: (value: string) => `Versión ${value}`,
+    update: (value: string) => `Actualizar a la ${value}`,
   },
   en: {
     exportFailed: 'The backup couldn’t be exported.',
@@ -75,6 +77,7 @@ const COPY = {
     supportPage: 'support.html',
     privacyPage: 'privacy.html',
     version: (value: string) => `Version ${value}`,
+    update: (value: string) => `Update to ${value}`,
   },
 } as const
 
@@ -94,6 +97,7 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [confirming, setConfirming] = useState(false)
   const [version, setVersion] = useState<string | null>(null)
+  const update = useAvailableUpdate()
 
   useEffect(() => {
     if (!isNative) return
@@ -226,6 +230,15 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
             </div>
             <p className="group__note">{copy.suggestNote}</p>
           </>
+        )}
+        {update && (
+          <div className="group__card settings__update">
+            <a className="group__row" href={update.url} target="_blank" rel="noopener noreferrer">
+              <IconDownload size={18} />
+              <span className="group__label">{copy.update(update.version)}</span>
+              <IconArrowUpRight size={16} className="group__chevron" />
+            </a>
+          </div>
         )}
         <div className="group__card">
           <button type="button" className="group__row" onClick={onWelcome}>

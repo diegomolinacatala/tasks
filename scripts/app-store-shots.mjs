@@ -1,6 +1,6 @@
 // Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Las tres
 // primeras son las que salen en la búsqueda: dicen lo que hace la app distinta (escribir como se
-// habla, avisos por lugar, el día de un vistazo); la cuarta, los plazos ("esta semana", desde la 1.5). Cada una es la app real (build de producción, datos
+// habla, avisos por lugar y el calendario junto a las tareas, desde la 1.6); la cuarta, los plazos. Cada una es la app real (build de producción, datos
 // de ejemplo) dentro de un iPhone, con titular y un detalle que sale del marco (store-frames.mjs).
 //
 //   node scripts/app-store-shots.mjs          # → docs/capturas/01-escribir.png … (en español)
@@ -130,6 +130,17 @@ try {
   await open()
   screens.agenda = await capture()
 
+  // El calendario: el horario arriba, con los eventos (de colores) entre las tareas.
+  await evaluate(`(() => {
+    const head = [...document.querySelectorAll('.section__name')].find((node) => node.textContent === ${JSON.stringify(T.schedule)})
+    const scroller = head.closest('.app__scroll')
+    scroller.scrollTop += head.getBoundingClientRect().top - 84
+    return true
+  })()`)
+  await waitFor(`document.querySelector('.tl--event')`)
+  await sleep(900)
+  screens.calendar = await capture()
+
   // Plazos: lo que se ve en "Sin hora", con "Hasta el …" y "Último día" en sus filas.
   await evaluate(`(() => {
     const head = [...document.querySelectorAll('.section__name')].find((node) => node.textContent === ${JSON.stringify(T.untimed)})
@@ -219,7 +230,7 @@ try {
           notification({ icon, title: T.place, body: T.placeBody, when: T.now, style: 'left:22px;right:22px;top:640px' }),
       }),
     ],
-    ['03-agenda', frame({ ...c.agenda, content: device(screens.agenda, 262) })],
+    ['03-calendario', frame({ ...c.calendar, content: device(screens.calendar, 262) + calendarCard(T.calendarCard) })],
     [
       '04-plazos',
       frame({
@@ -270,6 +281,29 @@ try {
 } finally {
   session.close()
   await server.close()
+}
+
+/**
+ * Los calendarios que se ven en la Agenda (de cada cuenta) y adónde van las tareas con hora, como la lista
+ * de Ajustes → Calendario, flotando sobre la app.
+ */
+function calendarCard(card) {
+  const check = `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5" fill="none" stroke="#8a5a2c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+  const row = (name, account, color, last) =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${last ? '' : 'border-bottom:1px solid rgba(78,58,34,.1)'}">
+      <span style="flex:none;width:11px;height:11px;border-radius:50%;background:color-mix(in oklab, ${color} 60%, #736a5c)"></span>
+      <span style="flex:1;font:500 15px Inter;color:#1b2540">${name}</span>
+      <span style="font:400 13px Inter;color:#7d7466">${account}</span>
+      ${check}
+    </div>`
+  const rows = card.rows.map(({ name, account, color }, index) => row(name, account, color, index === card.rows.length - 1)).join('')
+  return `<div class="float" style="right:12px;top:716px;width:252px;transform:rotate(2deg);padding:12px 16px 10px;border-radius:22px;background:#fbf8f2;box-shadow:0 26px 56px rgba(20,27,46,.3),0 0 0 1px rgba(78,58,34,.1)">
+    <div style="font:600 11px Inter;letter-spacing:.14em;text-transform:uppercase;color:#8a5a2c">${card.title}</div>
+    ${rows}
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:9px 12px;border-radius:14px;background:rgba(138,90,44,.1);font:500 13px Inter;color:#8a5a2c;white-space:nowrap">
+      <span style="flex:1">${card.tasks}</span><span>→ ${card.tasksTo}</span>
+    </div>
+  </div>`
 }
 
 /** La tarea que sale de la frase, como tarjeta que flota sobre la app: lo que se gana, a la vista. */

@@ -1,5 +1,6 @@
 import { registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
+import type { ExportItem } from '../calendarExport'
 import type { PlaceNotification } from '../nativeSchedule'
 import type { MapPickRequest } from './mapPicker'
 
@@ -68,6 +69,12 @@ interface TasksNativePlugin {
   calendarEvents(options: { from: number; to: number; hidden: string[] }): Promise<{ events: unknown }>
   /** Abre un evento con la ficha de Calendario de iOS (se puede editar ahí). */
   showEvent(options: { id: string; start: number }): Promise<void>
+  /** Crea (o reutiliza) el calendario «Tasks» para las tareas, en iCloud si lo hay. Llega sin validar. */
+  createTasksCalendar(options: { title: string }): Promise<{ id: unknown }>
+  /** Las tareas con hora, como eventos de `calendarId` (`CalendarExport.swift`); `null` las quita todas. */
+  syncTaskEvents(options: { calendarId: string | null; events: ExportItem[] }): Promise<{ created: number; updated: number; removed: number }>
+  /** La versión publicada en la App Store (búsqueda de iTunes) y la instalada. Llega sin validar. */
+  storeVersion(options: { country: string; lang: string }): Promise<unknown>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
   /** El calendario cambió (un evento nuevo, una cuenta añadida en Ajustes, algo editado en la ficha). */

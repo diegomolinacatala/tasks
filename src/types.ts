@@ -143,6 +143,11 @@ export interface CalendarSettings {
   enabled: boolean
   /** Calendarios que no se enseñan (ids de EventKit). */
   hidden: string[]
+  /**
+   * Calendario donde se añaden las tareas con hora (`lib/calendarExport.ts`): el «Tasks» que crea la app o
+   * el que se elija. `null` = no se añaden.
+   */
+  export: string | null
 }
 
 export interface Settings {

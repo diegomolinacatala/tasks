@@ -7,6 +7,7 @@ export const STORE_COPY = {
     tabs: { inbox: 'Bandeja', places: 'Lugares' },
     sizing: 'Tamaño según importancia',
     untimed: 'Sin hora',
+    schedule: 'Horario',
     phrase: 'Cena con Carlota el viernes a las 9 de la noche',
     // La de los plazos: la tarjeta enseña lo que entiende la barra.
     periodTitle: 'Llamar al banco',
@@ -14,6 +15,17 @@ export const STORE_COPY = {
     // La de la ficha lleva tramo: así la regla de la duración sale marcada.
     detailsPhrase: 'Cena con Carlota el viernes de 9 a 11 de la noche',
     resultTitle: 'Cena con Carlota',
+    // La tarjeta de la del calendario: los calendarios que se ven y adónde van las tareas.
+    calendarCard: {
+      title: 'Calendarios',
+      rows: [
+        { name: 'Trabajo', account: 'Google', color: '#1a73e8' },
+        { name: 'Casa', account: 'iCloud', color: '#34c759' },
+        { name: 'Equipo', account: 'Outlook', color: '#0a64d8' },
+      ],
+      tasks: 'Tus tareas con hora',
+      tasksTo: 'Tasks',
+    },
     atTime: 'A la hora',
     sayIt: 'o díctalo',
     now: 'ahora',
@@ -26,8 +38,8 @@ export const STORE_COPY = {
     askActions: ['Sí, hecha', 'Todavía no'],
     widgets: {
       today: [
+        { title: 'Reunión de equipo', event: '#1a73e8', detail: '11:00' },
         { title: 'Pagar la factura de la luz', overdue: true, detail: 'Ayer', weight: 0.3 },
-        { title: 'Comprar pan' },
         { title: 'Preparar la presentación', weight: 0.6 },
         { title: 'Enviar el presupuesto', detail: '12:00' },
       ],
@@ -48,7 +60,11 @@ export const STORE_COPY = {
         sub: '«Cena con Carlota el viernes a las 9»: el día, la hora y el aviso salen solos.',
       },
       places: { kicker: 'Avisos por lugar', title: 'Te avisa *donde toca*.', sub: '«Al pasar por Mercadona» y salta al llegar, no antes.' },
-      agenda: { kicker: 'Agenda', title: 'Tu día, *de un vistazo*.', sub: 'Lo que tiene hora, en su sitio, y el tiempo libre entre medias.' },
+      calendar: {
+        kicker: 'Calendario',
+        title: 'Tu calendario, *junto a tus tareas*.',
+        sub: 'Google, iCloud u Outlook en tu día. Y tus tareas con hora, en el calendario que elijas.',
+      },
       period: {
         kicker: 'Plazos',
         title: 'Para esta semana, *no para un día*.',
@@ -67,11 +83,22 @@ export const STORE_COPY = {
     tabs: { inbox: 'Inbox', places: 'Places' },
     sizing: 'Size by importance',
     untimed: 'No time',
+    schedule: 'Schedule',
     phrase: 'Dinner with Carlota on Friday at 9pm',
     periodTitle: 'Call the bank',
     periodChips: ['This week', 'Every day until done'],
     detailsPhrase: 'Dinner with Carlota on Friday from 9 to 11pm',
     resultTitle: 'Dinner with Carlota',
+    calendarCard: {
+      title: 'Calendars',
+      rows: [
+        { name: 'Work', account: 'Google', color: '#1a73e8' },
+        { name: 'Home', account: 'iCloud', color: '#34c759' },
+        { name: 'Team', account: 'Outlook', color: '#0a64d8' },
+      ],
+      tasks: 'Your timed tasks',
+      tasksTo: 'Tasks',
+    },
     atTime: 'On time',
     sayIt: 'or say it',
     now: 'now',
@@ -84,8 +111,8 @@ export const STORE_COPY = {
     askActions: ['Yes, done', 'Not yet'],
     widgets: {
       today: [
+        { title: 'Team meeting', event: '#1a73e8', detail: '11:00 AM' },
         { title: 'Pay the electricity bill', overdue: true, detail: 'Yesterday', weight: 0.3 },
-        { title: 'Buy bread' },
         { title: 'Prepare the presentation', weight: 0.6 },
         { title: 'Send the quote', detail: '12:00 PM' },
       ],
@@ -110,7 +137,11 @@ export const STORE_COPY = {
         title: 'Reminds you *right there*.',
         sub: '“When I get to the supermarket” pops up as you arrive, not before.',
       },
-      agenda: { kicker: 'Agenda', title: 'Your day *at a glance*.', sub: 'Timed things in their place, with your free time in between.' },
+      calendar: {
+        kicker: 'Calendar',
+        title: 'Your calendar, *next to your tasks*.',
+        sub: 'Google, iCloud or Outlook in your day. And your timed tasks in the calendar you choose.',
+      },
       period: {
         kicker: 'Time frames',
         title: 'This week, *not one day*.',

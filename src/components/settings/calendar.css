@@ -377,3 +377,37 @@
     animation: none;
   }
 }
+
+/* ── Las tareas en el calendario ──────────────────────────────────────── */
+
+.calexport__value {
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.calexport__main {
+  margin-top: var(--sp-4);
+}
+
+.calexport__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--text-3);
+}
+
+.calexport__source {
+  margin: var(--sp-3) 2px var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+/* "No añadirlas": un círculo vacío, sin color */
+.calpick__dot--none {
+  border: 2px solid var(--line-2);
+  background: none;
+}

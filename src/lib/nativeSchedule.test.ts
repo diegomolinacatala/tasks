@@ -69,14 +69,14 @@ describe('nativePlan', () => {
   })
 
   test('el resumen diario no lleva botones de tarea', () => {
-    const state = { ...stateWith([task({ id: 'a', date: '2026-09-12' })]), settings: { digest: { enabled: true, time: '08:30' }, calendar: { enabled: false, hidden: [] }, dictation: false, theme: 'auto' as const, language: 'es' as const, welcome: 0, dayStart: '00:00' } }
+    const state = { ...stateWith([task({ id: 'a', date: '2026-09-12' })]), settings: { digest: { enabled: true, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null }, dictation: false, theme: 'auto' as const, language: 'es' as const, welcome: 0, dayStart: '00:00' } }
     const [digest] = nativePlan(state, NOW).timed
     expect(digest).toMatchObject({ extra: { taskId: '', entryId: 'digest-20260912' } })
     expect(digest!.category).toBeUndefined()
   })
 
   test('con algo atrasado, el resumen ofrece pasarlo a hoy', () => {
-    const state = { ...stateWith([task({ id: 'a' })]), settings: { digest: { enabled: true, time: '08:30' }, calendar: { enabled: false, hidden: [] }, dictation: false, theme: 'auto' as const, language: 'es' as const, welcome: 0, dayStart: '00:00' } }
+    const state = { ...stateWith([task({ id: 'a' })]), settings: { digest: { enabled: true, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null }, dictation: false, theme: 'auto' as const, language: 'es' as const, welcome: 0, dayStart: '00:00' } }
     const [digest] = nativePlan(state, NOW).timed
     expect(digest).toMatchObject({ extra: { entryId: 'digest-20260912' }, category: 'digest-overdue' })
   })

@@ -247,10 +247,27 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     el calendario del widget, el widget no se enteraba de cambios hechos en otro dispositivo, y la PWA cargaba
     la bienvenida solo para cerrarla). El Swift solo se puede compilar en
     el CI y probar en el iPhone.
+- **Tareas al calendario, aviso de versión nueva y ficha de la 1.6** (10/10/2026, en `capacitor`, la 1.6),
+  pedido por el usuario (su padre quiere sus tareas en el calendario del trabajo, que ve su secretaria;
+  sus amigos no se enteraban de las actualizaciones):
+  - **Tus tareas con hora en el calendario que elijas** (Ajustes → Calendario → *Añadir mis tareas*): el
+    «Tasks» que crea la app (recomendado) o uno tuyo que se pueda escribir. Al tachar, borrar o quitar la
+    hora, el evento se borra. Ver "Calendario del iPhone".
+  - **Aviso de versión nueva** (`UpdatePrompt`): al abrir la app, si la App Store tiene una más nueva, una
+    ficha con sus novedades y **Actualizar**. Ver "Aviso de versión nueva".
+  - **Capturas nuevas** (la tercera, `03-calendario`; el widget de la sexta lleva un evento) y descripción,
+    texto promocional y notas para la revisión con el calendario (`docs/app-store.md` §3, §3.1, §5 y §9.8).
+  - Probado con Edge sin ventana y el calendario de muestra: elegir «Tasks», lo que se sincroniza (7
+    tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
+    tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
 
 **Pendiente, en este orden**
 
-0. **Probar la 1.6 en el iPhone** (`docs/app-store.md` §9.8) y enviarla. El calendario: Ajustes → Calendario →
+0. **Probar la 1.6 en el iPhone** y enviarla (`docs/app-store.md` §9.8; al usuario, los pasos en el chat,
+   no en documentos). *Añadir mis tareas* → «Tasks»: que aparezca el calendario «Tasks» en la app
+   Calendario con las tareas con hora, que tachar una borre su evento y que no salgan dos veces en la
+   Agenda; elegir otro calendario (los eventos se mudan) y "No añadirlas" (se borran). El aviso de versión
+   solo se puede ver cuando la 1.6 esté publicada y salga la 1.7. El calendario: Ajustes → Calendario →
    conectar (sale el permiso de iOS), que los eventos salgan en el horario y los de todo el día arriba,
    tocar uno (se abre la ficha de Calendario y se puede editar; al cerrarla, la Agenda se pone al día),
    ocultar un calendario, añadir una cuenta de Google siguiendo el paso a paso y volver (aviso de
@@ -405,6 +422,8 @@ src/
 │   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
 │   ├── timeline.ts       # horario de un día: lo que tiene hora (también los eventos), tiempo libre y "ahora"
 │   ├── calendar.ts       # calendario del iPhone: validar lo de EventKit, repartirlo por días, ventana, widget
+│   ├── calendarExport.ts # las tareas con hora que van al calendario elegido
+│   ├── update.ts         # aviso de versión nueva: comparar versiones, novedades, si se ofrece
 │   ├── theme.ts          # apariencia: claro, oscuro o del sistema; cambio con un círculo de tinta
 │   ├── mapFrame.ts       # dónde van las chinchetas en el plano dibujado (sin Apple Maps)
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
@@ -440,16 +459,20 @@ src/
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
     ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, AllDayEvents, useDayBoard), InboxView (+ DayDock)
-    ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`)
+    ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`);
+    │                     # CalendarExportSync: las tareas con hora al calendario elegido
+    ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
     ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, sugerencias y calendario
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases
-    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, CalendarBlock (+ CalendarPicker, CalendarGuide, Switch), dictado
+    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, CalendarBlock (+ CalendarPicker,
+    │                     # CalendarExportSheet, CalendarGuide, Switch), dictado
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
-ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift, Info.plist…
+ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
+                          # CalendarExport.swift, AppStoreVersion.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
 ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText, CalendarReader y
                           # MoveOverdueWidgetIntent se compilan también en la app
@@ -696,9 +719,10 @@ cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir
 ### Calendario del iPhone
 
 Lo que hay en la app Calendario del iPhone (iCloud, Google, Outlook… las cuentas de Ajustes → Apps →
-Calendario) sale en la Agenda, **solo para leer**: Tasks no es un calendario, pero enseña el tuyo. Con
-EventKit, en el propio iPhone: los eventos no se guardan en el estado, ni en las copias, ni salen del
-dispositivo. Pensado para que no abrume: nada de pestañas ni vistas nuevas.
+Calendario) sale en la Agenda: Tasks no es un calendario, pero enseña el tuyo. Y, si se elige, las tareas
+con hora van a uno de ellos (ver **Las tareas al calendario**, abajo). Con EventKit, en el propio iPhone:
+los eventos no se guardan en el estado, ni en las copias, ni se suben a ningún servidor. Pensado para que
+no abrume: nada de pestañas ni vistas nuevas.
 
 - **Dónde se ve**: en el `Horario`, entre las tareas, con una cápsula rellena del color de su calendario
   (`.cal-tone`: el color de iOS a medias con la tinta tenue, para que no chille) y el título un punto por
@@ -735,8 +759,43 @@ dispositivo. Pensado para que no abrume: nada de pestañas ni vistas nuevas.
   siguiente evento de hoy encima de las tareas; grande: dos; bloqueo rectangular: si sobra una línea.
   Entradas al empezar y acabar cada evento de hoy y mañana y, con calendario, se vuelve a leer cada media
   hora (`.after`): lo que se crea en otro dispositivo no avisa al widget.
+- **Las tareas al calendario** (`lib/calendarExport.ts`, `CalendarExport.swift`, `CalendarExportSync`):
+  `Settings.calendar.export` es el calendario elegido en Ajustes → Calendario → *Añadir mis tareas*
+  (`CalendarExportSheet`): **No añadirlas**, **Calendario «Tasks»** (lo crea la app la primera vez, en
+  iCloud si lo hay: `createTasksCalendar`; recomendado) o uno tuyo que se pueda escribir (el del trabajo,
+  para que lo vea quien lo comparte). Van las pendientes con día y hora (una con plazo, en el día en que
+  se ve; sin duración, media hora; lo atrasado, hasta 60 días). Tras cada cambio, la web manda la lista
+  entera (`exportItems`, 800 ms después del último) y Swift crea, cambia o borra lo justo: guarda en
+  `UserDefaults` qué evento es de cada tarea y cómo era al escribirlo, así que lo que se toque a mano en
+  Calendario se respeta mientras la tarea no cambie (y uno borrado allí vuelve si la tarea sigue
+  pendiente). Tachar, borrar o quitar la hora borra el evento; cambiar de calendario los mueve; quitar el
+  ajuste los borra todos (por eso `CalendarExportSync` está siempre montado). Solo en un sentido: lo que se
+  cambia en Calendario no vuelve a Tasks. Cada evento lleva la URL de su tarea (`<esquema>://task/<id>`):
+  la Agenda y el widget no lo enseñan (ya se ve como tarea; `CalendarReader.events` lo quita) y desde
+  Calendario se abre la tarea. El «Tasks» no sale entre tus calendarios (`own`) ni avisa de "calendario
+  nuevo". Lo que se sincroniza en local se ve en `demoSynced` (`calendarDemo.ts`).
 - **En local** (`npm run dev`) y en las capturas, `calendarDemo.ts`: tres calendarios (Google, iCloud,
-  suscritos) y eventos que se repiten, para verlo sin iPhone. En la PWA publicada no hay calendario.
+  suscritos) y eventos que se repiten, para verlo sin iPhone; en las capturas, unos fijos junto a las
+  tareas de muestra (la reunión, en curso a las 11:20). En la PWA publicada no hay calendario.
+
+### Aviso de versión nueva
+
+Para que quien usa la app (los amigos del usuario) se entere de que hay una versión nueva sin tener que
+decírselo. Solo en el iPhone: la PWA se actualiza sola.
+
+- `AppStoreVersion.swift` (`TasksNative.storeVersion`) pide la búsqueda pública de la App Store
+  (`itunes.apple.com/lookup?id=6812776586`, con la tienda del país y las novedades en el idioma de la app;
+  desde Swift porque la web no puede por CORS) y devuelve la versión publicada, sus novedades y la
+  instalada. `lib/update.ts` compara (`compareVersions`: 1.10 > 1.9) y decide (`offeredUpdate`).
+- `UpdatePrompt` (trozo aparte) mira 3 s después de abrir y al volver a la app, como mucho cada seis
+  horas. Si la publicada es más nueva, sube una ficha: el número en un sello, "Tasks 1.7 ya está aquí", las
+  novedades tal como se escribieron en App Store Connect (*Novedades de esta versión*: una por línea) y
+  **Actualizar**, que abre la página de la app en la App Store (iOS no deja actualizar desde dentro).
+  **Ahora no** (o bajar la ficha) la aparta para esa versión (`localStorage`); en Ajustes → Tasks queda
+  la fila **Actualizar a la 1.7** hasta que se actualiza. Espera si está la bienvenida o el modo
+  sugerencia. Desde TestFlight (versión más alta que la publicada) no sale.
+- Apple tarda unas horas en reflejar una versión recién publicada en la búsqueda.
+- En local: `localStorage.setItem('tasks:demo-update', '1.7')` y recargar.
 
 ### Sugerencias
 
@@ -1464,9 +1523,10 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
 - La duración existe para poder preguntar al acabar, no para planificar el día: no hay bloques de
   tiempo ni se avisa de solapes. Lo que no se dice no dura.
-- Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se leen y se
-  enseñan en la Agenda, nunca se crean ni se cambian desde la app (para eso, su ficha de Calendario) ni se
-  guardan. Sin cuentas de Google ni Microsoft: lo que no esté en el Calendario del iPhone se añade allí.
+- Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se enseñan en la
+  Agenda y no se cambian desde la app (para eso, su ficha de Calendario) ni se guardan. Lo único que la app
+  escribe son tus tareas con hora, si lo eliges, y en un solo sentido. Sin cuentas de Google ni Microsoft:
+  lo que no esté en el Calendario del iPhone se añade allí.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
   Atajos). Lo único que va solo con hoy es una tarea con plazo, porque el plazo lo puso el usuario.
 - Un plazo no es una rutina ni una tarea recurrente: se hace una vez. "De lunes a viernes" es rutina;

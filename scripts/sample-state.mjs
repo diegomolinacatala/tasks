@@ -144,7 +144,7 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     sections: [{ id: 'trabajo', name: w.trabajo, order: 0, collapsed: false }],
     places: [place(w, 'mercadona', 39.4699, -0.3763, 150), place(w, 'casa', 39.4632, -0.3589, 100, w.casaOtros), place(w, 'uni', 39.4808, -0.3443, 300)],
     routines: [
@@ -155,7 +155,15 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
     ],
     collapsed: { overdue: false, backlog: false, routines: false },
     // La bienvenida, dada por vista (de cualquier versión futura): que no tape las capturas.
-    settings: { digest: { enabled: true, time: '08:30' }, dictation: false, theme, language, welcome: 999 },
+    // El calendario conectado: en las capturas sale el de muestra (`calendarDemo.ts`) junto a las tareas.
+    settings: {
+      digest: { enabled: true, time: '08:30' },
+      calendar: { enabled: true, hidden: [], export: null },
+      dictation: false,
+      theme,
+      language,
+      welcome: 999,
+    },
     tasks: [
       task('luz', w.luz, iso(-1), { importance: 4 }),
       task('jorge', w.jorge, today, { time: '09:30', duration: 60, reminders: atTime('r1'), order: 0, done: true, completedAt: Date.now() }),

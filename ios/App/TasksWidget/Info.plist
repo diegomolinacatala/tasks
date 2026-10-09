@@ -26,9 +26,9 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Para enseñar en el widget los eventos de tu calendario. Solo se leen, en este iPhone.</string>
+	<string>Para enseñar en el widget los eventos de tu calendario. Todo queda en tu iPhone.</string>
 	<key>NSCalendarsUsageDescription</key>
-	<string>Para enseñar en el widget los eventos de tu calendario. Solo se leen, en este iPhone.</string>
+	<string>Para enseñar en el widget los eventos de tu calendario. Todo queda en tu iPhone.</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

@@ -391,9 +391,13 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'settings/calendar': {
       const current = state.settings.calendar
-      const calendar = normalizeCalendarSettings({ enabled: action.enabled ?? current.enabled, hidden: action.hidden ?? current.hidden })
+      const calendar = normalizeCalendarSettings({
+        enabled: action.enabled ?? current.enabled,
+        hidden: action.hidden ?? current.hidden,
+        export: action.export === undefined ? current.export : action.export,
+      })
       const sameHidden = calendar.hidden.length === current.hidden.length && calendar.hidden.every((id, index) => id === current.hidden[index])
-      if (calendar.enabled === current.enabled && sameHidden) return state
+      if (calendar.enabled === current.enabled && sameHidden && calendar.export === current.export) return state
       return { ...state, settings: { ...state.settings, calendar } }
     }
 

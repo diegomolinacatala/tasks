@@ -23,6 +23,15 @@ export const nativeSource: CalendarSource = {
     const { TasksNative } = await import('./native')
     await TasksNative.showEvent({ id: event.id, start: event.start })
   },
+  createOwn: async (title) => {
+    const { TasksNative } = await import('./native')
+    const { id } = await TasksNative.createTasksCalendar({ title })
+    return typeof id === 'string' && id ? id : null
+  },
+  syncTasks: async (calendarId, items) => {
+    const { TasksNative } = await import('./native')
+    await TasksNative.syncTaskEvents({ calendarId, events: [...items] })
+  },
   onChange: (listener) => {
     let removed = false
     let remove: (() => void) | null = null

@@ -1,4 +1,5 @@
 import type { CalendarEvent, CalendarInfo, CalendarStatus } from '../calendar'
+import type { ExportItem } from '../calendarExport'
 import { isNative } from './index'
 
 /**
@@ -18,6 +19,13 @@ export interface CalendarSource {
   open(event: CalendarEvent): Promise<void>
   /** Avisa cuando algo cambia en el calendario. Devuelve cómo dejar de escuchar. */
   onChange(listener: () => void): () => void
+  /** Crea (o reutiliza) el calendario «Tasks» para las tareas. Su id, o `null` si no se pudo. */
+  createOwn(title: string): Promise<string | null>
+  /**
+   * Deja en `calendarId` un evento por tarea de `items` (y quita los que sobran, también de otro
+   * calendario si se cambió). Con `calendarId` en `null`, los quita todos.
+   */
+  syncTasks(calendarId: string | null, items: readonly ExportItem[]): Promise<void>
 }
 
 let source: Promise<CalendarSource | null> | null = null

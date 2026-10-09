@@ -258,7 +258,7 @@ recordatorios,pendientes,lista,rutinas,hábitos,ubicación,dictado,voz,siri,agen
 (98 caracteres. Hasta la 1.1: `recordatorios,pendientes,lista,to-do,ubicación,lugar,dictado,voz,siri,agenda,semana,avisos`;
 "lugar" y "avisos" ya están en el nombre y el subtítulo, que Apple también indexa.)
 
-**Descripción** (desde la 1.5; ordenada como las capturas: primero lo que la hace distinta)
+**Descripción** (desde la 1.6; ordenada como las capturas: primero lo que la hace distinta)
 
 ```
 Apunta tus tareas como las dirías y olvídate de configurar nada. Sin cuentas: todo se queda en tu iPhone.
@@ -271,8 +271,8 @@ Una frase basta: el día, la hora, la duración y los avisos salen solos. Toca e
 TE AVISA DONDE TOCA
 Guarda tus sitios buscándolos en Mapas, con tu ubicación actual o señalándolos en el mapa. Llámalos como quieras —«casa», «el piso»— y te entiende igual al escribir o al dictar. El iPhone te avisa al llegar o al salir, aunque la app esté cerrada, y lo repite cada vez hasta que la taches.
 
-TU DÍA, DE UN VISTAZO
-La agenda pone en un horario lo que tiene hora, con el tiempo libre entre medias, y en su lista lo demás. Tira de la semana hacia abajo y se abre el mes entero para saltar a cualquier fecha.
+TU CALENDARIO, JUNTO A TUS TAREAS
+Tus eventos de Google, iCloud u Outlook salen en la agenda, entre tus tareas, con su color y el tiempo libre entre medias. Y si quieres, tus tareas con hora pasan al calendario que elijas —uno propio de Tasks o el del trabajo, para que lo vea quien lo comparte— y se quitan solas al tacharlas. Tira de la semana hacia abajo y se abre el mes entero.
 
 PARA ESTA SEMANA, NO PARA UN DÍA
 «Llamar al banco esta semana», «entregar el informe hasta el viernes»: la tarea sale cada día hasta que la haces y no se queda atrasada antes de tiempo. Se acabó pasarla a mañana una y otra vez.
@@ -305,7 +305,7 @@ Sin registro, sin publicidad, sin analítica. Tus tareas, tus lugares y tu ubica
 **Texto promocional** (170 caracteres; se cambia sin versión nueva)
 
 ```
-Nuevo: tareas para «esta semana» que salen cada día hasta hacerlas, lugares que señalas en el mapa y llamas como quieras, e historial de rutinas que puedes corregir.
+Nuevo: tu calendario de Google, iCloud u Outlook junto a tus tareas, y tus tareas con hora en el calendario que elijas, también el del trabajo.
 ```
 
 ### 3.1 Ficha en inglés (desde la 1.4)
@@ -348,8 +348,8 @@ One sentence is enough: the day, the time, how long it lasts and the reminders f
 REMINDS YOU RIGHT THERE
 Save your places by searching Maps, with your current location or by pinning them on the map. Call them whatever you like —“home”, “my flat”— and it understands you when you type or speak. Your iPhone reminds you when you arrive or leave, even with the app closed, every time until you check it off.
 
-YOUR DAY AT A GLANCE
-The agenda puts everything with a time on a schedule, with your free time in between, and everything else in its list. Pull the week down to open the whole month and jump to any date.
+YOUR CALENDAR, NEXT TO YOUR TASKS
+Your Google, iCloud or Outlook events show up in the agenda, among your tasks, with their color and your free time in between. And if you like, your timed tasks go to the calendar you choose —a Tasks one or your work calendar, so whoever shares it sees them— and disappear when you check them off. Pull the week down to open the whole month.
 
 THIS WEEK, NOT ONE DAY
 “Call the bank this week”, “hand in the report by Friday”: the task shows up every day until you do it and never turns overdue too soon. No more pushing it to tomorrow over and over.
@@ -382,10 +382,10 @@ No sign-up, no ads, no analytics. Your tasks, places and location stay on your i
 **Promotional Text** (opcional)
 
 ```
-New: tasks for “this week” that show up every day until done, places you pin on the map and name your way, and a routine history you can fix.
+New: your Google, iCloud or Outlook calendar next to your tasks, and your timed tasks in the calendar you choose, your work one too.
 ```
 
-**Capturas** (desde la 1.5): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos
+**Capturas** (desde la 1.6): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos
 juegos de diez, a ese tamaño exacto y numerados en el orden en que se suben: en español en
 [`docs/capturas/`](capturas/) y en inglés en [`docs/capturas/en/`](capturas/en/). Las tres primeras son
 las que salen en la búsqueda, así que dicen lo que hace la app distinta, no la lista de funciones:
@@ -393,7 +393,8 @@ las que salen en la búsqueda, así que dicen lo que hace la app distinta, no la
 1. `01-escribir`: «Escríbelo como lo dices.» La frase con Carlota en la barra y la tarea que sale de
    ella, flotando, con su día y su aviso; y «o díctalo».
 2. `02-lugares`: «Te avisa donde toca.» El mapa de Lugares y el aviso de Mercadona al llegar.
-3. `03-agenda`: «Tu día, de un vistazo.» El horario con el tiempo libre.
+3. `03-calendario`: «Tu calendario, junto a tus tareas.» (desde la 1.6) El horario con los eventos de
+   colores entre las tareas y, flotando, los calendarios de cada cuenta y adónde van las tareas.
 4. `04-plazos`: «Para esta semana, no para un día.» (desde la 1.5) «Sin hora» con «Hasta el viernes» y
    «Último día» en sus filas, y la tarea que sale de «llamar al banco esta semana», flotando.
 5. `05-rutinas`: «Hábitos de un toque.» Las rutinas con su racha y la pantalla de bloqueo.
@@ -404,7 +405,8 @@ las que salen en la búsqueda, así que dicen lo que hace la app distinta, no la
 10. `10-privada`: «Tuyas. Solo tuyas.» La app en modo oscuro y lo que no hace: cuentas, anuncios.
 
 (Hasta la 1.4, la octava era `08-mes`, «De la semana al mes»: salió para hacer sitio a los plazos, que
-venden más; el mes sigue en la descripción.)
+venden más; el mes sigue en la descripción. Hasta la 1.5, la tercera era `03-agenda`, «Tu día, de un
+vistazo»: el calendario la sustituye enseñando lo mismo y más.)
 
 Los titulares son cortos para que se lean en la miniatura de la búsqueda; los textos de las dos
 versiones están en `scripts/store-copy.mjs`. Los emojis son los de Windows (se generan en el portátil):
@@ -445,7 +447,7 @@ sistema), así que TestFlight no pregunta por la exportación.
 ## 5. Notas para la revisión de Apple
 
 En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
-Notas** (máximo 4000 caracteres; estas son unas 3930 desde la 1.5, que añadió mantener pulsado, los plazos, el
+Notas** (máximo 4000 caracteres; estas son unas 3980 desde la 1.6, que añadió mantener pulsado, los plazos, el
 mapa y el calendario del iPhone; van justas: para añadir algo hay que quitar otra cosa). Son lo mismo que pidió Apple en el rechazo del
 22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
 
@@ -466,13 +468,13 @@ HOW TO TEST
 - Location reminders: Lugares → search a place (Apple Maps), use the current location ("while using" only) or "Elegir en el mapa" (pick it on a full-screen map). Then a task → Recordatorios → Añadir → the place. iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
 - Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve" (dinner today at 9).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added without opening the app. Same actions in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy").
-- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" asks for full Calendar access. Events from the iPhone's Calendar app then show read-only in the Agenda and the "Hoy" widget (tap one; with none, add one in Calendar). Read on the device only, never uploaded.
+- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" asks for full Calendar access. Events from the iPhone's Calendar app then show in the Agenda and the "Hoy" widget (with none, add one in Calendar). Optional: "Añadir mis tareas" adds timed tasks as events to a calendar the user picks. All on device.
 
 EXTERNAL SERVICES
 - Our own backend on Cloudflare Workers, used for dictation. It receives the audio (from Siri, only the text) and the device's local date and time; Whisper transcribes it and NVIDIA Nemotron interprets the text, both on Cloudflare Workers AI. Nothing is stored or logged, nor used to train models. It is sent only after that notice and microphone access (off in Ajustes → Dictado); otherwise Siri input is parsed on the device.
 - The backend keeps only a random device ID and a hash of its token, for rate limiting.
 - Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send (message, optional screenshot, app version); only the developer reads them.
-- Apple Maps (MapKit search and map), EventKit (read-only), iOS local notifications and region monitoring.
+- Apple Maps (MapKit), EventKit, iOS local notifications and region monitoring. iTunes Search API, to offer updates.
 - No analytics, advertising, tracking, third-party SDKs, payments or authentication services.
 
 REGIONAL DIFFERENCES
@@ -959,60 +961,41 @@ notas para la revisión. La privacidad no cambió: el mapa es de Apple y no se r
 • Tasks checked off on earlier days fold away in the Inbox.
 ```
 
-### 9.8 La 1.6 (08/10/2026)
+### 9.8 La 1.6 (10/10/2026)
 
 Lo nuevo:
 
-- **El calendario del iPhone en la Agenda**: los eventos de iCloud, Google u Outlook (lo que tenga la app
-  Calendario) salen en el horario, junto a las tareas, con el color de su calendario; lo de todo el día,
-  encima; un punto en los días de la tira y del mes; tocar uno abre su ficha. El widget Hoy enseña lo
-  siguiente. En **Ajustes → Calendario**: conectarlo, elegir calendarios y el paso a paso para añadir
-  Google u Outlook. Lámina nueva en la bienvenida.
+- **El calendario del iPhone en la Agenda**: los eventos de iCloud, Google u Outlook salen en el horario,
+  con el color de su calendario; lo de todo el día, encima; un punto en los días que tienen algo; el
+  widget Hoy enseña lo siguiente. En Ajustes → Calendario, el paso a paso para añadir Google u Outlook.
+- **Tus tareas con hora, en el calendario que elijas** (Ajustes → Calendario → *Añadir mis tareas*): en
+  uno propio, «Tasks», o en uno tuyo, como el del trabajo para que lo vea quien lo comparte. Al tachar
+  una tarea, su evento se borra.
 - Un **+ en cada sección** para escribir directamente en ella.
+- **Aviso de versión nueva**: al abrir la app, si hay una más nueva en la App Store, sale con sus
+  novedades y un botón que lleva a actualizarla.
 
-Se envía la compilación **1.6** que salga del CI (la primera, la 40). Las capturas y la descripción no
-cambian; las **notas para la revisión sí** (§5: el calendario y qué hacer si el iPhone de pruebas no
-tiene eventos). La privacidad **no cambia**: el calendario se lee en el propio iPhone (EventKit) y no se
-sube a ningún servidor, así que no es un dato que se recoja. Al pedir el permiso, iOS enseña el texto de
-`NSCalendarsFullAccessUsageDescription`.
-
-**Antes (en el iPhone, 10 minutos)**
-
-1. *TestFlight* → Tasks → **Actualizar** a la **1.6**. Al abrir sale *Hay cosas nuevas* con la lámina
-   *Calendario*: toca **Conectar mi calendario** y acepta el permiso.
-2. Mira la Agenda: tus eventos en el horario, lo de todo el día arriba. Toca uno (se abre su ficha;
-   ciérrala con *OK* o deslizando hacia abajo).
-3. **Ajustes → Calendario → Añadir Google u Outlook**: sigue el paso a paso con tu cuenta de Google (o la
-   que uses) y vuelve a Tasks: debería salir un aviso con los calendarios nuevos.
-4. Ajustes → Calendario → **Calendarios**: quita uno y comprueba que desaparece de la Agenda.
-5. Pon el widget **Hoy** mediano o grande con algún evento próximo. Y en la Agenda, el **+** de una
-   sección: que salga el teclado y que la tarea caiga en esa sección.
-
-Si algo falla, dímelo antes de enviar.
-
-**En App Store Connect** (https://appstoreconnect.apple.com → **Apps** → *Tasks: tareas y lugares*)
-
-6. Si la 1.5 sale como *Pendiente de publicación del desarrollador*: ábrela → **Publicar esta versión**.
-7. **Distribución** → **+** junto a *App para iOS* → `1.6` → **Crear** (copia la ficha de la 1.5).
-8. **Novedades de esta versión**: las de abajo (en español y, en *English (U.S.)*, las inglesas).
-9. **Compilación** → **Añadir compilación** → la **1.6** → **Listo** (cifrado: *Ninguno de los
-   algoritmos mencionados*).
-10. **Información para la revisión de la app** → **Notas**: borra lo que haya y pega las de §5.
-11. **Guardar** → **Añadir para revisión** → **Enviar a App Review**.
-12. Cuando la aprueben, dímelo: hay que subir `MARKETING_VERSION` a 1.7 (§9.1).
+Cambian las **capturas** (la tercera es ahora `03-calendario`), la **descripción** y el **texto
+promocional** (§3 y §3.1) y las **notas para la revisión** (§5). La privacidad **no cambia**: el
+calendario se lee y se escribe en el propio iPhone (EventKit) y no se sube a ningún servidor; la consulta
+de la versión es la búsqueda pública de la App Store y no lleva datos del usuario.
 
 **Novedades de esta versión**
 
 ```
-• Tu calendario en la Agenda: los eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas, y lo siguiente en el widget. Solo se leen, en tu iPhone. Para conectarlo: Ajustes → Calendario.
+• Tu calendario en la Agenda: los eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas, y lo siguiente en el widget.
+• Tus tareas con hora, en el calendario que elijas: uno propio de Tasks o el del trabajo, para que lo vea quien lo comparte. Al tacharlas, se quitan.
 • ¿Usas Google u Outlook? En Ajustes → Calendario tienes el paso a paso para añadirlo.
-• Un + en cada sección para escribir una tarea directamente en ella.
+• Un + en cada sección para escribir directamente en ella.
+• Cuando haya una versión nueva, te avisamos al abrir la app.
 ```
 
 **What’s New in This Version** (la ficha en inglés)
 
 ```
-• Your calendar in the Agenda: iCloud, Google or Outlook events show up in your schedule next to your tasks, and what’s next in the widget. Only read, on your iPhone. To connect it: Settings → Calendar.
+• Your calendar in the Agenda: iCloud, Google or Outlook events show up in your schedule next to your tasks, and what’s next in the widget.
+• Your timed tasks in the calendar you choose: a Tasks one or your work calendar, so whoever shares it sees them. Checked off, they’re removed.
 • Use Google or Outlook? Settings → Calendar walks you through adding it.
 • A + on each section to add a task right into it.
+• When a new version is out, we’ll let you know when you open the app.
 ```

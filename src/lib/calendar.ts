@@ -35,9 +35,13 @@ export interface CalendarInfo {
   id: string
   title: string
   color: string
-  /** La cuenta que lo trae: "iCloud", "Gmail", "Exchange", "En mi iPhone"… */
+  /** La cuenta que lo trae: "iCloud", "Gmail", "Exchange"… Vacía para los del propio iPhone. */
   source: string
   kind: CalendarKind
+  /** Se pueden añadir eventos (los suscritos y los cumpleaños, no). */
+  writable: boolean
+  /** El «Tasks» que creó la app para las tareas: no se enseña entre los tuyos. */
+  own: boolean
 }
 
 /** El permiso de iOS: aún sin pedir, concedido o negado (también "solo añadir", que no deja leer). */
@@ -53,7 +57,7 @@ const HEX = /^#[0-9a-f]{6}$/i
 /** Si un calendario llega sin color: un gris tostado que no desentona. */
 export const FALLBACK_COLOR = '#8c7b66'
 
-export const defaultCalendarSettings = (): CalendarSettings => ({ enabled: false, hidden: [] })
+export const defaultCalendarSettings = (): CalendarSettings => ({ enabled: false, hidden: [], export: null })
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 const text = (value: unknown, max: number): string => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '')
@@ -103,7 +107,7 @@ export function parseCalendars(raw: unknown): CalendarInfo[] {
     const title = text(item.title, MAX_TITLE)
     if (!id || !title) return []
     const kind: CalendarKind = item.kind === 'subscribed' || item.kind === 'birthdays' ? item.kind : 'calendar'
-    return [{ id, title, color: color(item.color), source: text(item.source, MAX_TITLE), kind }]
+    return [{ id, title, color: color(item.color), source: text(item.source, MAX_TITLE), kind, writable: item.writable === true, own: item.own === true }]
   })
 }
 
@@ -111,7 +115,8 @@ export function parseCalendars(raw: unknown): CalendarInfo[] {
 export function normalizeCalendarSettings(raw: unknown): CalendarSettings {
   if (!isObject(raw)) return defaultCalendarSettings()
   const hidden = Array.isArray(raw.hidden) ? raw.hidden.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
-  return { enabled: raw.enabled === true, hidden: [...new Set(hidden)].slice(0, MAX_HIDDEN) }
+  const target = typeof raw.export === 'string' && raw.export.length > 0 ? raw.export.slice(0, 300) : null
+  return { enabled: raw.enabled === true, hidden: [...new Set(hidden)].slice(0, MAX_HIDDEN), export: target }
 }
 
 /** Mostrar u ocultar un calendario. */
@@ -207,11 +212,14 @@ export function calendarGroups(calendars: readonly CalendarInfo[]): { source: st
     .map(([source, items]) => ({ source, calendars: [...items].sort((a, b) => compareNames(a.title, b.title)) }))
 }
 
-/** Calendarios que aparecieron desde la última vez (una cuenta de Google recién añadida en Ajustes). */
+/**
+ * Calendarios que aparecieron desde la última vez (una cuenta de Google recién añadida en Ajustes). El
+ * «Tasks» que crea la app no cuenta: es para las tareas, no un calendario tuyo.
+ */
 export function addedCalendars(before: readonly CalendarInfo[], after: readonly CalendarInfo[]): CalendarInfo[] {
   if (!before.length) return []
   const known = new Set(before.map((calendar) => calendar.id))
-  return after.filter((calendar) => !known.has(calendar.id))
+  return after.filter((calendar) => !known.has(calendar.id) && !calendar.own)
 }
 
 /** Evento para el widget de hoy (`WidgetEvent` en `WidgetStore.swift`). */

@@ -76,7 +76,7 @@ export type Action =
   | { type: 'settings/language'; language: LanguageSetting }
   | { type: 'settings/dayStart'; time: IsoTime }
   /** El calendario del iPhone en la Agenda: enseñarlo o no y qué calendarios se ocultan. */
-  | { type: 'settings/calendar'; enabled?: boolean; hidden?: string[] }
+  | { type: 'settings/calendar'; enabled?: boolean; hidden?: string[]; export?: string | null }
   /** Se ha cerrado la bienvenida de esa versión (`lib/welcome.ts`). */
   | { type: 'settings/welcome'; version: number }
   | { type: 'state/replace'; state: AppState }

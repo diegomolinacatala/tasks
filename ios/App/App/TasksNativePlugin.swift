@@ -35,6 +35,11 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "calendars", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "calendarEvents", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showEvent", returnType: CAPPluginReturnPromise),
+        // Las tareas con hora al calendario (`CalendarExport.swift`).
+        CAPPluginMethod(name: "createTasksCalendar", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "syncTaskEvents", returnType: CAPPluginReturnPromise),
+        // La versión de la App Store (`AppStoreVersion.swift`).
+        CAPPluginMethod(name: "storeVersion", returnType: CAPPluginReturnPromise),
     ]
 
     private static let searchSpanMeters = 30_000.0

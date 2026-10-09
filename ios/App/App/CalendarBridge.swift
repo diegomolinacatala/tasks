@@ -37,6 +37,8 @@ enum CalendarBridge {
                 "color": CalendarReader.hex(calendar.cgColor),
                 "source": sourceName(calendar),
                 "kind": kind(calendar),
+                "writable": calendar.allowsContentModifications,
+                "own": calendar.calendarIdentifier == CalendarExport.ownCalendarId,
             ]
         }
     }
