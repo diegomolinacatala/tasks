@@ -261,8 +261,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
     tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
 
-- **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, once commits de `346c230` a
-  `ebbff46`; el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
+- **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
+  `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
   (`docs/auditoria/informe.md`, 198 hallazgos, con anexos por pantalla) y después «arregla todo, lo
   apruebo todo» (`docs/auditoria/progreso.md`, bloques A–L). Lo más visible:

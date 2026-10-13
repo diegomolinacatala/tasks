@@ -21,7 +21,7 @@ Bloques (en orden) y estado:
 - [x] K · Bienvenida y sugerencias: 30, 175–191
 - [x] L · Swift (168), CLAUDE.md, revisión final (code-reviewer)
 
-Hecho el 13/10/2026 en once commits (`346c230`…`ebbff46`). Queda fuera, a propósito: 125 (reordenar
+Hecho el 13/10/2026 en doce commits (`346c230`…`32c29f8`, el último con lo de la revisión de código). Queda fuera, a propósito: 125 (reordenar
 rutinas, aplazable), la parte del 47 que borra la sección vacía creada en una ficha que se descarta, y
 el rebote más largo del muelle la primera vez que se arrastra (30). Lo nativo (168) se compila en el CI
 y se prueba en el iPhone.
