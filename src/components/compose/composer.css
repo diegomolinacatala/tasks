@@ -276,11 +276,16 @@
   border-color: var(--gold);
 }
 
+/* «Tal cual»: lo escrito se guarda sin interpretar (borde discontinuo, como lo que no está puesto) */
 .composer__parsed.is-off {
   background: transparent;
-  border-color: var(--line-2);
+  border: 1px dashed var(--line-2);
   color: var(--text-3);
-  text-decoration: line-through;
+}
+
+/* Con la ficha abierta, lo que el texto dice de nuevo se ofrece aplicar */
+.composer__parsed--suggest {
+  border-style: dashed;
 }
 
 .composer__parsed:active {

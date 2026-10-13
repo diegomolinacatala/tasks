@@ -10,6 +10,7 @@ export interface ComposeTarget {
   date: IsoDate | null
   /** Una sección del día (el + de una sección en la Agenda). */
   sectionId?: string
+  sectionName?: string
 }
 
 const keyOf = (date: IsoDate | null, sectionId?: string) => `${date ?? 'none'}${sectionId ? `#${sectionId}` : ''}`
@@ -41,7 +42,11 @@ export function composeTargets(here: IsoDate | null, today: IsoDate, section?: {
   }
   const targets = [current, ...usual.filter((target) => target.date !== here)]
   if (!section || here === null) return targets
-  return [{ key: keyOf(here, section.id), label: section.name, date: here, sectionId: section.id }, ...targets]
+  // "Trabajo · hoy": la sección y el día en una sola píldora, para que no parezca otro día más.
+  return [
+    { key: keyOf(here, section.id), label: `${section.name} · ${current.label.toLowerCase()}`, date: here, sectionId: section.id, sectionName: section.name },
+    ...targets,
+  ]
 }
 
 /**
@@ -54,5 +59,7 @@ export function addLabel(date: IsoDate | null, today: IsoDate, section?: string)
   if (date === null) return en ? 'Add to inbox' : 'Añadir a la bandeja'
   if (date === today) return en ? 'Add to today' : 'Añadir a hoy'
   if (date === addDays(today, 1)) return en ? 'Add to tomorrow' : 'Añadir a mañana'
-  return en ? `Add to ${relativeLabel(date, today)}` : `Añadir al ${dayNameLong(date)} ${dayNumber(date)}`
+  // Un día que ya pasó: lo que se añada nace atrasado, y se dice.
+  const past = date < today ? (en ? ' (past)' : ' (pasado)') : ''
+  return en ? `Add to ${relativeLabel(date, today)}${past}` : `Añadir al ${dayNameLong(date)} ${dayNumber(date)}${past}`
 }

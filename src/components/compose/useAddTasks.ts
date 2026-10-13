@@ -16,12 +16,12 @@ export function useAddTasks() {
   const openPlace = usePlaceEditor()
 
   return useCallback(
-    (drafts: readonly TaskDraft[]): string[] => {
+    (drafts: readonly TaskDraft[]): { tasks: string[]; places: string[] } => {
       const entry = entryFromDrafts(drafts, state.places, createId, Date.now())
       applyInbox(state, [entry]).actions.forEach(dispatch)
       const [firstNew] = entry.places
       if (firstNew) openPlace({ placeId: firstNew.id })
-      return entryTaskIds(entry)
+      return { tasks: entryTaskIds(entry), places: entry.places.map((place) => place.id) }
     },
     [state, dispatch, openPlace],
   )

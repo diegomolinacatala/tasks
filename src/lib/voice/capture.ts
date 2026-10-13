@@ -7,7 +7,7 @@ const SPEECH_LEVEL = 0.02
 const SILENCE_MS = 1500
 /** Si en este tiempo no se oye nada, se abandona. */
 const NO_SPEECH_MS = 8000
-const MAX_MS = 30_000
+export const MAX_MS = 30_000
 const BUFFER_SIZE = 4096
 
 export type CaptureResult =

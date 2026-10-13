@@ -4,7 +4,7 @@ import { pick } from '../../lib/i18n'
 import { isNative } from '../../lib/platform'
 import { PushApiError } from '../../lib/push/api'
 import type { Capture } from '../../lib/voice/capture'
-import { createAudioContext, startCapture } from '../../lib/voice/capture'
+import { MAX_MS, createAudioContext, startCapture } from '../../lib/voice/capture'
 import { speechSupported, startSpeech } from '../../lib/voice/speech'
 import { TARGET_RATE, bytesToBase64, encodeWav, resample } from '../../lib/voice/wav'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
@@ -28,7 +28,7 @@ const TEXT = {
   es: {
     allowMic: 'Permite el acceso al micrófono para dictar.',
     noMic: 'No se encuentra ningún micrófono.',
-    quota: (clock: string) => `Dictado agotado por hoy. Vuelve a las ${clock}.`,
+    quota: (clock: string) => `Dictado agotado por hoy (vuelve a las ${clock}). Mientras, escríbela.`,
     transcribe: 'No se ha podido transcribir el audio.',
     failed: 'No se pudo dictar.',
     notUnderstood: 'No te he entendido.',
@@ -37,6 +37,9 @@ const TEXT = {
     notHeard: 'No te he oído.',
     slow: 'El dictado está tardando demasiado. Prueba otra vez.',
     unavailable: 'El dictado no está disponible en este navegador.',
+    enable: 'Activar',
+    install: 'Para dictar, añade Tasks a la pantalla de inicio (Compartir → Añadir a pantalla de inicio).',
+    blocked: 'Los avisos están bloqueados en el sistema: el dictado los necesita.',
     tooMany: 'Demasiados dictados seguidos. Espera un momento.',
     tooLong: 'Ha sido demasiado largo: dicta frases más cortas.',
     reconnect: 'Hay que volver a conectar el dictado: prueba otra vez.',
@@ -46,7 +49,7 @@ const TEXT = {
   en: {
     allowMic: 'Allow microphone access to dictate.',
     noMic: 'No microphone found.',
-    quota: (clock: string) => `Dictation is used up for today. Back at ${clock}.`,
+    quota: (clock: string) => `Dictation is used up for today (back at ${clock}). Type it meanwhile.`,
     transcribe: 'The audio couldn’t be transcribed.',
     failed: 'Dictation failed.',
     notUnderstood: 'I didn’t catch that.',
@@ -55,6 +58,9 @@ const TEXT = {
     notHeard: 'I didn’t hear you.',
     slow: 'Dictation is taking too long. Try again.',
     unavailable: 'Dictation isn’t available in this browser.',
+    enable: 'Turn on',
+    install: 'To dictate, add Tasks to your Home Screen (Share → Add to Home Screen).',
+    blocked: 'Notifications are blocked in the system settings: dictation needs them.',
     tooMany: 'Too many dictations in a row. Wait a moment.',
     tooLong: 'That was too long: dictate shorter sentences.',
     reconnect: 'Dictation needs to reconnect: try again.',
@@ -65,6 +71,28 @@ const TEXT = {
 
 function micDenied(error: unknown): boolean {
   return error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+}
+
+/** Que el sistema negó el micrófono se recuerda: la ficha del permiso ya no tiene nada que pedir. */
+const MIC_DENIED_KEY = 'tasks:mic-denied'
+/** Cuando quedan estos milisegundos de grabación, la barra enseña la cuenta atrás. */
+const COUNTDOWN_MS = 5000
+
+function rememberMicDenied(denied: boolean): void {
+  try {
+    if (denied) localStorage.setItem(MIC_DENIED_KEY, '1')
+    else localStorage.removeItem(MIC_DENIED_KEY)
+  } catch {
+    // Sin localStorage, se vuelve a preguntar: no pasa nada.
+  }
+}
+
+function micWasDenied(): boolean {
+  try {
+    return localStorage.getItem(MIC_DENIED_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -95,6 +123,8 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const [phase, setPhase] = useState<VoicePhase>('idle')
   const [level, setLevel] = useState(0)
   const [partial, setPartial] = useState('')
+  // Segundos que quedan de grabación cuando se acerca el tope (30 s): antes, nada.
+  const [remaining, setRemaining] = useState<number | null>(null)
   const session = useRef<Session | null>(null)
 
   /** Solo la sesión vigente puede devolver la barra a reposo: una cancelada no pisa a la siguiente. */
@@ -104,6 +134,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     setPhase('idle')
     setLevel(0)
     setPartial('')
+    setRemaining(null)
   }, [])
 
   /** `interpreted`: tareas que devolvió la IA del servidor, o `null` con el dictado del navegador. */
@@ -116,21 +147,31 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
     [onText, toast],
   )
 
-  /** En el iPhone, sin micrófono no hay dictado: el aviso lleva a Ajustes, que es donde se da. */
+  /** El sistema negó el micrófono: desde entonces el toque va directo al aviso, sin la ficha del permiso. */
+  const deniedToast = useCallback(() => {
+    const text = pick(TEXT)
+    if (isNative) {
+      toast({
+        message: text.micDenied,
+        actionLabel: text.settings,
+        tone: 'error',
+        onAction: () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings()),
+      })
+    } else {
+      toast({ message: text.allowMic, tone: 'error' })
+    }
+  }, [toast])
+
   const fail = useCallback(
     (error: unknown) => {
-      if (isNative && micDenied(error)) {
-        const text = pick(TEXT)
-        toast({
-          message: text.micDenied,
-          actionLabel: text.settings,
-          onAction: () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings()),
-        })
+      if (micDenied(error)) {
+        rememberMicDenied(true)
+        deniedToast()
         return
       }
-      toast({ message: errorMessage(error) })
+      toast({ message: errorMessage(error), tone: 'error' })
     },
-    [toast],
+    [deniedToast, toast],
   )
 
   /** `granted`: se llama cuando el sistema ya ha dado el micrófono y empieza a grabar. */
@@ -161,13 +202,20 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
     void (async () => {
       let timer: ReturnType<typeof setTimeout> | undefined
+      let countdown: ReturnType<typeof setInterval> | undefined
       try {
         capture = await startCapture(context, setLevel)
         if (controller.signal.aborted) {
           capture.cancel()
           return
         }
+        rememberMicDenied(false)
         granted?.()
+        const startedAt = Date.now()
+        countdown = setInterval(() => {
+          const left = MAX_MS - (Date.now() - startedAt)
+          setRemaining(left <= COUNTDOWN_MS ? Math.max(0, Math.ceil(left / 1000)) : null)
+        }, 500)
         const audio = await capture.result
         if (audio.status === 'cancelled' || controller.signal.aborted) return
         if (audio.status === 'silent') {
@@ -187,6 +235,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
         else if (!controller.signal.aborted) fail(error)
       } finally {
         clearTimeout(timer)
+        clearInterval(countdown)
         finish(current)
       }
     })()
@@ -208,12 +257,26 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   const start = useCallback(() => {
     if (phase !== 'idle') return
-    if (push.canTranscribe) return allowed ? record() : setAsking(true)
+    if (push.canTranscribe) {
+      if (allowed) return record()
+      // Ya lo negó el sistema: la ficha del permiso no tiene nada que pedir.
+      if (micWasDenied()) return deniedToast()
+      return setAsking(true)
+    }
     if (speechSupported()) return dictate()
-    toast({
-      message: push.status === 'unconfigured' || push.status === 'unsupported' ? pick(TEXT).unavailable : pick(TEXT).enableReminders,
-    })
-  }, [allowed, dictate, phase, push.canTranscribe, push.status, record, toast])
+    const text = pick(TEXT)
+    // Cada motivo con su salida: activar los avisos, instalar la app, o desbloquearlos en el sistema.
+    if (push.status === 'off') return toast({ message: text.enableReminders, actionLabel: text.enable, onAction: () => void push.enable() })
+    if (push.status === 'needs-install') return toast({ message: text.install })
+    if (push.status === 'denied') return toast({ message: text.blocked })
+    toast({ message: text.unavailable })
+  }, [allowed, deniedToast, dictate, phase, push, record, toast])
+
+  /** Cerrar la ficha del permiso sin pedir nada (solo fuera del iPhone). */
+  const dismiss = useCallback(() => setAsking(false), [])
+
+  /** Si el micrófono tiene algún sitio adonde ir: sin servidor ni dictado del navegador, no se enseña. */
+  const available = push.canTranscribe || speechSupported() || push.status === 'off' || push.status === 'needs-install' || push.status === 'denied'
 
   /**
    * Graba en el mismo toque de "Continuar": iOS solo abre el audio dentro de un gesto. El permiso
@@ -229,5 +292,5 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   useEffect(() => () => session.current?.cancel(), [])
 
-  return { phase, level, partial, start, stop, cancel, asking, proceed }
+  return { phase, level, partial, remaining, start, stop, cancel, asking, proceed, dismiss, available }
 }

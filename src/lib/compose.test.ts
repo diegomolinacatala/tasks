@@ -45,7 +45,7 @@ describe('composeTargets', () => {
 
   test('con el + de una sección, ella va delante, en el día que se mira', () => {
     const targets = composeTargets(TOMORROW, TODAY, { id: 's1', name: 'Compra' })
-    expect(targets[0]).toEqual({ key: `${TOMORROW}#s1`, label: 'Compra', date: TOMORROW, sectionId: 's1' })
+    expect(targets[0]).toEqual({ key: `${TOMORROW}#s1`, label: 'Compra · mañana', date: TOMORROW, sectionId: 's1', sectionName: 'Compra' })
     expect(targets.slice(1).map((target) => target.label)).toEqual(['Mañana', 'Hoy', 'Bandeja'])
     expect(new Set(targets.map((target) => target.key)).size).toBe(targets.length)
   })

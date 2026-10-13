@@ -1,5 +1,5 @@
 import type { IsoDate, IsoTime, Place, Reminder, ReminderDraft, Section, Task, TaskDraft } from '../types'
-import { isValidTime, relativeLabel } from './date'
+import { isValidTime, isoOfInstant, relativeLabel } from './date'
 import { normalizeDuration, spanLabel } from './duration'
 import { language } from './i18n'
 import { DEFAULT_IMPORTANCE, clampImportance } from './importance'
@@ -56,13 +56,28 @@ export function detailsFrom(
   if (routine) return { ...blankDetails(date), time: routine.time, repeat: cleanDays(routine.days) }
   if (!parsed) return blankDetails(date)
   return {
-    ...blankDetails(parsed.date),
+    // Lo que no dice día va al destino que se mira (como al añadirlo sin ficha).
+    ...blankDetails(parsed.date ?? date),
     until: cleanUntil(parsed.date, parsed.until),
     time: parsed.date ? parsed.time : null,
     duration: parsed.date && parsed.time ? parsed.duration : null,
     reminders: parsed.reminders.map((reminder) => ({ ...reminder, id: newId() })),
     ...(parsed.newPlace ? { newPlace: parsed.newPlace } : {}),
   }
+}
+
+/**
+ * Lo que se teclea con la ficha ya abierta ("a las 5" al final del título) se ofrece aplicar: lo
+ * entendido entra en los campos con las mismas reglas que al tocarlos.
+ */
+export function applyParsed(details: Details, parsed: TaskDraft, newId: () => string): Details {
+  let next = details
+  if (parsed.date) next = { ...withDate(next, parsed.date), until: cleanUntil(parsed.date, parsed.until ?? next.until) }
+  if (parsed.time && next.date) next = withTime(next, parsed.time, newId)
+  if (parsed.duration !== null && next.time) next = withDuration(next, parsed.duration)
+  for (const reminder of parsed.reminders) next = addDetailReminder(next, reminder, newId())
+  if (parsed.newPlace) next = { ...next, newPlace: parsed.newPlace }
+  return next
 }
 
 /** Sin hora, los avisos "antes" no tienen de qué ser antes. */
@@ -100,7 +115,9 @@ export function addDetailReminder(details: Details, draft: ReminderDraft, id: st
   if (details.reminders.length >= MAX_REMINDERS || details.reminders.some((reminder) => sameReminder(reminder, draft))) {
     return details
   }
-  return { ...details, reminders: [...details.reminders, { ...draft, id }] }
+  // Como al escribir "en 30 min": un aviso a una hora concreta sin día pone la tarea en ese día.
+  const date = details.date ?? (draft.kind === 'at' ? isoOfInstant(draft.at) : null)
+  return { ...details, date, reminders: [...details.reminders, { ...draft, id }] }
 }
 
 export const removeDetailReminder = (details: Details, id: string): Details => ({
@@ -207,6 +224,8 @@ export function detailsSummary(
   if (details.newPlace) items.push({ key: 'place', label: details.newPlace.name, icon: 'pin' })
   const section = details.sectionId ? sections.find((item) => item.id === details.sectionId) : undefined
   if (section) items.push({ key: 'section', label: section.name, icon: null })
-  if (details.importance > DEFAULT_IMPORTANCE) items.push({ key: 'importance', label: String(details.importance), icon: 'size' })
+  if (details.importance > DEFAULT_IMPORTANCE) {
+    items.push({ key: 'importance', label: `${en ? 'Importance' : 'Importancia'} ${details.importance}`, icon: 'size' })
+  }
   return items
 }

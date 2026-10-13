@@ -4,14 +4,12 @@ import type { PointerEvent } from 'react'
 /** Tirar más que esto hacia arriba, o de un golpe, despliega. */
 const OPEN_PX = 40
 const OPEN_SPEED = 0.4
-/** Menos que esto es un toque: también despliega. */
-const TAP_PX = 6
 /** La barra cede hacia arriba con resistencia: insinúa que se abre, no se despega. */
 const MAX_LIFT = 34
 
 /**
- * El asa de la barra de escribir, como la del mini reproductor de Spotify: tirar hacia arriba (o
- * tocarla) despliega la ficha. Mientras se tira, la barra sube un poco con el dedo, en el mismo
+ * El asa de la barra de escribir, como la del mini reproductor de Spotify: tirar hacia arriba
+ * despliega la ficha (tocarla no: para eso está Detalles, y el asa pisa el borde del campo). Mientras se tira, la barra sube un poco con el dedo, en el mismo
  * fotograma y sin pasar por React; al soltar vuelve a su sitio.
  */
 export function usePullUp<T extends HTMLElement>(onOpen: () => void) {
@@ -32,7 +30,7 @@ export function usePullUp<T extends HTMLElement>(onOpen: () => void) {
     paint(0, true)
     if (cancelled) return
     const speed = current.dy / Math.max(1, event.timeStamp - current.t)
-    if (Math.abs(current.dy) < TAP_PX || current.dy > OPEN_PX || speed > OPEN_SPEED) onOpen()
+    if (current.dy > OPEN_PX || speed > OPEN_SPEED) onOpen()
   }
 
   const handlers = {

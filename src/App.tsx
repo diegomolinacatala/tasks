@@ -1,7 +1,8 @@
 import { Activity, Suspense, lazy, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
-import { addLabel, composeTargets } from './lib/compose'
+import type { ComposeTarget } from './lib/compose'
+import { composeTargets } from './lib/compose'
 import { relativeLabel } from './lib/date'
 import { periodLabel } from './lib/period'
 import { suggestEmoji } from './lib/emoji'
@@ -299,10 +300,11 @@ export function App() {
     const emoji = suggestEmoji(draft.title)
     dispatch({ type: 'routine/add', id, title: draft.title, days: draft.days, time: draft.time, emoji })
     haptic('success')
+    // Siempre Deshacer: si se leyó mal ("los lunes" por "el lunes"), la vuelta atrás está aquí mismo.
     toast({
       message: copy.routine(`${emoji ? `${emoji} ` : ''}${draft.title} · ${draft.label}`),
-      actionLabel: tab === 'inbox' ? copy.undo : copy.view,
-      onAction: () => (tab === 'inbox' ? dispatch({ type: 'routine/remove', id }) : go('inbox')),
+      actionLabel: copy.undo,
+      onAction: () => dispatch({ type: 'routine/remove', id }),
     })
     return true
   }
@@ -342,32 +344,44 @@ export function App() {
     })
   }
 
-  /** Lo dictado o pedido a Siri se crea sin pasos intermedios; el toast confirma qué se ha entendido. */
+  /**
+   * Lo dictado o pedido a Siri se crea sin pasos intermedios; el toast dice qué se ha entendido y
+   * adónde ha ido. Deshacer quita también los lugares que nacieron con ello, si nadie más los usa.
+   */
   const addSpoken = (drafts: ParsedTask[]) => {
     if (!drafts.length) return
-    const ids = addTasks(drafts)
+    const added = addTasks(drafts)
     const [first] = drafts
+    const where = first?.date ? '' : ` · ${copy.inbox}`
     toast({
       message:
         drafts.length === 1 && first
-          ? `${first.title} · ${first.label || copy.noDate}`
+          ? `${first.title} · ${first.label || copy.noDate}${first.label ? '' : where}`
           : copy.many(drafts.length, drafts.map((draft) => draft.title).join(', ')),
       actionLabel: copy.undo,
-      onAction: () => ids.forEach((id) => dispatch({ type: 'task/remove', id })),
+      onAction: () => {
+        added.tasks.forEach((id) => dispatch({ type: 'task/remove', id }))
+        added.places.forEach((id) => dispatch({ type: 'place/remove', id }))
+      },
     })
   }
 
   // "Todos los días…" es una rutina; si no, lo que entendió la IA del servidor manda y, si no hay
   // nada válido, el analizador local. La IA solo entiende español: en inglés, siempre el local.
-  const addFromVoice = (text: string, interpreted: unknown) => {
+  // Lo que no dice día cae donde dice la barra (`target`), igual que lo tecleado.
+  const addFromVoice = (text: string, interpreted: unknown, target?: ComposeTarget) => {
     const now = Date.now()
     const routine = parseRoutine(text, now)
-    if (routine) {
-      addRoutine(routine)
-      return
-    }
+    // Si la rutina no cabe (ya hay 50), lo dicho no se pierde: queda como tarea.
+    if (routine && addRoutine(routine)) return
     const understood = language === 'es' ? draftsFromInterpreted(interpreted, now, places, text) : null
-    addSpoken(understood ?? [parseSpoken(text, now, places)].filter((draft) => draft.title))
+    const drafts = understood ?? [parseSpoken(text, now, places)].filter((draft) => draft.title)
+    const placed = drafts.map((draft) =>
+      draft.date === null && !draft.until && target?.date
+        ? { ...draft, date: target.date, ...(target.sectionId ? { sectionId: target.sectionId } : {}) }
+        : draft,
+    )
+    addSpoken(placed)
   }
 
   useNativeActions({
@@ -405,11 +419,11 @@ export function App() {
     focusComposer.current?.()
   }, [])
 
-  // Al soltar la barra, la sección deja de ser el destino.
-  const onComposing = useCallback((active: boolean) => {
-    setComposing(active)
-    if (!active) setComposeSection(null)
-  }, [])
+  const onComposing = useCallback((active: boolean) => setComposing(active), [])
+  // La sección deja de ser el destino cuando la barra se vacía (o se cambia de día o de pestaña), no
+  // al soltar el teclado: mientras haya algo escrito, lo elegido sigue valiendo.
+  const onComposerReset = useCallback(() => setComposeSection(null), [])
+  useEffect(() => setComposeSection(null), [day, tab])
 
   // Lo que flota al pie publica su alto real: el final de la lista y el toast se colocan encima de
   // la barra de escribir (que crece con las píldoras) y de las pestañas (que se van al escribir).
@@ -489,7 +503,6 @@ export function App() {
             <div className="app__dock" ref={dock}>
               <Composer
                 targets={targets}
-                placeholder={addLabel(inAgenda ? day : null, today, section?.name)}
                 today={today}
                 places={places}
                 focusRequest={focusRequest}
@@ -498,6 +511,8 @@ export function App() {
                 onRoutine={addRoutine}
                 onVoice={addFromVoice}
                 onComposing={onComposing}
+                onReset={onComposerReset}
+                onPlacesHint={() => go('places')}
               />
             </div>
           )}

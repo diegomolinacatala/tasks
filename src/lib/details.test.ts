@@ -238,7 +238,7 @@ describe('detailsSummary', () => {
       'Mañana · 17:30–18:30',
       'A la hora',
       'Trabajo',
-      '7',
+      'Importancia 7',
     ])
   })
 

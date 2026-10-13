@@ -3,8 +3,10 @@ import { addDays, isValidTime, isoOfInstant, toInstant, toIso } from './date'
 import { normalizeDuration } from './duration'
 import type { ParsedTask } from './parse'
 import { draftLabel, parseSpoken, withPlaceLabel } from './parse'
-import { MAX_PLACE_NAME, matchPlace } from './places'
+import { MAX_PLACE_NAME, matchPlace, placeTriggerLabel } from './places'
 import { MAX_BEFORE_MINUTES, MAX_REMINDERS } from './reminders'
+
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1)
 
 const MAX_TASKS = 5
 const MAX_TITLE = 200
@@ -61,7 +63,10 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
 
   const drafts = raw.slice(0, MAX_TASKS).flatMap((item: unknown): ParsedTask[] => {
     if (!isObject(item) || typeof item.title !== 'string') return []
-    const title = item.title.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE)
+    const heard = placeOf(item.place)
+    const rawTitle = item.title.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE)
+    // Sin lugares en esta plataforma (la PWA) el lugar no se tira: se queda dicho en el título.
+    const title = places === null && heard && rawTitle ? `${rawTitle} (${lowerFirst(placeTriggerLabel(heard.name, heard.on))})` : rawTitle
     if (!title) return []
 
     const time = isValidTime(item.time) ? item.time : null
@@ -75,7 +80,7 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
     if (!date && firstAt?.kind === 'at') date = isoOfInstant(firstAt.at)
 
     const duration = normalizeDuration(item.duration)
-    const spokenPlace = places === null ? null : placeOf(item.place)
+    const spokenPlace = places === null ? null : heard
     const saved = spokenPlace ? matchPlace(places ?? [], spokenPlace.name) : null
     if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
     const isDefault = time !== null && reminders.length === 0 && !spokenPlace

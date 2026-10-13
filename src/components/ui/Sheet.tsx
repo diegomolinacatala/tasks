@@ -77,7 +77,10 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
     if (!open) return
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : null
     acquireModal()
-    const frame = requestAnimationFrame(() => panel.current?.focus({ preventScroll: true }))
+    const frame = requestAnimationFrame(() => {
+      const node = panel.current
+      if (node && !node.contains(document.activeElement)) node.focus({ preventScroll: true })
+    })
     return () => {
       cancelAnimationFrame(frame)
       releaseModal()

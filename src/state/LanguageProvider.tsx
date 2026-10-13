@@ -28,7 +28,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = language
     // El analizador en inglés va aparte (`lib/parse.ts`): llega en lo que se tarda en empezar a escribir.
-    if (language === 'en') void loadEnglish().catch(() => undefined)
+    // Sin red la primera vez, se vuelve a pedir en cuanto la haya.
+    if (language !== 'en') return
+    let retry: (() => void) | null = null
+    const load = () => {
+      void loadEnglish().catch(() => {
+        retry = () => load()
+        window.addEventListener('online', retry, { once: true })
+      })
+    }
+    load()
+    return () => {
+      if (retry) window.removeEventListener('online', retry)
+    }
   }, [language])
 
   return <LanguageContext.Provider value={language}>{children}</LanguageContext.Provider>

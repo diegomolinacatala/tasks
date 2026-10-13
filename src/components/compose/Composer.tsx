@@ -1,18 +1,21 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent, MutableRefObject } from 'react'
 import type { ComposeTarget } from '../../lib/compose'
+import { addLabel } from '../../lib/compose'
 import type { Details, SummaryIcon } from '../../lib/details'
-import { detailsFrom, detailsSummary, toRoutineDraft, toTaskDraft } from '../../lib/details'
+import { applyParsed, detailsFrom, detailsSummary, toRoutineDraft, toTaskDraft } from '../../lib/details'
 import { createId } from '../../lib/id'
 import type { ParsedTask } from '../../lib/parse'
 import { parseTask } from '../../lib/parse'
 import { haptic } from '../../lib/platform/feedback'
 import type { RoutineDraft } from '../../lib/repeat'
 import { parseRoutine } from '../../lib/repeat'
-import { useCopy } from '../../state/LanguageProvider'
+import { capitalize } from '../../lib/title'
+import { useCopy, useLanguage } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { IsoDate, Place, TaskDraft } from '../../types'
 import { IconArrowUp, IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
+import { useToast } from '../ui/Toast'
 import { VoiceBar } from './VoiceBar'
 import { usePullUp } from './usePullUp'
 import { useVoice } from './useVoice'
@@ -29,16 +32,18 @@ const ComposeSheet = lazy(() => loadComposeSheet().then((module) => ({ default: 
 interface ComposerProps {
   /** Adónde puede ir lo que no dice cuándo. El primero es donde se está mirando, y va elegido. */
   targets: readonly ComposeTarget[]
-  /** Texto de la barra vacía: dónde caerá lo que se escriba. */
-  placeholder: string
   today: IsoDate
   onSubmit: (draft: TaskDraft) => void
   /** "Tomar creatina todos los días a las 10": no es una tarea, es una rutina. `false` si no cabe. */
   onRoutine: (draft: RoutineDraft) => boolean
-  /** Texto dictado: quien lo recibe crea la tarea y avisa con opción de deshacer. */
-  onVoice: (text: string, interpreted: unknown) => void
+  /** Texto dictado: quien lo recibe crea la tarea (en el destino elegido) y avisa con opción de deshacer. */
+  onVoice: (text: string, interpreted: unknown, target: ComposeTarget | undefined) => void
   /** Se está escribiendo (la barra tiene el foco): la app aparta las pestañas y atenúa la lista. */
   onComposing: (composing: boolean) => void
+  /** La barra se ha vaciado (tras añadir, o al soltarla sin nada): lo elegido para ella ya no vale. */
+  onReset?: () => void
+  /** En la PWA no hay avisos por lugar: la píldora que lo dice lleva a la pestaña Lugares. */
+  onPlacesHint?: () => void
   /** Lugares guardados; `null` si la plataforma no tiene avisos por lugar. */
   places: readonly Place[] | null
   /** Cambia para pedir el foco (acceso rápido "Nueva tarea" del icono). */
@@ -63,6 +68,10 @@ const COPY = {
     importance: (label: string) => `Importancia ${label}: cambiar`,
     use: (label: string) => `Usar ${label}`,
     ignore: (label: string) => `Ignorar ${label}`,
+    asWritten: 'Tal cual',
+    literalHint: 'Se guardará tal cual lo escribes.',
+    apply: (label: string) => `Aplicar ${label}`,
+    placesHint: 'Lugares: en la app del iPhone',
     details: 'Detalles',
   },
   en: {
@@ -77,15 +86,30 @@ const COPY = {
     importance: (label: string) => `Importance ${label}: change`,
     use: (label: string) => `Use ${label}`,
     ignore: (label: string) => `Ignore ${label}`,
+    asWritten: 'As written',
+    literalHint: 'It’ll be saved as written.',
+    apply: (label: string) => `Apply ${label}`,
+    placesHint: 'Places: in the iPhone app',
     details: 'Details',
   },
 } as const
+
+/** Lo mismo que recorta el reducir: así iOS lo respeta al pegar. */
+const MAX_TITLE = 500
 
 /** La barra vacía no tiene nada que entender: no hace falta pasarle el analizador. */
 const NOTHING: ParsedTask = { title: '', date: null, time: null, duration: null, reminders: [], label: null }
 
 /** Tocar una píldora no debe quitarle el foco a la barra (en el escritorio, el teclado seguiría abierto igual). */
 const keepFocus = (event: MouseEvent) => event.preventDefault()
+
+/** Sustituir el texto de golpe (seleccionar todo y teclear) es empezar otra tarea, no corregir la que había. */
+const REPLACED_MAX = 2
+const REPLACED_MIN_BEFORE = 5
+/** Se enseña una sola vez qué hace la píldora tachada. */
+const LITERAL_HINT_KEY = 'tasks:literal-hinted'
+/** Frases de lugar que en la PWA se quedan tal cual: se avisa de que eso es cosa del iPhone. */
+const PLACE_PHRASE = /\b(al (llegar|pasar por|salir)|cuando (llegue|salga|est[eé])|nada más llegar|en cuanto llegue|when i (get to|arrive|leave)|once i.m at)\b/i
 
 const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
   bell: IconBell,
@@ -105,9 +129,11 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
  * ficha, como el mini reproductor de Spotify se abre en el reproductor entero. Lo decidido allí se
  * queda en la barra en unas píldoras (el día y la hora, los avisos…) hasta que se añade; la × lo quita.
  */
-export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onVoice, onComposing, places, focusRequest = 0, focusRef }: ComposerProps) {
+export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onComposing, onReset, onPlacesHint, places, focusRequest = 0, focusRef }: ComposerProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
+  const language = useLanguage()
+  const toast = useToast()
   const [value, setValue] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const [literal, setLiteral] = useState(false)
@@ -122,18 +148,26 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
   const [absorbed, setAbsorbed] = useState<{ phrase: string; title: string } | null>(null)
   // La ficha se monta la primera vez que se despliega y después se queda (para animar al plegarse).
   const [sheetUsed, setSheetUsed] = useState(false)
-  const voice = useVoice(onVoice)
-  const ready = value.trim().length > 0
-  const routine = useMemo(() => (ready && !details ? parseRoutine(value, Date.now()) : null), [value, ready, details])
-  const parsed = useMemo(() => (ready ? parseTask(value, Date.now(), places) : NOTHING), [value, ready, places])
-  const label = routine?.label ?? parsed.label
-  const detected = ready && !details && label !== null
-  const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
   const fallback = targets[0]?.key
   const targetItem = targets.find((item) => item.key === chosen) ?? targets[0]
   const target = targetItem?.date ?? null
   // El + de una sección: lo que se añada va a ella (si tiene día; sin fecha no hay secciones).
   const targetSection = targetItem?.sectionId ?? null
+  // Lo dictado cae donde diga la barra, igual que lo tecleado.
+  const voice = useVoice((text, interpreted) => onVoice(text, interpreted, targetItem))
+  const ready = value.trim().length > 0
+  // El idioma también cuenta: al cambiarlo con texto en la barra, se vuelve a entender.
+  const routine = useMemo(() => (ready && !details ? parseRoutine(value, Date.now()) : null), [value, ready, details, language]) // eslint-disable-line react-hooks/exhaustive-deps
+  const parsed = useMemo(() => (ready ? parseTask(value, Date.now(), places) : NOTHING), [value, ready, places, language]) // eslint-disable-line react-hooks/exhaustive-deps
+  const label = routine?.label ?? parsed.label
+  const detected = ready && !details && label !== null
+  const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
+  // Con la ficha abierta manda ella; si lo tecleado después dice algo nuevo ("a las 5"), se ofrece aplicarlo.
+  const suggestion = details && !details.repeat && !expanded && parsed.label !== null && parsed.title.trim() !== value.trim() ? parsed : null
+  // En la PWA una frase de lugar se queda tal cual: se dice por qué.
+  const placesHint = places === null && !details && ready && PLACE_PHRASE.test(value)
+  // El texto de la barra vacía dice adónde cae lo que se escriba (también al cambiar de destino).
+  const placeholder = targetItem ? addLabel(targetItem.date, today, targetItem.sectionName) : ''
 
   useEffect(() => {
     if (!focusRequest) return
@@ -177,6 +211,8 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     setLiteral(false)
     setDetails(null)
     setAbsorbed(null)
+    setChosen(undefined)
+    onReset?.()
   }
 
   /** La sección elegida (el + de una sección), si lo añadido tiene día. */
@@ -205,15 +241,38 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
       return
     }
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
-    // añade la tarea, no desde la última tecla.
+    // añade la tarea, no desde la última tecla. Lo que no dice día va al destino de la barra.
     const parsedNow = parseTask(value, Date.now(), places)
-    const { title, date, time, duration, reminders, newPlace } = parsedNow
+    const { title, time, duration, reminders, newPlace } = parsedNow
+    const date = parsedNow.date ?? target
     onSubmit(
       parsedNow.label !== null && !literal
         ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}), ...inSection(date) }
         : literalDraft(target),
     )
     reset()
+  }
+
+  /** Lo entendido después de abrir la ficha pasa a sus campos; del texto queda el título. */
+  const applySuggestion = () => {
+    if (!details || !suggestion) return
+    haptic('selection')
+    const parsedNow = parseTask(value, Date.now(), places)
+    setDetails(applyParsed(details, parsedNow, createId))
+    setValue(capitalize(parsedNow.title))
+  }
+
+  /** La píldora tachada: lo escrito se guarda tal cual. La primera vez se dice. */
+  const toggleLiteral = () => {
+    setLiteral((current) => !current)
+    if (literal) return
+    try {
+      if (localStorage.getItem(LITERAL_HINT_KEY)) return
+      localStorage.setItem(LITERAL_HINT_KEY, '1')
+    } catch {
+      return
+    }
+    toast({ message: copy.literalHint })
   }
 
   /**
@@ -231,13 +290,15 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
       setDetails(fresh.date && targetSection ? { ...fresh, sectionId: targetSection } : fresh)
       const title = repeat?.title ?? parsedNow?.title
       if (title !== undefined) {
-        setAbsorbed({ phrase: value, title })
-        setValue(title)
+        const clean = capitalize(title)
+        setAbsorbed({ phrase: value, title: clean })
+        setValue(clean)
       }
     }
     setSheetUsed(true)
     setExpanded(true)
-    input.current?.blur()
+    // Con algo escrito el teclado se va (la ficha enseña los campos); vacía, el foco pasa al título de la ficha.
+    if (ready) input.current?.blur()
   }
 
   const pull = usePullUp<HTMLFormElement>(expand)
@@ -258,10 +319,15 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     submit()
   }
 
+  // Soltar el teclado no cambia lo elegido mientras haya algo escrito: las píldoras siguen a la vista.
+  // Sin nada escrito, la barra vuelve a su destino de siempre.
   const onBlur = (event: FocusEvent<HTMLFormElement>) => {
     if (event.currentTarget.contains(event.relatedTarget)) return
     setActive(false)
-    setChosen(undefined)
+    if (!ready && !details) {
+      setChosen(undefined)
+      onReset?.()
+    }
   }
 
   const choose = (key: string) => {
@@ -276,7 +342,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
         <button type="button" className="composer__voice-btn" aria-label={copy.cancel} onClick={voice.cancel}>
           <IconClose size={16} />
         </button>
-        <VoiceBar phase={voice.phase} level={voice.level} partial={voice.partial} />
+        <VoiceBar phase={voice.phase} level={voice.level} partial={voice.partial} remaining={voice.remaining} />
         {voice.phase === 'listening' && (
           <button
             type="button"
@@ -291,8 +357,9 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
     )
   }
 
-  // Lo entendido manda sobre el destino: mientras se aplica, los destinos no pintan nada.
+  // Lo entendido manda sobre el destino cuando trae día; si no lo trae, los destinos siguen ahí.
   const applied = detected && !literal
+  const showTargets = !details && (!applied || (!routine && parsed.date === null))
   const tray = active || ready || details !== null
   const summary = details ? detailsSummary(details, today, state.sections, state.places) : []
 
@@ -320,12 +387,15 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
             value={value}
             placeholder={placeholder}
             aria-label={placeholder}
-            enterKeyHint="done"
+            enterKeyHint={ready ? 'send' : 'done'}
             autoComplete="off"
+            maxLength={MAX_TITLE}
             onChange={(event) => {
-              setValue(event.target.value)
-              // Borrarlo todo es empezar otra: fuera también lo decidido en la ficha.
-              if (!event.target.value.trim()) reset()
+              const next = event.target.value
+              // Borrarlo todo, o sustituirlo de golpe, es empezar otra: fuera también lo decidido en la ficha.
+              if (!next.trim()) return reset()
+              if (details && next.length <= REPLACED_MAX && value.length > REPLACED_MIN_BEFORE) reset()
+              setValue(next)
             }}
             onKeyDown={onKeyDown}
           />
@@ -334,7 +404,8 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
               <IconArrowUp size={17} strokeWidth={2.2} />
             </button>
           ) : (
-            !details && (
+            !details &&
+            voice.available && (
               <button type="button" className="composer__mic" aria-label={copy.dictate} onClick={voice.start}>
                 <IconMic size={19} />
               </button>
@@ -344,11 +415,6 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
         {tray && (
           <div className="composer__foot">
             <div className="composer__tray" role="group" aria-label={details ? copy.decided : copy.where}>
-              {details && (
-                <button type="button" className="composer__clear" aria-label={copy.clear} onMouseDown={keepFocus} onClick={clearDetails}>
-                  <IconClose size={14} />
-                </button>
-              )}
               {summary.map((item) => {
                 const Icon = item.icon ? SUMMARY_ICONS[item.icon] : null
                 return (
@@ -365,6 +431,17 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
                   </button>
                 )
               })}
+              {details && (
+                <button type="button" className="composer__clear" aria-label={copy.clear} onMouseDown={keepFocus} onClick={clearDetails}>
+                  <IconClose size={14} />
+                </button>
+              )}
+              {suggestion && (
+                <button type="button" className="composer__parsed composer__parsed--suggest" onMouseDown={keepFocus} onClick={applySuggestion}>
+                  <IconSliders size={12} strokeWidth={2} />
+                  {copy.apply(suggestion.label ?? '')}
+                </button>
+              )}
               {detected && (
                 <button
                   type="button"
@@ -372,20 +449,31 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
                   aria-pressed={!literal}
                   aria-label={literal ? copy.use(label) : copy.ignore(label)}
                   onMouseDown={keepFocus}
-                  onClick={() => setLiteral((current) => !current)}
+                  onClick={toggleLiteral}
                 >
-                  {routine ? (
-                    <IconRepeat size={12} strokeWidth={2} />
-                  ) : placed ? (
-                    <IconPin size={12} strokeWidth={2} />
+                  {literal ? (
+                    copy.asWritten
                   ) : (
-                    parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
+                    <>
+                      {routine ? (
+                        <IconRepeat size={12} strokeWidth={2} />
+                      ) : placed ? (
+                        <IconPin size={12} strokeWidth={2} />
+                      ) : (
+                        parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
+                      )}
+                      {label}
+                    </>
                   )}
-                  {label}
                 </button>
               )}
-              {!applied &&
-                !details &&
+              {placesHint && (
+                <button type="button" className="composer__parsed is-off" onMouseDown={keepFocus} onClick={onPlacesHint}>
+                  <IconPin size={12} strokeWidth={2} />
+                  {copy.placesHint}
+                </button>
+              )}
+              {showTargets &&
                 targets.map((item) => (
                   <button
                     key={item.key}
@@ -431,7 +519,7 @@ export function Composer({ targets, placeholder, today, onSubmit, onRoutine, onV
       )}
       {voice.asking && (
         <Suspense fallback={null}>
-          <DictationConsent open onContinue={voice.proceed} />
+          <DictationConsent open onContinue={voice.proceed} onClose={voice.dismiss} />
         </Suspense>
       )}
     </>

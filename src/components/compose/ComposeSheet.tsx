@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { DEFAULT_IMPORTANCE } from '../../lib/importance'
 import { addLabel } from '../../lib/compose'
 import { relativeLabel } from '../../lib/date'
 import { periodLabel } from '../../lib/period'
@@ -20,12 +21,13 @@ import { haptic } from '../../lib/platform/feedback'
 import { routineLabel } from '../../lib/repeat'
 import { ALL_DAYS, WEEKEND, WORKDAYS, daysLabel, dayLetters, weeklyPreset } from '../../lib/routines'
 import { useCopy } from '../../state/LanguageProvider'
+import { useAppState } from '../../state/StoreProvider'
 import type { IsoDate } from '../../types'
 import { ImportanceScale } from '../importance/ImportanceScale'
 import { DurationPicker } from '../task/DurationPicker'
 import { ReminderPicker } from '../task/ReminderPicker'
 import { SectionField, TimeField, WhenField } from '../task/fields'
-import { IconChevronDown, IconClose, IconPin } from '../ui/Icons'
+import { IconChevronDown, IconChevronRight, IconClose, IconPin } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import '../routines/routines.css'
 import './compose-sheet.css'
@@ -66,6 +68,8 @@ const COPY = {
     reminder: 'Aviso',
     noReminder: 'Sin aviso',
     importance: 'Importancia',
+    normal: 'Normal',
+    routineReminders: 'Una rutina avisa a su hora: los avisos de la tarea no se guardan.',
   },
   en: {
     inbox: 'Inbox',
@@ -86,6 +90,8 @@ const COPY = {
     reminder: 'Reminder',
     noReminder: 'No reminder',
     importance: 'Importance',
+    normal: 'Normal',
+    routineReminders: 'A routine reminds you at its time: the task’s reminders aren’t kept.',
   },
 } as const
 
@@ -102,7 +108,11 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 export function ComposeSheet({ open, title, details, today, onTitle, onChange, onSubmit, onClose }: ComposeSheetProps) {
   // Al añadir, la barra se vacía mientras la ficha aún baja: hasta que se va, se ve lo que había.
   const copy = useCopy(COPY)
+  const sections = useAppState().sections
   const [last, setLast] = useState<{ title: string; details: Details } | null>(null)
+  // Repetir e Importancia van plegados en una fila: casi nunca se tocan. Se abren al tocarlos (o si ya dicen algo).
+  const [repeatOpen, setRepeatOpen] = useState(false)
+  const [importanceOpen, setImportanceOpen] = useState(false)
   if (details && (last?.details !== details || last.title !== title)) setLast({ title, details })
   const shown = details ? { title, details } : last
 
@@ -129,20 +139,27 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
     if (next !== view) onChange(next)
   }
   const day = view.date && (view.until ? periodLabel(view.date, view.until, today) : capitalize(relativeLabel(view.date, today)))
-  const where = routine ? routineLabel(view.repeat ?? [], view.time) : (day ?? copy.inbox)
+  const section = view.sectionId ? sections.find((item) => item.id === view.sectionId) : undefined
+  const where = routine ? routineLabel(view.repeat ?? [], view.time) : [day ?? copy.inbox, section?.name].filter(Boolean).join(' · ')
+  const showRepeat = repeatOpen || routine
+  const showImportance = importanceOpen || view.importance !== DEFAULT_IMPORTANCE
 
   const toggleDay = (day: number) => {
     const days = view.repeat ?? []
     const has = days.includes(day)
-    // Como en el panel de la rutina: siempre toca algún día. Para que no se repita, "No se repite".
-    if (has && days.length === 1) return
+    // Quitar el último día es dejar de repetirse.
+    if (has && days.length === 1) {
+      haptic('warning')
+      change(withRepeat(view, null))
+      return
+    }
     haptic('selection')
     change(withRepeat(view, has ? days.filter((item) => item !== day) : [...days, day]))
   }
 
   const footer = (
     <button type="button" className="sheet__primary" disabled={!ready} onClick={onSubmit}>
-      {routine ? copy.createRoutine : addLabel(view.date, today)}
+      {routine ? copy.createRoutine : addLabel(view.date, today, section?.name)}
     </button>
   )
 
@@ -166,6 +183,8 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
         placeholder={routine ? copy.routinePlaceholder : copy.taskPlaceholder}
         aria-label={routine ? copy.routineName : copy.taskTitle}
         enterKeyHint="done"
+        maxLength={500}
+        autoFocus={!ready}
         onChange={(event) => onTitle(event.target.value.replace(/\n/g, ' '))}
         onKeyDown={(event) => {
           // Intro suelta el teclado y deja ver los campos; añadir es el botón de abajo.
@@ -214,22 +233,33 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
         </>
       )}
 
-      <p className="sheet__title">{copy.repeat}</p>
-      <div className="sheet__chips">
-        <button type="button" className={`chip ${routine ? '' : 'is-active'}`} onClick={() => change(withRepeat(view, null))}>
-          {copy.noRepeat}
+      {showRepeat ? (
+        <>
+          <p className="sheet__title">{copy.repeat}</p>
+          <div className="sheet__chips">
+            <button type="button" className={`chip ${routine ? '' : 'is-active'}`} onClick={() => change(withRepeat(view, null))}>
+              {copy.noRepeat}
+            </button>
+            {[...REPEATS, weeklyPreset(view.repeat ?? [], view.date ?? today)].map((days) => (
+              <button
+                key={days.join('')}
+                type="button"
+                className={`chip ${sameDays(view.repeat, days) ? 'is-active' : ''}`}
+                onClick={() => change(withRepeat(view, days))}
+              >
+                {daysLabel(days)}
+              </button>
+            ))}
+          </div>
+          {routine && view.reminders.length > 0 && <p className="sheet__note">{copy.routineReminders}</p>}
+        </>
+      ) : (
+        <button type="button" className="sheet__row compose-sheet__fold" aria-expanded={false} onClick={() => setRepeatOpen(true)}>
+          <span className="compose-sheet__fold-label">{copy.repeat}</span>
+          <span className="compose-sheet__fold-value">{copy.noRepeat}</span>
+          <IconChevronRight size={16} />
         </button>
-        {[...REPEATS, weeklyPreset(view.repeat ?? [], view.date ?? today)].map((days) => (
-          <button
-            key={days.join('')}
-            type="button"
-            className={`chip ${sameDays(view.repeat, days) ? 'is-active' : ''}`}
-            onClick={() => change(withRepeat(view, days))}
-          >
-            {daysLabel(days)}
-          </button>
-        ))}
-      </div>
+      )}
       {routine && (
         <div className="days-picker compose-sheet__days" role="group" aria-label={copy.weekdays}>
           {dayLetters().map((letter, index) => {
@@ -255,8 +285,18 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
       ) : (
         <>
           {view.date !== null && <SectionField sectionId={view.sectionId} onChange={(sectionId) => change(withSection(view, sectionId))} />}
-          <p className="sheet__title">{copy.importance}</p>
-          <ImportanceScale value={view.importance} onChange={(importance) => change(withImportance(view, importance))} />
+          {showImportance ? (
+            <>
+              <p className="sheet__title">{copy.importance}</p>
+              <ImportanceScale value={view.importance} onChange={(importance) => change(withImportance(view, importance))} />
+            </>
+          ) : (
+            <button type="button" className="sheet__row compose-sheet__fold" aria-expanded={false} onClick={() => setImportanceOpen(true)}>
+              <span className="compose-sheet__fold-label">{copy.importance}</span>
+              <span className="compose-sheet__fold-value">{copy.normal}</span>
+              <IconChevronRight size={16} />
+            </button>
+          )}
         </>
       )}
     </Sheet>
