@@ -27,3 +27,10 @@ export const RowActionsContext = createContext<RowActions>({
 })
 
 export const useRowActions = (): RowActions => useContext(RowActionsContext)
+
+/** Desde fuera de `App` (el panel de un lugar vive por encima): un aviso del DOM que `App` recoge. */
+export const OPEN_TASK_EVENT = 'tasks:open-task'
+
+export const requestOpenTask = (id: string): void => {
+  window.dispatchEvent(new CustomEvent(OPEN_TASK_EVENT, { detail: id }))
+}

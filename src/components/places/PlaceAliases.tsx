@@ -13,6 +13,7 @@ const COPY = {
     name: 'Nombre',
     remove: (alias: string) => `Quitar el nombre ${alias}`,
     taken: (alias: string, place: string) => `«${alias}» ya lo usa ${place}.`,
+    already: 'Ya está.',
   },
   en: {
     title: 'Other names',
@@ -20,6 +21,7 @@ const COPY = {
     name: 'Name',
     remove: (alias: string) => `Remove the name ${alias}`,
     taken: (alias: string, place: string) => `“${alias}” is already used by ${place}.`,
+    already: 'Already there.',
   },
 } as const
 
@@ -55,7 +57,11 @@ export function PlaceAliases({ name, aliases, placeId, onChange }: PlaceAliasesP
       return
     }
     const next = cleanAliases([...aliases, alias], name, others)
-    if (next.length === aliases.length) return
+    if (next.length === aliases.length) {
+      // Repetido (o igual que el nombre): se dice, en vez de desaparecer sin más.
+      toast({ message: copy.already })
+      return
+    }
     haptic('selection')
     onChange(next)
   }
@@ -70,7 +76,10 @@ export function PlaceAliases({ name, aliases, placeId, onChange }: PlaceAliasesP
             type="button"
             className="chip chip--reminder"
             aria-label={copy.remove(alias)}
-            onClick={() => onChange(aliases.filter((item) => item !== alias))}
+            onClick={() => {
+              haptic('selection')
+              onChange(aliases.filter((item) => item !== alias))
+            }}
           >
             {alias}
             <IconClose size={12} className="chip__remove" />

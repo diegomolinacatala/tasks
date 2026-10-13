@@ -229,18 +229,6 @@
 .places__map {
   position: relative;
   margin-top: var(--sp-2);
-  cursor: pointer;
-}
-
-/* En la pestaña, la esquina es un botón de verdad (y va por encima de las chinchetas) */
-.map__expand.places__expand {
-  z-index: 2;
-  pointer-events: auto;
-  transition: transform var(--dur-1) var(--ease);
-}
-
-.map__expand.places__expand:active {
-  transform: scale(0.92);
 }
 
 .places__map-empty {
@@ -360,7 +348,6 @@
 }
 
 .place-card__address {
-  padding-right: 48px;
   font-size: var(--fs-xs);
   color: var(--text-3);
   overflow: hidden;
@@ -397,17 +384,30 @@
   font-weight: 600;
 }
 
-.place-card__radius {
-  position: absolute;
-  right: 16px;
-  bottom: 14px;
-  font-size: var(--fs-micro);
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
+/* Debajo del buscador, la otra forma de añadir: señalándolo en el mapa */
+.places__onmap {
+  margin-top: var(--sp-3);
 }
 
-.place-card__tasks ~ .place-card__radius {
-  display: none;
+/* En Android o en el ordenador no hay App Store que abrir: se dice y ya */
+.places__only {
+  margin: var(--sp-4) 4px 0;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+/* La fila "Cambiar ubicación": el texto empuja la flecha al borde */
+.place-sheet__grow {
+  flex: 1;
+}
+
+/* Los otros nombres plegados: en una línea, con puntos suspensivos si no caben */
+.place-sheet__aliases {
+  min-width: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .places__pitch {

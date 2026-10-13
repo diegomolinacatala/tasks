@@ -7,7 +7,7 @@ import type { PermissionStatus } from '../../lib/platform/native'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { Place, Task } from '../../types'
-import { IconArrowUpRight, IconExpand, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
+import { IconArrowUpRight, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { MapSnapshot } from './MapSnapshot'
 import { usePlaceEditor } from './PlaceEditor'
@@ -24,11 +24,11 @@ const COPY = {
     count: (count: number) => (count === 0 ? 'Sin lugares' : count === 1 ? '1 lugar' : `${count} lugares`),
     title: 'Lugares',
     search: 'Buscar o añadir un lugar',
+    onMap: 'En el mapa',
     blocked: 'Ubicación bloqueada: los avisos por lugar no pueden sonar.',
     saved: 'Ubicación guardada',
     unset: 'Sin ubicación: toca para elegirla',
-    openMap: 'Abrir el mapa',
-    newPlace: 'Nuevo lugar',
+    addPlace: 'Añadir un lugar',
     addHere: 'Añadir aquí',
     close: 'Cerrar',
     locate: 'Mi ubicación',
@@ -36,16 +36,17 @@ const COPY = {
     onlyIphone: 'Solo en iPhone',
     pitch: 'Avisos al llegar o al salir de un sitio: «al pasar por Mercadona, comprar leche».',
     store: 'Descargar en la App Store',
+    iphoneOnly: 'Por ahora, solo en la app de iPhone.',
   },
   en: {
     count: (count: number) => (count === 0 ? 'No places' : count === 1 ? '1 place' : `${count} places`),
     title: 'Places',
     search: 'Search or add a place',
+    onMap: 'On the map',
     blocked: 'Location blocked: place reminders can’t go off.',
     saved: 'Saved location',
     unset: 'No location: tap to choose it',
-    openMap: 'Open the map',
-    newPlace: 'New place',
+    addPlace: 'Add a place',
     addHere: 'Add here',
     close: 'Close',
     locate: 'My location',
@@ -53,8 +54,12 @@ const COPY = {
     onlyIphone: 'iPhone only',
     pitch: 'Reminders when you arrive at or leave a place: “when I get to Walmart, buy milk”.',
     store: 'Download on the App Store',
+    iphoneOnly: 'For now, only in the iPhone app.',
   },
 } as const
+
+/** La App Store solo sirve desde un iPhone o un iPad: en Android o en el ordenador se dice y ya. */
+const isApple = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 type Point = { lat: number; lng: number }
 
@@ -76,24 +81,34 @@ function PlacesList() {
   const [permission, setPermission] = useState<PermissionStatus | null>(null)
   const [here, setHere] = useState<Point | null>(null)
 
-  // La distancia solo si ya hay permiso: abrir la pestaña no debe pedir la ubicación.
+  // La distancia solo si ya hay permiso: abrir la pestaña no debe pedir la ubicación. Se vuelve a mirar
+  // al volver a la app y cuando cambian los lugares (el permiso se concede al buscar uno): antes había
+  // que reiniciar la app para ver las distancias.
   useEffect(() => {
     if (!isNative) return
     let cancelled = false
-    void import('../../lib/platform/native')
-      .then(async ({ TasksNative }) => {
-        const { status } = await TasksNative.locationStatus()
-        if (cancelled) return
-        setPermission(status)
-        if (status !== 'granted') return
-        const { lat, lng } = await TasksNative.currentPosition()
-        if (!cancelled) setHere({ lat, lng })
-      })
-      .catch(() => undefined)
+    const refresh = () => {
+      void import('../../lib/platform/native')
+        .then(async ({ TasksNative }) => {
+          const { status } = await TasksNative.locationStatus()
+          if (cancelled) return
+          setPermission(status)
+          if (status !== 'granted') return
+          const { lat, lng } = await TasksNative.currentPosition()
+          if (!cancelled) setHere({ lat, lng })
+        })
+        .catch(() => undefined)
+    }
+    refresh()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       cancelled = true
+      document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [])
+  }, [places.length])
 
   const located = useMemo(() => places.filter((place): place is Place & { location: NonNullable<Place['location']> } => place.location !== null), [places])
   const pendingAt = useMemo(() => {
@@ -117,7 +132,7 @@ function PlacesList() {
     mapOpen.current = true
     try {
       const picked = await pickOnMap({
-        title: copy.newPlace,
+        title: copy.addPlace,
         confirm: copy.addHere,
         cancel: copy.close,
         locate: copy.locate,
@@ -146,8 +161,8 @@ function PlacesList() {
         </div>
       </header>
 
-      {/* Tocar el mapa abre el de verdad (en el iPhone), para añadir un sitio señalándolo. */}
-      <div className="places__map" onClick={() => void addOnMap()}>
+      {/* El mapa es una foto con tus sitios encima: lo que se toca son las chinchetas (y la píldora de abajo). */}
+      <div className="places__map" role="presentation">
         <MapSnapshot
           points={located.map((place) => place.location)}
           // Sin lugares, el barrio donde estás (si ya hay permiso), no un dibujo.
@@ -179,17 +194,6 @@ function PlacesList() {
             <IconMap size={22} />
           </div>
         )}
-        <button
-          type="button"
-          className="map__expand places__expand"
-          aria-label={copy.openMap}
-          onClick={(event) => {
-            event.stopPropagation()
-            void addOnMap()
-          }}
-        >
-          <IconExpand size={15} />
-        </button>
       </div>
 
       <button type="button" className="places__search" onClick={() => openPlace({ placeId: null })}>
@@ -199,6 +203,12 @@ function PlacesList() {
           <IconPlus size={15} />
         </span>
       </button>
+      {/* Añadir señalándolo en el mapa de verdad: una píldora que dice lo que hace (la esquina "ampliar" no lo decía). */}
+      <button type="button" className="chip chip--option places__onmap" onClick={() => void addOnMap()}>
+        <IconMap size={14} />
+        {copy.onMap}
+      </button>
+      {!places.length && <p className="places__pitch">{copy.pitch}</p>}
 
       {permission === 'denied' && places.length > 0 && (
         <button
@@ -237,7 +247,6 @@ function PlacesList() {
                     {rest > 0 && <span className="place-card__more">+{rest}</span>}
                   </span>
                 )}
-                <span className="place-card__radius">{place.radius} m</span>
               </button>
             </li>
           )
@@ -265,10 +274,14 @@ function PlacesUnavailable() {
         </div>
       </div>
       <p className="places__pitch">{copy.pitch}</p>
-      <a className="places__store" href={APP_STORE} target="_blank" rel="noopener noreferrer">
-        {copy.store}
-        <IconArrowUpRight size={15} />
-      </a>
+      {isApple() ? (
+        <a className="places__store" href={APP_STORE} target="_blank" rel="noopener noreferrer">
+          {copy.store}
+          <IconArrowUpRight size={15} />
+        </a>
+      ) : (
+        <p className="places__only">{copy.iphoneOnly}</p>
+      )}
     </div>
   )
 }

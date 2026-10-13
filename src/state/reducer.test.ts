@@ -465,6 +465,21 @@ describe('recordatorios', () => {
 })
 
 describe('lugares', () => {
+  test('place/restore devuelve el lugar y los avisos que se llevó borrarlo', () => {
+    const base = run(withTasks('uno'), { type: 'place/add', id: 'p1', name: 'Mercadona' })
+    const id = base.tasks[0]!.id
+    const withReminder = reducer(base, { type: 'reminder/add', taskId: id, reminder: { kind: 'place', placeId: 'p1', on: 'arrive' } })
+    const reminder = withReminder.tasks[0]!.reminders[0]!
+    const removed = reducer(withReminder, { type: 'place/remove', id: 'p1' })
+    expect(removed.tasks[0]!.reminders).toHaveLength(0)
+    const place = withReminder.places[0]!
+    const restored = reducer(removed, { type: 'place/restore', place, reminders: [{ taskId: id, reminder }] })
+    expect(restored.places).toEqual([place])
+    expect(restored.tasks[0]!.reminders).toEqual([reminder])
+    // Ya está: repetirlo no duplica nada.
+    expect(reducer(restored, { type: 'place/restore', place, reminders: [{ taskId: id, reminder }] })).toBe(restored)
+  })
+
   const location = { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }
 
   test('añadir guarda el nombre limpio, sin ubicación y con el radio por defecto', () => {

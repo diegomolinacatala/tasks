@@ -37,7 +37,7 @@ import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { useNativeActions } from './components/shell/useNativeActions'
 import type { RowActions } from './components/task/rowActions'
 import type { TaskOrigin } from './components/task/TaskSheet'
-import { RowActionsContext } from './components/task/rowActions'
+import { OPEN_TASK_EVENT, RowActionsContext } from './components/task/rowActions'
 import { useTaskActions } from './components/task/useTaskActions'
 import { IconTextSize } from './components/ui/Icons'
 import { Skeleton } from './components/ui/Skeleton'
@@ -283,6 +283,16 @@ export function App() {
     setFromNotification(false)
     setTaskId(id)
   }, [])
+
+  // El panel de un lugar (por encima de App) abre una tarea con un aviso del DOM.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const id = (event as CustomEvent<unknown>).detail
+      if (typeof id === 'string') openTask(id)
+    }
+    window.addEventListener(OPEN_TASK_EVENT, onOpen)
+    return () => window.removeEventListener(OPEN_TASK_EVENT, onOpen)
+  }, [openTask])
 
   const openRoutine = useCallback((id: string) => {
     setRoutineLoaded(true)

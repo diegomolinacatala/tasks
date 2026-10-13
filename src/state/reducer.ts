@@ -7,11 +7,11 @@ import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
 import { cleanUntil } from '../lib/period'
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanAliases, cleanPlaceName, nameTaken } from '../lib/places'
-import { snoozed, withReminder } from '../lib/reminders'
+import { MAX_REMINDERS, snoozed, withReminder } from '../lib/reminders'
 import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { normalizeWelcome } from '../lib/welcome'
 import { isLanguageSetting } from '../lib/i18n'
-import type { AppState, IsoDate, Place, Routine, Section, Settings, Task, Theme } from '../types'
+import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
 export const SCHEMA_VERSION = 15
@@ -309,6 +309,18 @@ export function reducer(state: AppState, action: Action): AppState {
         return reminders.length === task.reminders.length ? task : { ...task, reminders }
       })
       return { ...state, tasks, places: state.places.filter((place) => place.id !== action.id) }
+    }
+
+    case 'place/restore': {
+      const { place } = action
+      if (state.places.some((item) => item.id === place.id) || nameTaken(state.places, place.name) || state.places.length >= MAX_PLACES) return state
+      const byTask = new Map<string, Reminder[]>()
+      for (const { taskId, reminder } of action.reminders) byTask.set(taskId, [...(byTask.get(taskId) ?? []), reminder])
+      const tasks = state.tasks.map((task) => {
+        const back = byTask.get(task.id)?.filter((reminder) => !task.reminders.some((item) => item.id === reminder.id))
+        return back?.length ? { ...task, reminders: [...task.reminders, ...back].slice(0, MAX_REMINDERS) } : task
+      })
+      return { ...state, tasks, places: [...state.places, place] }
     }
 
     case 'routine/add': {

@@ -1,5 +1,5 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, IsoDate, IsoTime, PlaceLocation, LanguageSetting, ReminderDraft, Routine, Task, Theme } from '../types'
+import type { AppState, BlockId, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -60,6 +60,8 @@ export type Action =
   | { type: 'place/update'; id: string; name?: string; aliases?: string[]; location?: PlaceLocation | null; radius?: number }
   /** Quita también sus avisos de las tareas. */
   | { type: 'place/remove'; id: string }
+  /** Deshacer un borrado: vuelve el lugar y los avisos que se llevó (los de tareas que sigan existiendo). */
+  | { type: 'place/restore'; place: Place; reminders: readonly { taskId: string; reminder: Reminder }[] }
   | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; emoji?: string | null; id?: string }
   /** `emoji: null` lo quita; sin el campo, se queda como está. */
   | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null; emoji?: string | null }

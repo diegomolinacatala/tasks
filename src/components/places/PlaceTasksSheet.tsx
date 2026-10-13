@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { plural } from '../../lib/i18n'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import { TaskRow } from '../task/TaskRow'
@@ -7,8 +8,8 @@ import { Sheet } from '../ui/Sheet'
 import './places.css'
 
 const COPY = {
-  es: { place: 'Lugar', empty: 'No quedan tareas en este lugar.' },
-  en: { place: 'Place', empty: 'No tasks left at this place.' },
+  es: { place: 'Lugar', pending: (count: number) => `${plural(count, 'pendiente', 'pendientes')} aquí`, empty: 'No quedan tareas en este lugar.' },
+  en: { place: 'Place', pending: (count: number) => `${plural(count, 'pending', 'pending')} here`, empty: 'No tasks left at this place.' },
 } as const
 
 interface PlaceTasksSheetProps {
@@ -37,7 +38,8 @@ export function PlaceTasksSheet({ placeId, onOpenTask, onClose }: PlaceTasksShee
 
   return (
     <Sheet open={placeId !== null} onClose={onClose} title={place?.name ?? copy.place}>
-      <p className="sheet__title">{place?.name ?? copy.place}</p>
+      {/* El nombre ya es el título del panel: aquí, cuántas quedan. */}
+      {sorted.length > 0 && <p className="sheet__title">{copy.pending(sorted.filter((task) => !task.done).length)}</p>}
       <div className="place-tasks">
         {sorted.map((task) => (
           <TaskRow
