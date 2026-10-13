@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { todayIso } from '../../lib/date'
 import { placementsOf } from '../../lib/order'
+import { isDue } from '../../lib/routines'
 import { pick } from '../../lib/i18n'
 import { haptic } from '../../lib/platform/feedback'
 import { withTransition } from '../../lib/transition'
@@ -100,7 +101,8 @@ export function useTaskActions() {
     (id: string, date: string) => {
       const routine = latest.current.routines.find((item) => item.id === id)
       if (!routine) return
-      haptic(routine.done.includes(date) ? 'tap' : 'success')
+      // Se puede tachar una que hoy no toca ("la hice aunque no tocaba"): cuenta, pero sin celebrarlo.
+      haptic(routine.done.includes(date) || !isDue(routine, date) ? 'tap' : 'success')
       dispatch({ type: 'routine/toggle', id, date })
     },
     [dispatch],

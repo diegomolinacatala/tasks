@@ -1,11 +1,12 @@
 import { ROUTINE_EMOJIS, cleanEmoji } from '../../lib/emoji'
 import { useCopy } from '../../state/LanguageProvider'
 import { IconClose } from '../ui/Icons'
+import { useToast } from '../ui/Toast'
 import './routines.css'
 
 const COPY = {
-  es: { group: 'Emoji de la rutina', none: 'Sin emoji', other: 'Otro', otherLabel: 'Otro emoji' },
-  en: { group: 'Routine emoji', none: 'No emoji', other: 'Other', otherLabel: 'Other emoji' },
+  es: { group: 'Emoji de la rutina', none: 'Sin emoji', other: '😊 Otro', otherLabel: 'Otro emoji', keyboard: 'Usa el teclado de emojis.' },
+  en: { group: 'Routine emoji', none: 'No emoji', other: '😊 Other', otherLabel: 'Other emoji', keyboard: 'Use the emoji keyboard.' },
 } as const
 
 interface EmojiPickerProps {
@@ -19,6 +20,7 @@ interface EmojiPickerProps {
  */
 export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
   const copy = useCopy(COPY)
+  const toast = useToast()
   const options = value && !ROUTINE_EMOJIS.includes(value) ? [value, ...ROUTINE_EMOJIS] : ROUTINE_EMOJIS
 
   return (
@@ -57,6 +59,8 @@ export function EmojiPicker({ value, onChange }: EmojiPickerProps) {
         onChange={(event) => {
           const emoji = cleanEmoji(event.target.value)
           if (emoji) onChange(emoji)
+          // Una letra no es un emoji: se dice de dónde sale uno, en vez de no hacer nada.
+          else if (event.target.value.trim()) toast({ message: copy.keyboard })
         }}
       />
     </div>

@@ -222,10 +222,15 @@ describe('routineEntries: avisos de las rutinas', () => {
       taskId: null,
       at: toInstant(TODAY, '11:00'),
       title: 'Creatina',
-      body: '11:00 · Cada día',
+      body: 'Cada día',
       overdue: false,
       routine: { id: 'creatina', date: TODAY },
     })
+  })
+
+  test('el aviso lleva el emoji y la racha que se juega, no la hora que ya es', () => {
+    const entries = routineEntries(withRoutines(routine({ id: 'r', emoji: '💊', done: ['2026-09-09', '2026-09-10'] })), NOW)
+    expect(entries[0]?.body).toBe('💊 · Cada día · racha de 2')
   })
 
   test('lo ya hecho ese día o su hora pasada no avisa', () => {

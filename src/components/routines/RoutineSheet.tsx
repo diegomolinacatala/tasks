@@ -1,16 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { shortTime } from '../../lib/date'
 import { suggestEmoji } from '../../lib/emoji'
 import { createId } from '../../lib/id'
 import { haptic } from '../../lib/platform/feedback'
-import { ALL_DAYS, WEEKEND, WORKDAYS, cleanDays, dayLetters, daysLabel, weeklyPreset } from '../../lib/routines'
+import { ALL_DAYS, MAX_ROUTINES, WEEKEND, WORKDAYS, cleanDays, dayLetters, daysLabel, weeklyPreset } from '../../lib/routines'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate, IsoTime } from '../../types'
+import { TimeField } from '../task/fields'
 import { useTaskActions } from '../task/useTaskActions'
 import { IconSmile, IconTrash } from '../ui/Icons'
-import { PickerChip } from '../ui/PickerChip'
 import { Sheet } from '../ui/Sheet'
+import { useToast } from '../ui/Toast'
 import { EmojiPicker } from './EmojiPicker'
 import { RoutineLog } from './RoutineLog'
 import './routines.css'
@@ -43,34 +43,36 @@ const COPY = {
     routine: 'Rutina',
     changeEmoji: (emoji: string) => `Emoji ${emoji}: cambiar`,
     pickEmoji: 'Elegir emoji',
-    placeholder: 'Tomar creatina',
+    placeholder: 'p. ej. Tomar creatina',
     name: 'Nombre de la rutina',
     days: 'Días',
     weekdays: 'Días de la semana',
     reminder: 'Aviso',
     noReminder: 'Sin aviso',
-    at: (clock: string) => `A las ${clock}`,
-    atTime: 'A una hora',
     actions: 'Acciones',
     remove: 'Borrar rutina',
     add: 'Añadir rutina',
+    added: (name: string) => `Rutina: ${name}`,
+    undo: 'Deshacer',
+    full: `Ya hay ${MAX_ROUTINES} rutinas: borra alguna para añadir otra.`,
   },
   en: {
     newRoutine: 'New routine',
     routine: 'Routine',
     changeEmoji: (emoji: string) => `Emoji ${emoji}: change`,
     pickEmoji: 'Pick an emoji',
-    placeholder: 'Take creatine',
+    placeholder: 'e.g. Take creatine',
     name: 'Routine name',
     days: 'Days',
     weekdays: 'Days of the week',
     reminder: 'Reminder',
     noReminder: 'No reminder',
-    at: (clock: string) => `At ${clock}`,
-    atTime: 'At a time',
     actions: 'Actions',
     remove: 'Delete routine',
     add: 'Add routine',
+    added: (name: string) => `Routine: ${name}`,
+    undo: 'Undo',
+    full: `You already have ${MAX_ROUTINES} routines: delete one to add another.`,
   },
 } as const
 
@@ -79,13 +81,15 @@ const same = (a: readonly number[], b: readonly number[]) => a.length === b.leng
 /**
  * Crear o editar una rutina: nombre, emoji, qué días toca y a qué hora avisa. Una nueva propone el
  * emoji que le pega al nombre hasta que se elige uno a mano. Una existente enseña además
- * su constancia día a día, que se puede corregir (`RoutineLog`). Los
- * cambios de una existente se aplican al momento; una nueva se crea al cerrar si tiene nombre.
+ * su constancia día a día, que se puede corregir (`RoutineLog`). Los cambios de una existente se
+ * aplican al momento; una nueva se crea con el botón del pie (siempre a mano, también con el teclado
+ * fuera) y cerrar el panel la descarta, como en cualquier panel de iOS.
  */
 export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
   const dispatch = useDispatch()
+  const toast = useToast()
   const { removeRoutine } = useTaskActions()
   // Se conserva la última para animar el cierre sin que cambie el contenido.
   const [shownId, setShownId] = useState<string | null>(routineId)
@@ -144,17 +148,37 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
 
   const close = () => {
     commitTitle()
-    if (routineId === '' && draft.title.trim()) {
-      dispatch({ type: 'routine/add', id: createId(), title: draft.title, days: draft.days, time: draft.time, emoji: draft.emoji })
-      haptic('success')
-    }
     onClose()
   }
 
   const isNew = shownId === ''
+  const full = state.routines.length >= MAX_ROUTINES
+
+  /** Solo desde el botón del pie: con "Deshacer" en el aviso, por si se creó sin querer. */
+  const create = () => {
+    const title = draft.title.trim()
+    if (!title || full) return
+    const id = createId()
+    const { days, time, emoji } = draft
+    dispatch({ type: 'routine/add', id, title, days, time, emoji })
+    haptic('success')
+    toast({
+      message: copy.added(`${emoji ? `${emoji} ` : ''}${title} · ${daysLabel(days).toLowerCase()}`),
+      actionLabel: copy.undo,
+      onAction: () => dispatch({ type: 'routine/remove', id }),
+    })
+    onClose()
+  }
+
+  const footer = isNew ? (
+    <button type="button" className="sheet__primary" disabled={!draft.title.trim() || full} onClick={create}>
+      {copy.add}
+    </button>
+  ) : undefined
 
   return (
-    <Sheet open={routineId !== null} onClose={close} title={isNew ? copy.newRoutine : copy.routine}>
+    <Sheet open={routineId !== null} onClose={close} title={isNew ? copy.newRoutine : copy.routine} footer={footer}>
+      {isNew && full && <p className="sheet__note">{copy.full}</p>}
       <div className="routine-name">
         <button
           type="button"
@@ -217,20 +241,8 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         ))}
       </div>
 
-      <p className="sheet__title">{copy.reminder}</p>
-      <div className="sheet__chips">
-        <button type="button" className={`chip ${draft.time === null ? 'is-active' : ''}`} onClick={() => update({ time: null })}>
-          {copy.noReminder}
-        </button>
-        <PickerChip
-          type="time"
-          className={`chip ${draft.time ? 'is-active' : ''}`}
-          value={draft.time ?? ''}
-          onCommit={(value) => update({ time: value || null })}
-        >
-          {draft.time ? copy.at(shortTime(draft.time)) : copy.atTime}
-        </PickerChip>
-      </div>
+      {/* El mismo campo que el de la hora de una tarea ("Elegir hora…", y elegida, "10:00"): aquí es la del aviso. */}
+      <TimeField time={draft.time} onChange={(time) => update({ time })} title={copy.reminder} noneLabel={copy.noReminder} />
 
       {routine && <RoutineLog key={routine.id} routine={routine} today={today} />}
 
@@ -251,11 +263,6 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
         </>
       )}
 
-      {isNew && (
-        <button type="button" className="sheet__primary" disabled={!draft.title.trim()} onClick={close}>
-          {copy.add}
-        </button>
-      )}
     </Sheet>
   )
 }

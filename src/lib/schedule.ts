@@ -6,7 +6,7 @@ import { byImportance } from './importance'
 import { byOrder, compareText } from './order'
 import { hasPeriod, lastDay, onDay, periodDays, periodTag, shownDay } from './period'
 import { MAX_SCHEDULE, resolveAt, taskInstant } from './reminders'
-import { daysLabel, isDoneOn, isDue, occurrenceDate, routineDay, routineEntryId } from './routines'
+import { daysLabel, isDoneOn, isDue, occurrenceDate, routineDay, routineEntryId, streak } from './routines'
 
 const MINUTE = 60_000
 const SOON_MINUTES = 60
@@ -33,6 +33,7 @@ const TEXT = {
     tasksToday: (count: number) => `${plural(count, 'tarea', 'tareas')} para hoy`,
     nothingToday: 'Nada nuevo para hoy',
     overdue: (count: number) => plural(count, 'atrasada', 'atrasadas'),
+    streak: (run: number) => `racha de ${run}`,
   },
   en: {
     question: 'Finished?',
@@ -49,6 +50,7 @@ const TEXT = {
     tasksToday: (count: number) => `${plural(count, 'task', 'tasks')} today`,
     nothingToday: 'Nothing new today',
     overdue: (count: number) => `${count} overdue`,
+    streak: (run: number) => `${run}-day streak`,
   },
 } as const
 
@@ -203,13 +205,17 @@ export function routineEntries(state: AppState, now: number): Omit<ScheduleEntry
     return Array.from({ length: ROUTINE_DAYS }, (_, offset) => addDays(today, offset)).flatMap((day) => {
       const at = toInstant(occurrenceDate(day, time, dayStart), time)
       if (at <= now || !isDue(routine, day) || isDoneOn(routine, day)) return []
+      // El aviso suena a esa hora: repetirla no dice nada. Su emoji, los días y la racha que se juega.
+      const run = streak(routine, addDays(day, -1))
+      const text = pick(TEXT)
+      const body = [routine.emoji, daysLabel(routine.days), run >= 2 ? text.streak(run) : null].filter(Boolean).join(' · ')
       return [
         {
           id: routineEntryId(routine.id, day),
           taskId: null,
           at,
           title: routine.title,
-          body: `${shortTime(time)} · ${daysLabel(routine.days)}`,
+          body,
           overdue: false,
           routine: { id: routine.id, date: day },
         },

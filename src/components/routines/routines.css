@@ -125,18 +125,19 @@
 }
 
 .routine__dot {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: var(--r-full);
   box-shadow: inset 0 0 0 1.25px var(--line-2);
   transition: background var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease-pop);
 }
 
+/* No tocaba: un punto hueco más pequeño (una raya de 1,5 px no se veía) */
 .routine__dot.is-free {
-  height: 1.5px;
-  border-radius: 1px;
-  box-shadow: none;
-  background: var(--line-2);
+  width: 5px;
+  height: 5px;
+  margin: 0 2px;
+  box-shadow: inset 0 0 0 1px var(--line-2);
 }
 
 .routine__dot.is-done {
@@ -438,10 +439,18 @@
   opacity: 0.3;
 }
 
+/* Tocaba y no se hizo: el aro más marcado, que es lo que se viene a corregir */
+.routine-history__cell.is-missed span {
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+  color: var(--text);
+}
+
+/* Hoy, con aro de coñac; al abrir el panel da el mismo rebote que un día recién marcado: se ve que se toca */
 .routine-history__cell.is-today span {
   box-shadow: inset 0 0 0 1.5px var(--accent);
   color: var(--accent);
   font-weight: 600;
+  animation: log-ink var(--dur-3) var(--ease-pop) 350ms backwards;
 }
 
 .routine-history__cell.is-today.is-done span {
@@ -456,7 +465,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .routine-history__cell.is-done span {
+  .routine-history__cell.is-done span,
+  .routine-history__cell.is-today span {
     animation: none;
   }
 }

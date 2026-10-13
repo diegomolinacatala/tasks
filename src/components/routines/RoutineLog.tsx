@@ -16,6 +16,7 @@ const COPY = {
     month: 'Último mes',
     earlier: 'Semanas anteriores',
     later: 'Semanas siguientes',
+    hint: 'Toca un día para corregirlo; pasa el dedo de lado para marcar varios.',
   },
   en: {
     consistency: 'Consistency',
@@ -24,6 +25,7 @@ const COPY = {
     month: 'Last 30 days',
     earlier: 'Earlier weeks',
     later: 'Later weeks',
+    hint: 'Tap a day to fix it; swipe sideways to mark several.',
   },
 } as const
 
@@ -208,7 +210,7 @@ export function RoutineLog({ routine, today }: { routine: Routine; today: IsoDat
               aria-label={fullLabel(day)}
               className={`routine-history__cell ${hit ? 'is-done' : ''} ${due(day) ? '' : 'is-free'} ${
                 day > today ? 'is-future' : ''
-              } ${day === today ? 'is-today' : ''}`}
+              } ${day === today ? 'is-today' : ''} ${!hit && day < today && due(day) ? 'is-missed' : ''}`}
               // El toque lo decide el gesto (puede ser el principio de una pasada). Un clic sin dedo
               // (VoiceOver, el teclado) sí marca.
               onClick={(event) => {
@@ -227,6 +229,7 @@ export function RoutineLog({ routine, today }: { routine: Routine; today: IsoDat
           )
         })}
       </div>
+      <p className="sheet__note">{copy.hint}</p>
     </>
   )
 }

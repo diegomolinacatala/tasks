@@ -955,7 +955,9 @@ que cada día amanece pendiente él solo (en la app, en los avisos y en el widge
   rutinas: lo usan la Bandeja y el panel (`useRoutineDay` en `App`), los avisos (`routineEntries`, con
   `occurrenceDate`: el aviso de la 1:00 de un día que empieza a las 4:00 suena la madrugada siguiente)
   y el widget (la foto lleva `dayShift`; `WidgetDay.routineDay` y una entrada en cada cambio de día). El
-  horario de la Agenda sigue el calendario. Es de los datos: va en la copia y se borra con *Borrar todo*. Las que tienen hora salen también en el horario
+  horario de la Agenda sigue el calendario. Cambiarla de madrugada puede hacer que lo tachado hace un
+  rato pase a contar para la víspera y hoy amanezca sin tachar: es el día el que cambia, no el diario
+  (se decidió no complicarlo). Es de los datos: va en la copia y se borra con *Borrar todo*. Las que tienen hora salen también en el horario
   de la Agenda de cada día que tocan (cápsula de trazo discontinuo con su emoji o el icono de repetir).
 - **Fila** (`RoutineRow`): el círculo o deslizar a la derecha la tacha hoy; a la izquierda, borra (con
   deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { shortTime } from '../../lib/date'
-import { byRoutineOrder, isDue, routineProgress } from '../../lib/routines'
+import { MAX_ROUTINES, byRoutineOrder, isDue, routineProgress } from '../../lib/routines'
 import { useCopy, useLanguage } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import type { IsoDate } from '../../types'
@@ -78,9 +78,12 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
                 {progress.done}/{progress.total}
               </span>
             )}
-            <button type="button" className="section__icon section__icon--add" aria-label={copy.add} onClick={() => actions.openRoutine('')}>
-              <IconPlus size={17} />
-            </button>
+            {/* Al tope (50) no hay dónde añadir: el "+" se va en vez de abrir un panel que no crea nada. */}
+            {routines.length < MAX_ROUTINES && (
+              <button type="button" className="section__icon section__icon--add" aria-label={copy.add} onClick={() => actions.openRoutine('')}>
+                <IconPlus size={17} />
+              </button>
+            )}
           </>
         }
       />
