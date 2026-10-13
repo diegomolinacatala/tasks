@@ -1,13 +1,13 @@
 /* Mando de importancia: ocupa el sitio del asa de mover mientras está el modo "Aa" */
 .knob {
   flex: none;
-  width: 40px;
+  width: 44px;
   display: grid;
   place-items: center;
   color: var(--text-3);
-  /* El mando no hace scroll: en cuanto lo tocas, manda el gesto */
-  touch-action: none;
-  cursor: ns-resize;
+  /* De lado manda el mando; en vertical, el scroll (el pulgar por el borde no cambia importancias) */
+  touch-action: pan-y;
+  cursor: ew-resize;
   animation: knob-in var(--dur-2) var(--ease);
 }
 
@@ -54,6 +54,13 @@
   display: flex;
   align-items: stretch;
   gap: 2px;
+  /* Se arrastra de lado; en vertical sigue siendo scroll */
+  touch-action: pan-y;
+}
+
+/* Lo hecho vuelve al tamaño normal: la escala se queda, atenuada */
+.scale.is-done {
+  opacity: 0.5;
 }
 
 .scale__step {

@@ -8,12 +8,17 @@ import { useCopy } from '../../state/LanguageProvider'
 import type { IsoTime } from '../../types'
 import { IconClose } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
+import { useToast } from '../ui/Toast'
 import './ruler.css'
 
 /** Mantener el dedo este rato al final de la regla la estira. */
 const HOLD_MS = 480
 /** Desde aquí (en proporción de la pista, también más allá del borde) el dedo está "al final". */
 const END_ZONE = 0.97
+/** Antes de esto en vertical el dedo quería bajar el panel: la regla lo suelta. */
+const SCROLL_SLOP_PX = 8
+/** Desde esto de lado, la regla manda. */
+const DRAG_SLOP_PX = 10
 
 const COPY = {
   es: {
@@ -22,6 +27,8 @@ const COPY = {
     until: 'Acaba a las…',
     clear: 'Quitar la duración',
     ask: (clock: string) => `A las ${clock} te pregunto si has acabado.`,
+    stretch: 'Mantén el dedo al final para alargar la regla.',
+    afterStart: 'Tiene que acabar después de empezar.',
   },
   en: {
     none: 'No duration',
@@ -29,6 +36,8 @@ const COPY = {
     until: 'Ends at…',
     clear: 'Remove the duration',
     ask: (clock: string) => `At ${clock} I’ll ask if you’re done.`,
+    stretch: 'Hold your finger at the end to stretch the ruler.',
+    afterStart: 'It has to end after it starts.',
   },
 } as const
 
@@ -45,6 +54,11 @@ interface Gesture {
   value: number | null
   ratio: number
   timer: number | undefined
+  /** Ya manda el dedo (se movió de lado o se mantuvo al final). Antes, podía ser el scroll del panel. */
+  engaged: boolean
+  x: number
+  y: number
+  pointerId: number
 }
 
 /**
@@ -53,10 +67,14 @@ interface Gesture {
  * dedo al final: el borde se llena de oro y la regla se estira (4 h, 8 h, medio día), con un toque de
  * vibración. Al soltar vuelve al tramo que le queda holgado, para ganar precisión. A la izquierda del
  * todo, o con la ×, sin duración; la hora de acabar abre la rueda para ponerla exacta.
+ *
+ * Apoyar el dedo no cambia nada: en vertical es el scroll del panel (`touch-action: pan-y`), y la regla
+ * solo manda al moverse de lado, al soltar sin moverse (un toque) o al mantenerlo quieto en el final.
  */
 export function DurationPicker({ time, duration, done = false, onChange }: DurationPickerProps) {
   const track = useRef<HTMLDivElement>(null)
   const copy = useCopy(COPY)
+  const toast = useToast()
   const [span, setSpan] = useState(() => spanFor(duration))
   const spanRef = useRef(span)
   // De cuánto venía la regla al estirarse o encogerse: las marcas se animan desde allí.
@@ -102,6 +120,18 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
     setHolding(false)
   }
 
+  /** Desde aquí el dedo manda: la regla sigue sus movimientos aunque salga de la pista. */
+  const engage = (state: Gesture) => {
+    if (state.engaged) return
+    state.engaged = true
+    try {
+      track.current?.setPointerCapture(state.pointerId)
+    } catch {
+      // El puntero puede haberse soltado ya: seguimos sin captura.
+    }
+    setLive(duration)
+  }
+
   const startHold = () => {
     const state = gesture.current
     if (!state || state.timer !== undefined || spanRef.current >= MAX_DURATION) return
@@ -111,6 +141,7 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
       state.timer = undefined
       setHolding(false)
       if (gesture.current !== state) return
+      engage(state)
       resize(nextSpan(spanRef.current))
       haptic('success')
       // El dedo sigue al final: ahora marca todo lo que abarca la regla estirada.
@@ -130,15 +161,43 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    event.currentTarget.setPointerCapture(event.pointerId)
-    gesture.current = { value: duration, ratio: 0, timer: undefined }
-    setLive(duration)
+    const ratio = ratioAt(event.clientX)
+    gesture.current = { value: duration, ratio, timer: undefined, engaged: false, x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+    // Quieto en el final también estira (sin esperar a moverse); lo que no se puede es cambiar nada aún.
+    if (ratio >= END_ZONE) startHold()
+  }
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const state = gesture.current
+    if (!state) return
+    if (!state.engaged) {
+      const dx = event.clientX - state.x
+      const dy = event.clientY - state.y
+      if (Math.abs(dy) > SCROLL_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
+        cancel()
+        return
+      }
+      if (Math.abs(dx) <= DRAG_SLOP_PX) return
+      engage(state)
+    }
     follow(event.clientX)
   }
 
-  const finish = () => {
+  /** El dedo era del scroll (o se perdió): nada ha cambiado. */
+  const cancel = () => {
+    stopHold()
+    gesture.current = null
+    setLive(undefined)
+  }
+
+  const finish = (event: ReactPointerEvent<HTMLDivElement>) => {
     const state = gesture.current
     if (!state) return
+    // Soltar sin haberse movido es un toque: la duración del punto tocado.
+    if (!state.engaged) {
+      engage(state)
+      follow(event.clientX)
+    }
     stopHold()
     gesture.current = null
     setLive(undefined)
@@ -156,8 +215,13 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
   }
 
   const setEnd = (value: string) => {
-    // Acabar a la hora de empezar sería un toque en falso: daría la vuelta al reloj.
-    if (value && value !== time) onChange(durationFromEnd(time, value))
+    if (!value) return
+    // Acabar a la hora de empezar daría la vuelta al reloj: se dice, en lugar de callar.
+    if (value === time) {
+      toast({ message: copy.afterStart })
+      return
+    }
+    onChange(durationFromEnd(time, value))
   }
 
   const current = live === undefined ? duration : live
@@ -166,6 +230,8 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
   const ticks = rulerTicks(span)
   const atEnd = ratio >= END_ZONE && span < MAX_DURATION
   const label = current === null ? copy.none : durationLabel(current)
+  // Al llegar al tope arrastrando, la nota dice cómo se alarga; si no, cuándo se pregunta.
+  const note = live !== undefined && atEnd ? copy.stretch : end && !done ? copy.ask(shortTime(end)) : null
 
   return (
     <>
@@ -202,9 +268,9 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
           aria-valuenow={current ?? 0}
           aria-valuetext={label}
           onPointerDown={onPointerDown}
-          onPointerMove={(event) => follow(event.clientX)}
+          onPointerMove={onPointerMove}
           onPointerUp={finish}
-          onPointerCancel={finish}
+          onPointerCancel={cancel}
           onKeyDown={onKeyDown}
         >
           <span className="ruler__rail" />
@@ -226,12 +292,14 @@ export function DurationPicker({ time, duration, done = false, onChange }: Durat
               tick.label && (
                 <span key={tick.minutes} style={{ left: `${(tick.minutes / span) * 100}%` }}>
                   {tick.label}
+                  {/* El último rótulo apunta más allá: la regla sigue si se mantiene el dedo */}
+                  {tick.minutes === span && span < MAX_DURATION ? ' ›' : ''}
                 </span>
               ),
           )}
         </div>
       </div>
-      {end && !done && <p className="sheet__note">{copy.ask(shortTime(end))}</p>}
+      {note && <p className="sheet__note">{note}</p>}
     </>
   )
 }

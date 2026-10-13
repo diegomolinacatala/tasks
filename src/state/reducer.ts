@@ -103,7 +103,10 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'task/setTime': {
       if (action.time !== null && !isValidTime(action.time)) return state
-      return updateTask(state, action.id, (task) => (task.time === action.time ? task : { ...task, time: action.time }))
+      // Sin hora no hay desde cuándo contar: la duración se va con ella (como en la ficha del compositor).
+      return updateTask(state, action.id, (task) =>
+        task.time === action.time ? task : { ...task, time: action.time, duration: action.time === null ? null : task.duration },
+      )
     }
 
     case 'task/until': {

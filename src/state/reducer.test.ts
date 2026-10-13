@@ -407,6 +407,15 @@ describe('task/setTime', () => {
     expect(reducer(timed, { type: 'task/setTime', id, time: null }).tasks[0]!.time).toBeNull()
   })
 
+  test('quitar la hora quita también la duración', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    const timed = reducer(reducer(state, { type: 'task/setTime', id, time: '09:30' }), { type: 'task/setDuration', id, duration: 60 })
+    expect(timed.tasks[0]!.duration).toBe(60)
+    const untimed = reducer(timed, { type: 'task/setTime', id, time: null })
+    expect(untimed.tasks[0]!.duration).toBeNull()
+  })
+
   test('ignora horas inválidas y cambios nulos sin crear estado nuevo', () => {
     const state = withTasks('uno')
     const id = state.tasks[0]!.id

@@ -42,6 +42,28 @@ export const isPending = (task: Task, reminder: ReminderDraft, now: number): boo
 }
 
 /** Próximo aviso pendiente de la tarea. */
+export type ReminderIssue = 'no-time' | 'past' | 'no-place' | 'phone-only'
+
+/**
+ * Por qué un aviso no va a sonar, para decirlo junto a él: un "antes" sin fecha u hora, uno que ya
+ * pasó, un lugar sin ubicar o un aviso de lugar fuera del iPhone (la web no puede). `null` si suena.
+ */
+export function reminderIssue(
+  task: Task,
+  reminder: ReminderDraft,
+  now: number,
+  places: readonly Place[],
+  native: boolean,
+): ReminderIssue | null {
+  if (reminder.kind === 'place') {
+    if (!native) return 'phone-only'
+    return places.find((place) => place.id === reminder.placeId)?.location ? null : 'no-place'
+  }
+  if (reminder.kind === 'before' && taskInstant(task) === null) return 'no-time'
+  const at = resolveAt(task, reminder)
+  return at !== null && at > now ? null : 'past'
+}
+
 export function nextReminderAt(task: Task, now: number): number | null {
   if (task.done) return null
   return task.reminders.reduce<number | null>((next, reminder) => {

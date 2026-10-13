@@ -80,7 +80,8 @@
   position: relative;
   height: 52px;
   margin: 0 14px 0 11px;
-  touch-action: none;
+  /* En vertical el dedo es del scroll del panel: la regla solo manda al moverse de lado */
+  touch-action: pan-y;
   cursor: pointer;
   outline: none;
 }

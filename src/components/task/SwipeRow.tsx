@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, Ref } from 'react'
 import type { DraggableSyntheticListeners } from '@dnd-kit/core'
-import { IconCheck, IconTrash } from '../ui/Icons'
+import { IconCheck, IconTrash, IconUndo } from '../ui/Icons'
 import { useSwipe } from './useSwipe'
 import './task.css'
 
@@ -21,17 +21,46 @@ interface SwipeRowProps {
   hold?: DraggableSyntheticListeners
   /** Id con el que se coge: la fila se hunde un poco mientras se mantiene (`pressCue`). */
   dragId?: string
+  /** Hecha: deslizar a la derecha la desmarca, y lo que asoma es una flecha de deshacer, no la marca. */
+  done?: boolean
+  /** Una vez por instalación (`claimSwipeHint`): la fila asoma lo que hay detrás y vuelve. */
+  peek?: boolean
   children: ReactNode
 }
 
 /** Lo que tarda en olvidarse que se acaba de soltar: el clic que llega detrás no abre la tarea. */
 const AFTER_DRAG_MS = 450
 
+const SWIPE_HINT_KEY = 'tasks:swipe-hint'
+let hinted: boolean | null = null
+
+/**
+ * Nadie dice que las filas se deslizan: la primera tarea de la instalación lo enseña asomando lo que
+ * hay detrás. Devuelve `true` una sola vez (y lo apunta), para la primera fila que lo pida.
+ */
+export function claimSwipeHint(): boolean {
+  if (hinted === null) {
+    try {
+      hinted = localStorage.getItem(SWIPE_HINT_KEY) === '1'
+    } catch {
+      hinted = true
+    }
+  }
+  if (hinted) return false
+  hinted = true
+  try {
+    localStorage.setItem(SWIPE_HINT_KEY, '1')
+  } catch {
+    // Sin almacenamiento la pista saldría cada vez: mejor una sola, aunque no se apunte.
+  }
+  return true
+}
+
 /**
  * Fila deslizable: lo que asoma por detrás (hecha a la izquierda, borrar a la derecha) crece con el
  * gesto y da un pequeño salto al pasar el umbral, que es cuando vibra.
  */
-export function SwipeRow({ onRight, onLeft, disabled, className = '', style, flip, nodeRef, hold, dragId, children }: SwipeRowProps) {
+export function SwipeRow({ onRight, onLeft, disabled, className = '', style, flip, nodeRef, hold, dragId, done = false, peek = false, children }: SwipeRowProps) {
   const { rootRef, surfaceRef, handlers } = useSwipe({ onLeft, onRight, disabled })
   // Tras arrastrarla (`disabled` mientras dura), soltar sin moverse no debe abrirla.
   const dragged = useRef(false)
@@ -63,10 +92,10 @@ export function SwipeRow({ onRight, onLeft, disabled, className = '', style, fli
   )
 
   return (
-    <li ref={setRoot} className={`swipe ${className}`} style={style} data-flip={flip} data-drag-id={dragId}>
+    <li ref={setRoot} className={`swipe ${className} ${peek ? 'is-peek' : ''}`} style={style} data-flip={flip} data-drag-id={dragId}>
       <div className="swipe__behind" aria-hidden="true">
         <span className="swipe__act swipe__act--right">
-          <IconCheck size={18} strokeWidth={2.2} />
+          {done ? <IconUndo size={18} strokeWidth={2} /> : <IconCheck size={18} strokeWidth={2.2} />}
         </span>
         {onLeft && (
           <span className="swipe__act swipe__act--left">

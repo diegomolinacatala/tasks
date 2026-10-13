@@ -6,7 +6,8 @@
 .slider__track {
   position: relative;
   height: 44px;
-  touch-action: none;
+  /* En vertical el dedo es del scroll del panel: el deslizador solo manda al moverse de lado */
+  touch-action: pan-y;
   cursor: pointer;
 }
 

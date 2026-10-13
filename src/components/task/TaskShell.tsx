@@ -4,7 +4,7 @@ import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/
 import { useCopy } from '../../state/LanguageProvider'
 import type { Task } from '../../types'
 import { useSizing } from '../importance/sizing'
-import { SwipeRow } from './SwipeRow'
+import { SwipeRow, claimSwipeHint } from './SwipeRow'
 import { TaskRow } from './TaskRow'
 import { useRowActions } from './rowActions'
 import { splitListeners } from '../dnd/dnd'
@@ -53,6 +53,8 @@ export const TaskShell = memo(function TaskShell({
   const actions = useRowActions()
   const copy = useCopy(COPY)
   const [sizingTo, setSizingTo] = useState<number | null>(null)
+  // La primera fila pendiente de la instalación asoma una vez lo que hay detrás.
+  const [peek] = useState(() => !task.done && claimSwipeHint())
   const { hold, keyboard } = splitListeners(listeners)
 
   return (
@@ -64,6 +66,8 @@ export const TaskShell = memo(function TaskShell({
       disabled={isDragging}
       hold={sizing ? undefined : hold}
       dragId={task.id}
+      done={task.done}
+      peek={peek}
       onRight={() => actions.toggle(task.id)}
       onLeft={() => actions.remove(task.id)}
     >

@@ -3,7 +3,6 @@ import type { CSSProperties } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { CalendarEvent } from '../../lib/calendar'
 import { eventSpan } from '../../lib/calendar'
-import { todayIso } from '../../lib/date'
 import { spanLabel } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
 import { asOf, periodTag } from '../../lib/period'
@@ -15,6 +14,7 @@ import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate, Routine, Section, Task } from '../../types'
 import { useCalendar } from '../calendar/CalendarProvider'
 import { splitListeners } from '../dnd/dnd'
+import { useCurrentDay } from '../../hooks/useToday'
 import { useSizing } from '../importance/sizing'
 import { SwipeRow } from '../task/SwipeRow'
 import { useRowActions } from '../task/rowActions'
@@ -152,7 +152,7 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section, ov
   const { hold } = splitListeners(listeners)
   const duration = task.duration ?? 0
   const scale = task.done ? 0 : importanceScale(sizingTo ?? task.importance)
-  const today = todayIso()
+  const today = useCurrentDay()
   const reminding = nextReminderAt(asOf(task, today), Date.now()) !== null
   const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
   const period = periodTag(task, today)
@@ -166,6 +166,7 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section, ov
       disabled={isDragging}
       hold={sizing ? undefined : hold}
       dragId={task.id}
+      done={task.done}
       onRight={() => actions.toggle(task.id)}
       onLeft={() => actions.remove(task.id)}
     >

@@ -21,12 +21,25 @@ interface SliderProps {
 
 /**
  * Deslizador de la app, como los de Google Maps o Spotify: se coge desde cualquier punto de la pista
- * (no hace falta atinar al botón), el valor va encima del dedo y cada paso vibra.
+ * (no hace falta atinar al botón), el valor va encima del dedo y cada paso vibra. Apoyar el dedo no
+ * cambia nada: en vertical es el scroll del panel, y el deslizador manda al moverse de lado o al tocar.
  */
+/** Antes de esto en vertical el dedo quería bajar el panel. */
+const SCROLL_SLOP_PX = 8
+/** Desde esto de lado, el deslizador manda. */
+const DRAG_SLOP_PX = 10
+
+interface Gesture {
+  x: number
+  y: number
+  pointerId: number
+  engaged: boolean
+}
 export function Slider({ value, min, max, step, label, format, onInput, onChange, marks = [] }: SliderProps) {
   const track = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<number | null>(null)
   const live = useRef(value)
+  const gesture = useRef<Gesture | null>(null)
   const current = dragging ?? value
   const ratio = (current - min) / (max - min)
 
@@ -47,21 +60,52 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    event.currentTarget.setPointerCapture(event.pointerId)
-    live.current = value
-    setDragging(value)
-    preview(valueAt(event.clientX))
+    gesture.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, engaged: false }
   }
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragging === null) return
+    const state = gesture.current
+    if (!state) return
+    if (!state.engaged) {
+      const dx = event.clientX - state.x
+      const dy = event.clientY - state.y
+      if (Math.abs(dy) > SCROLL_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
+        gesture.current = null
+        return
+      }
+      if (Math.abs(dx) <= DRAG_SLOP_PX) return
+      state.engaged = true
+      try {
+        event.currentTarget.setPointerCapture(state.pointerId)
+      } catch {
+        // El puntero puede haberse soltado ya: seguimos sin captura.
+      }
+      live.current = value
+      setDragging(value)
+    }
     preview(valueAt(event.clientX))
   }
 
-  const finish = () => {
-    if (dragging === null) return
+  const finish = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const state = gesture.current
+    gesture.current = null
+    if (!state) return
+    // Soltar sin haberse movido es un toque: el valor del punto tocado.
+    if (!state.engaged) {
+      const next = valueAt(event.clientX)
+      if (next !== value) {
+        haptic('selection')
+        onChange(next)
+      }
+      return
+    }
     setDragging(null)
     if (live.current !== value) onChange(live.current)
+  }
+
+  const cancel = () => {
+    gesture.current = null
+    setDragging(null)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -87,7 +131,7 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finish}
-        onPointerCancel={finish}
+        onPointerCancel={cancel}
         onKeyDown={onKeyDown}
       >
         <span className="slider__rail" />

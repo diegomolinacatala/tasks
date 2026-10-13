@@ -17,12 +17,12 @@ import { isNative } from './lib/platform'
 import { haptic } from './lib/platform/feedback'
 import type { RoutineDraft } from './lib/repeat'
 import { parseRoutine } from './lib/repeat'
-import { ALL_DAYS, MAX_ROUTINES } from './lib/routines'
+import { ALL_DAYS, MAX_ROUTINES, daysLabel, isoWeekday } from './lib/routines'
 import { applyTheme } from './lib/theme'
 import type { WelcomeRun } from './lib/welcome'
 import { FULL_WELCOME, WELCOME_VERSION, availablePlates, welcomeOnLaunch } from './lib/welcome'
 import { showsCalendar } from './lib/platform/calendar'
-import { useRoutineDay, useToday } from './hooks/useToday'
+import { TodayContext, useRoutineDay, useToday } from './hooks/useToday'
 import { useCopy, useLanguage } from './state/LanguageProvider'
 import { useAppState, useDispatch, useFirstRun } from './state/StoreProvider'
 import { isOverdue } from './state/selectors'
@@ -36,6 +36,7 @@ import { TabBar } from './components/shell/TabBar'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
 import { useNativeActions } from './components/shell/useNativeActions'
 import type { RowActions } from './components/task/rowActions'
+import type { TaskOrigin } from './components/task/TaskSheet'
 import { RowActionsContext } from './components/task/rowActions'
 import { useTaskActions } from './components/task/useTaskActions'
 import { IconTextSize } from './components/ui/Icons'
@@ -46,6 +47,8 @@ import './components/shell/shell.css'
 
 // Lo que no se ve al arrancar va en su propio trozo: la Bandeja y los paneles se piden en cuanto la
 // agenda está pintada (abrirlos no espera a nada); Lugares y Ajustes, la primera vez que se abren.
+const SIZING_HINT_KEY = 'tasks:sizing-hint'
+
 const loadInbox = () => import('./components/views/InboxView')
 const loadSheets = () =>
   Promise.all([loadInbox(), import('./components/task/TaskSheet'), import('./components/section/SectionSheet')])
@@ -102,6 +105,8 @@ const COPY = {
     noDate: 'Sin fecha',
     many: (count: number, titles: string) => `${count} tareas: ${titles}`,
     sizing: 'Tamaño según importancia',
+    sizingHint: 'Arrastra el número de cada tarea a los lados: a la derecha, más grande.',
+    noSection: 'sin sección',
     stopWriting: 'Dejar de escribir',
     schedule: 'Horario',
     scheduleFailed: 'No se han podido programar los avisos. Se reintenta solo.',
@@ -117,6 +122,8 @@ const COPY = {
     noDate: 'No date',
     many: (count: number, titles: string) => `${count} tasks: ${titles}`,
     sizing: 'Size by importance',
+    sizingHint: 'Drag each task’s number sideways: right makes it bigger.',
+    noSection: 'no section',
     stopWriting: 'Stop writing',
     schedule: 'Schedule',
     scheduleFailed: 'Reminders couldn’t be scheduled. It’ll retry on its own.',
@@ -327,21 +334,28 @@ export function App() {
     return true
   }
 
-  /** Del panel de una tarea: pasa a ser una rutina de cada día (con su hora) y se abre para ajustarla. */
+  /**
+   * Del panel de una tarea: pasa a ser una rutina (con su hora) y se abre para ajustarla. Una tarea de un
+   * martes se repite los martes; sin día, cada día.
+   */
   const makeRoutine = (task: Task) => {
     if (!roomForRoutine()) return
     const id = createId()
-    dispatch({ type: 'routine/add', id, title: task.title, days: [...ALL_DAYS], time: task.time, emoji: suggestEmoji(task.title) })
+    const days = task.date ? [isoWeekday(task.date)] : [...ALL_DAYS]
+    dispatch({ type: 'routine/add', id, title: task.title, days, time: task.time, emoji: suggestEmoji(task.title) })
     dispatch({ type: 'task/remove', id: task.id })
     haptic('success')
     openTask(null)
     openRoutine(id)
     toast({
-      message: copy.routine(task.title),
+      message: `${copy.routine(task.title)} · ${daysLabel(days).toLowerCase()}`,
       actionLabel: copy.undo,
       onAction: () => {
+        // El panel abierto es el de la rutina que se va: se cierra y vuelve el de la tarea.
+        setRoutineId(null)
         dispatch({ type: 'routine/remove', id })
         dispatch({ type: 'task/restore', task })
+        openTask(task.id)
       },
     })
   }
@@ -372,6 +386,44 @@ export function App() {
         if (id) revealTask(id)
       },
     })
+  }
+
+  /**
+   * Al cerrar el panel de una tarea que cambió de día o de sección: si ya no está en lo que se ve (otro
+   * día, la Bandeja), se dice adónde ha ido y se ofrece ir; si al quitarle el día perdió la sección, también.
+   */
+  const relocated = (task: Task, from: TaskOrigin) => {
+    const here = tab === 'agenda' ? task.date === day : tab === 'inbox' ? task.date === null : true
+    const lostSection = task.date === null && from.sectionId !== null
+    if (here && !lostSection) return
+    const where = task.date ? (task.until ? periodLabel(task.date, task.until, today) : capitalize(relativeLabel(task.date, today))) : copy.inbox
+    const message = `${task.title} → ${where}${lostSection ? ` · ${copy.noSection}` : ''}`
+    if (here) {
+      toast({ message })
+      return
+    }
+    toast({
+      message,
+      actionLabel: copy.view,
+      onAction: () => {
+        if (task.date) setDay(task.date)
+        go(task.date ? 'agenda' : 'inbox')
+        revealTask(task.id)
+      },
+    })
+  }
+
+  /** El modo "Aa" se explica solo la primera vez: nadie deduce del icono que el número se arrastra. */
+  const toggleSizing = () => {
+    setSizing((on) => !on)
+    if (sizing) return
+    try {
+      if (localStorage.getItem(SIZING_HINT_KEY)) return
+      localStorage.setItem(SIZING_HINT_KEY, '1')
+    } catch {
+      return
+    }
+    toast({ message: copy.sizingHint })
   }
 
   /**
@@ -491,6 +543,7 @@ export function App() {
     )
 
   return (
+    <TodayContext.Provider value={today}>
     <RowActionsContext.Provider value={rowActions}>
       <div
         inert={welcome !== null}
@@ -505,7 +558,7 @@ export function App() {
             className="app__sizing"
             aria-label={copy.sizing}
             aria-pressed={sizing}
-            onClick={() => setSizing((on) => !on)}
+            onClick={toggleSizing}
           >
             <IconTextSize size={21} />
           </button>
@@ -558,7 +611,13 @@ export function App() {
         </div>
 
         <Suspense fallback={null}>
-          <TaskSheet taskId={taskId} fromNotification={fromNotification} onClose={() => openTask(null)} onMakeRoutine={makeRoutine} />
+          <TaskSheet
+            taskId={taskId}
+            fromNotification={fromNotification}
+            onClose={() => openTask(null)}
+            onMakeRoutine={makeRoutine}
+            onRelocated={relocated}
+          />
           <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
           {routineLoaded && <RoutineSheet routineId={routineId} today={routineToday} onClose={() => setRoutineId(null)} />}
         </Suspense>
@@ -592,5 +651,6 @@ export function App() {
         </Suspense>
       )}
     </RowActionsContext.Provider>
+    </TodayContext.Provider>
   )
 }

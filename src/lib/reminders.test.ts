@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
-import type { Task } from '../types'
+import type { Place, Task } from '../types'
 import { toInstant } from './date'
 import {
   MAX_REMINDERS,
   isPending,
   nextReminderAt,
   normalizeReminder,
+  reminderIssue,
   reminderLabel,
   reminderPresets,
   resolveAt,
@@ -236,5 +237,26 @@ describe('normalizeReminder', () => {
     { id: 'a', kind: 'otro' },
   ])('rechaza %j', (raw) => {
     expect(normalizeReminder(raw)).toBeNull()
+  })
+})
+
+describe('reminderIssue', () => {
+  const place: Place = { id: 'p1', name: 'Casa', aliases: [], location: { lat: 1, lng: 1, address: '' }, radius: 200 }
+  const unset: Place = { ...place, id: 'p2', name: 'Oficina', location: null }
+
+  test('dice por qué un aviso no va a sonar y nada si suena', () => {
+    const timed = task({ id: 'a', time: '12:00' })
+    expect(reminderIssue(timed, { kind: 'before', minutes: 15 }, NOW, [], true)).toBeNull()
+    expect(reminderIssue(task({ id: 'b' }), { kind: 'before', minutes: 15 }, NOW, [], true)).toBe('no-time')
+    expect(reminderIssue(timed, { kind: 'before', minutes: 180 }, NOW, [], true)).toBe('past')
+    expect(reminderIssue(timed, { kind: 'at', at: NOW - MINUTE }, NOW, [], true)).toBe('past')
+    expect(reminderIssue(timed, { kind: 'at', at: NOW + MINUTE }, NOW, [], true)).toBeNull()
+  })
+
+  test('los de lugar: fuera del iPhone no suenan, y tampoco sin ubicar', () => {
+    const base = task({ id: 'c' })
+    expect(reminderIssue(base, { kind: 'place', placeId: 'p1', on: 'arrive' }, NOW, [place], false)).toBe('phone-only')
+    expect(reminderIssue(base, { kind: 'place', placeId: 'p1', on: 'arrive' }, NOW, [place], true)).toBeNull()
+    expect(reminderIssue(base, { kind: 'place', placeId: 'p2', on: 'leave' }, NOW, [unset], true)).toBe('no-place')
   })
 })

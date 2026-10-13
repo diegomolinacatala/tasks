@@ -26,6 +26,13 @@ export const IconCheck = (props: IconProps) => (
   </Icon>
 )
 
+export const IconUndo = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </Icon>
+)
+
 export const IconPlus = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 5v14M5 12h14" />

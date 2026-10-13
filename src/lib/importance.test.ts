@@ -37,18 +37,18 @@ describe('importancia', () => {
     expect(importanceScale(20)).toBe(importanceScale(10))
   })
 
-  test('arrastrar arriba o a la derecha sube; abajo o a la izquierda, baja', () => {
-    expect(importanceFromDrag(3, 0, -IMPORTANCE_STEP_PX * 2)).toBe(5)
-    expect(importanceFromDrag(3, IMPORTANCE_STEP_PX, 0)).toBe(4)
-    expect(importanceFromDrag(3, 0, IMPORTANCE_STEP_PX)).toBe(2)
-    expect(importanceFromDrag(3, -IMPORTANCE_STEP_PX * 10, 0)).toBe(1)
-    expect(importanceFromDrag(3, 4, -4)).toBe(3)
+  test('arrastrar a la derecha sube; a la izquierda, baja; menos de medio paso no cuenta', () => {
+    expect(importanceFromDrag(3, IMPORTANCE_STEP_PX * 2)).toBe(5)
+    expect(importanceFromDrag(3, IMPORTANCE_STEP_PX)).toBe(4)
+    expect(importanceFromDrag(3, -IMPORTANCE_STEP_PX)).toBe(2)
+    expect(importanceFromDrag(3, -IMPORTANCE_STEP_PX * 10)).toBe(1)
+    expect(importanceFromDrag(3, 4)).toBe(3)
   })
 
-  test('tocar sube un punto y, pasado el 10, vuelve a lo normal', () => {
+  test('tocar sube un punto y en el 10 se queda', () => {
     expect(nextImportance(1)).toBe(2)
     expect(nextImportance(9)).toBe(10)
-    expect(nextImportance(10)).toBe(1)
+    expect(nextImportance(10)).toBe(10)
   })
 
   test('ordenar por importancia respeta el orden previo entre iguales', () => {

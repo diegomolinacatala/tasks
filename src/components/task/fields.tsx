@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { addDays, relativeLabel, shortTime } from '../../lib/date'
-import { untilLabel } from '../../lib/period'
+import { periodLabel, untilLabel } from '../../lib/period'
 import { createId } from '../../lib/id'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
@@ -30,6 +30,7 @@ const COPY = {
     none: 'Sin sección',
     add: '+ Nueva',
     name: 'Nombre',
+    firstDay: 'Primer día del plazo',
   },
   en: {
     when: 'When',
@@ -46,8 +47,12 @@ const COPY = {
     none: 'No section',
     add: '+ New',
     name: 'Name',
+    firstDay: 'First day of the time frame',
   },
 } as const
+
+/** Lo más temprano que se puede elegir: nunca antes de hoy (un aviso o un plazo en el pasado no sirven). */
+const later = (a: IsoDate, b: IsoDate): IsoDate => (a > b ? a : b)
 
 interface WhenFieldProps {
   date: IsoDate | null
@@ -66,28 +71,51 @@ export function WhenField({ date, today, onChange, until = null, onUntil }: When
   const tomorrow = addDays(today, 1)
   const copy = useCopy(COPY)
   const isCustomDate = Boolean(date && date !== today && date !== tomorrow)
+  const hasPeriod = date !== null && until !== null && Boolean(onUntil)
   return (
     <>
       <p className="sheet__title">{copy.when}</p>
       <div className="sheet__chips">
-        <button type="button" className={`chip ${date === today ? 'is-active' : ''}`} onClick={() => onChange(today)}>
-          {copy.today}
-        </button>
-        <button type="button" className={`chip ${date === tomorrow ? 'is-active' : ''}`} onClick={() => onChange(tomorrow)}>
-          {copy.tomorrow}
-        </button>
-        <button type="button" className={`chip ${date === null ? 'is-active' : ''}`} onClick={() => onChange(null)}>
-          {copy.noDate}
-        </button>
-        <PickerChip type="date" className={`chip ${isCustomDate ? 'is-active' : ''}`} value={date ?? ''} onCommit={(value) => onChange(value || null)}>
-          {isCustomDate && date ? relativeLabel(date, today) : copy.otherDay}
-        </PickerChip>
-        {date !== null && onUntil && (
+        {/* Con plazo, el día de empezar no es "su día": una sola píldora dice el plazo entero, abre el primer
+            día y su × lo quita (para cambiar el final, quitarlo y "Hasta…" otra vez). */}
+        {hasPeriod && date && until && onUntil ? (
+          <PickerChip type="date" className="chip is-active chip--until" value={date} aria-label={copy.firstDay} onCommit={(value) => value && onChange(value)}>
+            {periodLabel(date, until, today)}
+            <button
+              type="button"
+              className="chip__clear"
+              aria-label={copy.clearUntil}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onUntil(null)
+              }}
+            >
+              <IconClose size={12} className="chip__remove" />
+            </button>
+          </PickerChip>
+        ) : (
+          <>
+            <button type="button" className={`chip ${date === today ? 'is-active' : ''}`} onClick={() => onChange(today)}>
+              {copy.today}
+            </button>
+            <button type="button" className={`chip ${date === tomorrow ? 'is-active' : ''}`} onClick={() => onChange(tomorrow)}>
+              {copy.tomorrow}
+            </button>
+            <button type="button" className={`chip ${date === null ? 'is-active' : ''}`} onClick={() => onChange(null)}>
+              {copy.noDate}
+            </button>
+            <PickerChip type="date" className={`chip ${isCustomDate ? 'is-active' : ''}`} value={date ?? ''} onCommit={(value) => onChange(value || null)}>
+              {isCustomDate && date ? relativeLabel(date, today) : copy.otherDay}
+            </PickerChip>
+          </>
+        )}
+        {date !== null && onUntil && !hasPeriod && (
           <PickerChip
             type="date"
             className={`chip ${until ? 'chip--reminder chip--until' : 'chip--option'}`}
             value={until ?? ''}
-            min={addDays(date, 1)}
+            min={later(addDays(date, 1), today)}
             onCommit={(value) => onUntil(value || null)}
           >
             {until ? untilLabel(until, today) : copy.until}
@@ -150,13 +178,20 @@ export function SectionField({ sectionId, onChange }: SectionFieldProps) {
   const sections = sortedSections(state)
   const copy = useCopy(COPY)
   const [draft, setDraft] = useState<string | null>(null)
+  // Escape descarta lo escrito; cualquier otra forma de salir del campo (Intro, tocar fuera) lo crea.
+  const cancelled = useRef(false)
 
-  const create = (name: string) => {
-    if (!name.trim()) return
-    const id = createId()
-    dispatch({ type: 'section/add', name, id })
-    onChange(id)
+  const finish = (name: string) => {
     setDraft(null)
+    if (cancelled.current) {
+      cancelled.current = false
+      return
+    }
+    const clean = name.trim()
+    if (!clean) return
+    const id = createId()
+    dispatch({ type: 'section/add', name: clean, id })
+    onChange(id)
   }
 
   return (
@@ -182,15 +217,17 @@ export function SectionField({ sectionId, onChange }: SectionFieldProps) {
           </button>
         ) : (
           <input
-            className="chip"
+            className="chip chip--input"
             autoFocus
             placeholder={copy.name}
+            aria-label={copy.name}
+            enterKeyHint="done"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            onBlur={() => setDraft(null)}
+            onBlur={(event) => finish(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') create(draft)
-              if (event.key === 'Escape') setDraft(null)
+              if (event.key === 'Escape') cancelled.current = true
+              if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur()
             }}
           />
         )}

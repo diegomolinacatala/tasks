@@ -208,15 +208,17 @@
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--sp-3);
+  gap: 2px var(--sp-3);
   text-align: left;
   padding: 0;
 }
 
+/* El título se queda con al menos algo más de la mitad: lo demás (hora, plazo, sección) baja de línea si no cabe */
 .row__title {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 60%;
   font-size: var(--title-size);
   font-weight: calc(400 + 250 * var(--imp, 0));
   letter-spacing: calc(-0.025em * var(--imp, 0));
@@ -300,5 +302,53 @@
   .swipe.is-pressing .swipe__surface,
   .section.is-pressing .section__head {
     transform: none;
+  }
+}
+
+/* Una vez por instalación, la primera tarea asoma lo que hay detrás (coñac y la marca) y vuelve: se
+   descubre que se desliza sin que nadie lo diga */
+.swipe.is-peek > .swipe__behind {
+  background: var(--accent-dim);
+  animation: swipe-peek-behind 1.7s var(--ease) 800ms 1 both;
+}
+
+.swipe.is-peek .swipe__act--right {
+  opacity: 1;
+  transform: scale(0.82);
+}
+
+.swipe.is-peek .swipe__act--left {
+  opacity: 0;
+}
+
+.swipe.is-peek > .swipe__surface {
+  animation: swipe-peek 1.7s var(--ease) 800ms 1 both;
+}
+
+@keyframes swipe-peek {
+  0%,
+  100% {
+    transform: none;
+  }
+  30%,
+  55% {
+    transform: translateX(30px);
+  }
+}
+
+@keyframes swipe-peek-behind {
+  0%,
+  99% {
+    visibility: visible;
+  }
+  100% {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe.is-peek > .swipe__surface,
+  .swipe.is-peek > .swipe__behind {
+    animation: none;
   }
 }

@@ -208,6 +208,8 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
 export function writeStateExpression(state) {
   return `new Promise((resolve, reject) => {
   localStorage.setItem('tasks:theme', ${JSON.stringify(state.settings.theme ?? 'light')})
+  localStorage.setItem('tasks:swipe-hint', '1')
+  localStorage.setItem('tasks:sizing-hint', '1')
   const request = indexedDB.open('keyval-store')
   request.onupgradeneeded = () => request.result.createObjectStore('keyval')
   request.onerror = () => reject(request.error)
