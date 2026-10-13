@@ -28,6 +28,8 @@ export type TimelineRow = TimelineItem | { kind: 'gap'; id: string; minutes: num
 
 /** Hueco a partir del cual se dice cuánto tiempo libre queda entre dos cosas. */
 export const MIN_GAP = 45
+/** A partir de aquí ("11 h 30 libres" entre el desayuno y la lectura de la noche) ya no dice nada. */
+export const MAX_GAP = 6 * 60
 
 /**
  * Lo que tiene hora ese día: tareas (con su duración), rutinas y los eventos del calendario del iPhone,
@@ -52,7 +54,7 @@ export function timelineItems(tasks: readonly Task[], routines: readonly Routine
  * Las filas del horario. `now` (minutos) solo se pasa si el día es hoy: marca lo que está en curso
  * o, si no hay nada, dónde cae el momento actual.
  */
-export function buildTimeline(items: readonly TimelineItem[], now: number | null, minGap = MIN_GAP): TimelineRow[] {
+export function buildTimeline(items: readonly TimelineItem[], now: number | null, minGap = MIN_GAP, maxGap = MAX_GAP): TimelineRow[] {
   const placed = items.map((item) =>
     now !== null && item.end > item.start && item.start <= now && now < item.end
       ? { ...item, live: (now - item.start) / (item.end - item.start) }
@@ -71,7 +73,8 @@ export function buildTimeline(items: readonly TimelineItem[], now: number | null
     }
     // El tiempo libre que ya pasó no cuenta: si ahora cae en el hueco, se mide desde ahora.
     const from = nowHere && now !== null ? Math.max(now, reach ?? now) : reach
-    if (from !== null && item.start - from >= minGap) rows.push({ kind: 'gap', id: `gap:${item.id}`, minutes: item.start - from })
+    const gap = from !== null ? item.start - from : 0
+    if (gap >= minGap && gap < maxGap) rows.push({ kind: 'gap', id: `gap:${item.id}`, minutes: gap })
     rows.push(item)
     reach = Math.max(reach ?? item.end, item.end)
   }

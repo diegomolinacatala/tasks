@@ -165,6 +165,15 @@
 }
 
 /* Vacíos en cursiva serif: una nota al margen, no un error */
+/* En una sección vacía la invitación a soltar solo sale mientras se arrastra algo */
+.section .column__empty {
+  display: none;
+}
+
+.view.is-dragging .section .column__empty {
+  display: block;
+}
+
 .column__empty {
   padding: 12px 2px 14px;
   font-family: var(--font-serif);

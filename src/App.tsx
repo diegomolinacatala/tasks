@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
 import type { ComposeTarget } from './lib/compose'
 import { composeTargets } from './lib/compose'
-import { relativeLabel } from './lib/date'
+import { relativeLabel, shortTime } from './lib/date'
 import { periodLabel } from './lib/period'
 import { suggestEmoji } from './lib/emoji'
 import { capitalize } from './lib/title'
@@ -103,6 +103,7 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tareas: ${titles}`,
     sizing: 'Tamaño según importancia',
     stopWriting: 'Dejar de escribir',
+    schedule: 'Horario',
     scheduleFailed: 'No se han podido programar los avisos. Se reintenta solo.',
     saveFailed: 'No se está guardando. Libera espacio en el dispositivo o exporta una copia.',
     exportNow: 'Exportar',
@@ -117,6 +118,7 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tasks: ${titles}`,
     sizing: 'Size by importance',
     stopWriting: 'Stop writing',
+    schedule: 'Schedule',
     scheduleFailed: 'Reminders couldn’t be scheduled. It’ll retry on its own.',
     saveFailed: 'Changes aren’t being saved. Free up space on your device or export a backup.',
     exportNow: 'Export',
@@ -233,6 +235,7 @@ export function App() {
     setVisited((current) => (current.has(next) ? current : new Set([...current, next])))
     setTab(next)
     setSwitched(true)
+    haptic('selection')
     if (!WRITING.has(next)) setSizing(false)
   }, [])
 
@@ -249,9 +252,24 @@ export function App() {
     dispatch({ type: 'settings/welcome', version: WELCOME_VERSION })
   }, [dispatch])
 
+  const [agendaReset, setAgendaReset] = useState(0)
   const reselect = (current: TabId) => {
     scrollers.current[current]?.scrollTo({ top: 0, behavior: 'smooth' })
-    if (current === 'agenda') setDay(today)
+    if (current === 'agenda') {
+      setDay(today)
+      setAgendaReset((count) => count + 1)
+    }
+  }
+
+  /** Lleva la vista a una fila recién añadida (ya pintada) y la deja a la vista. */
+  const revealTask = (id: string) => {
+    let tries = 0
+    const look = () => {
+      const node = document.querySelector(`[data-flip="${CSS.escape(id)}"]`)
+      if (node) return node.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      if ((tries += 1) < 20) requestAnimationFrame(look)
+    }
+    requestAnimationFrame(look)
   }
 
   const openTask = useCallback((id: string | null) => {
@@ -328,18 +346,30 @@ export function App() {
     })
   }
 
-  /** Si la tarea cae fuera de lo que se está viendo, se dice adónde ha ido y se ofrece ir. */
+  /**
+   * Si la tarea cae fuera de lo que se está viendo, se dice adónde ha ido y se ofrece ir (cerrando
+   * la barra y llevando la vista a la fila). Si cae en una sección plegada, se despliega. Si entra por
+   * el + de una sección pero lleva hora, va al Horario: se dice.
+   */
   const addTask = (draft: TaskDraft) => {
-    addTasks([draft])
+    const section = draft.sectionId ? state.sections.find((item) => item.id === draft.sectionId) : undefined
+    if (section?.collapsed) dispatch({ type: 'section/toggle', id: section.id })
+    const added = addTasks([draft])
+    const [id] = added.tasks
     const here = tab === 'agenda' ? draft.date === day : draft.date === null
-    if (here) return
+    if (here) {
+      if (section && draft.time) toast({ message: `${draft.title} → ${copy.schedule} · ${shortTime(draft.time)}` })
+      return
+    }
     const { date } = draft
     toast({
       message: `${draft.title} → ${date ? (draft.until ? periodLabel(date, draft.until, today) : capitalize(relativeLabel(date, today))) : copy.inbox}`,
       actionLabel: copy.view,
       onAction: () => {
+        stopComposing()
         if (date) setDay(date)
         go(date ? 'agenda' : 'inbox')
+        if (id) revealTask(id)
       },
     })
   }
@@ -486,7 +516,15 @@ export function App() {
             {pane('inbox', <InboxView today={today} routineDay={routineToday} />)}
             {pane(
               'agenda',
-              <AgendaView day={day} today={today} onSelectDay={setDay} onOpenSection={setSectionId} onAddToSection={addToSection} />,
+              <AgendaView
+                day={day}
+                today={today}
+                routineDay={routineToday}
+                resetSignal={agendaReset}
+                onSelectDay={setDay}
+                onOpenSection={setSectionId}
+                onAddToSection={addToSection}
+              />,
             )}
             {pane('places', <PlacesView />)}
             {pane(

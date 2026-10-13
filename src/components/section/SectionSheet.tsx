@@ -63,6 +63,10 @@ export function SectionSheet({ sectionId, onClose }: SectionSheetProps) {
         value={name}
         onChange={(event) => setName(event.target.value)}
         onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') close()
+        }}
+        enterKeyHint="done"
         aria-label={copy.sectionName}
       />
       <button

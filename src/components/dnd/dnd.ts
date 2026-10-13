@@ -2,6 +2,7 @@ import { KeyboardSensor, MouseSensor, TouchSensor, closestCorners, pointerWithin
 import type { Announcements, CollisionDetection, DragAbortEvent, DragPendingEvent, DraggableSyntheticListeners, UniqueIdentifier } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { KeyboardEventHandler } from 'react'
+import { pick } from '../../lib/i18n'
 import { haptic } from '../../lib/platform/feedback'
 
 /**
@@ -67,11 +68,17 @@ export const scopedCollision: CollisionDetection = (args) => {
   return closestCorners({ ...args, droppableContainers })
 }
 
+const ANNOUNCE = {
+  es: { start: 'Cogido.', end: 'Soltado.', cancel: 'Movimiento cancelado.' },
+  en: { start: 'Picked up.', end: 'Dropped.', cancel: 'Move cancelled.' },
+} as const
+
+/** Lo que oye quien usa un lector de pantalla al arrastrar, en el idioma de la app (se lee en el momento). */
 export const announcements: Announcements = {
-  onDragStart: () => 'Elemento cogido.',
+  onDragStart: () => pick(ANNOUNCE).start,
   onDragOver: () => undefined,
-  onDragEnd: () => 'Elemento soltado.',
-  onDragCancel: () => 'Movimiento cancelado.',
+  onDragEnd: () => pick(ANNOUNCE).end,
+  onDragCancel: () => pick(ANNOUNCE).cancel,
 }
 
 /** Al cogerla, un toque háptico (en el iPhone; en la web, la vibración si la hay). */

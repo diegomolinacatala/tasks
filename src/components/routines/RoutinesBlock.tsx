@@ -52,12 +52,25 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
   // Como en un reloj: "00:00" y "04:30" en español (medianoche no es "0:00"); "12:00 AM" en inglés.
   const renewAt = language === 'en' ? shortTime(settings.dayStart) : settings.dayStart
 
+  if (!routines.length) {
+    return (
+      <section className="block routines">
+        <button type="button" className="routines__empty" onClick={() => actions.openRoutine('')}>
+          <IconRepeat size={16} />
+          <span>
+            {copy.title} · {copy.add}
+          </span>
+        </button>
+      </section>
+    )
+  }
+
   return (
     <section className="block routines">
       <BlockHeader
         label={copy.title}
-        collapsed={routines.length ? collapsed.routines : undefined}
-        onToggle={routines.length ? () => dispatch({ type: 'block/toggle', block: 'routines' }) : undefined}
+        collapsed={collapsed.routines}
+        onToggle={() => dispatch({ type: 'block/toggle', block: 'routines' })}
         action={
           <>
             {progress.total > 0 && (
@@ -65,19 +78,13 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
                 {progress.done}/{progress.total}
               </span>
             )}
-            <button type="button" className="section__icon" aria-label={copy.add} onClick={() => actions.openRoutine('')}>
+            <button type="button" className="section__icon section__icon--add" aria-label={copy.add} onClick={() => actions.openRoutine('')}>
               <IconPlus size={17} />
             </button>
           </>
         }
       />
-      {!routines.length && (
-        <button type="button" className="routines__empty" onClick={() => actions.openRoutine('')}>
-          <IconRepeat size={16} />
-          <span>{copy.add}</span>
-        </button>
-      )}
-      {routines.length > 0 && !collapsed.routines && (
+      {!collapsed.routines && (
         <ul className="column routines__list">
           {sorted.map((routine) => (
             <RoutineRow key={routine.id} routine={routine} today={today} />
@@ -85,7 +92,7 @@ export function RoutinesBlock({ today }: RoutinesBlockProps) {
         </ul>
       )}
       {/* Cuándo amanecen sin tachar: casi nadie lo cambia, así que es una nota y no un ajuste. Tocar la hora la cambia. */}
-      {routines.length > 0 && !collapsed.routines && (
+      {!collapsed.routines && (
         <p className="routines__renew">
           <IconRepeat size={12} />
           <span>{copy.renew}</span>

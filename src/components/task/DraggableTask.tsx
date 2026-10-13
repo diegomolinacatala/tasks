@@ -7,13 +7,16 @@ interface DraggableTaskProps {
   task: Task
   meta?: string | null
   overdue?: boolean
+  /** `false`: la fila con sus gestos, pero sin poder cogerla (lo hecho plegado en la Bandeja). */
+  draggable?: boolean
 }
 
 /** Arrastrable sin reordenar: para soltar la tarea en otro día de la semana. */
-export const DraggableTask = memo(function DraggableTask({ task, meta, overdue }: DraggableTaskProps) {
+export const DraggableTask = memo(function DraggableTask({ task, meta, overdue, draggable = true }: DraggableTaskProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { type: 'task' },
+    disabled: !draggable,
   })
 
   return (

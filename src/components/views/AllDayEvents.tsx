@@ -12,6 +12,7 @@ const COPY = {
     label: 'Todo el día',
     more: (count: number) => `+${count}`,
     moreLabel: (count: number) => `${count} más de todo el día`,
+    less: 'Menos',
     untitled: 'Evento',
     open: (title: string) => `${title}, todo el día. Abrir en Calendario`,
   },
@@ -19,6 +20,7 @@ const COPY = {
     label: 'All day',
     more: (count: number) => `+${count}`,
     moreLabel: (count: number) => `${count} more all-day`,
+    less: 'Less',
     untitled: 'Event',
     open: (title: string) => `${title}, all day. Open in Calendar`,
   },
@@ -33,7 +35,8 @@ export function AllDayEvents({ events }: { events: readonly CalendarEvent[] }) {
   const { open } = useCalendar()
   const [expanded, setExpanded] = useState(false)
   if (!events.length) return null
-  const shown = expanded || events.length <= SHOWN + 1 ? events : events.slice(0, SHOWN)
+  const foldable = events.length > SHOWN + 1
+  const shown = expanded || !foldable ? events : events.slice(0, SHOWN)
   const rest = events.length - shown.length
 
   return (
@@ -56,6 +59,13 @@ export function AllDayEvents({ events }: { events: readonly CalendarEvent[] }) {
         <li>
           <button type="button" className="allday__item allday__item--more" aria-label={copy.moreLabel(rest)} onClick={() => setExpanded(true)}>
             {copy.more(rest)}
+          </button>
+        </li>
+      )}
+      {foldable && expanded && (
+        <li>
+          <button type="button" className="allday__item allday__item--more" onClick={() => setExpanded(false)}>
+            {copy.less}
           </button>
         </li>
       )}

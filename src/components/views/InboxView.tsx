@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { DndContext, DragOverlay, MeasuringStrategy } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { relativeLabel } from '../../lib/date'
+import { relativeLabel, shortTime } from '../../lib/date'
+import { capitalize } from '../../lib/title'
 import { BACKLOG_SCOPE } from '../../lib/order'
 import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
@@ -35,7 +36,6 @@ const COPY = {
     cleared: (count: number) => (count === 1 ? 'Tarea hecha borrada' : `${count} tareas hechas borradas`),
     kicker: 'Sin fecha',
     title: 'Bandeja',
-    pending: (count: number) => `${count} pendientes`,
     tasks: 'Tareas',
     empty: 'Nada sin fecha.',
     clear: (count: number) => `Borrar las ${count} hechas`,
@@ -46,7 +46,6 @@ const COPY = {
     cleared: (count: number) => (count === 1 ? '1 done task deleted' : `${count} done tasks deleted`),
     kicker: 'No date',
     title: 'Inbox',
-    pending: (count: number) => `${count} pending`,
     tasks: 'Tasks',
     empty: 'Nothing without a date.',
     clear: (count: number) => `Delete ${count} done`,
@@ -81,8 +80,9 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
   const schedule = (task: Task, date: IsoDate) => {
     dispatch({ type: 'task/move', id: task.id, date, sectionId: null })
     haptic('success')
+    // Con hora guardada (la tuvo antes de ir a la Bandeja), vuelve con ella: se dice.
     toast({
-      message: `${task.title} → ${relativeLabel(date, today)}`,
+      message: `${task.title} → ${capitalize(relativeLabel(date, today))}${task.time ? ` ${shortTime(task.time)}` : ''}`,
       actionLabel: copy.undo,
       onAction: () => dispatch({ type: 'task/move', id: task.id, date: null, sectionId: null }),
     })
@@ -123,16 +123,11 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
         <p className="view__kicker">{copy.kicker}</p>
         <div className="view__headline">
           <h1 className="view__title">{copy.title}</h1>
-          {pending.length > 0 && (
-            <p className="view__stat" aria-label={copy.pending(pending.length)}>
-              {pending.length}
-            </p>
-          )}
         </div>
         <div className="view__progress view__progress--plain" aria-hidden="true" />
       </header>
 
-      <RoutinesBlock today={routineDay} />
+      {state.routines.length > 0 && <RoutinesBlock today={routineDay} />}
 
       <DndContext
         sensors={sensors}
@@ -146,13 +141,20 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
         onDragCancel={() => setActiveId(null)}
       >
         <section className="block">
-          <BlockHeader label={copy.tasks} count={pending.length} />
-          <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty={tasks.length ? null : copy.empty}>
-            {shown.map((task) => (
-              <SortableTask key={task.id} task={task} sectionId={null} />
-            ))}
-          </TaskColumn>
-          {earlier.length > 0 && (
+          <BlockHeader
+            label={copy.tasks}
+            count={pending.length}
+            collapsed={state.collapsed.backlog}
+            onToggle={() => dispatch({ type: 'block/toggle', block: 'backlog' })}
+          />
+          {!state.collapsed.backlog && (
+            <TaskColumn columnId={columnId(BACKLOG)} taskIds={ids} empty={tasks.length ? null : copy.empty}>
+              {shown.map((task) => (
+                <SortableTask key={task.id} task={task} sectionId={null} />
+              ))}
+            </TaskColumn>
+          )}
+          {!state.collapsed.backlog && earlier.length > 0 && (
             <button
               type="button"
               className={`inbox__fold ${showEarlier ? 'is-open' : ''}`}
@@ -164,20 +166,23 @@ export function InboxView({ today, routineDay }: InboxViewProps) {
               <IconChevronDown size={14} className="inbox__chevron" />
             </button>
           )}
-          {showEarlier && earlier.length > 0 && (
+          {!state.collapsed.backlog && showEarlier && earlier.length > 0 && (
             <ul className="column inbox__earlier">
               {earlier.map((task) => (
-                <DraggableTask key={task.id} task={task} />
+                <DraggableTask key={task.id} task={task} draggable={false} />
               ))}
             </ul>
           )}
-          {done.length > 1 && (showEarlier || !earlier.length) && (
+          {!state.collapsed.backlog && done.length > 1 && (showEarlier || !earlier.length) && (
             <button type="button" className="inbox__clear" onClick={clearDone}>
               <IconTrash size={15} />
               {copy.clear(done.length)}
             </button>
           )}
         </section>
+
+        {/* Sin rutinas, una sola línea discreta al final: nada que encabece la Bandeja sin usarse. */}
+        {state.routines.length === 0 && <RoutinesBlock today={routineDay} />}
 
         <DayDock today={today} open={dragged !== null} />
 

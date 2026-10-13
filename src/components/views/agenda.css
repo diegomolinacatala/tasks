@@ -77,6 +77,13 @@
   inset: -4px -6px;
 }
 
+/* "Pasar 2 a hoy" en un día pasado: la acción, en acento macizo, delante de "Hoy" */
+.agenda__today--move {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .agenda__today:active {
   background: var(--accent-dim);
   transform: scale(0.95);
@@ -501,6 +508,16 @@
   color: var(--text);
   overflow-wrap: anywhere;
   transition: color var(--dur-2) var(--ease);
+}
+
+/* Pendiente de un día que ya pasó: en ladrillo, como en Atrasadas */
+.tl-row.is-overdue .tl__title,
+.tl-row.is-overdue .tl__time {
+  color: var(--danger);
+}
+
+.tl-row.is-dragging {
+  opacity: 0.3;
 }
 
 .tl-row.is-done .tl__title {

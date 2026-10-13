@@ -1,5 +1,6 @@
 import { Suspense, lazy, memo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useDraggable } from '@dnd-kit/core'
 import type { CalendarEvent } from '../../lib/calendar'
 import { eventSpan } from '../../lib/calendar'
 import { todayIso } from '../../lib/date'
@@ -13,6 +14,7 @@ import { clockOf, freeLabel } from '../../lib/timeline'
 import { useCopy } from '../../state/LanguageProvider'
 import type { IsoDate, Routine, Section, Task } from '../../types'
 import { useCalendar } from '../calendar/CalendarProvider'
+import { splitListeners } from '../dnd/dnd'
 import { useSizing } from '../importance/sizing'
 import { SwipeRow } from '../task/SwipeRow'
 import { useRowActions } from '../task/rowActions'
@@ -70,8 +72,10 @@ interface TimelineProps {
   sections: readonly Section[]
   /** Minutos de ahora si el día es hoy (lo que ya acabó se apaga); `null` otro día. */
   now: number | null
-  /** El día ya pasó: sus eventos, apagados. */
+  /** El día ya pasó: sus eventos, apagados; sus tareas pendientes, atrasadas. */
   past: boolean
+  /** El día de las rutinas (puede ir por detrás del calendario de madrugada): hoy, el de renovación. */
+  routineDay?: IsoDate
 }
 
 /**
@@ -80,7 +84,7 @@ interface TimelineProps {
  * Los eventos del calendario del iPhone van en la misma línea, con el color de su calendario: no se
  * tachan (no son tareas) y tocarlos abre su ficha de Calendario.
  */
-export function Timeline({ rows, day, sections, now, past }: TimelineProps) {
+export function Timeline({ rows, day, sections, now, past, routineDay = day }: TimelineProps) {
   const copy = useCopy(COPY)
   const calendar = useCalendar()
   return (
@@ -106,7 +110,7 @@ export function Timeline({ rows, day, sections, now, past }: TimelineProps) {
               <span className="tl__now-line" />
             </li>
           )
-        if (row.kind === 'routine') return <TimelineRoutine key={row.id} routine={row.routine} day={day} start={row.start} />
+        if (row.kind === 'routine') return <TimelineRoutine key={row.id} routine={row.routine} day={routineDay} start={row.start} />
         if (row.kind === 'event')
           return (
             <TimelineEvent
@@ -121,7 +125,7 @@ export function Timeline({ rows, day, sections, now, past }: TimelineProps) {
             />
           )
         const section = row.task.sectionId ? sections.find((item) => item.id === row.task.sectionId) : undefined
-        return <TimelineTask key={row.id} task={row.task} start={row.start} live={row.live} section={section?.name} />
+        return <TimelineTask key={row.id} task={row.task} start={row.start} live={row.live} section={section?.name} overdue={past && !row.task.done} />
       })}
     </ol>
   )
@@ -133,13 +137,19 @@ interface TimelineTaskProps {
   /** De 0 a 1 si está en curso. */
   live?: number
   section?: string
+  /** Pendiente de un día que ya pasó: en ladrillo, como en Atrasadas. */
+  overdue?: boolean
 }
 
-const TimelineTask = memo(function TimelineTask({ task, start, live, section }: TimelineTaskProps) {
+const TimelineTask = memo(function TimelineTask({ task, start, live, section, overdue }: TimelineTaskProps) {
   const actions = useRowActions()
   const sizing = useSizing()
   const copy = useCopy(COPY)
   const [sizingTo, setSizingTo] = useState<number | null>(null)
+  // Mantenerla pulsada la coge para soltarla en otro día de la tira (conserva su hora); en el horario
+  // no se reordena (manda la hora).
+  const { listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, data: { type: 'task' }, disabled: sizing })
+  const { hold } = splitListeners(listeners)
   const duration = task.duration ?? 0
   const scale = task.done ? 0 : importanceScale(sizingTo ?? task.importance)
   const today = todayIso()
@@ -150,8 +160,12 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section }: 
 
   return (
     <SwipeRow
-      className={`tl-row ${task.done ? 'is-done' : ''} ${live !== undefined ? 'is-live' : ''}`}
+      className={`tl-row ${task.done ? 'is-done' : ''} ${live !== undefined ? 'is-live' : ''} ${overdue ? 'is-overdue' : ''} ${isDragging ? 'is-dragging' : ''}`}
       flip={task.id}
+      nodeRef={setNodeRef}
+      disabled={isDragging}
+      hold={sizing ? undefined : hold}
+      dragId={task.id}
       onRight={() => actions.toggle(task.id)}
       onLeft={() => actions.remove(task.id)}
     >
@@ -200,6 +214,7 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section }: 
 
 interface TimelineRoutineProps {
   routine: Routine
+  /** El día en cuyo diario se tacha. */
   day: IsoDate
   start: number
 }

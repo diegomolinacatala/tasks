@@ -26,11 +26,13 @@ const COPY = {
     options: (name: string) => `Opciones de ${name}`,
     move: (name: string) => `Mover sección ${name}`,
     add: (name: string) => `Añadir una tarea a ${name}`,
+    drop: 'Suelta una tarea aquí',
   },
   en: {
     options: (name: string) => `${name} options`,
     move: (name: string) => `Move section ${name}`,
     add: (name: string) => `Add a task to ${name}`,
+    drop: 'Drop a task here',
   },
 } as const
 
@@ -93,7 +95,7 @@ export function SectionBlock({ section, taskIds, pending, onToggle, onOpen, onAd
       </header>
 
       {!section.collapsed && (
-        <TaskColumn columnId={columnId(section.id)} taskIds={taskIds} empty="Suelta una tarea aquí">
+        <TaskColumn columnId={columnId(section.id)} taskIds={taskIds} empty={copy.drop}>
           {children}
         </TaskColumn>
       )}

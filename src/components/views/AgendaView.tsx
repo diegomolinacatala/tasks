@@ -1,4 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { createId } from '../../lib/id'
+import { capitalize } from '../../lib/title'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { dayHeading, monthYear, relativeLabel } from '../../lib/date'
@@ -34,6 +36,10 @@ import './agenda.css'
 interface AgendaViewProps {
   day: IsoDate
   today: IsoDate
+  /** Hoy para las rutinas: puede ir por detrás del calendario si su día empieza de madrugada. */
+  routineDay: IsoDate
+  /** Cambia al volver a tocar la pestaña: todo a su sitio (el mes recogido). */
+  resetSignal?: number
   onSelectDay: (day: IsoDate) => void
   onOpenSection: (id: string) => void
   /** El + de una sección: escribir una tarea directamente en ella, en el día que se mira. */
@@ -47,14 +53,18 @@ const COPY = {
     today: 'Hoy',
     overdue: 'Atrasadas',
     toToday: 'Pasar a hoy',
+    moveCount: (count: number) => (count === 1 ? 'Pasar 1 a hoy' : `Pasar ${count} a hoy`),
     schedule: 'Horario',
     nothingPending: 'Nada pendiente.',
     free: 'Día libre.',
+    noTasks: 'Sin tareas.',
     untimed: 'Sin hora',
-    allTimed: 'Todo tiene hora.',
     noneUntimed: 'Nada sin hora.',
     section: 'Sección',
     sectionName: 'Nombre de la sección',
+    sectionAdded: (name: string) => `Sección ${name}`,
+    lateTag: ' (atrasada)',
+    noPeriodTag: ' (sin plazo)',
   },
   en: {
     undo: 'Undo',
@@ -62,14 +72,18 @@ const COPY = {
     today: 'Today',
     overdue: 'Overdue',
     toToday: 'Move to today',
+    moveCount: (count: number) => (count === 1 ? 'Move 1 to today' : `Move ${count} to today`),
     schedule: 'Schedule',
     nothingPending: 'Nothing pending.',
     free: 'Free day.',
+    noTasks: 'No tasks.',
     untimed: 'No time',
-    allTimed: 'Everything has a time.',
     noneUntimed: 'Nothing without a time.',
     section: 'Section',
     sectionName: 'Section name',
+    sectionAdded: (name: string) => `Section ${name}`,
+    lateTag: ' (overdue)',
+    noPeriodTag: ' (no time frame)',
   },
 } as const
 
@@ -79,7 +93,10 @@ const COPY = {
  * lo que tiene hora y la lista de lo que no la tiene, con sus secciones. Una tarea se lleva a otro
  * día soltándola sobre él en la tira o en el mes.
  */
-export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSection }: AgendaViewProps) {
+/** Con cuántas atrasadas se plegó el bloque: si entran más, se vuelve a abrir solo. */
+const OVERDUE_FOLDED_KEY = 'tasks:overdue-folded-at'
+
+export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDay, onOpenSection, onAddToSection }: AgendaViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -99,13 +116,20 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
   const [monthOpen, setMonthOpen] = useState(false)
   const below = useRef<HTMLDivElement>(null)
 
+  // Volver a tocar la pestaña: el mes, recogido.
+  useEffect(() => {
+    if (resetSignal) setMonthOpen(false)
+  }, [resetSignal])
+
   const moveToDay = (taskId: string, date: IsoDate) => {
     const task = state.tasks.find((item) => item.id === taskId)
     if (!task || shownDay(task, today) === date) return
     dispatch({ type: 'task/move', id: taskId, date, sectionId: task.sectionId })
     haptic('success')
+    // A un día pasado nace atrasada; fuera de su plazo lo pierde: se dice.
+    const tag = date < today ? copy.lateTag : task.until && date > task.until ? copy.noPeriodTag : ''
     toast({
-      message: `${task.title} → ${relativeLabel(date, today)}`,
+      message: `${task.title} → ${capitalize(relativeLabel(date, today))}${tag}`,
       actionLabel: copy.undo,
       onAction: () => dispatch({ type: 'task/move', id: taskId, date: task.date, sectionId: task.sectionId, until: task.until }),
     })
@@ -119,10 +143,15 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
   const events = useDayEvents(shown)
   const calendar = useCalendar()
   const eventDays = useMemo(() => markedDays(calendar.events), [calendar.events])
-  const rows = useMemo(
-    () => buildTimeline(timelineItems(dayTasks, routinesOn(state.routines, shown), events.timed), shown === today ? now : null),
-    [dayTasks, state.routines, events.timed, shown, today, now],
-  )
+  const dayRoutines = useMemo(() => routinesOn(state.routines, shown), [state.routines, shown])
+  // En un día que ya pasó, el tiempo libre no informa de nada.
+  const rows = useMemo(() => {
+    const built = buildTimeline(timelineItems(dayTasks, dayRoutines, events.timed), shown === today ? now : null)
+    return shown < today ? built.filter((row) => row.kind !== 'gap') : built
+  }, [dayTasks, dayRoutines, events.timed, shown, today, now])
+  // El día en cuyo diario se tachan las rutinas: hoy, el de renovación (de madrugada puede ser ayer).
+  const routinesDay = shown === today ? routineDay : shown
+  const schedulePending = dayTasks.filter((task) => task.time && !task.done).length + dayRoutines.filter((routine) => routine.time && !routine.done.includes(routinesDay)).length
   const progress = progressOf(dayTasks)
 
   // Lo que hay cada día, para los anillos de la tira y del mes desplegado. Los días que no cambian
@@ -165,7 +194,31 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
   // tiene algo sin hora.
   const free = !dayTasks.length && !events.timed.length && !(shown === today && hasOverdue)
   const timedTasks = dayTasks.some((task) => task.time)
-  const showUntimed = untimedCount > 0 || shown === today
+  // Un día libre no enseña un bloque "Sin hora" vacío (ni hoy): solo que está libre.
+  const showUntimed = untimedCount > 0 || (shown === today && !free)
+
+  // Plegado con una atrasada y semanas después hay nueve: si entran más de las que había al plegar, se abre solo.
+  const overdueCount = (columns[OVERDUE] ?? []).length
+  useEffect(() => {
+    if (!state.collapsed.overdue || shown !== today) return
+    let folded = 0
+    try {
+      folded = Number(localStorage.getItem(OVERDUE_FOLDED_KEY)) || 0
+    } catch {
+      return
+    }
+    if (overdueCount > folded) dispatch({ type: 'block/toggle', block: 'overdue' })
+  }, [overdueCount, state.collapsed.overdue, shown, today, dispatch])
+  const toggleOverdue = () => {
+    if (!state.collapsed.overdue) {
+      try {
+        localStorage.setItem(OVERDUE_FOLDED_KEY, String(overdueCount))
+      } catch {
+        // Sin localStorage, el pliegue no se recuerda: se abre con cualquier cambio.
+      }
+    }
+    dispatch({ type: 'block/toggle', block: 'overdue' })
+  }
 
   const renderTask = (id: string, sectionId: string | null, options: { overdue?: boolean; meta?: string | null } = {}) => {
     const task = byId.get(id)
@@ -185,9 +238,13 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
   const dragged: Task | null = activeType === 'task' && activeId ? (byId.get(activeId) ?? null) : null
   const draggedSection = activeType === 'section' && activeId ? activeId.slice(4) : null
 
+  // Intro o tocar fuera con un nombre la crean (con deshacer); Escape o vacío, nada.
   const addSection = (name: string) => {
-    if (name.trim()) dispatch({ type: 'section/add', name })
     setDraftSection(null)
+    if (!name.trim()) return
+    const id = createId()
+    dispatch({ type: 'section/add', name, id })
+    toast({ message: copy.sectionAdded(name.trim()), actionLabel: copy.undo, onAction: () => dispatch({ type: 'section/remove', id }) })
   }
 
   const heading = dayHeading(day, today)
@@ -206,6 +263,12 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
             <span className="view__kicker">{monthYear(day)}</span>
             <IconChevronDown size={13} strokeWidth={2.2} />
           </button>
+          {/* Un día pasado con pendientes (con hora o sin ella): todo a hoy, desde la cabecera */}
+          {shown < today && pendingOfDay.length > 0 && (
+            <button type="button" className="agenda__today agenda__today--move" onClick={() => toToday(pendingOfDay)}>
+              {copy.moveCount(pendingOfDay.length)}
+            </button>
+          )}
           {day !== today && (
             <button type="button" className="agenda__today" onClick={() => onSelectDay(today)}>
               {copy.today}
@@ -262,7 +325,7 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
                   count={overdueIds.length}
                   tone="danger"
                   collapsed={state.collapsed.overdue}
-                  onToggle={() => dispatch({ type: 'block/toggle', block: 'overdue' })}
+                  onToggle={toggleOverdue}
                   action={
                     <button type="button" className="section__action" onClick={() => toToday()}>
                       {copy.toToday}
@@ -283,31 +346,22 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
 
             {rows.length > 0 && (
               <section className="block">
-                <BlockHeader label={copy.schedule} count={dayTasks.filter((task) => task.time && !task.done).length} />
-                <Timeline rows={rows} day={shown} sections={sections} now={shown === today ? now : null} past={shown < today} />
+                <BlockHeader label={copy.schedule} count={schedulePending} />
+                <Timeline rows={rows} day={shown} routineDay={routinesDay} sections={sections} now={shown === today ? now : null} past={shown < today} />
               </section>
             )}
 
             {free && !showUntimed && (
               <div className="agenda__empty">
                 <IconFeather size={26} />
-                <p>{shown < today ? copy.nothingPending : copy.free}</p>
+                <p>{shown < today ? copy.nothingPending : rows.length > 0 ? copy.noTasks : copy.free}</p>
               </div>
             )}
             {showUntimed && (
               <section className="block">
-                <BlockHeader
-                  label={copy.untimed}
-                  count={pending(rootIds) + sections.reduce((sum, section) => sum + pending(columns[section.id] ?? []), 0)}
-                  action={
-                    shown < today && pendingOfDay.length > 0 ? (
-                      <button type="button" className="section__action" onClick={() => toToday(pendingOfDay)}>
-                        {copy.toToday}
-                      </button>
-                    ) : undefined
-                  }
-                />
-                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={free ? copy.free : timedTasks ? copy.allTimed : copy.noneUntimed}>
+                <BlockHeader label={copy.untimed} count={pending(rootIds) + sections.reduce((sum, section) => sum + pending(columns[section.id] ?? []), 0)} />
+                {/* La nota de vacío solo cuando el bloque entero está vacío: con secciones con tareas, nada */}
+                <TaskColumn columnId={columnId(ROOT)} taskIds={rootIds} empty={untimedCount === 0 && !timedTasks && !free ? copy.noneUntimed : null}>
                   {rootIds.map((id) => renderTask(id, null))}
                 </TaskColumn>
 
@@ -346,6 +400,8 @@ export function AgendaView({ day, today, onSelectDay, onOpenSection, onAddToSect
                     placeholder={copy.sectionName}
                     value={draftSection}
                     onChange={(event) => setDraftSection(event.target.value)}
+                    enterKeyHint="done"
+                    maxLength={60}
                     onBlur={() => addSection(draftSection)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') addSection(draftSection)

@@ -110,8 +110,10 @@
 
 .view__section-input {
   width: 100%;
-  padding: 14px 2px;
+  padding: 12px 2px;
   color: var(--text);
+  border-bottom: 1px solid var(--accent);
+  border-radius: 0;
 }
 
 .view__section-input::placeholder {
