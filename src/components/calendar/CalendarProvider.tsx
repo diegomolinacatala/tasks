@@ -28,6 +28,8 @@ export interface CalendarApi {
   watch: (day: IsoDate) => void
   /** Pide el permiso y, si se concede, enciende el calendario. */
   connect: () => Promise<CalendarStatus>
+  /** Vuelve a leer calendarios y eventos ya (tras crear el «Tasks»: EventKit no avisa de lo que hace uno mismo). */
+  refresh: () => void
   open: (event: CalendarEvent) => void
   /** La fuente, para quien necesita leer otros días (el widget). `null` hasta que carga o si no hay. */
   source: CalendarSource | null
@@ -42,6 +44,7 @@ const INACTIVE: CalendarApi = {
   revision: 0,
   watch: () => undefined,
   connect: async () => 'denied',
+  refresh: () => undefined,
   open: () => undefined,
   source: null,
 }
@@ -162,10 +165,11 @@ function LiveCalendar({ children }: { children: ReactNode }) {
   }, [source, dispatch])
 
   const open = useCallback((event: CalendarEvent) => void source?.open(event).catch(() => undefined), [source])
+  const refresh = useCallback(() => setRevision((count) => count + 1), [])
 
   const value = useMemo<CalendarApi>(
-    () => ({ available: true, status, active, calendars, events: active ? events : [], revision, watch, connect, open, source }),
-    [status, active, calendars, events, revision, watch, connect, open, source],
+    () => ({ available: true, status, active, calendars, events: active ? events : [], revision, watch, connect, refresh, open, source }),
+    [status, active, calendars, events, revision, watch, connect, refresh, open, source],
   )
 
   return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>

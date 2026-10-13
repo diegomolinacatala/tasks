@@ -104,8 +104,11 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
   }
 
   const cancel = () => {
+    const engaged = gesture.current?.engaged
     gesture.current = null
     setDragging(null)
+    // Lo previsualizado no se guarda: quien lo enseña (el círculo del mapa) vuelve al valor de antes.
+    if (engaged) onInput?.(value)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

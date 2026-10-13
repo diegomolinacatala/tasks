@@ -46,6 +46,8 @@ export function ImportanceScale({ value, onChange, done = false }: ImportanceSca
     live.current = value
     dragging.current = true
     event.currentTarget.setPointerCapture(event.pointerId)
+    // Con ratón, la captura retira el `click` del botón: el nivel se elige ya al apoyar.
+    pick(levelAt(event.clientX))
   }
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {

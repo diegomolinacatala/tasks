@@ -111,7 +111,7 @@ enum QuickAdd {
 
     /** "Sí, hecha" (`done`) o "Todavía no" (`again`) desde el aviso de cierre, sin abrir la app. */
     static func answer(_ reply: String, to request: UNNotificationRequest) async {
-        guard let taskId = (request.content.userInfo["cap_extra"] as? [String: Any])?["taskId"] as? String else { return }
+        guard let taskId = Self.taskId(of: request) else { return }
         _ = try? await queue.run { await QuickAdd.answerNow(reply, taskId: taskId, request: request) }
     }
 
@@ -264,5 +264,18 @@ private actor SerialQueue {
 enum OverdueMover {
     static func moveToToday() async throws -> String {
         try await QuickAdd.moveOverdue()
+    }
+}
+
+extension QuickAdd {
+    /**
+     * La tarea de un aviso: `taskId` en los avisos por hora; en los de lugar con una sola tarea (que
+     * también llevan la categoría `task`), `taskIds` con un solo id. Con varias no hay a quién responder.
+     */
+    static func taskId(of request: UNNotificationRequest) -> String? {
+        guard let extra = request.content.userInfo["cap_extra"] as? [String: Any] else { return nil }
+        if let taskId = extra["taskId"] as? String, !taskId.isEmpty { return taskId }
+        guard let joined = extra["taskIds"] as? String, !joined.isEmpty, !joined.contains(",") else { return nil }
+        return joined
     }
 }

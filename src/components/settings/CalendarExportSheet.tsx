@@ -41,7 +41,7 @@ const COPY = {
 /** Dónde se añaden las tareas con hora: en ninguno, en el «Tasks» propio (lo recomendado) o en uno que se pueda escribir. */
 export function CalendarExportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const copy = useCopy(COPY)
-  const { calendars, source } = useCalendar()
+  const { calendars, source, refresh } = useCalendar()
   const current = useAppState().settings.calendar.export
   const dispatch = useDispatch()
   const toast = useToast()
@@ -60,8 +60,10 @@ export function CalendarExportSheet({ open, onClose }: { open: boolean; onClose:
     setBusy(true)
     const id = await source.createOwn(copy.ownName).catch(() => null)
     setBusy(false)
-    if (id) choose(id)
-    else toast({ message: copy.failed })
+    if (!id) return toast({ message: copy.failed })
+    // Hasta que la lista lo tenga, la sincronización no le manda nada: se vuelve a leer ya.
+    refresh()
+    choose(id)
   }
 
   const option = (key: string, selected: boolean, onPick: () => void, label: string, color: string | null, hint?: string) => (

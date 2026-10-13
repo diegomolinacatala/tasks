@@ -136,7 +136,15 @@ export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine,
   const askAgain = (task: Task) => {
     if (task.done) return toast({ message: pick(TEXT).alreadyDone(task.title) })
     onOpenTask(task.id)
-    toast({ message: pick(TEXT).finished(task.title), actionLabel: pick(TEXT).yes, onAction: () => complete(task) })
+    toast({
+      message: pick(TEXT).finished(task.title),
+      actionLabel: pick(TEXT).yes,
+      // La tarea tal como esté al tocar "Sí": si ya se tachó desde el panel, no se destacha.
+      onAction: () => {
+        const current = tasks.current.find((item) => item.id === task.id)
+        if (current) complete(current)
+      },
+    })
   }
 
   const handle = (event: NotificationEvent) => {
