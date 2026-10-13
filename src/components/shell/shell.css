@@ -32,6 +32,8 @@
 .app__scroll {
   position: absolute;
   inset: 0;
+  /* Las listas solo se mueven en vertical, aunque algo asome por un lado */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;

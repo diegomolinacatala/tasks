@@ -18,16 +18,6 @@ interface SliderProps {
   marks?: readonly number[]
 }
 
-/**
- * Deslizador de la app, como los de Google Maps o Spotify: se coge desde cualquier punto de la pista
- * (no hace falta atinar al botón), el valor va encima del dedo y cada paso vibra. Apoyar el dedo no
- * cambia nada: en vertical es el scroll del panel, y el deslizador manda al moverse de lado o al tocar.
- */
-/** Antes de esto en vertical el dedo quería bajar el panel. */
-const SCROLL_SLOP_PX = 8
-/** Desde esto de lado, el deslizador manda. */
-const DRAG_SLOP_PX = 10
-
 /** El valor posible más cercano (un valor guardado antes puede no estar entre ellos). */
 function stopIndex(stops: readonly number[], value: number): number {
   let best = 0
@@ -37,17 +27,16 @@ function stopIndex(stops: readonly number[], value: number): number {
   return best
 }
 
-interface Gesture {
-  x: number
-  y: number
-  pointerId: number
-  engaged: boolean
-}
+/**
+ * Deslizador de la app, como los de Google Maps o Spotify: se coge desde cualquier punto de la pista
+ * (no hace falta atinar al botón), el valor va encima del dedo y cada paso vibra. Como la regla de la
+ * duración, el dedo es suyo desde que se apoya (`touch-action: none`): aunque se desvíe en vertical,
+ * el deslizador lo sigue y el panel no se mueve.
+ */
 export function Slider({ value, stops, label, format, onInput, onChange, marks = [] }: SliderProps) {
   const track = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<number | null>(null)
   const live = useRef(value)
-  const gesture = useRef<Gesture | null>(null)
   const current = dragging ?? value
   const last = Math.max(1, stops.length - 1)
   const ratio = stopIndex(stops, current) / last
@@ -69,55 +58,29 @@ export function Slider({ value, stops, label, format, onInput, onChange, marks =
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    gesture.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, engaged: false }
-  }
-
-  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const state = gesture.current
-    if (!state) return
-    if (!state.engaged) {
-      const dx = event.clientX - state.x
-      const dy = event.clientY - state.y
-      if (Math.abs(dy) > SCROLL_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
-        gesture.current = null
-        return
-      }
-      if (Math.abs(dx) <= DRAG_SLOP_PX) return
-      state.engaged = true
-      try {
-        event.currentTarget.setPointerCapture(state.pointerId)
-      } catch {
-        // El puntero puede haberse soltado ya: seguimos sin captura.
-      }
-      live.current = value
-      setDragging(value)
-    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    live.current = value
+    setDragging(value)
     preview(valueAt(event.clientX))
   }
 
-  const finish = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const state = gesture.current
-    gesture.current = null
-    if (!state) return
-    // Soltar sin haberse movido es un toque: el valor del punto tocado.
-    if (!state.engaged) {
-      const next = valueAt(event.clientX)
-      if (next !== value) {
-        haptic('selection')
-        onChange(next)
-      }
-      return
-    }
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragging === null) return
+    preview(valueAt(event.clientX))
+  }
+
+  const finish = () => {
+    if (dragging === null) return
     setDragging(null)
     if (live.current !== value) onChange(live.current)
   }
 
+  /** El sistema se quedó el dedo: lo previsualizado no se guarda y el círculo del mapa vuelve a su valor. */
   const cancel = () => {
-    const engaged = gesture.current?.engaged
-    gesture.current = null
+    if (dragging === null) return
     setDragging(null)
-    // Lo previsualizado no se guarda: quien lo enseña (el círculo del mapa) vuelve al valor de antes.
-    if (engaged) onInput?.(value)
+    live.current = value
+    onInput?.(value)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

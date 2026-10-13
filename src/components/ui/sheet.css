@@ -78,8 +78,11 @@
   background: var(--line-2);
 }
 
+/* Solo se mueve en vertical: lo que asoma por un lado (el valor encima del dedo en el borde del
+   deslizador, el halo de la regla al estirarse) no debe dejar arrastrar el panel de lado */
 .sheet__body {
   padding: var(--sp-2) 20px calc(var(--sp-5) + var(--safe-b));
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }

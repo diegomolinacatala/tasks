@@ -265,7 +265,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Tras probar la 43** (13/10/2026, en `capacitor`, **TestFlight 44**), lo que pidió el usuario:
   - **La regla de la duración, como antes de la auditoría** (`DurationPicker`, `ruler.css`): con
     `touch-action: pan-y` la soltaba en cuanto el dedo se movía un poco en vertical. Vuelve a coger el dedo
-    desde que se apoya (`touch-action: none`). El deslizador del radio y el mando "Aa" siguen con `pan-y`.
+    desde que se apoya (`touch-action: none`). El mando "Aa" sigue con `pan-y`.
   - **La barra de escribir y su ficha, como antes de la auditoría**: tamaños de la barra (36 px, el asa
     de 22), la × delante de las píldoras, los destinos ocultos mientras se aplica lo entendido, la píldora
     tachada (sin "Tal cual"), Repetir e Importancia desplegados en la ficha y las píldoras de los paneles
@@ -277,6 +277,15 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   - **Lugares, lo del buzón** (un amigo, 11/10/2026: el buscador montado en el borde del mapa "it's giving
     bugueado"): el buscador va encima del mapa, entero; el mapa es más alto (270) y **tocarlo lo abre
     entero** (adiós a la píldora "En el mapa"): ver "Lugares".
+- **Tras probar la 44** (13/10/2026, en `capacitor`, **TestFlight 45**): la regla iba bien, pero al
+  arrastrarla el panel se podía mover de lado; y el deslizador del radio hacía lo que hacía la regla (se
+  soltaba al desviarse el dedo en vertical y volvía al valor de antes).
+  - El **deslizador** (`Slider`) coge el dedo desde que se apoya, como la regla (`touch-action: none` y
+    captura del puntero al apoyar).
+  - Los paneles y las listas **solo se mueven en vertical** (`overflow-x: hidden` en `.sheet__body` y
+    `.app__scroll`): con `overflow-y: auto`, el eje x pasa a `auto`, y lo que asomaba por un lado al
+    arrastrar (el halo de la regla al final, el valor encima del dedo en el borde del deslizador) dejaba
+    arrastrar el panel de lado.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -293,7 +302,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     el "+ Sección" como campo, vacíos sin rótulos huecos, la primera tarea de la instalación asoma lo que
     hay detrás (una vez), hoy por contexto (las filas cambian a medianoche solas).
   - **Panel de la tarea**: el círculo de tachar arriba, mismo orden que la ficha, Sección e Importancia
-    plegadas, el deslizador y el mando "Aa" solo mandan de lado (`touch-action: pan-y`; la regla no, ver la 44), avisos
+    plegadas, el mando "Aa" solo manda de lado (`touch-action: pan-y`; la regla y el deslizador no, ver la 44 y la 45), avisos
     con × propia y "por qué no sonará", plazo en una sola píldora, "A hoy" y "¿Has acabado?" en la barra
     de arriba, toast de adónde se fue la tarea al cerrar.
   - **Rutinas**: se crean desde el pie (cerrar cancela), tope de 50 a la vista, constancia que se nota
@@ -317,8 +326,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone la TestFlight 44**: la regla de la duración, la barra de escribir y su ficha
-   (como antes), un radio de 20 m, y la pestaña Lugares (el buscador encima del mapa; tocar el mapa,
+0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
+   (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
+   escribir y su ficha (como antes), un radio de 20 m, y la pestaña Lugares (el buscador encima del mapa; tocar el mapa,
    moverse, tocar un lugar → *Abrir el lugar*, *Añadir un lugar* → la chincheta cae → *Añadir aquí*, la
    flecha de vuelta, tocar un comercio). Y lo de la auditoría que no se probó en la 43: "Hecha" en el aviso
    de una tarea sin abrir la app (y bloqueado); el panel de la tarea (el círculo, la × de un aviso);
