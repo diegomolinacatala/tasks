@@ -68,7 +68,6 @@ const COPY = {
     importance: (label: string) => `Importancia ${label}: cambiar`,
     use: (label: string) => `Usar ${label}`,
     ignore: (label: string) => `Ignorar ${label}`,
-    asWritten: 'Tal cual',
     literalHint: 'Se guardará tal cual lo escribes.',
     apply: (label: string) => `Aplicar ${label}`,
     placesHint: 'Lugares: en la app del iPhone',
@@ -86,7 +85,6 @@ const COPY = {
     importance: (label: string) => `Importance ${label}: change`,
     use: (label: string) => `Use ${label}`,
     ignore: (label: string) => `Ignore ${label}`,
-    asWritten: 'As written',
     literalHint: 'It’ll be saved as written.',
     apply: (label: string) => `Apply ${label}`,
     placesHint: 'Places: in the iPhone app',
@@ -297,8 +295,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     }
     setSheetUsed(true)
     setExpanded(true)
-    // Con algo escrito el teclado se va (la ficha enseña los campos); vacía, el foco pasa al título de la ficha.
-    if (ready) input.current?.blur()
+    input.current?.blur()
   }
 
   const pull = usePullUp<HTMLFormElement>(expand)
@@ -357,9 +354,9 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     )
   }
 
-  // Lo entendido manda sobre el destino cuando trae día; si no lo trae, los destinos siguen ahí.
+  // Lo entendido manda sobre el destino: mientras se aplica, los destinos no pintan nada.
   const applied = detected && !literal
-  const showTargets = !details && (!applied || (!routine && parsed.date === null))
+  const showTargets = !details && !applied
   const tray = active || ready || details !== null
   const summary = details ? detailsSummary(details, today, state.sections, state.places) : []
 
@@ -415,6 +412,11 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
         {tray && (
           <div className="composer__foot">
             <div className="composer__tray" role="group" aria-label={details ? copy.decided : copy.where}>
+              {details && (
+                <button type="button" className="composer__clear" aria-label={copy.clear} onMouseDown={keepFocus} onClick={clearDetails}>
+                  <IconClose size={14} />
+                </button>
+              )}
               {summary.map((item) => {
                 const Icon = item.icon ? SUMMARY_ICONS[item.icon] : null
                 return (
@@ -431,11 +433,6 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
                   </button>
                 )
               })}
-              {details && (
-                <button type="button" className="composer__clear" aria-label={copy.clear} onMouseDown={keepFocus} onClick={clearDetails}>
-                  <IconClose size={14} />
-                </button>
-              )}
               {suggestion && (
                 <button type="button" className="composer__parsed composer__parsed--suggest" onMouseDown={keepFocus} onClick={applySuggestion}>
                   <IconSliders size={12} strokeWidth={2} />
@@ -451,20 +448,14 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
                   onMouseDown={keepFocus}
                   onClick={toggleLiteral}
                 >
-                  {literal ? (
-                    copy.asWritten
+                  {routine ? (
+                    <IconRepeat size={12} strokeWidth={2} />
+                  ) : placed ? (
+                    <IconPin size={12} strokeWidth={2} />
                   ) : (
-                    <>
-                      {routine ? (
-                        <IconRepeat size={12} strokeWidth={2} />
-                      ) : placed ? (
-                        <IconPin size={12} strokeWidth={2} />
-                      ) : (
-                        parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
-                      )}
-                      {label}
-                    </>
+                    parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
                   )}
+                  {label}
                 </button>
               )}
               {placesHint && (

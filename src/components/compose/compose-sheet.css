@@ -1,29 +1,3 @@
-/* Lo que casi nunca se toca (Repetir, Importancia) va plegado en una fila con su valor; tocarla lo abre */
-.compose-sheet__fold {
-  margin-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.compose-sheet__fold + .compose-sheet__fold {
-  margin-top: 0;
-  border-top: 0;
-}
-
-.compose-sheet__fold-label {
-  flex: 1;
-  font-size: var(--fs-micro);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.compose-sheet__fold-value {
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-
 /* La ficha del compositor: arriba, como el reproductor de Spotify, una flecha para plegarla y qué se
    está creando y adónde va; debajo, el título en grande y los campos de una tarea */
 .compose-head {

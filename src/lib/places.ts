@@ -4,10 +4,13 @@ import { compareNames } from './order'
 import { fold } from './normalize'
 
 export const DEFAULT_RADIUS = 150
-/** Por debajo de 100 m iOS no detecta la entrada con fiabilidad. */
-export const MIN_RADIUS = 100
+/** Lo pidió el usuario (un portal, una tienda pequeña). Por debajo de unos 100 m iOS avisa con menos precisión. */
+export const MIN_RADIUS = 20
 export const MAX_RADIUS = 1000
-export const RADIUS_OPTIONS = [100, 150, 300, 500] as const
+/** Los radios que ofrece el deslizador, repartidos por igual: finos en lo pequeño, gruesos en lo grande. */
+export const RADIUS_STOPS = [
+  20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000,
+] as const
 export const MAX_PLACES = 50
 /** iOS vigila como mucho 20 regiones por app. */
 export const MAX_PLACE_ALERTS = 20

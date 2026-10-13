@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createId } from '../../lib/id'
 import { plural } from '../../lib/i18n'
-import { DEFAULT_RADIUS, MAX_PLACES, MAX_RADIUS, MIN_RADIUS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
+import { DEFAULT_RADIUS, MAX_PLACES, MAX_RADIUS, MIN_RADIUS, RADIUS_STOPS, cleanPlaceName, findPlace, formatDistance } from '../../lib/places'
 import { haptic } from '../../lib/platform/feedback'
 import { pickOnMap } from '../../lib/platform/mapPicker'
 import { useCopy } from '../../state/LanguageProvider'
@@ -130,11 +130,10 @@ const COPY = {
     locateIt: 'Locate',
   },
 } as const
-const RADIUS_STEP = 50
-const RADIUS_MARKS = [MIN_RADIUS, 500, MAX_RADIUS] as const
+const RADIUS_MARKS = [MIN_RADIUS, 100, MAX_RADIUS] as const
 const MAP_HEIGHT = 190
 /** Alto del mapa en metros: el radio más grande cabe con aire alrededor. */
-const mapSpan = (radius: number) => Math.max(600, radius * 3.2)
+const mapSpan = (radius: number) => Math.max(160, radius * 3.2)
 
 /**
  * Crear o editar un lugar. Uno nuevo empieza por dónde está (el buscador con el teclado, el mapa o la
@@ -425,9 +424,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
           <p className="sheet__title">{copy.radius}</p>
           <Slider
             value={draft.radius}
-            min={MIN_RADIUS}
-            max={MAX_RADIUS}
-            step={RADIUS_STEP}
+            stops={RADIUS_STOPS}
             label={copy.radius}
             format={(value) => formatDistance(value)}
             marks={RADIUS_MARKS}

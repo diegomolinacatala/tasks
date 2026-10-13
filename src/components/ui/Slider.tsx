@@ -5,9 +5,8 @@ import './slider.css'
 
 interface SliderProps {
   value: number
-  min: number
-  max: number
-  step: number
+  /** Los valores posibles, de menor a mayor, repartidos por igual a lo largo de la pista. */
+  stops: readonly number[]
   label: string
   /** Texto del valor: `300 m`. */
   format: (value: number) => string
@@ -29,25 +28,35 @@ const SCROLL_SLOP_PX = 8
 /** Desde esto de lado, el deslizador manda. */
 const DRAG_SLOP_PX = 10
 
+/** El valor posible más cercano (un valor guardado antes puede no estar entre ellos). */
+function stopIndex(stops: readonly number[], value: number): number {
+  let best = 0
+  stops.forEach((stop, index) => {
+    if (Math.abs(stop - value) < Math.abs((stops[best] ?? stop) - value)) best = index
+  })
+  return best
+}
+
 interface Gesture {
   x: number
   y: number
   pointerId: number
   engaged: boolean
 }
-export function Slider({ value, min, max, step, label, format, onInput, onChange, marks = [] }: SliderProps) {
+export function Slider({ value, stops, label, format, onInput, onChange, marks = [] }: SliderProps) {
   const track = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<number | null>(null)
   const live = useRef(value)
   const gesture = useRef<Gesture | null>(null)
   const current = dragging ?? value
-  const ratio = (current - min) / (max - min)
+  const last = Math.max(1, stops.length - 1)
+  const ratio = stopIndex(stops, current) / last
 
   const valueAt = (clientX: number) => {
     const rect = track.current?.getBoundingClientRect()
     if (!rect || !rect.width) return value
-    const raw = min + ((clientX - rect.left) / rect.width) * (max - min)
-    return Math.min(max, Math.max(min, Math.round(raw / step) * step))
+    const fraction = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    return stops[Math.round(fraction * last)] ?? value
   }
 
   const preview = (next: number) => {
@@ -112,10 +121,10 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const delta = event.key === 'ArrowRight' || event.key === 'ArrowUp' ? step : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -step : 0
+    const delta = event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 0
     if (!delta) return
     event.preventDefault()
-    const next = Math.min(max, Math.max(min, value + delta))
+    const next = stops[Math.min(last, Math.max(0, stopIndex(stops, value) + delta))] ?? value
     if (next !== value) onChange(next)
   }
 
@@ -127,8 +136,8 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
         role="slider"
         tabIndex={0}
         aria-label={label}
-        aria-valuemin={min}
-        aria-valuemax={max}
+        aria-valuemin={stops[0]}
+        aria-valuemax={stops[stops.length - 1]}
         aria-valuenow={current}
         aria-valuetext={format(current)}
         onPointerDown={onPointerDown}
@@ -146,7 +155,7 @@ export function Slider({ value, min, max, step, label, format, onInput, onChange
       {marks.length > 0 && (
         <div className="slider__marks" aria-hidden="true">
           {marks.map((mark) => (
-            <span key={mark} style={{ left: `${((mark - min) / (max - min)) * 100}%` }}>
+            <span key={mark} style={{ left: `${(stopIndex(stops, mark) / last) * 100}%` }}>
               {format(mark)}
             </span>
           ))}

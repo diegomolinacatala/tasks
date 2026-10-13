@@ -29,8 +29,8 @@
   z-index: 1;
   display: flex;
   justify-content: center;
-  height: 30px;
-  margin-bottom: -20px;
+  height: 22px;
+  margin-bottom: -12px;
   padding-top: 6px;
   touch-action: none;
   cursor: grab;
@@ -95,7 +95,6 @@
   border-radius: var(--r-full);
   background: var(--primary);
   color: var(--on-primary);
-  outline: 4px solid transparent;
   animation: send-in var(--dur-2) var(--ease-pop);
   transition: transform var(--dur-1) var(--ease);
 }
@@ -141,7 +140,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 13px 0 11px;
   border-radius: var(--r-full);
   border: 1px solid var(--line-2);
@@ -160,7 +159,7 @@
 
 .composer__more.has-details {
   justify-content: center;
-  width: 40px;
+  width: 36px;
   padding: 0;
   color: var(--accent);
   border-color: var(--accent-line);
@@ -172,8 +171,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-full);
   background: var(--bg-elev-2);
   color: var(--text-2);
@@ -212,7 +211,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 15px;
   border-radius: var(--r-full);
   background: var(--bg-elev-2);
@@ -247,7 +246,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 14px;
   border-radius: var(--r-full);
   background: var(--accent-dim);
@@ -276,16 +275,11 @@
   border-color: var(--gold);
 }
 
-/* «Tal cual»: lo escrito se guarda sin interpretar (borde discontinuo, como lo que no está puesto) */
 .composer__parsed.is-off {
   background: transparent;
-  border: 1px dashed var(--line-2);
+  border-color: var(--line-2);
   color: var(--text-3);
-}
-
-/* Con la ficha abierta, lo que el texto dice de nuevo se ofrece aplicar */
-.composer__parsed--suggest {
-  border-style: dashed;
+  text-decoration: line-through;
 }
 
 .composer__parsed:active {
@@ -296,8 +290,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--r-full);
   color: var(--text-2);
   transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
@@ -335,8 +329,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-full);
   color: var(--text-2);
   background: var(--bg-elev-2);
@@ -431,4 +425,9 @@
     opacity: 1;
     transform: scaleY(0.7);
   }
+}
+
+/* Con la ficha abierta, lo que el texto dice de nuevo se ofrece aplicar */
+.composer__parsed--suggest {
+  border-style: dashed;
 }

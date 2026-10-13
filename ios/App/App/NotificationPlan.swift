@@ -35,7 +35,7 @@ struct PlaceAlert: Decodable {
 enum PlaceAlerts {
     /** iOS vigila como mucho 20 regiones por app. */
     static let maxRegions = 20
-    static let minRadius = 100.0
+    static let minRadius = 20.0
     static let maxRadius = 1000.0
 
     /**

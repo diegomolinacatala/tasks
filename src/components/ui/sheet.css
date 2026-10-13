@@ -116,14 +116,14 @@
 .sheet__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--sp-2);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 38px;
   padding: 8px 15px;
   border-radius: var(--r-full);
   background: var(--bg-elev-2);

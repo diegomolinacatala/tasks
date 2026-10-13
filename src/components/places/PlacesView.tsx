@@ -2,19 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareNames } from '../../lib/order'
 import { DEFAULT_RADIUS, distanceMeters, formatDistance } from '../../lib/places'
 import { isNative, showsPlaces } from '../../lib/platform'
-import { pickOnMap } from '../../lib/platform/mapPicker'
+import { browseMap } from '../../lib/platform/mapPicker'
 import type { PermissionStatus } from '../../lib/platform/native'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { Place, Task } from '../../types'
-import { IconArrowUpRight, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
+import { IconArrowUpRight, IconExpand, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { MapSnapshot } from './MapSnapshot'
 import { usePlaceEditor } from './PlaceEditor'
 import './places.css'
 
 const APP_STORE = 'https://apps.apple.com/app/id6812776586'
-const MAP_HEIGHT = 230
+const MAP_HEIGHT = 270
 /** Metros de norte a sur del mapa de donde estás, cuando aún no hay lugares. */
 const NEARBY_SPAN = 1600
 const PREVIEW_TASKS = 3
@@ -24,7 +24,8 @@ const COPY = {
     count: (count: number) => (count === 0 ? 'Sin lugares' : count === 1 ? '1 lugar' : `${count} lugares`),
     title: 'Lugares',
     search: 'Buscar o añadir un lugar',
-    onMap: 'En el mapa',
+    openMap: 'Abrir el mapa',
+    open: 'Abrir el lugar',
     blocked: 'Ubicación bloqueada: los avisos por lugar no pueden sonar.',
     saved: 'Ubicación guardada',
     unset: 'Sin ubicación: toca para elegirla',
@@ -42,7 +43,8 @@ const COPY = {
     count: (count: number) => (count === 0 ? 'No places' : count === 1 ? '1 place' : `${count} places`),
     title: 'Places',
     search: 'Search or add a place',
-    onMap: 'On the map',
+    openMap: 'Open the map',
+    open: 'Open place',
     blocked: 'Location blocked: place reminders can’t go off.',
     saved: 'Saved location',
     unset: 'No location: tap to choose it',
@@ -124,22 +126,29 @@ function PlacesList() {
     return map
   }, [tasks])
 
-  /** El mapa de verdad: se elige el punto y se le pone nombre en el panel del lugar nuevo. */
+  /**
+   * Tocar el mapa lo abre entero (el de verdad): tus lugares con sus radios para moverse por ellos;
+   * tocar uno lo abre y "Añadir un lugar" pone una chincheta, que pasa al panel del lugar nuevo.
+   */
   const mapOpen = useRef(false)
-  const addOnMap = async () => {
+  const exploreMap = async () => {
     // Un doble toque no abre dos mapas.
     if (mapOpen.current) return
     mapOpen.current = true
     try {
-      const picked = await pickOnMap({
-        title: copy.addPlace,
+      const result = await browseMap({
+        title: copy.title,
+        addTitle: copy.addPlace,
+        add: copy.addPlace,
+        open: copy.open,
         confirm: copy.addHere,
         cancel: copy.close,
         locate: copy.locate,
         radius: DEFAULT_RADIUS,
-        places: located.map((place) => ({ name: place.name, lat: place.location.lat, lng: place.location.lng, radius: place.radius })),
+        places: located.map((place) => ({ id: place.id, name: place.name, lat: place.location.lat, lng: place.location.lng, radius: place.radius })),
       })
-      if (picked) openPlace({ placeId: null, name: picked.name ?? '', location: picked.location })
+      if (result?.kind === 'open') openPlace({ placeId: result.placeId })
+      if (result?.kind === 'pick') openPlace({ placeId: null, name: result.pick.name ?? '', location: result.pick.location })
     } catch {
       toast({ message: copy.mapFailed })
     } finally {
@@ -161,8 +170,26 @@ function PlacesList() {
         </div>
       </header>
 
-      {/* El mapa es una foto con tus sitios encima: lo que se toca son las chinchetas (y la píldora de abajo). */}
-      <div className="places__map" role="presentation">
+      <button type="button" className="places__search" onClick={() => openPlace({ placeId: null })}>
+        <IconSearch size={17} />
+        <span>{copy.search}</span>
+        <span className="places__search-plus" aria-hidden="true">
+          <IconPlus size={15} />
+        </span>
+      </button>
+      {/* Tocar el mapa lo abre entero; las chinchetas de la foto abren su lugar directamente. */}
+      <div
+        className="places__map"
+        role="button"
+        tabIndex={0}
+        aria-label={copy.openMap}
+        onClick={() => void exploreMap()}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          void exploreMap()
+        }}
+      >
         <MapSnapshot
           points={located.map((place) => place.location)}
           // Sin lugares, el barrio donde estás (si ya hay permiso), no un dibujo.
@@ -194,20 +221,11 @@ function PlacesList() {
             <IconMap size={22} />
           </div>
         )}
+        <span className="map__expand" aria-hidden="true">
+          <IconExpand size={15} />
+        </span>
       </div>
 
-      <button type="button" className="places__search" onClick={() => openPlace({ placeId: null })}>
-        <IconSearch size={17} />
-        <span>{copy.search}</span>
-        <span className="places__search-plus" aria-hidden="true">
-          <IconPlus size={15} />
-        </span>
-      </button>
-      {/* Añadir señalándolo en el mapa de verdad: una píldora que dice lo que hace (la esquina "ampliar" no lo decía). */}
-      <button type="button" className="chip chip--option places__onmap" onClick={() => void addOnMap()}>
-        <IconMap size={14} />
-        {copy.onMap}
-      </button>
       {!places.length && <p className="places__pitch">{copy.pitch}</p>}
 
       {permission === 'denied' && places.length > 0 && (

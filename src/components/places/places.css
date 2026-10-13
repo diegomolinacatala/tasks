@@ -228,7 +228,19 @@
 
 .places__map {
   position: relative;
-  margin-top: var(--sp-2);
+  margin-top: var(--sp-3);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+/* Todo el mapa se toca para abrirlo entero */
+.places__map:active {
+  transform: scale(0.985);
+}
+
+.places__map .map__expand {
+  z-index: 2;
 }
 
 .places__map-empty {
@@ -246,9 +258,7 @@
   gap: var(--sp-3);
   width: 100%;
   min-height: 52px;
-  margin-top: calc(-26px);
-  position: relative;
-  z-index: 2;
+  margin-top: var(--sp-2);
   padding: 0 8px 0 18px;
   border-radius: var(--r-full);
   background: var(--bg-elev);
@@ -257,8 +267,6 @@
   font-size: var(--fs-md);
   text-align: left;
   transition: transform var(--dur-1) var(--ease);
-  width: calc(100% - 24px);
-  margin-left: 12px;
 }
 
 .places__search span:nth-child(2) {
@@ -385,10 +393,6 @@
 }
 
 /* Debajo del buscador, la otra forma de añadir: señalándolo en el mapa */
-.places__onmap {
-  margin-top: var(--sp-3);
-}
-
 /* En Android o en el ordenador no hay App Store que abrir: se dice y ya */
 .places__only {
   margin: var(--sp-4) 4px 0;

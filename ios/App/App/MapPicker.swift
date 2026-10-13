@@ -9,9 +9,16 @@ struct PickedLocation {
     let name: String?
 }
 
+/// Lo que devuelve el mapa: un punto para un lugar, o (al explorar) el lugar que se quiere abrir.
+enum MapPickerResult {
+    case picked(PickedLocation)
+    case open(String)
+}
+
 /// Lo que necesita el mapa para elegir un sitio. Los textos llegan de la web, en el idioma de la app.
 struct MapPickerOptions {
     struct Place {
+        let id: String?
         let name: String
         let coordinate: CLLocationCoordinate2D
         let radius: CLLocationDistance
@@ -24,6 +31,23 @@ struct MapPickerOptions {
     let center: CLLocationCoordinate2D?
     let radius: CLLocationDistance
     let places: [Place]
+    /// Explorar (el mapa de la pestaña Lugares): se abre sin chincheta, con tus lugares; tocar uno
+    /// ofrece abrirlo y "Añadir un lugar" deja caer la chincheta para elegir uno nuevo.
+    let browse: Bool
+    /// Al explorar: el título mientras se añade, el botón que añade y el que abre el lugar tocado.
+    let addTitle: String
+    let add: String
+    let open: String
+}
+
+/// Un lugar guardado en el mapa, con su id para poder abrirlo.
+private final class PlaceAnnotation: MKPointAnnotation {
+    let placeId: String?
+
+    init(placeId: String?) {
+        self.placeId = placeId
+        super.init()
+    }
 }
 
 /// Los colores de `tokens.css` en los dos temas: papel marfil, tinta marino y coñac (de noche, azul
@@ -59,9 +83,12 @@ private enum Ink {
 /// Mapa de Apple a pantalla completa para atinar dónde está un lugar: se arrastra el mapa bajo una
 /// chincheta fija (o se toca un punto, o un comercio del propio mapa, que además da su nombre) y el
 /// círculo enseña el radio del aviso. Los demás lugares salen con el suyo, para orientarse.
+///
+/// Al explorar (tocar el mapa de la pestaña Lugares) se abre sin chincheta: tus lugares con sus radios;
+/// tocar uno ofrece abrirlo y "Añadir un lugar" (o tocar un comercio) deja caer la chincheta.
 final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     private let options: MapPickerOptions
-    private var completion: ((PickedLocation?) -> Void)?
+    private var completion: ((MapPickerResult?) -> Void)?
 
     private let mapView = MKMapView()
     private let ring = UIView()
@@ -76,6 +103,13 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     private let titleLabel = UILabel()
     private let titleBox = UIView()
     private var ringSize: NSLayoutConstraint?
+    /// El botón va debajo de la dirección o, si no hay nada que decir (explorando), arriba de la tarjeta.
+    private var buttonBelowLabel: NSLayoutConstraint?
+    private var buttonAtTop: NSLayoutConstraint?
+    /// Explorando tus lugares (sin chincheta); `false` al elegir un punto.
+    private var browsing: Bool
+    /// El lugar tocado al explorar: el botón lo abre.
+    private var selectedPlace: PlaceAnnotation?
 
     private let geocoder = CLGeocoder()
     private let location = LocationRequester()
@@ -95,9 +129,10 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     private static let minimumSpan: CLLocationDistance = 600
     private static let featureTolerance: CLLocationDistance = 20
 
-    init(options: MapPickerOptions, completion: @escaping (PickedLocation?) -> Void) {
+    init(options: MapPickerOptions, completion: @escaping (MapPickerResult?) -> Void) {
         self.options = options
         self.completion = completion
+        self.browsing = options.browse
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .fullScreen
     }
@@ -114,6 +149,7 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
         setUpPin()
         setUpChrome()
         showPlaces()
+        applyMode(animated: false)
     }
 
     override func viewDidLayoutSubviews() {
@@ -289,7 +325,6 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
             addressLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
             addressLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
             addressLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
-            confirmButton.topAnchor.constraint(equalTo: addressLabel.bottomAnchor, constant: 14),
             confirmButton.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
             confirmButton.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
             confirmButton.heightAnchor.constraint(equalToConstant: 50),
@@ -298,12 +333,106 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
             locateButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             locateButton.bottomAnchor.constraint(equalTo: card.topAnchor, constant: -12),
         ])
+        buttonBelowLabel = confirmButton.topAnchor.constraint(equalTo: addressLabel.bottomAnchor, constant: 14)
+        buttonAtTop = confirmButton.topAnchor.constraint(equalTo: card.topAnchor, constant: 14)
+        buttonBelowLabel?.isActive = true
+    }
+
+    // MARK: - Explorar o elegir
+
+    /// Pone el mapa en lo que toca: explorando, sin chincheta ni círculo; eligiendo, la chincheta cae.
+    private func applyMode(animated: Bool) {
+        titleLabel.text = options.browse && !browsing ? options.addTitle : options.title
+        let back = options.browse && !browsing
+        closeButton.setImage(symbol(back ? "chevron.backward" : "xmark"), for: .normal)
+        updateRing()
+        updateCard(animated: animated)
+        if browsing {
+            let hide = {
+                self.pin.alpha = 0
+                self.pinShadow.alpha = 0
+            }
+            if animated { UIView.animate(withDuration: 0.2, animations: hide) } else { hide() }
+            return
+        }
+        guard animated else {
+            pin.alpha = 1
+            pinShadow.alpha = 1
+            return
+        }
+        // La chincheta cae desde arriba con un saltito.
+        pin.alpha = 0
+        pin.transform = CGAffineTransform(translationX: 0, y: -40)
+        pinShadow.alpha = 0
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.55, initialSpringVelocity: 0.4, options: [.beginFromCurrentState]) {
+            self.pin.alpha = 1
+            self.pin.transform = .identity
+            self.pinShadow.alpha = 1
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    /// La tarjeta de abajo: explorando, "Añadir un lugar" (o el lugar tocado y "Abrir"); eligiendo, la
+    /// dirección del punto y el botón que lo confirma.
+    private func updateCard(animated: Bool) {
+        var showsLabel = true
+        if browsing, let place = selectedPlace {
+            addressLabel.font = Ink.serif(19)
+            addressLabel.textColor = Ink.text
+            addressLabel.text = place.title ?? " "
+            confirmButton.setTitle(options.open, for: .normal)
+        } else if browsing {
+            showsLabel = false
+            confirmButton.setTitle(options.add, for: .normal)
+        } else {
+            addressLabel.font = UIFont.systemFont(ofSize: 15)
+            addressLabel.textColor = Ink.text2
+            addressLabel.text = feature?.name ?? (address.isEmpty ? " " : address)
+            confirmButton.setTitle(options.confirm, for: .normal)
+        }
+        addressLabel.isHidden = !showsLabel
+        buttonBelowLabel?.isActive = false
+        buttonAtTop?.isActive = false
+        if showsLabel {
+            buttonBelowLabel?.isActive = true
+        } else {
+            buttonAtTop?.isActive = true
+        }
+        if animated {
+            UIView.animate(withDuration: 0.25, delay: 0, options: [.beginFromCurrentState, .curveEaseOut]) {
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+
+    /// De explorar a elegir: en un punto concreto (un comercio tocado, con su nombre) o donde se mira.
+    private func startAdding(at coordinate: CLLocationCoordinate2D?, name: String?) {
+        let selected = selectedPlace
+        selectedPlace = nil
+        browsing = false
+        if let selected { mapView.deselectAnnotation(selected, animated: false) }
+        moved = true
+        if let coordinate {
+            if let name, !name.isEmpty { feature = (name, coordinate) } else { feature = nil }
+            focus(on: coordinate, animated: true)
+        } else {
+            feature = nil
+            // Con una ciudad entera a la vista la chincheta no diría nada: se acerca a donde se mira.
+            if mapView.region.span.latitudeDelta > 0.05 { focus(on: mapView.centerCoordinate, animated: true) }
+        }
+        address = ""
+        applyMode(animated: true)
+        scheduleGeocode()
+    }
+
+    private func symbol(_ name: String) -> UIImage? {
+        UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold))
     }
 
     /// Botón redondo de papel flotando sobre el mapa.
     private func float(_ button: UIButton, symbol: String, label: String, action: Selector) {
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)), for: .normal)
+        button.setImage(self.symbol(symbol), for: .normal)
         button.tintColor = Ink.text
         button.backgroundColor = Ink.paper
         button.layer.cornerRadius = 22
@@ -327,7 +456,7 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     /// Los demás lugares, con su radio, para orientarse.
     private func showPlaces() {
         for place in options.places where CLLocationCoordinate2DIsValid(place.coordinate) {
-            let annotation = MKPointAnnotation()
+            let annotation = PlaceAnnotation(placeId: place.id)
             annotation.coordinate = place.coordinate
             annotation.title = place.name
             mapView.addAnnotation(annotation)
@@ -351,10 +480,12 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
             let side = max(rect.size.width, rect.size.height, minimum) * 1.4
             mapView.setVisibleMapRect(MKMapRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side), animated: false)
         }
-        // Con permiso (o pidiéndolo, que para esto se abre el mapa), donde estás.
+        // Con permiso (o pidiéndolo, que para esto se abre el mapa), donde estás. Al explorar, si hay
+        // lugares, manda verlos todos: solo se enseña el punto azul.
         location.requestLocation { [weak self] result in
-            guard let self, !self.moved, case .success(let position) = result else { return }
+            guard let self, case .success(let position) = result else { return }
             self.mapView.showsUserLocation = true
+            guard !self.moved, !(self.options.browse && !points.isEmpty) else { return }
             self.focus(on: position.coordinate, animated: points.isEmpty == false)
         }
     }
@@ -372,6 +503,8 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
 
     /// Tocar un punto lleva la chincheta allí.
     @objc private func tapped(_ gesture: UITapGestureRecognizer) {
+        // Explorando, tocar el mapa es moverse por él (o soltar el lugar elegido, que hace el mapa).
+        if browsing { return }
         let point = gesture.location(in: mapView)
         // Los toques sobre una chincheta o un comercio los resuelve el mapa (`didSelect`).
         if let hit = mapView.hitTest(point, with: nil), hit is MKAnnotationView || hit.superview is MKAnnotationView { return }
@@ -388,8 +521,20 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     }
 
     func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+        if browsing, let place = annotation as? PlaceAnnotation {
+            // Se queda elegido (la chincheta crece): la tarjeta ofrece abrirlo.
+            selectedPlace = place
+            UISelectionFeedbackGenerator().selectionChanged()
+            updateCard(animated: true)
+            return
+        }
         mapView.deselectAnnotation(annotation, animated: false)
         guard !(annotation is MKUserLocation) else { return }
+        if browsing {
+            // Un comercio del mapa: se añade ahí, con su nombre.
+            if let poi = annotation as? MKMapFeatureAnnotation { startAdding(at: poi.coordinate, name: poi.title) }
+            return
+        }
         selectedAt = Date()
         moved = true
         if let poi = annotation as? MKMapFeatureAnnotation, let name = poi.title, !name.isEmpty {
@@ -401,11 +546,18 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
+    func mapView(_ mapView: MKMapView, didDeselect annotation: MKAnnotation) {
+        guard browsing, let place = annotation as? PlaceAnnotation, place === selectedPlace else { return }
+        selectedPlace = nil
+        updateCard(animated: true)
+    }
+
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
         // Solo lo que mueve el dedo levanta la chincheta (no los encuadres de código).
         let dragging = mapView.subviews.first?.gestureRecognizers?.contains { $0.state == .began || $0.state == .changed } ?? false
         if dragging { moved = true }
         regionChangedAt = Date()
+        if browsing { return }
         geocodeWork?.cancel()
         // La dirección es la del punto de antes: confirmar ahora no debe guardarla con el nuevo.
         address = ""
@@ -423,6 +575,7 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
         updateRing()
+        if browsing { return }
         if let current = feature,
            CLLocation(latitude: current.coordinate.latitude, longitude: current.coordinate.longitude)
            .distance(from: CLLocation(latitude: mapView.centerCoordinate.latitude, longitude: mapView.centerCoordinate.longitude)) > Self.featureTolerance {
@@ -444,7 +597,7 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
         let size = rect.height.isFinite ? min(max(rect.height, 0), view.bounds.width * 2) : 0
         ringSize?.constant = size
         ring.layer.cornerRadius = size / 2
-        ring.alpha = size < 18 ? 0 : 1
+        ring.alpha = browsing || size < 18 ? 0 : 1
     }
 
     // MARK: - Dirección
@@ -499,18 +652,36 @@ final class MapPickerViewController: UIViewController, MKMapViewDelegate {
     }
 
     @objc private func confirm() {
+        if browsing {
+            if let id = selectedPlace?.placeId {
+                UISelectionFeedbackGenerator().selectionChanged()
+                finish(.open(id))
+            } else {
+                startAdding(at: nil, name: nil)
+            }
+            return
+        }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         let center = mapView.centerCoordinate
         let name = feature?.name
         // Si la dirección aún no ha llegado, se va sin ella: la web enseña "Ubicación guardada".
-        finish(PickedLocation(coordinate: center, address: address, name: name))
+        finish(.picked(PickedLocation(coordinate: center, address: address, name: name)))
     }
 
+    /// La × cierra; añadiendo desde explorar, la flecha vuelve a tus lugares.
     @objc private func cancel() {
+        if options.browse && !browsing {
+            browsing = true
+            feature = nil
+            geocodeWork?.cancel()
+            geocoder.cancelGeocode()
+            applyMode(animated: true)
+            return
+        }
         finish(nil)
     }
 
-    private func finish(_ result: PickedLocation?) {
+    private func finish(_ result: MapPickerResult?) {
         // Un doble toque en el botón no cierra dos veces.
         guard let done = completion else { return }
         completion = nil

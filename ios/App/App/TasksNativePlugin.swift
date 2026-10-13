@@ -329,8 +329,8 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
             else { return nil }
             let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
             guard CLLocationCoordinate2DIsValid(coordinate) else { return nil }
-            let radius = min(max(Self.number(object["radius"])?.doubleValue ?? 150, 50), 2000)
-            return MapPickerOptions.Place(name: name, coordinate: coordinate, radius: radius)
+            let radius = min(max(Self.number(object["radius"])?.doubleValue ?? 150, 20), 2000)
+            return MapPickerOptions.Place(id: object["id"] as? String, name: name, coordinate: coordinate, radius: radius)
         }
         let options = MapPickerOptions(
             title: call.getString("title") ?? "",
@@ -338,8 +338,12 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
             cancel: call.getString("cancel") ?? "",
             locate: call.getString("locate") ?? "",
             center: center,
-            radius: min(max(call.getDouble("radius") ?? 150, 50), 2000),
-            places: places
+            radius: min(max(call.getDouble("radius") ?? 150, 20), 2000),
+            places: places,
+            browse: call.getBool("browse") ?? false,
+            addTitle: call.getString("addTitle") ?? "",
+            add: call.getString("add") ?? "",
+            open: call.getString("open") ?? ""
         )
         DispatchQueue.main.async {
             // Ya hay algo encima (otro mapa abierto con un doble toque): este no se abre.
@@ -347,18 +351,25 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("No se puede abrir el mapa.")
                 return
             }
-            let picker = MapPickerViewController(options: options) { picked in
-                guard let picked else {
+            let picker = MapPickerViewController(options: options) { result in
+                switch result {
+                case .none:
                     call.resolve(["cancelled": true])
                     return
+                case .some(.open(let id)):
+                    call.resolve(["open": id])
+                    return
+                case .some(.picked):
+                    break
                 }
-                var result: [String: Any] = [
+                guard case .picked(let picked)? = result else { return }
+                var response: [String: Any] = [
                     "lat": picked.coordinate.latitude,
                     "lng": picked.coordinate.longitude,
                     "address": picked.address,
                 ]
-                if let name = picked.name { result["name"] = name }
-                call.resolve(result)
+                if let name = picked.name { response["name"] = name }
+                call.resolve(response)
             }
             presenter.present(picker, animated: true)
         }

@@ -5,6 +5,7 @@ import {
   MAX_PLACE_ALERTS,
   MAX_RADIUS,
   MIN_RADIUS,
+  RADIUS_STOPS,
   distanceMeters,
   findPlace,
   formatDistance,
@@ -97,6 +98,18 @@ describe('normalizePlace', () => {
     expect(normalizePlace({ id: 'a', name: 'A', radius: 5 })?.radius).toBe(MIN_RADIUS)
     expect(normalizePlace({ id: 'a', name: 'A', radius: 99_999 })?.radius).toBe(MAX_RADIUS)
     expect(normalizePlace({ id: 'a', name: 'A' })?.radius).toBe(DEFAULT_RADIUS)
+  })
+
+  test('admite radios pequeños, desde 20 m', () => {
+    expect(MIN_RADIUS).toBe(20)
+    expect(normalizePlace({ id: 'a', name: 'A', radius: 20 })?.radius).toBe(20)
+  })
+
+  test('el deslizador va del radio mínimo al máximo, de menor a mayor y con el de por defecto', () => {
+    expect(RADIUS_STOPS[0]).toBe(MIN_RADIUS)
+    expect(RADIUS_STOPS[RADIUS_STOPS.length - 1]).toBe(MAX_RADIUS)
+    expect(RADIUS_STOPS.every((stop, index) => index === 0 || stop > (RADIUS_STOPS[index - 1] ?? 0))).toBe(true)
+    expect(RADIUS_STOPS).toContain(DEFAULT_RADIUS)
   })
 
   test('descarta lo que no tiene id o nombre', () => {

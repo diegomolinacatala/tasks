@@ -495,9 +495,9 @@ describe('lugares', () => {
 
   test('actualizar cambia ubicación, radio y nombre sin mutar', () => {
     const state = run(emptyState(), { type: 'place/add', id: 'p1', name: 'Mercadona' })
-    const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 50 })
+    const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 5 })
     expect(state.places[0]!.location).toBeNull()
-    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', aliases: [], location, radius: 100 })
+    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', aliases: [], location, radius: 20 })
     expect(reducer(next, { type: 'place/update', id: 'nadie', radius: 300 })).toBe(next)
   })
 

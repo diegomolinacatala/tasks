@@ -41,7 +41,7 @@
 .ruler__end {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 2px;
   color: var(--accent);
   font-weight: 600;
@@ -51,7 +51,6 @@
 }
 
 .ruler__clear {
-  position: relative;
   flex: none;
   display: grid;
   place-items: center;
@@ -64,12 +63,6 @@
   transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
 }
 
-.ruler__clear::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-}
-
 .ruler__clear:active {
   background: var(--bg-press);
   transform: scale(0.9);
@@ -80,8 +73,7 @@
   position: relative;
   height: 52px;
   margin: 0 14px 0 11px;
-  /* En vertical el dedo es del scroll del panel: la regla solo manda al moverse de lado */
-  touch-action: pan-y;
+  touch-action: none;
   cursor: pointer;
   outline: none;
 }

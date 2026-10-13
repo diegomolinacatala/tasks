@@ -262,6 +262,21 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
 - **La 1.6 está aprobada** (13/10/2026: la subida respondió *train version '1.6' is closed*; el archivo
   con el Swift de la auditoría compiló bien). `MARKETING_VERSION` subido a **1.7**: la auditoría está en la **TestFlight 43** (1.7).
+- **Tras probar la 43** (13/10/2026, en `capacitor`, **TestFlight 44**), lo que pidió el usuario:
+  - **La regla de la duración, como antes de la auditoría** (`DurationPicker`, `ruler.css`): con
+    `touch-action: pan-y` la soltaba en cuanto el dedo se movía un poco en vertical. Vuelve a coger el dedo
+    desde que se apoya (`touch-action: none`). El deslizador del radio y el mando "Aa" siguen con `pan-y`.
+  - **La barra de escribir y su ficha, como antes de la auditoría**: tamaños de la barra (36 px, el asa
+    de 22), la × delante de las píldoras, los destinos ocultos mientras se aplica lo entendido, la píldora
+    tachada (sin "Tal cual"), Repetir e Importancia desplegados en la ficha y las píldoras de los paneles
+    a 38 px. Y un fallo de la auditoría: `:focus-visible` pintaba un marco de coñac en cualquier campo de
+    texto con el foco (en un campo siempre es "visible"); ahora los campos nunca llevan marco.
+  - **Radio desde 20 m** (`MIN_RADIUS`, `RADIUS_STOPS`): el deslizador va por pasos repartidos por igual,
+    de 10 en 10 m hasta 100 y más gruesos después; también en Swift (`PlaceAlerts.minRadius`, el mapa).
+    Por debajo de unos 100 m iOS avisa con menos precisión: lo pidió así.
+  - **Lugares, lo del buzón** (un amigo, 11/10/2026: el buscador montado en el borde del mapa "it's giving
+    bugueado"): el buscador va encima del mapa, entero; el mapa es más alto (270) y **tocarlo lo abre
+    entero** (adiós a la píldora "En el mapa"): ver "Lugares".
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -272,13 +287,13 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     "Deshacer" (importar, borrar todo, borrar un lugar, quitar un aviso, posponer, crear una rutina),
     foco y `inert` en los paneles, toques de 44 px, textos en las dos lenguas revisados, "Sin X" en
     todos los vacíos, guardado que avisa si falla.
-  - **Barra y ficha**: no pierde el destino elegido, lo dictado cae donde se mira, la ficha pliega
-    Repetir e Importancia, la sección nueva se crea al salir del campo.
+  - **Barra y ficha**: no pierde el destino elegido, lo dictado cae donde se mira, la sección nueva se
+    crea al salir del campo (el aspecto de las dos volvió a ser el de antes en la 44).
   - **Agenda y Bandeja**: Atrasadas plegable, "Pasar a hoy" con cifra, secciones vacías solo con cabecera,
     el "+ Sección" como campo, vacíos sin rótulos huecos, la primera tarea de la instalación asoma lo que
     hay detrás (una vez), hoy por contexto (las filas cambian a medianoche solas).
   - **Panel de la tarea**: el círculo de tachar arriba, mismo orden que la ficha, Sección e Importancia
-    plegadas, la regla, el deslizador y el mando "Aa" solo mandan de lado (`touch-action: pan-y`), avisos
+    plegadas, el deslizador y el mando "Aa" solo mandan de lado (`touch-action: pan-y`; la regla no, ver la 44), avisos
     con × propia y "por qué no sonará", plazo en una sola píldora, "A hoy" y "¿Has acabado?" en la barra
     de arriba, toast de adónde se fue la tarea al cerrar.
   - **Rutinas**: se crean desde el pie (cerrar cancela), tope de 50 a la vista, constancia que se nota
@@ -286,7 +301,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   - **Lugares**: panel en orden (nuevo: dónde → nombre → pie "Añadir lugar"; existente: nombre, mapa,
     "Cambiar ubicación ›", radio, avisos aquí con filas que abren la tarea, "Otros nombres ›", borrar con
     cifra y deshacer: `place/restore`), nombre vacío que no pierde el resto, nombre repetido que no pisa,
-    píldora "En el mapa" en la pestaña, distancias que se releen.
+    distancias que se releen.
   - **Ajustes**: interruptor para sí/no y fila con valor › para lo demás (Idioma en un panel), Ayuda
     encima de Datos, calendario que dice "No encontrado" y la guía que ofrece conectar.
   - **Avisos**: un aviso tocado siempre hace algo ("Esa tarea ya no está.", "Ya estaba hecha", "No
@@ -302,10 +317,12 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone lo de la auditoría** (TestFlight desde `capacitor`): "Hecha" en el aviso de una
-   tarea sin abrir la app (y bloqueado); el panel de la tarea (el círculo, la regla sin robar el scroll,
-   la × de un aviso); crear un lugar nuevo desde el buscador y desde "En el mapa"; borrar un lugar y
-   deshacer; Ajustes (Idioma, resumen con interruptor); la lámina Gestos tras actualizar; una sugerencia
+0. **Probar en el iPhone la TestFlight 44**: la regla de la duración, la barra de escribir y su ficha
+   (como antes), un radio de 20 m, y la pestaña Lugares (el buscador encima del mapa; tocar el mapa,
+   moverse, tocar un lugar → *Abrir el lugar*, *Añadir un lugar* → la chincheta cae → *Añadir aquí*, la
+   flecha de vuelta, tocar un comercio). Y lo de la auditoría que no se probó en la 43: "Hecha" en el aviso
+   de una tarea sin abrir la app (y bloqueado); el panel de la tarea (el círculo, la × de un aviso);
+   borrar un lugar y deshacer; Ajustes (Idioma, resumen con interruptor); la lámina Gestos tras actualizar; una sugerencia
    cerrando el panel a medias. Después, unir `capacitor` a `main`.
 
 0. **Probar la 1.6 en el iPhone** y enviarla (`docs/app-store.md` §9.8; al usuario, los pasos en el chat,
@@ -1272,7 +1289,8 @@ ver "Duración y aviso de cierre".
 
 `AppState.places`: globales como las secciones, con nombre único (sin tildes ni artículo:
 `placeKey`), **otros nombres** (`aliases`, hasta 8), ubicación (`null` hasta elegirla) y radio
-(100–1000 m). Borrar un lugar quita sus avisos de las tareas.
+(20–1000 m: por debajo de unos 100 m iOS avisa con menos precisión). Borrar un lugar quita sus avisos
+de las tareas.
 
 - **Otros nombres** ("el piso", "casa de mis padres" para Casa): al escribir o dictar valen como el
   nombre (`findPlace`, `placeKeys`, las expresiones de `placePhrase.ts` y `parseEn.ts`). Ninguno
@@ -1295,12 +1313,16 @@ ver "Duración y aviso de cierre".
   tus sitios (`MapSnapshot`: `TasksNative.mapSnapshot` hace una foto con `MKMapSnapshotter`, estilo
   apagado y sin comercios, en el tema de la app, y devuelve dónde cae cada punto); encima, en HTML,
   una chincheta por lugar con el número de tareas pendientes allí, que lo abre. Mientras llega la
-  foto, o si falla, un plano dibujado con los puntos en su sitio relativo (`lib/mapFrame.ts`). Un
-  buscador flota sobre el borde ("Buscar o añadir un lugar") y debajo va una tarjeta por lugar:
-  nombre, dirección, **distancia** (solo si ya hay permiso de ubicación: abrir la pestaña no lo
-  pide), radio y sus tareas pendientes. **Tocar el mapa** (o su esquina con las dos flechas) abre el
-  mapa de verdad para **añadir un lugar señalándolo**: lo elegido abre el panel de un lugar nuevo con
-  la ubicación puesta (`PlaceRequest.location`) para ponerle nombre. Sin lugares y con permiso de
+  foto, o si falla, un plano dibujado con los puntos en su sitio relativo (`lib/mapFrame.ts`). El
+  buscador ("Buscar o añadir un lugar") va encima del mapa, entero (montado en su borde parecía un
+  fallo: buzón, 11/10/2026), y debajo del mapa una tarjeta por lugar: nombre, dirección, **distancia**
+  (solo si ya hay permiso de ubicación: abrir la pestaña no lo pide), radio y sus tareas pendientes.
+  **Tocar el mapa** (con la esquina de las dos flechas como pista) lo abre entero para **explorar**
+  (`browseMap`, `MapPicker.swift` con `browse`): tus lugares con sus radios, sin chincheta; tocar uno
+  lo marca y el botón de abajo pasa a **Abrir el lugar** (abre su panel); **Añadir un lugar** deja caer
+  la chincheta en el centro (o tocar un comercio del mapa la deja allí, con su nombre) y entonces es el
+  mapa de elegir de siempre, con **Añadir aquí** y una flecha que vuelve a explorar. Lo elegido abre el
+  panel de un lugar nuevo con la ubicación puesta (`PlaceRequest.location`). Sin lugares y con permiso de
   ubicación, la foto es del barrio donde estás, no el dibujo. En la PWA la pestaña dice que es cosa
   del iPhone y lleva a la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para
   poder probarla).
@@ -1310,8 +1332,8 @@ ver "Duración y aviso de cierre".
   "Volver"). Un nombre que ya existe no pisa al otro ("Ya tienes un lugar llamado «Casa» · Ver"); se
   funde solo con uno sin ubicar (el dictado). Uno **existente**: nombre (vacío, conserva el que tenía),
   mapa centrado con el radio a escala (se toca para abrir el de verdad y atinar), dirección, **Cambiar
-  ubicación ›** plegado, **Radio del aviso** (deslizador de 100 m a 1 km, de 50 en 50, el círculo lo sigue
-  en vivo), **Avisos aquí** (filas que abren la tarea), **Otros nombres ›** plegado y **Borrar lugar**: el
+  ubicación ›** plegado, **Radio del aviso** (deslizador de 20 m a 1 km por pasos, `RADIUS_STOPS`: de 10 en
+  10 hasta 100 y más gruesos después; el círculo lo sigue en vivo), **Avisos aquí** (filas que abren la tarea), **Otros nombres ›** plegado y **Borrar lugar**: el
   segundo toque dice cuántos avisos se lleva y el toast tiene "Deshacer" (`place/restore`). Sin
   ubicación al cerrar, "X sin ubicación: el aviso no sonará · Ubicar".
 - **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por

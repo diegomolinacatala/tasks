@@ -39,7 +39,7 @@
 }
 
 .app.has-composer .app__scroll {
-  --dock: var(--dock-h, var(--composer-h));
+  --dock: var(--composer-h);
 }
 
 /* Mientras se escribe, la lista queda tras un velo de papel: sigue ahí (se ve entrar lo que se añade)
