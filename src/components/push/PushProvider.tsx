@@ -58,7 +58,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
     setStatus('off')
   }, [])
 
-  const { failed: syncFailed } = useScheduleSync({ api, device, state, today, onForgotten: forget })
+  const { failed: syncFailed, retry } = useScheduleSync({ api, device, state, today, onForgotten: forget })
 
   useEffect(() => {
     if (!api || status !== 'off') return
@@ -135,8 +135,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, enable, disable, canTranscribe: status === 'on', transcribe }),
-    [status, busy, syncFailed, enable, disable, transcribe],
+    () => ({ status, busy, syncFailed, retry, enable, disable, canTranscribe: status === 'on', transcribe }),
+    [status, busy, syncFailed, retry, enable, disable, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>

@@ -4,6 +4,7 @@ import { haptic } from '../../lib/platform/feedback'
 import { isNative } from '../../lib/platform'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
+import { useExportFailed } from '../calendar/CalendarExportSync'
 import { useCalendar } from '../calendar/CalendarProvider'
 import { IconCalendar, IconCheck, IconChevronRight } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
@@ -25,6 +26,7 @@ const COPY = {
     count: (shown: number, total: number) => (shown === total ? 'Todos' : `${shown} de ${total}`),
     exportRow: 'Añadir mis tareas',
     exportOff: 'No',
+    exportFailed: 'No se han podido añadir al calendario. Se volverá a intentar.',
     guide: 'Añadir Google u Outlook',
     guideHint: 'Paso a paso',
     connected: 'Listo: tu calendario ya sale en la Agenda.',
@@ -40,6 +42,7 @@ const COPY = {
     count: (shown: number, total: number) => (shown === total ? 'All' : `${shown} of ${total}`),
     exportRow: 'Add my tasks',
     exportOff: 'Off',
+    exportFailed: 'They couldn’t be added to the calendar. It’ll try again.',
     guide: 'Add Google or Outlook',
     guideHint: 'Step by step',
     connected: 'Done: your calendar now shows up in the Agenda.',
@@ -61,6 +64,7 @@ export function CalendarBlock() {
   const [guiding, setGuiding] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const exportFailed = useExportFailed()
 
   if (!calendar.available) return null
 
@@ -161,6 +165,7 @@ export function CalendarBlock() {
             </button>
             {guideRow}
           </div>
+          {exportFailed && settings.export && <p className="group__note group__note--danger">{copy.exportFailed}</p>}
         </>
       )}
 

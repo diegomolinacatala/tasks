@@ -80,5 +80,5 @@ export function useNativeSchedule(state: AppState, today: IsoDate, enabled: bool
       .catch(() => undefined)
   }, [state.tasks, today, enabled])
 
-  return { failed }
+  return { failed, retry: () => void sync() }
 }

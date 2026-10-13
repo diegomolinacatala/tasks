@@ -106,5 +106,5 @@ export function useScheduleSync({ api, device, state, today, onForgotten }: Sync
     update.catch(() => undefined)
   }, [state.tasks, today])
 
-  return { failed }
+  return { failed, retry: () => void sync() }
 }

@@ -8,6 +8,7 @@ import { suggestEmoji } from './lib/emoji'
 import { capitalize } from './lib/title'
 import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
+import { SAVE_FAILED_EVENT } from './lib/persistence'
 import { draftsFromInterpreted } from './lib/interpret'
 import type { ParsedTask } from './lib/parse'
 import { parseSpoken, warmUpParser } from './lib/parse'
@@ -28,6 +29,7 @@ import type { TabId, Task, TaskDraft } from './types'
 import { Composer } from './components/compose/Composer'
 import { SizingContext } from './components/importance/sizing'
 import { useAddTasks } from './components/compose/useAddTasks'
+import { usePush } from './components/push/pushContext'
 import { useNotificationActions } from './components/push/useNotificationActions'
 import { TabBar } from './components/shell/TabBar'
 import { useKeyboardInset } from './components/shell/useKeyboardInset'
@@ -100,6 +102,9 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tareas: ${titles}`,
     sizing: 'Tamaño según importancia',
     stopWriting: 'Dejar de escribir',
+    scheduleFailed: 'No se han podido programar los avisos. Se reintenta solo.',
+    saveFailed: 'No se está guardando. Libera espacio en el dispositivo o exporta una copia.',
+    exportNow: 'Exportar',
   },
   en: {
     routineLimit: (max: number) => `You already have ${max} routines: delete one to add another.`,
@@ -111,6 +116,9 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tasks: ${titles}`,
     sizing: 'Size by importance',
     stopWriting: 'Stop writing',
+    scheduleFailed: 'Reminders couldn’t be scheduled. It’ll retry on its own.',
+    saveFailed: 'Changes aren’t being saved. Free up space on your device or export a backup.',
+    exportNow: 'Export',
   },
 } as const
 
@@ -138,6 +146,7 @@ export function App() {
   const toast = useToast()
   const addTasks = useAddTasks()
   const actions = useTaskActions()
+  const push = usePush()
   const copy = useCopy(COPY)
   const language = useLanguage()
   // La PWA no puede avisar por lugar: allí esas frases se dejan tal cual.
@@ -191,6 +200,13 @@ export function App() {
     return () => window.clearTimeout(warm)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Si los avisos no se pueden programar, se dice una vez (no en cada reintento); Ajustes lo repite.
+  const scheduleFailed = useRef(false)
+  useEffect(() => {
+    if (push.syncFailed && !scheduleFailed.current) toast({ message: copy.scheduleFailed, tone: 'error' })
+    scheduleFailed.current = push.syncFailed
+  }, [push.syncFailed]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Pasada la medianoche con la app abierta, si se miraba "hoy", se sigue mirando hoy.
   const previousToday = useRef(today)
   useEffect(() => {
@@ -218,6 +234,13 @@ export function App() {
     setSwitched(true)
     if (!WRITING.has(next)) setSizing(false)
   }, [])
+
+  // Si el estado deja de guardarse, lo hecho desde entonces se perdería al cerrar: hay que decirlo.
+  useEffect(() => {
+    const onFail = () => toast({ message: copy.saveFailed, actionLabel: copy.exportNow, tone: 'error', onAction: () => go('settings') })
+    window.addEventListener(SAVE_FAILED_EVENT, onFail)
+    return () => window.removeEventListener(SAVE_FAILED_EVENT, onFail)
+  }, [toast, copy, go])
 
   // Cerrada (acabada o saltada): esta versión queda vista y no vuelve a salir sola.
   const closeWelcome = useCallback(() => {

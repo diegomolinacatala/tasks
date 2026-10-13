@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { exportItems } from '../../lib/calendarExport'
 import { useToday } from '../../hooks/useToday'
 import { useAppState } from '../../state/StoreProvider'
@@ -6,6 +6,22 @@ import { useCalendar } from './CalendarProvider'
 
 /** Varios cambios seguidos (tachar tres tareas) se mandan de una vez. */
 const SYNC_DEBOUNCE_MS = 800
+
+// Si la última vez no se pudo escribir en el calendario, Ajustes lo dice (puede fallar en segundo plano).
+let exportFailed = false
+const listeners = new Set<() => void>()
+const setExportFailed = (failed: boolean) => {
+  if (failed === exportFailed) return
+  exportFailed = failed
+  listeners.forEach((listener) => listener())
+}
+const subscribe = (listener: () => void) => {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+export const useExportFailed = (): boolean => useSyncExternalStore(subscribe, () => exportFailed)
 
 /**
  * Las tareas con hora, al calendario elegido en Ajustes (`settings.calendar.export`): tras cada cambio,
@@ -26,10 +42,14 @@ export function CalendarExportSync() {
     if (key === sent.current) return
     const timer = window.setTimeout(() => {
       sent.current = key
-      void source.syncTasks(target, items).catch(() => {
-        // Se reintenta con el próximo cambio.
-        sent.current = null
-      })
+      void source.syncTasks(target, items).then(
+        () => setExportFailed(false),
+        () => {
+          // Se reintenta con el próximo cambio.
+          sent.current = null
+          setExportFailed(true)
+        },
+      )
     }, SYNC_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
   }, [source, status, state.tasks, target, today])

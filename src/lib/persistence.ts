@@ -8,17 +8,33 @@ import { loadEnglish } from './parse'
 import { isNative } from './platform'
 
 const KEY = 'tasks:state:v1'
+/** Cuándo se guardó cada copia: en el iPhone manda la más reciente, no el fichero por ser fichero. */
+const SAVED_AT_KEY = 'tasks:state:savedAt'
+/** Se avisa al segundo fallo seguido: uno suelto (la pestaña muriendo) no dice nada. */
+const FAILURES_BEFORE_WARNING = 2
+/** Lo escucha la app para avisar de que no se está guardando. */
+export const SAVE_FAILED_EVENT = 'tasks:save-failed'
 
-async function loadFromBrowser(): Promise<AppState | null> {
+interface Stored {
+  state: AppState
+  savedAt: number
+}
+
+const stamped = (raw: unknown, savedAt: number): Stored | null => {
+  const state = normalizeState(raw)
+  return state ? { state, savedAt } : null
+}
+
+async function loadFromBrowser(): Promise<Stored | null> {
   try {
-    const stored = normalizeState(await get(KEY))
+    const stored = stamped(await get(KEY), Number(await get(SAVED_AT_KEY)) || 0)
     if (stored) return stored
   } catch {
     /* seguimos con el fallback */
   }
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? normalizeState(JSON.parse(raw)) : null
+    return raw ? stamped(JSON.parse(raw), Number(localStorage.getItem(SAVED_AT_KEY)) || 0) : null
   } catch {
     return null
   }
@@ -52,50 +68,70 @@ export interface Loaded {
   fresh: boolean
 }
 
-/** En el iPhone manda el fichero; IndexedDB primero en la web; localStorage como red de seguridad. */
+/**
+ * En la web, IndexedDB y localStorage como red de seguridad. En el iPhone, el fichero y la copia del
+ * WebView: se queda la más reciente (si el fichero dejó de escribirse, la del WebView va por delante).
+ */
 export async function loadState(): Promise<Loaded> {
   if (!isNative) {
     const stored = await loadFromBrowser()
-    return { state: stored ?? emptyState(), fresh: stored === null }
+    return { state: stored?.state ?? emptyState(), fresh: stored === null }
   }
   const { readStateFile } = await import('./platform/storage')
-  const stored = normalizeState(await readStateFile()) ?? (await loadFromBrowser())
-  return { state: await withInbox(stored ?? emptyState()), fresh: stored === null }
+  const raw = await readStateFile()
+  const file = typeof raw === 'object' && raw !== null && 'savedAt' in raw ? stamped(raw, Number(raw.savedAt) || 0) : stamped(raw, 0)
+  const browser = await loadFromBrowser()
+  const stored = file && browser ? (browser.savedAt > file.savedAt ? browser : file) : (file ?? browser)
+  return { state: await withInbox(stored?.state ?? emptyState()), fresh: stored === null }
 }
 
-async function saveToBrowser(state: AppState): Promise<void> {
+let failures = 0
+
+/** Dos escrituras seguidas que fallan: la app avisa (lo hecho desde entonces se perdería al cerrar). */
+function noteFailure(): void {
+  failures += 1
+  if (failures === FAILURES_BEFORE_WARNING && typeof window !== 'undefined') window.dispatchEvent(new Event(SAVE_FAILED_EVENT))
+}
+
+async function saveToBrowser(state: AppState, savedAt: number): Promise<boolean> {
   try {
     await set(KEY, state)
-    return
+    await set(SAVED_AT_KEY, savedAt)
+    return true
   } catch {
     /* seguimos con el fallback */
   }
   try {
     localStorage.setItem(KEY, JSON.stringify(state))
+    localStorage.setItem(SAVED_AT_KEY, String(savedAt))
+    return true
   } catch {
-    console.error('No se pudo guardar el estado: almacenamiento no disponible.')
+    return false
   }
 }
 
-async function saveToFile(state: AppState): Promise<boolean> {
+async function saveToFile(state: AppState, savedAt: number): Promise<boolean> {
   try {
     const { writeStateFile } = await import('./platform/storage')
-    await writeStateFile(JSON.stringify(state))
+    await writeStateFile(JSON.stringify({ ...state, savedAt }))
     return true
   } catch {
-    // Queda la copia del WebView: al arrancar se usa si el fichero falta.
-    console.error('No se pudo guardar el fichero de estado.')
+    // Queda la copia del WebView, que al arrancar gana por ser más reciente.
     return false
   }
 }
 
 export async function saveState(state: AppState): Promise<void> {
-  if (isNative && (await saveToFile(state))) {
+  const savedAt = Date.now()
+  const inFile = isNative && (await saveToFile(state, savedAt))
+  if (inFile) {
     // Lo aplicado de la bandeja ya está a salvo en el fichero: puede salir de ella. Si el borrado
     // falla, se reintenta en la siguiente escritura.
     await import('./platform/inbox').then(({ settleInbox }) => settleInbox(state)).catch(() => undefined)
   }
-  await saveToBrowser(state)
+  const inBrowser = await saveToBrowser(state, savedAt)
+  if (inFile || (!isNative && inBrowser)) failures = 0
+  else noteFailure()
 }
 
 export interface Persister {

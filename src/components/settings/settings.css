@@ -93,6 +93,11 @@ a.group__row:active {
   background: var(--danger-dim);
 }
 
+/* Una nota que avisa de un fallo (p. ej. las tareas no llegan al calendario) */
+.group__note--danger {
+  color: var(--danger);
+}
+
 .group__note {
   margin: var(--sp-2) 2px 0;
   font-size: var(--fs-xs);

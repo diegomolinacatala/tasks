@@ -1,7 +1,5 @@
 import { shortTime } from '../../lib/date'
 import { isNative } from '../../lib/platform'
-import { nativePlan } from '../../lib/nativeSchedule'
-import { upcomingSchedule } from '../../lib/schedule'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
@@ -18,8 +16,8 @@ const COPY = {
     blockedBrowser: 'Bloqueados. Permítelos en los ajustes del sitio de tu navegador.',
     enable: 'Activar avisos',
     enabling: 'Activando…',
-    scheduled: 'Programados',
-    unsynced: ' · sin sincronizar',
+    failed: 'Los avisos no se han podido programar',
+    retry: 'Reintentar',
     digest: 'Resumen del día',
     no: 'No',
     daily: (clock: string) => `Cada día a las ${clock}`,
@@ -36,8 +34,8 @@ const COPY = {
     blockedBrowser: 'Blocked. Allow them in your browser’s site settings.',
     enable: 'Turn on notifications',
     enabling: 'Turning on…',
-    scheduled: 'Scheduled',
-    unsynced: ' · not synced',
+    failed: 'Reminders couldn’t be scheduled',
+    retry: 'Retry',
     digest: 'Daily summary',
     no: 'Off',
     daily: (clock: string) => `Every day at ${clock}`,
@@ -56,11 +54,6 @@ export function NotificationsBlock() {
   if (push.status === 'unconfigured') return null
 
   const { digest } = state.settings
-  // En el iPhone, lo que de verdad hay programado (iOS guarda 64 como mucho); en la web, lo que se sube.
-  const now = Date.now()
-  const scheduled = isNative
-    ? nativePlan(state, now).timed.filter((entry) => entry.extra.taskId || entry.extra.routineId).length
-    : upcomingSchedule(state, now).filter((entry) => entry.taskId !== null || entry.routine).length
 
   return (
     <section className="group">
@@ -82,14 +75,14 @@ export function NotificationsBlock() {
             </button>
           </div>
         ) : (
-          <p className="group__note">{copy.blocked}</p>
+          <p className="group__note">{/iPhone|iPad/.test(navigator.userAgent) ? copy.blocked : copy.blockedBrowser}</p>
         ))}
 
       {push.status === 'off' && (
         <div className="group__card">
           <button type="button" className="group__row" disabled={push.busy} onClick={() => void push.enable()}>
             <IconBell size={18} />
-            <span className="group__label">{copy.enable}</span>
+            <span className="group__label">{push.busy ? copy.enabling : copy.enable}</span>
             <IconChevronRight size={16} className="group__chevron" />
           </button>
         </div>
@@ -98,14 +91,13 @@ export function NotificationsBlock() {
       {push.status === 'on' && (
         <>
           <div className="group__card">
-            <div className="group__row group__row--static">
-              <IconBell size={18} />
-              <span className="group__label">{copy.scheduled}</span>
-              <span className="group__value">
-                {scheduled}
-                {push.syncFailed ? copy.unsynced : ''}
-              </span>
-            </div>
+            {push.syncFailed && (
+              <button type="button" className="group__row group__row--danger" onClick={push.retry}>
+                <IconBell size={18} />
+                <span className="group__label">{copy.failed}</span>
+                <span className="group__value">{copy.retry}</span>
+              </button>
+            )}
             <div className="group__row group__row--static group__row--stack">
               <span className="group__label">{copy.digest}</span>
               <div className="sheet__chips">

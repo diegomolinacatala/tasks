@@ -12,6 +12,8 @@ export interface PushContextValue {
   status: PushStatus
   busy: boolean
   syncFailed: boolean
+  /** Vuelve a programar (o subir) los avisos tras un fallo. */
+  retry: () => void
   enable: () => Promise<void>
   /** PWA: da de baja el dispositivo. App nativa: abre los ajustes de iOS, que es quien manda. */
   disable: () => Promise<void>

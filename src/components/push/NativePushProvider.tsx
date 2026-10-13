@@ -42,7 +42,7 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => (API_URL ? createPushApi(API_URL) : null), [])
   const [status, setStatus] = useState<PushStatus>('off')
   const [busy, setBusy] = useState(false)
-  const { failed: syncFailed } = useNativeSchedule(state, today, status === 'on')
+  const { failed: syncFailed, retry } = useNativeSchedule(state, today, status === 'on')
 
   useEffect(() => {
     // El permiso se puede cambiar en Ajustes de iOS con la app en segundo plano.
@@ -111,8 +111,8 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, enable, disable, canTranscribe: api !== null, transcribe }),
-    [status, busy, syncFailed, enable, disable, api, transcribe],
+    () => ({ status, busy, syncFailed, retry, enable, disable, canTranscribe: api !== null, transcribe }),
+    [status, busy, syncFailed, retry, enable, disable, api, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>
