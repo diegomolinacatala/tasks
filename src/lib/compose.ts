@@ -1,8 +1,8 @@
 import type { IsoDate } from '../types'
-import { addDays, dayNameLong, dayNameShort, dayNumber } from './date'
+import { addDays, dayNameLong, dayNameShort, dayNumber, relativeLabel } from './date'
 import { language, pick } from './i18n'
 
-/** Un sitio donde dejar lo escrito en el compositor: "Hoy", "Mañana", "Jue 2", "Sin fecha" o una sección. */
+/** Un sitio donde dejar lo escrito en el compositor: "Hoy", "Mañana", "Jue 2", "Bandeja" o una sección. */
 export interface ComposeTarget {
   /** Único entre los destinos: el día y, si la hay, la sección. */
   key: string
@@ -15,8 +15,8 @@ export interface ComposeTarget {
 const keyOf = (date: IsoDate | null, sectionId?: string) => `${date ?? 'none'}${sectionId ? `#${sectionId}` : ''}`
 
 const WORDS = {
-  es: { today: 'Hoy', tomorrow: 'Mañana', none: 'Sin fecha' },
-  en: { today: 'Today', tomorrow: 'Tomorrow', none: 'No date' },
+  es: { today: 'Hoy', tomorrow: 'Mañana', none: 'Bandeja' },
+  en: { today: 'Today', tomorrow: 'Tomorrow', none: 'Inbox' },
 } as const
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
@@ -46,7 +46,7 @@ export function composeTargets(here: IsoDate | null, today: IsoDate, section?: {
 
 /**
  * Adónde va lo que se añade: "Añadir a hoy", "Añadir a mañana", "Añadir al jueves 8", "Añadir a la
- * bandeja", "Añadir a Compra" · "Add to today", "Add to Thursday 8", "Add to inbox", "Add to Groceries".
+ * bandeja", "Añadir a Compra" · "Add to today", "Add to Thu, Oct 8", "Add to inbox", "Add to Groceries".
  */
 export function addLabel(date: IsoDate | null, today: IsoDate, section?: string): string {
   const en = language() === 'en'
@@ -54,5 +54,5 @@ export function addLabel(date: IsoDate | null, today: IsoDate, section?: string)
   if (date === null) return en ? 'Add to inbox' : 'Añadir a la bandeja'
   if (date === today) return en ? 'Add to today' : 'Añadir a hoy'
   if (date === addDays(today, 1)) return en ? 'Add to tomorrow' : 'Añadir a mañana'
-  return en ? `Add to ${dayNameLong(date)} ${dayNumber(date)}` : `Añadir al ${dayNameLong(date)} ${dayNumber(date)}`
+  return en ? `Add to ${relativeLabel(date, today)}` : `Añadir al ${dayNameLong(date)} ${dayNumber(date)}`
 }

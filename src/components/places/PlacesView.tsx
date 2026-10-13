@@ -21,7 +21,7 @@ const PREVIEW_TASKS = 3
 
 const COPY = {
   es: {
-    count: (count: number) => (count === 1 ? '1 sitio' : `${count} sitios`),
+    count: (count: number) => (count === 0 ? 'Sin lugares' : count === 1 ? '1 lugar' : `${count} lugares`),
     title: 'Lugares',
     search: 'Buscar o añadir un lugar',
     blocked: 'Ubicación bloqueada: los avisos por lugar no pueden sonar.',
@@ -38,7 +38,7 @@ const COPY = {
     store: 'Descargar en la App Store',
   },
   en: {
-    count: (count: number) => (count === 1 ? '1 place' : `${count} places`),
+    count: (count: number) => (count === 0 ? 'No places' : count === 1 ? '1 place' : `${count} places`),
     title: 'Places',
     search: 'Search or add a place',
     blocked: 'Location blocked: place reminders can’t go off.',

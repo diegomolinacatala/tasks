@@ -33,11 +33,15 @@ const TEXT = {
     failed: 'No se pudo dictar.',
     notUnderstood: 'No te he entendido.',
     micDenied: 'Sin acceso al micrófono.',
-    settings: 'Ajustes',
+    settings: 'Ajustes del iPhone',
     notHeard: 'No te he oído.',
     slow: 'El dictado está tardando demasiado. Prueba otra vez.',
     unavailable: 'El dictado no está disponible en este navegador.',
-    enableReminders: 'Activa los avisos en Ajustes para dictar tareas.',
+    tooMany: 'Demasiados dictados seguidos. Espera un momento.',
+    tooLong: 'Ha sido demasiado largo: dicta frases más cortas.',
+    reconnect: 'Hay que volver a conectar el dictado: prueba otra vez.',
+    offline: 'Sin conexión. El dictado necesita internet.',
+    enableReminders: 'Para dictar, activa los avisos.',
   },
   en: {
     allowMic: 'Allow microphone access to dictate.',
@@ -47,11 +51,15 @@ const TEXT = {
     failed: 'Dictation failed.',
     notUnderstood: 'I didn’t catch that.',
     micDenied: 'No microphone access.',
-    settings: 'Settings',
+    settings: 'iPhone Settings',
     notHeard: 'I didn’t hear you.',
     slow: 'Dictation is taking too long. Try again.',
     unavailable: 'Dictation isn’t available in this browser.',
-    enableReminders: 'Turn on reminders in Settings to dictate tasks.',
+    tooMany: 'Too many dictations in a row. Wait a moment.',
+    tooLong: 'That was too long: dictate shorter sentences.',
+    reconnect: 'Dictation needs to reconnect: try again.',
+    offline: 'No connection. Dictation needs internet.',
+    enableReminders: 'Turn on notifications to dictate.',
   },
 } as const
 
@@ -66,7 +74,11 @@ function errorMessage(error: unknown): string {
   // 503: el servidor ha gastado la cuota diaria de Workers AI, que se renueva a las 00:00 UTC.
   if (error instanceof PushApiError && error.status === 503) return text.quota(shortTime(timeOfInstant(nextUtcMidnight(Date.now()))))
   if (error instanceof PushApiError && error.status === 502) return text.transcribe
-  return error instanceof Error ? error.message : text.failed
+  if (error instanceof PushApiError && error.status === 429) return text.tooMany
+  if (error instanceof PushApiError && error.status === 413) return text.tooLong
+  if (error instanceof PushApiError && error.status === 401) return text.reconnect
+  if (error instanceof PushApiError && error.status === 0) return text.offline
+  return error instanceof PushApiError ? text.failed : error instanceof Error ? error.message : text.failed
 }
 
 /**

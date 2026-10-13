@@ -70,7 +70,7 @@ describe('etiquetas', () => {
   test('la duración se lee en horas y minutos', () => {
     expect(durationLabel(15)).toBe('15 min')
     expect(durationLabel(60)).toBe('1 h')
-    expect(durationLabel(90)).toBe('1 h 30')
+    expect(durationLabel(90)).toBe('1 h 30 min')
     expect(durationLabel(120)).toBe('2 h')
   })
 

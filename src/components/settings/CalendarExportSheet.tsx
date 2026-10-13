@@ -12,11 +12,10 @@ import { useToast } from '../ui/Toast'
 const COPY = {
   es: {
     title: 'Tus tareas en el calendario',
-    lead: 'Las tareas con día y hora se añaden como eventos y se quitan al tacharlas. Si eliges uno compartido, como el del trabajo, quien lo comparta las verá.',
+    lead: 'Las tareas con día y hora se añaden como eventos y se quitan al tacharlas; en uno compartido las verá quien lo comparta.',
     none: 'No añadirlas',
     own: 'Calendario «Tasks»',
     ownName: 'Tasks',
-    ownNote: 'Uno solo para tus tareas, aparte de los tuyos.',
     recommended: 'Recomendado',
     others: 'O en uno tuyo',
     onDevice: 'En mi iPhone',
@@ -25,11 +24,10 @@ const COPY = {
   },
   en: {
     title: 'Your tasks in your calendar',
-    lead: 'Tasks with a day and time are added as events and removed when you check them off. Pick a shared one, like your work calendar, and whoever shares it will see them.',
+    lead: 'Tasks with a day and time are added as events and removed when you check them off; in a shared calendar, whoever shares it will see them.',
     none: 'Don’t add them',
     own: '“Tasks” calendar',
     ownName: 'Tasks',
-    ownNote: 'One just for your tasks, apart from yours.',
     recommended: 'Recommended',
     others: 'Or in one of yours',
     onDevice: 'On My iPhone',
@@ -87,7 +85,7 @@ export function CalendarExportSheet({ open, onClose }: { open: boolean; onClose:
       <p className="calguide__lead">{copy.lead}</p>
       <div className="group__card calexport__main" role="radiogroup" aria-label={copy.title}>
         {option('none', current === null, () => choose(null), copy.none, null)}
-        {option('own', own !== undefined && current === own.id, () => void chooseOwn(), copy.own, '#8a5a2c', `${copy.recommended} · ${copy.ownNote}`)}
+        {option('own', own !== undefined && current === own.id, () => void chooseOwn(), copy.own, '#8a5a2c', copy.recommended)}
       </div>
       {writable.length > 0 && <p className="sheet__title">{copy.others}</p>}
       {calendarGroups(writable).map((group) => (

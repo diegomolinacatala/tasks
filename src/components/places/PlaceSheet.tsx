@@ -41,9 +41,9 @@ const CONFIRM_MS = 4000
 
 const COPY = {
   es: {
-    clash: (name: string) => `Ya hay un lugar llamado ${name}.`,
+    clash: (name: string) => `Ya hay un lugar llamado «${name}».`,
     noPermission: 'Sin permiso de ubicación.',
-    settings: 'Ajustes',
+    settings: 'Ajustes del iPhone',
     place: 'Lugar',
     newPlace: 'Nuevo lugar',
     name: 'Nombre',
@@ -67,9 +67,9 @@ const COPY = {
     remove: 'Borrar lugar y sus avisos',
   },
   en: {
-    clash: (name: string) => `There’s already a place called ${name}.`,
+    clash: (name: string) => `There’s already a place called “${name}”.`,
     noPermission: 'No location permission.',
-    settings: 'Settings',
+    settings: 'iPhone Settings',
     place: 'Place',
     newPlace: 'New place',
     name: 'Name',

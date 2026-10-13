@@ -17,18 +17,18 @@ describe('addLabel', () => {
 describe('composeTargets', () => {
   test('en la Bandeja, sin fecha va primero', () => {
     expect(composeTargets(null, TODAY)).toEqual([
-      { key: 'none', label: 'Sin fecha', date: null },
+      { key: 'none', label: 'Bandeja', date: null },
       { key: TODAY, label: 'Hoy', date: TODAY },
       { key: TOMORROW, label: 'Mañana', date: TOMORROW },
     ])
   })
 
   test('en la Agenda de hoy, hoy va primero y no se repite', () => {
-    expect(composeTargets(TODAY, TODAY).map((target) => target.label)).toEqual(['Hoy', 'Mañana', 'Sin fecha'])
+    expect(composeTargets(TODAY, TODAY).map((target) => target.label)).toEqual(['Hoy', 'Mañana', 'Bandeja'])
   })
 
   test('mirando mañana, mañana va primero', () => {
-    expect(composeTargets(TOMORROW, TODAY).map((target) => target.label)).toEqual(['Mañana', 'Hoy', 'Sin fecha'])
+    expect(composeTargets(TOMORROW, TODAY).map((target) => target.label)).toEqual(['Mañana', 'Hoy', 'Bandeja'])
   })
 
   test('otro día se nombra por su día de la semana y su número, delante de los de siempre', () => {
@@ -46,12 +46,12 @@ describe('composeTargets', () => {
   test('con el + de una sección, ella va delante, en el día que se mira', () => {
     const targets = composeTargets(TOMORROW, TODAY, { id: 's1', name: 'Compra' })
     expect(targets[0]).toEqual({ key: `${TOMORROW}#s1`, label: 'Compra', date: TOMORROW, sectionId: 's1' })
-    expect(targets.slice(1).map((target) => target.label)).toEqual(['Mañana', 'Hoy', 'Sin fecha'])
+    expect(targets.slice(1).map((target) => target.label)).toEqual(['Mañana', 'Hoy', 'Bandeja'])
     expect(new Set(targets.map((target) => target.key)).size).toBe(targets.length)
   })
 
   test('en la Bandeja no hay secciones', () => {
-    expect(composeTargets(null, TODAY, { id: 's1', name: 'Compra' }).map((target) => target.label)).toEqual(['Sin fecha', 'Hoy', 'Mañana'])
+    expect(composeTargets(null, TODAY, { id: 's1', name: 'Compra' }).map((target) => target.label)).toEqual(['Bandeja', 'Hoy', 'Mañana'])
   })
 })
 

@@ -79,7 +79,7 @@ export function buildTimeline(items: readonly TimelineItem[], now: number | null
   return rows
 }
 
-/** `45 min libres`, `1 h libre`, `1 h 30 libres` · `1h 30m free`. */
+/** `45 min libres`, `1 h libre`, `1 h 30 min libres` · `1 hr 30 min free`. */
 export function freeLabel(minutes: number): string {
   const label = durationLabel(minutes)
   if (language() === 'en') return `${label} free`

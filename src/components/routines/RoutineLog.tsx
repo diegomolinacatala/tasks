@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { addDays, dayNameLong, dayNumber, diffDays, monthLong, startOfWeek } from '../../lib/date'
+import { addDays, dayNumber, diffDays, fullLabel, monthLong, startOfWeek } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
 import { ROUTINE_LOG_DAYS, bestStreak, completionRate, createdOn, dayLetters, isDue, streak } from '../../lib/routines'
 import { useCopy } from '../../state/LanguageProvider'
@@ -13,7 +13,7 @@ const COPY = {
     consistency: 'Constancia',
     streak: 'Racha',
     best: 'Mejor',
-    month: '30 días',
+    month: 'Último mes',
     earlier: 'Semanas anteriores',
     later: 'Semanas siguientes',
   },
@@ -21,7 +21,7 @@ const COPY = {
     consistency: 'Consistency',
     streak: 'Streak',
     best: 'Best',
-    month: '30 days',
+    month: 'Last 30 days',
     earlier: 'Earlier weeks',
     later: 'Later weeks',
   },
@@ -205,7 +205,7 @@ export function RoutineLog({ routine, today }: { routine: Routine; today: IsoDat
               data-day={day}
               disabled={!editable(day)}
               aria-pressed={hit}
-              aria-label={`${dayNameLong(day)} ${dayNumber(day)}`}
+              aria-label={fullLabel(day)}
               className={`routine-history__cell ${hit ? 'is-done' : ''} ${due(day) ? '' : 'is-free'} ${
                 day > today ? 'is-future' : ''
               } ${day === today ? 'is-today' : ''}`}

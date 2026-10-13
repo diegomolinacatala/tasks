@@ -5,13 +5,11 @@ import { IconClose, IconFeather } from '../ui/Icons'
 const COPY = {
   es: {
     title: 'Ve a lo que quieras comentar',
-    note: 'Puedes cambiar de pestaña o abrir una tarea.',
     mark: 'Señalar',
     leave: 'Salir de las sugerencias',
   },
   en: {
     title: 'Go to what you want to comment on',
-    note: 'You can switch tabs or open a task.',
     mark: 'Mark',
     leave: 'Stop suggesting',
   },
@@ -41,7 +39,6 @@ export function FeedbackDock({ onMark, onClose }: FeedbackDockProps) {
     <div className="fb-dock" role="region" aria-label={copy.title}>
       <div className="fb-dock__text">
         <p className="fb-dock__title">{copy.title}</p>
-        <p className="fb-dock__note">{copy.note}</p>
       </div>
       <button type="button" className="fb-dock__mark" onClick={onMark}>
         <IconFeather size={18} />

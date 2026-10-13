@@ -9,6 +9,7 @@ import type { PlacePhrase } from './placePhrase'
 import { placeTriggerLabel } from './places'
 import { reminderLabel } from './reminders'
 import type { Span } from './title'
+import { capitalize } from './title'
 
 /**
  * Lo que comparten los analizadores de cada idioma (`parse.ts` en español, `parseEn.ts` en inglés):
@@ -207,7 +208,7 @@ export function draftLabel(
   const { date, until, time, duration, reminders } = draft
   const today = isoOfInstant(now)
   const parts: string[] = []
-  if (date) parts.push(until && until > date ? periodLabel(date, until, today) : relativeLabel(date, today))
+  if (date) parts.push(until && until > date ? periodLabel(date, until, today) : capitalize(relativeLabel(date, today)))
   if (time) parts.push(spanLabel(time, duration))
   // Sin hora la duración no tiene de dónde colgar, pero sí dice algo: "Reunión · 2 h".
   else if (duration !== null) parts.push(durationLabel(duration))

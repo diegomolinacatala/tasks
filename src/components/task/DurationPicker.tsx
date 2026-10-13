@@ -19,14 +19,14 @@ const COPY = {
   es: {
     none: 'Sin duración',
     title: 'Duración',
-    until: 'Hasta…',
+    until: 'Acaba a las…',
     clear: 'Quitar la duración',
     ask: (clock: string) => `A las ${clock} te pregunto si has acabado.`,
   },
   en: {
     none: 'No duration',
     title: 'Duration',
-    until: 'Until…',
+    until: 'Ends at…',
     clear: 'Remove the duration',
     ask: (clock: string) => `At ${clock} I’ll ask if you’re done.`,
   },

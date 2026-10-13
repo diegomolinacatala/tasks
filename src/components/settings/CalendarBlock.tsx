@@ -18,8 +18,8 @@ const COPY = {
     title: 'Calendario',
     connect: 'Ver mi calendario en la Agenda',
     promptNote: 'Tus eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas. Todo queda en este iPhone: no se sube a ningún servidor.',
-    denied: 'Sin permiso: abrir Ajustes',
-    deniedNote: 'En Ajustes, toca Calendarios y elige Acceso total.',
+    denied: 'Sin permiso: abrir Ajustes del iPhone',
+    deniedNote: 'En Ajustes del iPhone, toca Calendarios y elige Acceso total.',
     shown: 'En la Agenda',
     calendars: 'Calendarios',
     count: (shown: number, total: number) => (shown === total ? 'Todos' : `${shown} de ${total}`),
@@ -27,15 +27,14 @@ const COPY = {
     exportOff: 'No',
     guide: 'Añadir Google u Outlook',
     guideHint: 'Paso a paso',
-    onNote: 'Todo queda en este iPhone. Toca un evento para verlo o cambiarlo en Calendario.',
     connected: 'Listo: tu calendario ya sale en la Agenda.',
   },
   en: {
     title: 'Calendar',
     connect: 'Show my calendar in the Agenda',
     promptNote: 'Your iCloud, Google or Outlook events show up in your schedule, next to your tasks. It all stays on this iPhone: nothing is uploaded to any server.',
-    denied: 'No access: open Settings',
-    deniedNote: 'In Settings, tap Calendars and choose Full Access.',
+    denied: 'No access: open iPhone Settings',
+    deniedNote: 'In iPhone Settings, tap Calendars and choose Full Access.',
     shown: 'In the Agenda',
     calendars: 'Calendars',
     count: (shown: number, total: number) => (shown === total ? 'All' : `${shown} of ${total}`),
@@ -43,7 +42,6 @@ const COPY = {
     exportOff: 'Off',
     guide: 'Add Google or Outlook',
     guideHint: 'Step by step',
-    onNote: 'It all stays on this iPhone. Tap an event to see or change it in Calendar.',
     connected: 'Done: your calendar now shows up in the Agenda.',
   },
 } as const
@@ -163,7 +161,6 @@ export function CalendarBlock() {
             </button>
             {guideRow}
           </div>
-          <p className="group__note">{copy.onNote}</p>
         </>
       )}
 

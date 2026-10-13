@@ -52,13 +52,13 @@ export function endClock(time: IsoTime, duration: number): IsoTime {
   return formatTime(Math.floor(total / HOUR_MIN), total % HOUR_MIN)
 }
 
-/** `30 min`, `1 h`, `1 h 30`, `2 h` · `30 min`, `1h`, `1h 30m`, `2h`. */
+/** `30 min`, `1 h`, `1 h 30 min`, `2 h` · `30 min`, `1 hr`, `1 hr 30 min`, `2 hr` (como el Reloj de Apple). */
 export function durationLabel(minutes: number): string {
   if (minutes < HOUR_MIN) return `${minutes} min`
   const hours = Math.floor(minutes / HOUR_MIN)
   const rest = minutes % HOUR_MIN
-  if (language() === 'en') return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest}`
+  if (language() === 'en') return rest === 0 ? `${hours} hr` : `${hours} hr ${rest} min`
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
 }
 
 /**

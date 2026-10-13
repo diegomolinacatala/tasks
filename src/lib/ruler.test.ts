@@ -68,7 +68,7 @@ describe('rulerTicks', () => {
     const ticks = rulerTicks(120)
     expect(ticks.map((tick) => tick.minutes)).toEqual([15, 30, 45, 60, 75, 90, 105, 120])
     expect(ticks.filter((tick) => tick.major).map((tick) => tick.minutes)).toEqual([60, 120])
-    expect(ticks.filter((tick) => tick.label).map((tick) => tick.label)).toEqual(['30 min', '1 h', '1 h 30', '2 h'])
+    expect(ticks.filter((tick) => tick.label).map((tick) => tick.label)).toEqual(['30 min', '1 h', '1 h 30 min', '2 h'])
   })
 
   test('la de medio día: una marca por hora y rótulos cada tres', () => {

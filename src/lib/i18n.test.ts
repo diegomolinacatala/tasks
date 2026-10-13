@@ -71,8 +71,8 @@ describe('textos en inglés', () => {
   test('duraciones, avisos y rutinas', () => {
     setLanguage('en')
     expect(durationLabel(45)).toBe('45 min')
-    expect(durationLabel(90)).toBe('1h 30m')
-    expect(freeLabel(60)).toBe('1h free')
+    expect(durationLabel(90)).toBe('1 hr 30 min')
+    expect(freeLabel(60)).toBe('1 hr free')
     expect(reminderLabel({ kind: 'before', minutes: 0 }, 0)).toBe('On time')
     expect(reminderLabel({ kind: 'before', minutes: 60 }, 0)).toBe('1 hr before')
     expect(daysLabel([1, 3, 5])).toBe('Mon, Wed and Fri')
@@ -82,8 +82,8 @@ describe('textos en inglés', () => {
 
   test('el compositor', () => {
     setLanguage('en')
-    expect(composeTargets(null, '2026-09-11').map((target) => target.label)).toEqual(['No date', 'Today', 'Tomorrow'])
-    expect(addLabel('2026-09-17', '2026-09-11')).toBe('Add to Thursday 17')
+    expect(composeTargets(null, '2026-09-11').map((target) => target.label)).toEqual(['Inbox', 'Today', 'Tomorrow'])
+    expect(addLabel('2026-09-17', '2026-09-11')).toBe('Add to Thu, Sep 17')
     expect(addLabel(null, '2026-09-11')).toBe('Add to inbox')
   })
 })

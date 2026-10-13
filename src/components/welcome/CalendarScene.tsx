@@ -31,7 +31,7 @@ const COPY = {
     connect: 'Conectar mi calendario',
     show: 'Enseñarlo en la Agenda',
     connected: 'Conectado',
-    denied: 'Sin permiso: abrir Ajustes',
+    denied: 'Sin permiso: abrir Ajustes del iPhone',
     label: 'Un día con tareas y eventos del calendario',
   },
   en: {
@@ -45,7 +45,7 @@ const COPY = {
     connect: 'Connect my calendar',
     show: 'Show it in the Agenda',
     connected: 'Connected',
-    denied: 'No access: open Settings',
+    denied: 'No access: open iPhone Settings',
     label: 'A day with tasks and calendar events',
   },
 } as const

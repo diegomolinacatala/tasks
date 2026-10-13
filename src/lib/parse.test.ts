@@ -232,7 +232,7 @@ describe('cuánto dura', () => {
   })
 
   test('sin hora la duración se queda, y la etiqueta la enseña sola', () => {
-    expect(parse('examen el jueves de 3 horas')).toMatchObject({ time: null, duration: 180, label: 'jue 17 sept 3 h' })
+    expect(parse('examen el jueves de 3 horas')).toMatchObject({ time: null, duration: 180, label: 'Jue 17 sept 3 h' })
   })
 
   test.each([

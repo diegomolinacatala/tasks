@@ -9,7 +9,7 @@ import './inbox.css'
 
 const DOCK_DAYS = 7
 
-const COPY = { es: { today: 'Hoy', tomorrow: 'Mañ' }, en: { today: 'Today', tomorrow: 'Tmrw' } } as const
+const COPY = { es: { today: 'Hoy' }, en: { today: 'Today' } } as const
 
 interface DayDockProps {
   today: IsoDate
@@ -27,7 +27,7 @@ export function DayDock({ today, open }: DayDockProps) {
     <div className={`dock ${open ? 'is-open' : ''}`} aria-hidden={!open}>
       <div className="dock__panel">
         {days.map((date, index) => (
-          <DockDay key={date} date={date} label={index === 0 ? copy.today : index === 1 ? copy.tomorrow : dayNameShort(date)} enabled={open} />
+          <DockDay key={date} date={date} label={index === 0 ? copy.today : dayNameShort(date)} enabled={open} />
         ))}
       </div>
     </div>,

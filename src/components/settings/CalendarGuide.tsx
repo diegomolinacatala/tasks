@@ -28,7 +28,7 @@ const COPY = {
     tabsLabel: '¿Qué calendario usas?',
     path: ['Apps', 'Calendario', 'Cuentas de calendario', 'Añadir cuenta'],
     pathLabel: 'Ruta en Ajustes',
-    go: [{ b: 'Abre Ajustes' }, ' y ve tocando:'] as Line,
+    go: [{ b: 'Abre Ajustes del iPhone' }, ' y ve tocando:'] as Line,
     other: 'Otra',
     calendars: 'Calendarios',
     steps: {
@@ -53,7 +53,7 @@ const COPY = {
     } satisfies Record<Provider, readonly Step[]>,
     back: ['Vuelve a Tasks: tus eventos salen solos en la Agenda.'] as Line,
     tip: '¿No ves Apps? En iOS 17 es Ajustes → Calendario → Cuentas. En cualquier versión, escribe «Cuentas» en el buscador de arriba de Ajustes.',
-    open: 'Abrir Ajustes',
+    open: 'Abrir Ajustes del iPhone',
     openNote: 'Se abre en la página de Tasks: vuelve atrás hasta Apps.',
   },
   en: {
@@ -65,7 +65,7 @@ const COPY = {
     tabsLabel: 'Which calendar do you use?',
     path: ['Apps', 'Calendar', 'Calendar Accounts', 'Add Account'],
     pathLabel: 'Path in Settings',
-    go: [{ b: 'Open Settings' }, ' and tap through:'] as Line,
+    go: [{ b: 'Open iPhone Settings' }, ' and tap through:'] as Line,
     other: 'Other',
     calendars: 'Calendars',
     steps: {
@@ -90,7 +90,7 @@ const COPY = {
     } satisfies Record<Provider, readonly Step[]>,
     back: ['Come back to Tasks: your events show up in the Agenda on their own.'] as Line,
     tip: 'Can’t see Apps? On iOS 17 it’s Settings → Calendar → Accounts. On any version, type “Accounts” in the search field at the top of Settings.',
-    open: 'Open Settings',
+    open: 'Open iPhone Settings',
     openNote: 'It opens on Tasks’ page: go back to Apps.',
   },
 } as const

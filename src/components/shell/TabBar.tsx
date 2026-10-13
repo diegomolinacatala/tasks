@@ -14,12 +14,12 @@ const TABS: { id: TabId; Icon: typeof IconInbox }[] = [
 const COPY = {
   es: {
     tabs: { inbox: 'Bandeja', agenda: 'Agenda', places: 'Lugares', settings: 'Ajustes' },
-    nav: 'Secciones',
+    nav: 'Pestañas',
     overdue: 'Hay tareas atrasadas',
   },
   en: {
     tabs: { inbox: 'Inbox', agenda: 'Agenda', places: 'Places', settings: 'Settings' },
-    nav: 'Sections',
+    nav: 'Tabs',
     overdue: 'There are overdue tasks',
   },
 } as const

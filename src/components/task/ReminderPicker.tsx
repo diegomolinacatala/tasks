@@ -24,8 +24,8 @@ interface ReminderPickerProps {
 const COPY = {
   es: {
     past: 'Esa hora ya ha pasado.',
-    title: 'Recordatorios',
-    remove: (label: string) => `Quitar recordatorio ${label}`,
+    title: 'Avisos',
+    remove: (label: string) => `Quitar el aviso ${label}`,
     add: '+ Añadir',
     other: 'Otra…',
     arrive: 'Al llegar',
@@ -35,13 +35,13 @@ const COPY = {
     where: (name: string) => `Elegir dónde está ${name}`,
     enable: 'Activar avisos en este dispositivo',
     install: 'Para recibir avisos, añade la app a la pantalla de inicio.',
-    blockedOpen: 'Avisos bloqueados: abrir Ajustes',
+    blockedOpen: 'Avisos bloqueados: abrir Ajustes del iPhone',
     blocked: 'Avisos bloqueados en los ajustes del sistema.',
   },
   en: {
     past: 'That time has already passed.',
     title: 'Reminders',
-    remove: (label: string) => `Remove reminder ${label}`,
+    remove: (label: string) => `Remove the reminder ${label}`,
     add: '+ Add',
     other: 'Other…',
     arrive: 'Arriving',
@@ -51,7 +51,7 @@ const COPY = {
     where: (name: string) => `Choose where ${name} is`,
     enable: 'Turn on reminders on this device',
     install: 'To get reminders, add the app to your Home Screen.',
-    blockedOpen: 'Reminders blocked: open Settings',
+    blockedOpen: 'Reminders blocked: open iPhone Settings',
     blocked: 'Reminders are blocked in the system settings.',
   },
 } as const

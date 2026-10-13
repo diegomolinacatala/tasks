@@ -8,6 +8,7 @@ import { MAX_REMINDERS, reminderLabel, sameReminder } from './reminders'
 import type { RoutineDraft } from './repeat'
 import { routineLabel } from './repeat'
 import { cleanDays } from './routines'
+import { capitalize } from './title'
 
 /**
  * La ficha del compositor: todo lo que se puede decidir antes de añadir, lo mismo que en el panel de
@@ -193,7 +194,7 @@ export function detailsSummary(
   const day = details.date
     ? details.until
       ? periodLabel(details.date, details.until, today)
-      : relativeLabel(details.date, today)
+      : capitalize(relativeLabel(details.date, today))
     : en
       ? 'No date'
       : 'Sin fecha'

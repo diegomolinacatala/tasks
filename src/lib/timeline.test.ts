@@ -68,7 +68,7 @@ describe('buildTimeline', () => {
 test('freeLabel', () => {
   expect(freeLabel(45)).toBe('45 min libres')
   expect(freeLabel(60)).toBe('1 h libre')
-  expect(freeLabel(90)).toBe('1 h 30 libres')
+  expect(freeLabel(90)).toBe('1 h 30 min libres')
 })
 
 test('clockOf', () => {

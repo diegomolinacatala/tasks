@@ -187,7 +187,7 @@ describe('how long it lasts', () => {
   })
 
   test('without a time, the duration still counts', () => {
-    expect(parse('exam on thursday for 3 hours')).toMatchObject({ title: 'exam', date: '2026-09-17', time: null, duration: 180, label: 'Thu, Sep 17 3h' })
+    expect(parse('exam on thursday for 3 hours')).toMatchObject({ title: 'exam', date: '2026-09-17', time: null, duration: 180, label: 'Thu, Sep 17 3 hr' })
   })
 
   test('days are not a duration', () => {

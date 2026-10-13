@@ -32,25 +32,25 @@ interface InboxViewProps {
 const COPY = {
   es: {
     undo: 'Deshacer',
-    cleared: (count: number) => (count === 1 ? 'Hecha borrada' : `${count} hechas borradas`),
+    cleared: (count: number) => (count === 1 ? 'Tarea hecha borrada' : `${count} tareas hechas borradas`),
     kicker: 'Sin fecha',
     title: 'Bandeja',
     pending: (count: number) => `${count} pendientes`,
     tasks: 'Tareas',
     empty: 'Nada sin fecha.',
     clear: (count: number) => `Borrar las ${count} hechas`,
-    earlier: (count: number) => (count === 1 ? '1 hecha' : `${count} hechas`),
+    earlier: (count: number) => (count === 1 ? '1 hecha otros días' : `${count} hechas otros días`),
   },
   en: {
     undo: 'Undo',
-    cleared: (count: number) => (count === 1 ? 'Done task deleted' : `${count} done tasks deleted`),
+    cleared: (count: number) => (count === 1 ? '1 done task deleted' : `${count} done tasks deleted`),
     kicker: 'No date',
     title: 'Inbox',
     pending: (count: number) => `${count} pending`,
     tasks: 'Tasks',
     empty: 'Nothing without a date.',
     clear: (count: number) => `Delete ${count} done`,
-    earlier: (count: number) => `${count} done`,
+    earlier: (count: number) => `${count} done earlier`,
   },
 } as const
 

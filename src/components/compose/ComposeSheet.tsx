@@ -72,7 +72,7 @@ const COPY = {
     createRoutine: 'Create routine',
     newRoutine: 'New routine',
     newTask: 'New task',
-    fold: 'Fold',
+    fold: 'Collapse',
     routinePlaceholder: 'Take creatine',
     taskPlaceholder: 'What needs doing',
     routineName: 'Routine name',

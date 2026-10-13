@@ -3,6 +3,7 @@ import { reducer } from '../state/reducer'
 import type { AppState, IsoDate, IsoTime, Place, ReminderDraft, Task, TaskDraft } from '../types'
 import { parseSpoken } from './parse'
 import { matchPlace, placeKey } from './places'
+import { capitalize } from './title'
 
 /**
  * Bandeja de lo que se hace fuera de la web (Siri, Atajos, el botón "A hoy" del widget, los botones
@@ -184,7 +185,8 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
       apply({
         type: 'task/add',
         id: task.id,
-        title: task.title,
+        // Mayúscula inicial al crear: lo escrito en minúsculas sale como título.
+        title: capitalize(task.title),
         date: task.date,
         until: task.until ?? null,
         time: task.time,

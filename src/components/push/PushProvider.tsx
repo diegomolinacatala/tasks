@@ -29,14 +29,14 @@ const TEXT = {
   es: {
     enableFailed: 'No se pudieron activar los avisos.',
     disableFailed: 'No se pudieron desactivar los avisos.',
-    enableForDictation: 'Activa los avisos en Ajustes para dictar tareas.',
-    outdatedServer: 'El servidor aún no tiene el dictado: vuelve a desplegar el Worker.',
+    enableForDictation: 'Para dictar, activa los avisos en la pestaña Ajustes.',
+    outdatedServer: 'El dictado no está disponible ahora mismo. Prueba más tarde.',
   },
   en: {
     enableFailed: 'Reminders couldn’t be turned on.',
     disableFailed: 'Reminders couldn’t be turned off.',
-    enableForDictation: 'Turn on reminders in Settings to dictate tasks.',
-    outdatedServer: 'The server doesn’t support dictation yet.',
+    enableForDictation: 'To dictate, turn on notifications in the Settings tab.',
+    outdatedServer: 'Dictation isn’t available right now. Try again later.',
   },
 } as const
 

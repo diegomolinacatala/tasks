@@ -5,6 +5,7 @@ import { addLabel, composeTargets } from './lib/compose'
 import { relativeLabel } from './lib/date'
 import { periodLabel } from './lib/period'
 import { suggestEmoji } from './lib/emoji'
+import { capitalize } from './lib/title'
 import { createId } from './lib/id'
 import { INBOX_EVENT } from './lib/inbox'
 import { draftsFromInterpreted } from './lib/interpret'
@@ -309,7 +310,7 @@ export function App() {
     if (here) return
     const { date } = draft
     toast({
-      message: `${draft.title} → ${date ? (draft.until ? periodLabel(date, draft.until, today) : relativeLabel(date, today)) : copy.inbox}`,
+      message: `${draft.title} → ${date ? (draft.until ? periodLabel(date, draft.until, today) : capitalize(relativeLabel(date, today))) : copy.inbox}`,
       actionLabel: copy.view,
       onAction: () => {
         if (date) setDay(date)
