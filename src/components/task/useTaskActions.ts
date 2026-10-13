@@ -67,7 +67,7 @@ export function useTaskActions() {
    * que las devuelve a su día y su sitio.
    */
   const toToday = useCallback(
-    (ids?: readonly string[]) => {
+    (ids?: readonly string[]): boolean => {
       const current = latest.current
       const today = todayIso()
       const candidates = ids ?? overdueTasks(current, today).map((task) => task.id)
@@ -77,7 +77,7 @@ export function useTaskActions() {
         return task && !task.done && task.date !== today ? [task] : []
       })
       const [first] = moving
-      if (!first) return
+      if (!first) return false
       const before = placementsOf(current.tasks, moving.map((task) => task.id))
       withTransition(() => dispatch({ type: 'tasks/reschedule', ids: moving.map((task) => task.id), date: today }))
       haptic('success')
@@ -87,6 +87,7 @@ export function useTaskActions() {
         actionLabel: text.undo,
         onAction: () => withTransition(() => dispatch({ type: 'tasks/place', placements: before })),
       })
+      return true
     },
     [dispatch, toast],
   )

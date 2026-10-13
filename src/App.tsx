@@ -312,13 +312,34 @@ export function App() {
     [actions, openTask, openRoutine],
   )
 
+  /** Los enlaces de fuera (widget, acceso rápido, avisos) no deben caer detrás de un panel abierto. */
+  const closeSheets = useCallback(() => {
+    setTaskId(null)
+    setSectionId(null)
+    setRoutineId(null)
+    setPlaceId(null)
+  }, [])
+
   useNotificationActions({
     onOpenTask: (id) => {
+      closeSheets()
       setFromNotification(true)
       setTaskId(id)
     },
-    onOpenPlace: setPlaceId,
-    onOpenRoutine: () => go('inbox'),
+    onOpenPlace: (id) => {
+      closeSheets()
+      setPlaceId(id)
+    },
+    onOpenRoutine: () => {
+      closeSheets()
+      go('inbox')
+    },
+    onOpenToday: () => {
+      closeSheets()
+      setDay(today)
+      go('agenda')
+    },
+    paused: welcome !== null,
   })
 
   /** Al llegar al tope, se dice en vez de fingir que se ha creado. */
@@ -479,19 +500,34 @@ export function App() {
   useNativeActions({
     onAdd: (text) => addSpoken([parseSpoken(text, Date.now(), places)].filter((draft) => draft.title)),
     onCompose: (inbox) => {
+      closeSheets()
       if (inbox) go('inbox')
       else if (!WRITING.has(tab)) go('agenda')
-      setFocusRequest((count) => count + 1)
+      // La barra pide el foco cuando el panel que hubiera ya no está delante.
+      requestAnimationFrame(() => setFocusRequest((count) => count + 1))
     },
-    onWeek: () => go('agenda'),
+    onWeek: () => {
+      closeSheets()
+      go('agenda')
+    },
     onToday: () => {
+      closeSheets()
       setDay(today)
       go('agenda')
     },
-    onOpenTask: openTask,
+    onOpenTask: (id) => {
+      closeSheets()
+      openTask(id)
+    },
     onInbox: () => window.dispatchEvent(new Event(INBOX_EVENT)),
-    onRoutines: () => go('inbox'),
-    onBacklog: () => go('inbox'),
+    onRoutines: () => {
+      closeSheets()
+      go('inbox')
+    },
+    onBacklog: () => {
+      closeSheets()
+      go('inbox')
+    },
   })
 
   const hasOverdue = useMemo(() => state.tasks.some((task) => isOverdue(task, today)), [state.tasks, today])

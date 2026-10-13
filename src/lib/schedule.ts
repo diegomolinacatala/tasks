@@ -27,7 +27,7 @@ const TEXT = {
     inMinutes: (minutes: number, clock: string) => `En ${minutes} min · ${clock}`,
     todayAt: (clock: string) => `Hoy a las ${clock}`,
     dayAt: (day: string, clock: string) => `${day} a las ${clock}`,
-    noDate: 'Sin fecha',
+    noDate: 'De la bandeja',
     dueToday: 'Para hoy',
     due: (day: string, near: boolean) => `Para ${near ? day.toLowerCase() : day}`,
     tasksToday: (count: number) => `${plural(count, 'tarea', 'tareas')} para hoy`,
@@ -44,7 +44,7 @@ const TEXT = {
     inMinutes: (minutes: number, clock: string) => `In ${minutes} min · ${clock}`,
     todayAt: (clock: string) => `Today at ${clock}`,
     dayAt: (day: string, clock: string) => `${day} at ${clock}`,
-    noDate: 'No date',
+    noDate: 'From the inbox',
     dueToday: 'Due today',
     due: (day: string, near: boolean) => `Due ${near ? day.toLowerCase() : day}`,
     tasksToday: (count: number) => `${plural(count, 'task', 'tasks')} today`,
@@ -118,6 +118,8 @@ function whenText(task: Task, at: number): string {
 
 export function notificationBody(task: Task, at: number, sections: readonly Section[]): string {
   const section = task.sectionId ? sections.find((item) => item.id === task.sectionId) : undefined
+  // Sin fecha no hay cuándo: la sección si la tiene, y si no, de dónde viene.
+  if (!task.date) return section?.name ?? pick(TEXT).noDate
   return [whenText(task, at), section?.name].filter(Boolean).join(' · ')
 }
 

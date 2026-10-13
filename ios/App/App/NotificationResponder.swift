@@ -4,9 +4,10 @@ import WidgetKit
 
 /**
  * Delegado de las notificaciones de la app. Los botones del aviso de cierre ("Sí, hecha" y "Todavía
- * no") no abren la app: iOS la arranca en segundo plano, sin WebView (también con el iPhone
- * bloqueado), y la respuesta se resuelve aquí con `QuickAdd`. Todo lo demás (tocar un aviso, los
- * botones que abren la app) pasa al delegado de Capacitor, que lo entrega a la web.
+ * no") y el "Hecha" del aviso de una tarea no abren la app: iOS la arranca en segundo plano, sin
+ * WebView (también con el iPhone bloqueado), y la respuesta se resuelve aquí con `QuickAdd`. Todo lo
+ * demás (tocar un aviso, los botones que abren la app) pasa al delegado de Capacitor, que lo entrega
+ * a la web.
  */
 final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationResponder()
@@ -14,6 +15,8 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
     /** `ASK_CATEGORY` y los ids de sus botones (`src/lib/platform/notifications.ts`). */
     private static let askCategory = "task-ask"
     private static let replies: Set<String> = ["done", "again"]
+    /** `TASK_CATEGORY` y `OVERDUE_CATEGORY`: su "Hecha" es lo mismo que "Sí, hecha", sin abrir la app. */
+    private static let taskCategories: Set<String> = ["task", "task-overdue"]
     /** `ROUTINE_CATEGORY`: su "Hecha" la tacha ese día sin abrir la app. */
     private static let routineCategory = "routine"
 
@@ -58,7 +61,10 @@ final class NotificationResponder: NSObject, UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let request = response.notification.request
-        if request.content.categoryIdentifier == Self.askCategory, Self.replies.contains(response.actionIdentifier) {
+        let category = request.content.categoryIdentifier
+        let answers = (category == Self.askCategory && Self.replies.contains(response.actionIdentifier))
+            || (Self.taskCategories.contains(category) && response.actionIdentifier == "done")
+        if answers {
             // iOS mantiene viva la app hasta que se llama a `completionHandler`.
             Task {
                 await QuickAdd.answer(response.actionIdentifier, to: request)

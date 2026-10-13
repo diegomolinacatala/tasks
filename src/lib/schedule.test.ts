@@ -54,7 +54,7 @@ describe('notificationBody', () => {
     expect(notificationBody(task({ id: 'a' }), NOW, [])).toBe('Para hoy')
     expect(notificationBody(task({ id: 'a', date: '2026-09-12' }), NOW, [])).toBe('Para mañana')
     expect(notificationBody(task({ id: 'a', date: '2026-09-05' }), NOW, [])).toMatch(/^Pendiente desde el 5 /)
-    expect(notificationBody(task({ id: 'a', date: null }), NOW, [])).toBe('Sin fecha')
+    expect(notificationBody(task({ id: 'a', date: null }), NOW, [])).toBe('De la bandeja')
   })
 
   test('añade la sección', () => {

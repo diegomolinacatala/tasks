@@ -32,16 +32,17 @@ const BUTTONS = {
 } as const
 
 /**
- * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy": abren la app (`foreground`),
- * porque el estado vive en la web y con la app en segundo plano iOS no garantiza que el WebView
- * llegue a ejecutar nada. Los del aviso de cierre, "Sí, hecha" y "Todavía no", y el "Hecha" de una
- * rutina no la abren ni piden desbloquear: los resuelve el lado nativo (`NotificationResponder.swift`).
+ * "+10 min" y, si hay algo atrasado, "Pasar a hoy" abren la app (`foreground`), porque el estado vive
+ * en la web y con la app en segundo plano iOS no garantiza que el WebView llegue a ejecutar nada.
+ * "Hecha" (como "Sí, hecha" en el aviso de cierre, y como en una rutina) no la abre ni pide
+ * desbloquear: lo resuelve el lado nativo (`NotificationResponder.swift` → `QuickAdd.answer`), que lo
+ * apunta en la bandeja y la web lo aplica al volver.
  */
 async function registerTaskActions(): Promise<void> {
   const lang = language()
   if (actionsRegistered === lang) return
   const words = pick(BUTTONS)
-  const done = { id: 'done', title: words.done, foreground: true }
+  const done = { id: 'done', title: words.done }
   const snooze = { id: 'snooze', title: '+10 min', foreground: true }
   await LocalNotifications.registerActionTypes({
     types: [
