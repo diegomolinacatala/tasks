@@ -261,7 +261,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
     tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
 - **La 1.6 está aprobada** (13/10/2026: la subida respondió *train version '1.6' is closed*; el archivo
-  con el Swift de la auditoría compiló bien). `MARKETING_VERSION` subido a **1.7**.
+  con el Swift de la auditoría compiló bien). `MARKETING_VERSION` subido a **1.7**: la auditoría está en la **TestFlight 43** (1.7).
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
