@@ -385,7 +385,7 @@ No sign-up, no ads, no analytics. Your tasks, places and location stay on your i
 New: your Google, iCloud or Outlook calendar next to your tasks, and your timed tasks in the calendar you choose, your work one too.
 ```
 
-**Capturas** (desde la 1.6): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos
+**Capturas** (desde la 1.6; rehechas para la 1.7 con la interfaz de la auditoría): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos
 juegos de diez, a ese tamaño exacto y numerados en el orden en que se suben: en español en
 [`docs/capturas/`](capturas/) y en inglés en [`docs/capturas/en/`](capturas/en/). Las tres primeras son
 las que salen en la búsqueda, así que dicen lo que hace la app distinta, no la lista de funciones:
@@ -705,7 +705,7 @@ versión nueva y su revisión. Lo demás sigue igual:
 Release) es la versión que se publica y tiene que ser mayor que la última aprobada: App Store Connect
 rechaza las compilaciones de una versión ya aprobada y el CI falla al subir (`ITMS-90186`,
 `ITMS-90062`), también la ejecución programada del día 1. Por eso, **en cuanto Apple apruebe una
-versión, se sube** (1.5 → 1.6…) antes del siguiente push que toque la app. Ahora es la 1.5.
+versión, se sube** (1.6 → 1.7…) antes del siguiente push que toque la app. Ahora es la 1.7.
 
 ### 9.2 Probar la compilación (tú, en el iPhone)
 
@@ -998,4 +998,39 @@ de la versión es la búsqueda pública de la App Store y no lleva datos del usu
 • Use Google or Outlook? Settings → Calendar walks you through adding it.
 • A + on each section to add a task right into it.
 • When a new version is out, we’ll let you know when you open the app.
+```
+
+### 9.9 La 1.7 (13/10/2026, compilación 45)
+
+La 1.6 se aprobó el 13/10/2026. La 1.7 es la de la auditoría de experiencia (`docs/auditoria/`): casi
+todo son arreglos y retoques, más lo que pidió el usuario al probarla (la regla, la barra y el deslizador
+como antes; el radio desde 20 m) y lo del buzón (el mapa de Lugares). Se envía la **1.7 (45)**.
+
+Cambian las **capturas** (las veinte: la que más, `02-lugares`, con el buscador encima del mapa; las demás
+traen retoques de la auditoría). **No cambian** la descripción, las palabras clave, el texto promocional,
+las notas para la revisión (§5: lo que cuentan sigue valiendo, *Elegir en el mapa* incluido) ni la
+privacidad (el mapa es de Apple y no se recoge nada nuevo).
+
+**Antes (en el iPhone, 2 minutos)**: el «Hecha» de las novedades. Una tarea `probar en 2 minutos`,
+bloquear el iPhone y, cuando suene, mantener pulsado el aviso → **Hecha**: no debe abrirse la app y, al
+abrirla, la tarea sale tachada.
+
+**Novedades de esta versión**
+
+```
+• «Hecha» en el aviso de una tarea la tacha sin abrir la app, también con el iPhone bloqueado.
+• Lugares: toca el mapa para verlos todos con su radio y añade uno nuevo con una chincheta. El radio ya baja hasta 20 m.
+• Deshacer en todo: borrar un lugar, quitar un aviso, posponer, importar una copia…
+• El panel de cada tarea, más claro: el círculo para tacharla arriba y cada aviso con su ×.
+• Ajustes más ordenado y decenas de pequeños retoques en toda la app.
+```
+
+**What’s New in This Version** (la ficha en inglés)
+
+```
+• “Done” on a task’s notification checks it off without opening the app, even with your iPhone locked.
+• Places: tap the map to see them all with their radius, and drop a pin to add a new one. The radius now goes down to 20 m.
+• Undo everywhere: deleting a place, removing a reminder, snoozing, importing a backup…
+• A clearer task sheet: the circle to check it off at the top, and an × on each reminder.
+• Tidier Settings and dozens of small touches all over the app.
 ```

@@ -286,6 +286,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     `.app__scroll`): con `overflow-y: auto`, el eje x pasa a `auto`, y lo que asomaba por un lado al
     arrastrar (el halo de la regla al final, el valor encima del dedo en el borde del deslizador) dejaba
     arrastrar el panel de lado.
+  - **Probada en el iPhone** por el usuario: «ya funciona todo bien». **Ficha de la 1.7 preparada**: capturas
+    rehechas (`docs/capturas/` y `en/`, la que cambia de verdad es `02-lugares`) y novedades en los dos
+    idiomas (`docs/app-store.md` §9.9). Descripción, palabras clave, texto promocional, notas y
+    privacidad, sin cambios. Se envía la **1.7 (45)**.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -325,6 +329,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
 **Pendiente, en este orden**
+
+0. **Enviar la 1.7 (45)** (`docs/app-store.md` §9.9; los pasos al usuario, en el chat). Antes, el «Hecha»
+   del aviso con el iPhone bloqueado, que sale en las novedades.
 
 0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
    (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
