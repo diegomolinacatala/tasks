@@ -261,7 +261,50 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
     tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
 
+- **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, once commits de `346c230` a
+  `ebbff46`; el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
+  pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
+  (`docs/auditoria/informe.md`, 198 hallazgos, con anexos por pantalla) y después «arregla todo, lo
+  apruebo todo» (`docs/auditoria/progreso.md`, bloques A–L). Lo más visible:
+  - **Transversal**: toasts por encima de los paneles (y arriba cuando hay uno abierto), todo con
+    "Deshacer" (importar, borrar todo, borrar un lugar, quitar un aviso, posponer, crear una rutina),
+    foco y `inert` en los paneles, toques de 44 px, textos en las dos lenguas revisados, "Sin X" en
+    todos los vacíos, guardado que avisa si falla.
+  - **Barra y ficha**: no pierde el destino elegido, lo dictado cae donde se mira, la ficha pliega
+    Repetir e Importancia, la sección nueva se crea al salir del campo.
+  - **Agenda y Bandeja**: Atrasadas plegable, "Pasar a hoy" con cifra, secciones vacías solo con cabecera,
+    el "+ Sección" como campo, vacíos sin rótulos huecos, la primera tarea de la instalación asoma lo que
+    hay detrás (una vez), hoy por contexto (las filas cambian a medianoche solas).
+  - **Panel de la tarea**: el círculo de tachar arriba, mismo orden que la ficha, Sección e Importancia
+    plegadas, la regla, el deslizador y el mando "Aa" solo mandan de lado (`touch-action: pan-y`), avisos
+    con × propia y "por qué no sonará", plazo en una sola píldora, "A hoy" y "¿Has acabado?" en la barra
+    de arriba, toast de adónde se fue la tarea al cerrar.
+  - **Rutinas**: se crean desde el pie (cerrar cancela), tope de 50 a la vista, constancia que se nota
+    que se toca, aviso sin la hora repetida ("💊 · Cada día · racha de 12").
+  - **Lugares**: panel en orden (nuevo: dónde → nombre → pie "Añadir lugar"; existente: nombre, mapa,
+    "Cambiar ubicación ›", radio, avisos aquí con filas que abren la tarea, "Otros nombres ›", borrar con
+    cifra y deshacer: `place/restore`), nombre vacío que no pierde el resto, nombre repetido que no pisa,
+    píldora "En el mapa" en la pestaña, distancias que se releen.
+  - **Ajustes**: interruptor para sí/no y fila con valor › para lo demás (Idioma en un panel), Ayuda
+    encima de Datos, calendario que dice "No encontrado" y la guía que ofrece conectar.
+  - **Avisos**: un aviso tocado siempre hace algo ("Esa tarea ya no está.", "Ya estaba hecha", "No
+    queda nada atrasado."), espera a la bienvenida, los enlaces de fuera cierran los paneles, Siri con la
+    app delante avisa, y **"Hecha" no abre la app** (`NotificationResponder` lo trata como "Sí, hecha":
+    por probar en el iPhone).
+  - **Bienvenida**: Gestos con "Mantén pulsada para moverla" (versión 5: la ven quienes actualizan),
+    portada rápida desde Ajustes, "Listo" al final, aguanta movimiento reducido y un trozo que no llega.
+  - **Sugerencias**: cerrar el panel no pierde lo rodeado, la tarjeta no tapa el final ni la barra.
+  - Probado con Edge sin ventana y dedo simulado (panel de la tarea, Lugares, Ajustes, bienvenida); 954
+    tests. Lo pendiente del informe: 125 (reordenar rutinas, aplazado), la parte del 47 que borra la
+    sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
+
 **Pendiente, en este orden**
+
+0. **Probar en el iPhone lo de la auditoría** (TestFlight desde `capacitor`): "Hecha" en el aviso de una
+   tarea sin abrir la app (y bloqueado); el panel de la tarea (el círculo, la regla sin robar el scroll,
+   la × de un aviso); crear un lugar nuevo desde el buscador y desde "En el mapa"; borrar un lugar y
+   deshacer; Ajustes (Idioma, resumen con interruptor); la lámina Gestos tras actualizar; una sugerencia
+   cerrando el panel a medias. Después, unir `capacitor` a `main`.
 
 0. **Probar la 1.6 en el iPhone** y enviarla (`docs/app-store.md` §9.8; al usuario, los pasos en el chat,
    no en documentos). *Añadir mis tareas* → «Tasks»: que aparezca el calendario «Tasks» en la app
@@ -548,8 +591,11 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
      y lo de todo el día no cuentan).
   El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
 - **Lugares** (`PlacesView`, ver "Lugares").
-- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Apariencia, Idioma, Avisos, Calendario,
-  Dictado, Datos y Tasks (ver la bienvenida, valorar, soporte, privacidad, versión).
+- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Idioma (una fila con el valor que abre un
+  panel), Apariencia, Avisos (resumen del día con interruptor y "Hora ›"), Calendario, Dictado
+  (interruptor y "Qué se envía ›"), Ayuda (sugerir, soporte), Datos y Tasks (ver la bienvenida, valorar,
+  privacidad, versión o día del build). Dos tipos de control: interruptor para sí/no, fila con valor ›
+  para lo demás.
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -606,8 +652,9 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
 - **Siete láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
-  `lib/details.ts`; al plegarla queda el resumen), *Gestos* (dos `SwipeRow` reales: tachar y
-  borrar), *Agenda* (el `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
+  `lib/details.ts`; al plegarla queda el resumen), *Gestos* (versión 5: dos `SwipeRow` reales, tachar y
+  borrar, y una tercera fila que se hunde sola, "Mantén pulsada para moverla"), *Agenda* (el
+  `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
   iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez) y *Sugerencias* (versión 3,
   la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
   *Calendario* (versión 4, la 1.6, solo donde hay calendario: un día con tareas en el que entran los
@@ -615,8 +662,10 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   láminas de la plataforma (`availablePlates`) y lo que no hay ahí no cuenta como nuevo. Hasta que se tocan, las
   escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
   (`composer__foot`, `composer__more`…): si cambia la barra de escribir, mirarlas.
-- Nada obliga: **Continuar**, atrás, **Saltar** y Escape. Con `prefers-reduced-motion`, la primera
-  lámina enseña el resultado sin teclear. Mientras está abierta, la app de debajo va con `inert`.
+- Nada obliga: **Continuar**, atrás, **Saltar** y Escape; el último botón es **Listo**. Con
+  `prefers-reduced-motion`, la primera lámina enseña el resultado sin teclear y la portada aparece
+  entera. Desde Ajustes la portada entra sin esperar (`quick`); si el trozo tarda más de 8 s, la app
+  arranca sin ella. Mientras está abierta, la app de debajo va con `inert` y los avisos tocados esperan.
 - Es la única pantalla con texto explicativo: un titular y una frase por lámina.
 - Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…", la cena que se rodea en
   *Sugerencias*), la novia del usuario: lo pidió él. No cambiarlo. También sale en las capturas de la
@@ -919,10 +968,12 @@ ni "urgente". Más importante = más grande, con más peso y más apretado, hast
 igual. No reordena nada.
 
 - **Modo "Aa"** (arriba): cada fila cambia el asa de mover por su mando, un número del 1 al 10.
-  Arrastrarlo hacia arriba o a la derecha agranda y hacia abajo o a la izquierda encoge (18 px por
-  punto, vibra en cada uno, el título cambia en vivo); tocarlo sube uno y pasado el 10 vuelve al 1.
-  En el modo no se reordena (no hay asa). El estado del modo no se guarda.
-- **Panel de la tarea**: la escala del 1 al 10 bajo el título, cada número del tamaño que dará.
+  Arrastrarlo a la derecha agranda y a la izquierda encoge (18 px por punto, vibra en cada uno, el
+  título cambia en vivo; en vertical es scroll: `touch-action: pan-y`); tocarlo sube uno y en el 10 se
+  queda. La primera vez que se activa, un toast dice que el número se arrastra. En el modo no se
+  reordena. El estado del modo no se guarda.
+- **Panel de la tarea**: la escala del 1 al 10, plegada en una fila "Importancia · Normal ›"; se toca o
+  se arrastra de lado, y en lo hecho va atenuada.
 - Lo **hecho** vuelve al tamaño normal (se conserva el valor por si se desmarca) y no lleva mando.
 - Donde no hay sitio para tamaños, la importancia elige: el widget de la pantalla de bloqueo enseña
   las dos pendientes más importantes y el resumen diario adelanta las más importantes en su vista
@@ -1003,9 +1054,10 @@ notificación, sin entrar.
 - **«Todavía no» alarga la tarea** (`task/extend`, `extendedDuration`): el final pasa a 15 min
   desde *ahora*, no desde el final previsto, así que responder tarde no deja la siguiente pregunta
   en el pasado. Como efecto, el tramo guardado acaba reflejando lo que de verdad duró.
-- **Tocar el aviso sin botón** abre la app y repite la pregunta en un toast con **Sí**: en iOS los
-  botones de una notificación piden mantener pulsado, y así la salida sigue siendo un toque. La
-  marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
+- **Tocar el aviso sin botón** abre la tarea, cuya barra de arriba pregunta **¿Has acabado?** con
+  **Sí, hecha** y **Todavía no** (`SnoozeBar`, cuando la tarea tenía duración y ya acabó), y repite la
+  pregunta en un toast con **Sí**: en iOS los botones de una notificación piden mantener pulsado, y así
+  la salida sigue siendo un toque. La marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
 - Se escribe hablando o tecleando: "durante una hora", "que dura media hora", "una reunión de dos
   horas", "de 17:30 a 18:30", "de las 5 a las 7", "hasta las 19:00". Un tramo fija hora y duración
   a la vez, y la franja del final vale para el inicio si el tramo sigue hacia delante ("de 9 a 11
@@ -1250,10 +1302,16 @@ ver "Duración y aviso de cierre".
   ubicación, la foto es del barrio donde estás, no el dibujo. En la PWA la pestaña dice que es cosa
   del iPhone y lleva a la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para
   poder probarla).
-- **Panel del lugar** (`PlaceSheet`): nombre y otros nombres, mapa centrado con el radio a escala (se
-  toca para abrir el de verdad y atinar), buscar en Apple Maps, **Elegir en el mapa** o usar la
-  ubicación actual, **deslizador de radio** (100 m–1 km, de 50 en 50, el círculo lo sigue en
-  vivo), las tareas con aviso allí y borrar.
+- **Panel del lugar** (`PlaceSheet`). Uno **nuevo** empieza por dónde está (el buscador de Apple Maps con
+  el teclado, "Buscando…" y "Nada con ese nombre", **Elegir en el mapa** o la ubicación actual) y, con
+  eso, el nombre, el mapa y el radio; se crea con **Añadir lugar** en el pie y cerrarlo lo descarta (con
+  "Volver"). Un nombre que ya existe no pisa al otro ("Ya tienes un lugar llamado «Casa» · Ver"); se
+  funde solo con uno sin ubicar (el dictado). Uno **existente**: nombre (vacío, conserva el que tenía),
+  mapa centrado con el radio a escala (se toca para abrir el de verdad y atinar), dirección, **Cambiar
+  ubicación ›** plegado, **Radio del aviso** (deslizador de 100 m a 1 km, de 50 en 50, el círculo lo sigue
+  en vivo), **Avisos aquí** (filas que abren la tarea), **Otros nombres ›** plegado y **Borrar lugar**: el
+  segundo toque dice cuántos avisos se lleva y el toast tiene "Deshacer" (`place/restore`). Sin
+  ubicación al cerrar, "X sin ubicación: el aviso no sonará · Ubicar".
 - **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por
   Mercadona"): `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor
   buscando ese nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
@@ -1284,8 +1342,10 @@ la misma.
   No re-añade los que no han cambiado: hacerlo estando dentro podría repetir el aviso. Se crean
   con id numérico y `userInfo.cap_extra` para que el plugin de notificaciones entregue el toque
   a la web como cualquier otro aviso.
-- **Botones** "Hecha" y "+10 min" con `foreground: true`: el estado vive en la web y con la app
-  en segundo plano iOS no garantiza que el WebView ejecute nada.
+- **Botones**: "+10 min" y "Pasar a hoy" con `foreground: true` (el estado vive en la web y con la app
+  en segundo plano iOS no garantiza que el WebView ejecute nada). "Hecha" no abre la app: como "Sí,
+  hecha" en el aviso de cierre, `NotificationResponder` lo resuelve con `QuickAdd.answer` (la bandeja) y
+  la web lo aplica al volver.
 - **Almacenamiento**: fichero `tasks-state.json` en Library (entra en las copias de iCloud del
   dispositivo y iOS no lo borra al liberar espacio) más IndexedDB de respaldo. No comparte datos
   con la PWA: se pasa con Exportar/Importar.
