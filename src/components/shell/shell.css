@@ -39,7 +39,7 @@
 }
 
 .app.has-composer .app__scroll {
-  --dock: var(--composer-h);
+  --dock: var(--dock-h, var(--composer-h));
 }
 
 /* Mientras se escribe, la lista queda tras un velo de papel: sigue ahí (se ve entrar lo que se añade)
@@ -82,8 +82,8 @@
   z-index: 20;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-full);
   color: var(--text-2);
   transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease),

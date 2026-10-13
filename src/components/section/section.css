@@ -24,7 +24,8 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  min-height: 32px;
+  min-height: 44px;
+  margin: -6px 0;
   padding: 4px 0;
   text-align: left;
 }
@@ -92,8 +93,9 @@
 
 /* Acción de una cabecera ("Pasar a hoy"): texto en acento, como todo lo que se toca */
 .section__action {
+  position: relative;
   flex: none;
-  min-height: 32px;
+  min-height: 36px;
   padding: 6px 12px;
   border-radius: var(--r-full);
   font-size: var(--fs-xs);
@@ -105,12 +107,19 @@
   transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
 }
 
+.section__action::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
 .section__action:active {
   background: var(--accent-line);
   transform: scale(0.96);
 }
 
 .section__icon {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
@@ -121,22 +130,21 @@
   transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
 }
 
+/* El área de toque crece hasta los 44 px sin separar más la cabecera */
+.section__icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
 .section__icon:active {
   background: var(--bg-press);
   color: var(--text-2);
 }
 
-/* El + de una sección: escribir directamente en ella. En coñac, como todo lo que añade; el área de
-   toque crece hacia arriba y abajo hasta los 44 px sin separar más la cabecera */
+/* El + de una sección: escribir directamente en ella. En coñac, como todo lo que añade */
 .section__icon--add {
-  position: relative;
   color: var(--accent);
-}
-
-.section__icon--add::after {
-  content: '';
-  position: absolute;
-  inset: -6px 0;
 }
 
 .section__icon--add:active {

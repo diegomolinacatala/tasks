@@ -387,6 +387,27 @@ export function App() {
     if (!active) setComposeSection(null)
   }, [])
 
+  // Lo que flota al pie publica su alto real: el final de la lista y el toast se colocan encima de
+  // la barra de escribir (que crece con las píldoras) y de las pestañas (que se van al escribir).
+  const dock = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const root = document.documentElement.style
+    const node = dock.current
+    if (!node) {
+      root.setProperty('--dock-h', '0px')
+      return
+    }
+    const observer = new ResizeObserver(() => root.setProperty('--dock-h', `${node.offsetHeight}px`))
+    observer.observe(node)
+    return () => {
+      observer.disconnect()
+      root.setProperty('--dock-h', '0px')
+    }
+  }, [writing])
+  useEffect(() => {
+    document.documentElement.style.setProperty('--tabs-h', typing || (writing && composing) ? '0px' : 'var(--nav-h)')
+  }, [typing, writing, composing])
+
   const pane = (id: TabId, content: ReactNode) =>
     visited.has(id) && (
       <Activity mode={shownTab === id ? 'visible' : 'hidden'}>
@@ -405,6 +426,7 @@ export function App() {
     <RowActionsContext.Provider value={rowActions}>
       <div
         inert={welcome !== null}
+        data-welcome={welcome !== null ? '' : undefined}
         className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
           writing ? 'has-composer' : ''
         } ${writing && composing ? 'is-composing' : ''}`}
@@ -440,7 +462,7 @@ export function App() {
 
         <div className="app__bar">
           {writing && (
-            <div className="app__dock">
+            <div className="app__dock" ref={dock}>
               <Composer
                 targets={targets}
                 placeholder={addLabel(inAgenda ? day : null, today, section?.name)}

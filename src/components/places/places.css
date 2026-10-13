@@ -184,6 +184,8 @@
   place-items: center;
   width: 30px;
   height: 30px;
+  /* Zona de toque de 44 px alrededor de la cabeza */
+  outline: 7px solid transparent;
   border-radius: 50% 50% 50% 4px;
   transform: rotate(-45deg);
   background: var(--primary);
@@ -457,6 +459,7 @@
   place-items: center;
   width: 32px;
   height: 32px;
+  outline: 6px solid transparent;
   border-radius: var(--r-full);
   background: var(--bg-elev);
   color: var(--text);

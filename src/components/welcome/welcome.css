@@ -454,7 +454,7 @@
 }
 
 .scene__sheet .chip {
-  min-height: 34px;
+  min-height: 38px;
   padding: 6px 13px;
 }
 
@@ -595,7 +595,7 @@
 }
 
 .scene__note-send {
-  min-height: 32px;
+  min-height: 40px;
   padding: 4px 14px;
 }
 

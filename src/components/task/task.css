@@ -261,7 +261,6 @@
 
 .is-overdue .row__meta {
   color: var(--danger);
-  opacity: 0.8;
 }
 
 /* Copia que sigue al dedo mientras se arrastra: una tarjeta de papel levantada */

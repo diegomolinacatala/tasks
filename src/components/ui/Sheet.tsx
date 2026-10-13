@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { acquireModal, releaseModal } from '../../lib/modal'
 import { useCopy } from '../../state/LanguageProvider'
 import './sheet.css'
 
@@ -69,6 +70,20 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
       document.body.style.overflow = previous
     }
   }, [open, onClose])
+
+  // Mientras está abierto, la app de debajo queda inerte y el foco entra en el panel; al cerrar vuelve
+  // a donde estaba (la fila que lo abrió), para el teclado y el lector de pantalla.
+  useEffect(() => {
+    if (!open) return
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    acquireModal()
+    const frame = requestAnimationFrame(() => panel.current?.focus({ preventScroll: true }))
+    return () => {
+      cancelAnimationFrame(frame)
+      releaseModal()
+      if (before?.isConnected) before.focus({ preventScroll: true })
+    }
+  }, [open])
 
   if (!mounted) return null
 
@@ -147,7 +162,7 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
           className="sheet__scrim"
         />
       )}
-      <div ref={panel} className="sheet__panel">
+      <div ref={panel} className="sheet__panel" tabIndex={-1}>
         {onClose ? (
           <div
             className="sheet__grab"

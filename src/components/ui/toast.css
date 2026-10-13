@@ -2,9 +2,11 @@
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--nav-h) + var(--composer-h) + var(--safe-b) + 10px + var(--kb, 0px));
+  /* Encima de lo que haya debajo de verdad: las pestañas (si están) y la barra de escribir (lo que mida) */
+  bottom: calc(var(--tabs-h, var(--nav-h)) + var(--dock-h, 0px) + var(--safe-b) + 10px + var(--kb, 0px));
   transform: translateX(-50%);
-  z-index: 50;
+  /* Por encima de los paneles (60): un «Deshacer» o un error tienen que verse con un panel abierto */
+  z-index: 65;
   display: flex;
   align-items: center;
   gap: var(--sp-4);
@@ -15,6 +17,12 @@
   background: var(--primary);
   box-shadow: var(--shadow-toast);
   animation: toast-in var(--dur-3) var(--ease-out);
+}
+
+/* Con un panel abierto, arriba: el panel ocupa el pie y su propio botón vive ahí */
+html.has-sheet .toast {
+  top: calc(var(--safe-t) + 12px);
+  bottom: auto;
 }
 
 .toast.is-leaving {
@@ -31,7 +39,8 @@
 
 .toast__action {
   flex: none;
-  min-height: 36px;
+  min-height: 44px;
+  margin: -4px 0;
   padding: 6px 12px;
   border-radius: var(--r-sm);
   font-size: var(--fs-sm);

@@ -58,8 +58,9 @@
 }
 
 .agenda__today {
+  position: relative;
   flex: none;
-  min-height: 30px;
+  min-height: 36px;
   padding: 5px 14px;
   border-radius: var(--r-full);
   border: 1px solid var(--accent-line);
@@ -68,6 +69,12 @@
   font-weight: 600;
   animation: quick-in var(--dur-2) var(--ease-out);
   transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.agenda__today::after {
+  content: '';
+  position: absolute;
+  inset: -4px -6px;
 }
 
 .agenda__today:active {
@@ -267,11 +274,12 @@
   inset: -12px 30% -16px;
 }
 
+/* El asa se ve: en oro viejo apagado, para que invite a tirar */
 .cal__handle span {
-  width: 34px;
+  width: 44px;
   height: 4px;
   border-radius: var(--r-full);
-  background: var(--line-2);
+  background: var(--gold-dim, var(--line-2));
   transition: background var(--dur-1) var(--ease), transform var(--dur-2) var(--ease-pop);
 }
 

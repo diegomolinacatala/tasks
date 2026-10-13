@@ -132,7 +132,7 @@ a.group__row:active {
 }
 
 .segmented__option {
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 10px;
   border-radius: calc(var(--r-md) - 3px);
   color: var(--text-2);
