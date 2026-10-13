@@ -31,12 +31,14 @@ export const useExportFailed = (): boolean => useSyncExternalStore(subscribe, ()
 export function CalendarExportSync() {
   const state = useAppState()
   const today = useToday()
-  const { status, source } = useCalendar()
+  const { status, source, calendars } = useCalendar()
   const target = state.settings.calendar.export
   const sent = useRef<string | null>(null)
+  // Un calendario que ya no existe (se borró, o su cuenta): no se le manda nada, y Ajustes lo dice.
+  const known = target === null || calendars.some((calendar) => calendar.id === target)
 
   useEffect(() => {
-    if (!source || status !== 'granted') return
+    if (!source || status !== 'granted' || !known) return
     const items = target ? exportItems(state.tasks, Date.now()) : []
     const key = JSON.stringify([target, items])
     if (key === sent.current) return
@@ -52,7 +54,7 @@ export function CalendarExportSync() {
       )
     }, SYNC_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
-  }, [source, status, state.tasks, target, today])
+  }, [source, status, state.tasks, target, known, today])
 
   return null
 }

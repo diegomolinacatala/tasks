@@ -79,6 +79,10 @@ a.group__row:active {
   font-variant-numeric: tabular-nums;
 }
 
+.group__value--danger {
+  color: var(--danger);
+}
+
 .group__chevron {
   flex: none;
   color: var(--text-3);

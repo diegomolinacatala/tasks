@@ -14,6 +14,7 @@ const COPY = {
     title: 'Tus tareas en el calendario',
     lead: 'Las tareas con día y hora se añaden como eventos y se quitan al tacharlas; en uno compartido las verá quien lo comparta.',
     none: 'No añadirlas',
+    noneHint: 'Se quitan del calendario las que añadió Tasks, también las que editaras allí.',
     own: 'Calendario «Tasks»',
     ownName: 'Tasks',
     recommended: 'Recomendado',
@@ -26,6 +27,7 @@ const COPY = {
     title: 'Your tasks in your calendar',
     lead: 'Tasks with a day and time are added as events and removed when you check them off; in a shared calendar, whoever shares it will see them.',
     none: 'Don’t add them',
+    noneHint: 'The ones Tasks added are removed from the calendar, even those you edited there.',
     own: '“Tasks” calendar',
     ownName: 'Tasks',
     recommended: 'Recommended',
@@ -84,8 +86,9 @@ export function CalendarExportSheet({ open, onClose }: { open: boolean; onClose:
       <h2 className="calpick__title">{copy.title}</h2>
       <p className="calguide__lead">{copy.lead}</p>
       <div className="group__card calexport__main" role="radiogroup" aria-label={copy.title}>
-        {option('none', current === null, () => choose(null), copy.none, null)}
-        {option('own', own !== undefined && current === own.id, () => void chooseOwn(), copy.own, '#8a5a2c', copy.recommended)}
+        {option('none', current === null, () => choose(null), copy.none, null, current !== null ? copy.noneHint : undefined)}
+        {/* El coñac del tema, no uno fijo: de noche es el camel pastel (o el color real del calendario si ya existe). */}
+        {option('own', own !== undefined && current === own.id, () => void chooseOwn(), copy.own, own?.color ?? 'var(--accent)', copy.recommended)}
       </div>
       {writable.length > 0 && <p className="sheet__title">{copy.others}</p>}
       {calendarGroups(writable).map((group) => (

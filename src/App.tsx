@@ -633,7 +633,7 @@ export function App() {
         </Suspense>
         {(isNative || import.meta.env.DEV) && (
           <Suspense fallback={null}>
-            <UpdatePrompt paused={welcome !== null || suggesting} />
+            <UpdatePrompt paused={welcome !== null || suggesting || composing || taskId !== null || routineId !== null || sectionId !== null} />
           </Suspense>
         )}
         {/* También con el ajuste quitado: así borra lo que había añadido. */}

@@ -17,6 +17,8 @@ const bootMark = (): Plugin => ({
 // así que va con rutas relativas y sin service worker (WKWebView no lo usa).
 export default defineConfig(({ mode }) => ({
   base: mode === 'native' ? './' : BASE,
+  // La PWA no tiene número de versión: Ajustes enseña el día en que se construyó.
+  define: { __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)) },
   plugins: [
     react(),
     bootMark(),

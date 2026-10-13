@@ -1,10 +1,12 @@
 import { shortTime } from '../../lib/date'
+import { haptic } from '../../lib/platform/feedback'
 import { isNative } from '../../lib/platform'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
-import { IconBell, IconBellOff, IconChevronRight } from '../ui/Icons'
+import { IconArrowUpRight, IconBell, IconBellOff, IconChevronRight } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
+import { Switch } from './Switch'
 
 const COPY = {
   es: {
@@ -19,11 +21,10 @@ const COPY = {
     failed: 'Los avisos no se han podido programar',
     retry: 'Reintentar',
     digest: 'Resumen del día',
-    no: 'No',
-    daily: (clock: string) => `Cada día a las ${clock}`,
-    morning: 'Cada mañana',
+    time: 'Hora',
     nativeSettings: 'Ajustes de notificaciones',
     disable: 'Desactivar avisos',
+    disableNote: 'Sin avisos, el dictado usa el del navegador.',
   },
   en: {
     title: 'Notifications',
@@ -37,11 +38,10 @@ const COPY = {
     failed: 'Reminders couldn’t be scheduled',
     retry: 'Retry',
     digest: 'Daily summary',
-    no: 'Off',
-    daily: (clock: string) => `Every day at ${clock}`,
-    morning: 'Every morning',
+    time: 'Time',
     nativeSettings: 'Notification settings',
     disable: 'Turn off notifications',
+    disableNote: 'Without notifications, dictation uses the browser’s.',
   },
 } as const
 
@@ -98,35 +98,40 @@ export function NotificationsBlock() {
                 <span className="group__value">{copy.retry}</span>
               </button>
             )}
-            <div className="group__row group__row--static group__row--stack">
+            {/* Sí o no con un interruptor y, encendido, la hora en su fila: como el resto de Ajustes. */}
+            <div className="group__row group__row--static">
               <span className="group__label">{copy.digest}</span>
-              <div className="sheet__chips">
-                <button
-                  type="button"
-                  className={`chip ${digest.enabled ? '' : 'is-active'}`}
-                  onClick={() => dispatch({ type: 'settings/digest', enabled: false })}
-                >
-                  {copy.no}
-                </button>
-                <PickerChip
-                  type="time"
-                  className={`chip ${digest.enabled ? 'is-active' : ''}`}
-                  value={digest.time}
-                  onOpen={() => dispatch({ type: 'settings/digest', enabled: true })}
-                  onCommit={(time) => {
-                    if (time) dispatch({ type: 'settings/digest', enabled: true, time })
-                  }}
-                >
-                  {digest.enabled ? copy.daily(shortTime(digest.time)) : copy.morning}
-                </PickerChip>
-              </div>
+              <Switch
+                checked={digest.enabled}
+                label={copy.digest}
+                onChange={(enabled) => {
+                  haptic('selection')
+                  dispatch({ type: 'settings/digest', enabled })
+                }}
+              />
             </div>
+            {digest.enabled && (
+              <PickerChip
+                type="time"
+                className="group__row"
+                value={digest.time}
+                onCommit={(time) => {
+                  if (time) dispatch({ type: 'settings/digest', enabled: true, time })
+                }}
+              >
+                <span className="group__label">{copy.time}</span>
+                <span className="group__value">{shortTime(digest.time)}</span>
+                <IconChevronRight size={16} className="group__chevron" />
+              </PickerChip>
+            )}
+            {/* En el iPhone la fila abre los Ajustes del sistema (no desactiva nada): flecha de salir, no campana tachada. */}
             <button type="button" className="group__row" disabled={push.busy} onClick={() => void push.disable()}>
-              <IconBellOff size={18} />
+              {isNative ? <IconArrowUpRight size={18} /> : <IconBellOff size={18} />}
               <span className="group__label">{isNative ? copy.nativeSettings : copy.disable}</span>
               <IconChevronRight size={16} className="group__chevron" />
             </button>
           </div>
+          {!isNative && push.canTranscribe && <p className="group__note">{copy.disableNote}</p>}
         </>
       )}
     </section>

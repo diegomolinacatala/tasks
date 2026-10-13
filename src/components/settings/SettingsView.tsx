@@ -33,12 +33,14 @@ const COPY = {
     cleared: 'Todo borrado.',
     title: 'Ajustes',
     appearance: 'Apariencia',
+    help: 'Ayuda',
     data: 'Datos',
     stats: [
-      ['pendiente', 'pendientes'],
       ['tarea', 'tareas'],
+      ['pendiente', 'pendientes'],
       ['rutina', 'rutinas'],
       ['sección', 'secciones'],
+      ['lugar', 'lugares'],
     ],
     export: 'Exportar copia',
     import: 'Importar copia',
@@ -56,6 +58,7 @@ const COPY = {
     supportPage: 'soporte.html',
     privacyPage: 'privacidad.html',
     version: (value: string) => `Versión ${value}`,
+    build: (day: string) => `Versión web del ${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}`,
     update: (value: string) => `Actualizar a la ${value}`,
   },
   en: {
@@ -68,12 +71,14 @@ const COPY = {
     cleared: 'Everything deleted.',
     title: 'Settings',
     appearance: 'Appearance',
+    help: 'Help',
     data: 'Data',
     stats: [
-      ['pending', 'pending'],
       ['task', 'tasks'],
+      ['pending', 'pending'],
       ['routine', 'routines'],
       ['section', 'sections'],
+      ['place', 'places'],
     ],
     export: 'Export backup',
     import: 'Import backup',
@@ -91,6 +96,7 @@ const COPY = {
     supportPage: 'support.html',
     privacyPage: 'privacy.html',
     version: (value: string) => `Version ${value}`,
+    build: (day: string) => `Web build ${day.slice(5, 7)}/${day.slice(8, 10)}/${day.slice(0, 4)}`,
     update: (value: string) => `Update to ${value}`,
   },
 } as const
@@ -203,21 +209,40 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
         <div className="view__progress view__progress--plain" aria-hidden="true" />
       </header>
 
+      <LanguagePicker value={state.settings.language} />
+
       <section className="group">
         <h2 className="group__title">{copy.appearance}</h2>
         <AppearancePicker value={state.settings.theme} />
       </section>
 
-      <LanguagePicker value={state.settings.language} />
-
       <NotificationsBlock />
       <CalendarBlock />
       <DictationBlock />
 
+      {/* Lo que quieres que tus amigos encuentren va antes que los datos, no al final de la página. */}
+      <section className="group">
+        <h2 className="group__title">{copy.help}</h2>
+        <div className="group__card">
+          {onSuggest && (
+            <button type="button" className="group__row" onClick={onSuggest}>
+              <IconFeather size={18} />
+              <span className="group__label">{copy.suggest}</span>
+              <IconChevronRight size={16} className="group__chevron" />
+            </button>
+          )}
+          <a className="group__row" href={`${SITE}${copy.supportPage}`} target="_blank" rel="noopener noreferrer">
+            <span className="group__label">{copy.support}</span>
+            <IconArrowUpRight size={16} className="group__chevron" />
+          </a>
+        </div>
+        {onSuggest && <p className="group__note">{copy.suggestNote}</p>}
+      </section>
+
       <section className="group">
         <h2 className="group__title">{copy.data}</h2>
         <div className="group__stats">
-          {[pending, state.tasks.length, state.routines.length, state.sections.length].map((count, index) => {
+          {[state.tasks.length, pending, state.routines.length, state.sections.length, state.places.length].map((count, index) => {
             const [one, many] = copy.stats[index] ?? ['', '']
             return (
               <span key={index}>
@@ -265,18 +290,6 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
 
       <section className="group">
         <h2 className="group__title">Tasks</h2>
-        {onSuggest && (
-          <>
-            <div className="group__card">
-              <button type="button" className="group__row" onClick={onSuggest}>
-                <IconFeather size={18} />
-                <span className="group__label">{copy.suggest}</span>
-                <IconChevronRight size={16} className="group__chevron" />
-              </button>
-            </div>
-            <p className="group__note">{copy.suggestNote}</p>
-          </>
-        )}
         {update && (
           <div className="group__card settings__update">
             <a className="group__row" href={update.url} target="_blank" rel="noopener noreferrer">
@@ -297,16 +310,12 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
               <IconArrowUpRight size={16} className="group__chevron" />
             </a>
           )}
-          <a className="group__row" href={`${SITE}${copy.supportPage}`} target="_blank" rel="noopener noreferrer">
-            <span className="group__label">{copy.support}</span>
-            <IconArrowUpRight size={16} className="group__chevron" />
-          </a>
           <a className="group__row" href={`${SITE}${copy.privacyPage}`} target="_blank" rel="noopener noreferrer">
             <span className="group__label">{copy.privacy}</span>
             <IconArrowUpRight size={16} className="group__chevron" />
           </a>
         </div>
-        {version && <p className="group__note group__note--center">{copy.version(version)}</p>}
+        <p className="group__note group__note--center">{version ? copy.version(version) : copy.build(__BUILD_DATE__)}</p>
       </section>
     </div>
   )

@@ -6,7 +6,7 @@ import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { useExportFailed } from '../calendar/CalendarExportSync'
 import { useCalendar } from '../calendar/CalendarProvider'
-import { IconCalendar, IconCheck, IconChevronRight } from '../ui/Icons'
+import { IconCalendar, IconChevronRight } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { CalendarExportSheet } from './CalendarExportSheet'
 import { CalendarGuide } from './CalendarGuide'
@@ -18,7 +18,9 @@ const COPY = {
   es: {
     title: 'Calendario',
     connect: 'Ver mi calendario en la Agenda',
-    promptNote: 'Tus eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas. Todo queda en este iPhone: no se sube a ningún servidor.',
+    promptNote: (device: string) => `Tus eventos de iCloud, Google u Outlook salen en el horario, junto a tus tareas. Todo queda en este ${device}: no se sube a ningún servidor.`,
+    device: 'iPhone',
+    genericDevice: 'dispositivo',
     denied: 'Sin permiso: abrir Ajustes del iPhone',
     deniedNote: 'En Ajustes del iPhone, toca Calendarios y elige Acceso total.',
     shown: 'En la Agenda',
@@ -26,6 +28,9 @@ const COPY = {
     count: (shown: number, total: number) => (shown === total ? 'Todos' : `${shown} de ${total}`),
     exportRow: 'Añadir mis tareas',
     exportOff: 'No',
+    exportMissing: 'No encontrado',
+    exportMissingNote: 'El calendario elegido ya no existe: elige otro o deja de añadirlas.',
+    exportWhileOff: (name: string) => `Tus tareas siguen añadiéndose a «${name}».`,
     exportFailed: 'No se han podido añadir al calendario. Se volverá a intentar.',
     guide: 'Añadir Google u Outlook',
     guideHint: 'Paso a paso',
@@ -34,7 +39,9 @@ const COPY = {
   en: {
     title: 'Calendar',
     connect: 'Show my calendar in the Agenda',
-    promptNote: 'Your iCloud, Google or Outlook events show up in your schedule, next to your tasks. It all stays on this iPhone: nothing is uploaded to any server.',
+    promptNote: (device: string) => `Your iCloud, Google or Outlook events show up in your schedule, next to your tasks. It all stays on this ${device}: nothing is uploaded to any server.`,
+    device: 'iPhone',
+    genericDevice: 'device',
     denied: 'No access: open iPhone Settings',
     deniedNote: 'In iPhone Settings, tap Calendars and choose Full Access.',
     shown: 'In the Agenda',
@@ -42,6 +49,9 @@ const COPY = {
     count: (shown: number, total: number) => (shown === total ? 'All' : `${shown} of ${total}`),
     exportRow: 'Add my tasks',
     exportOff: 'Off',
+    exportMissing: 'Not found',
+    exportMissingNote: 'The chosen calendar no longer exists: pick another or stop adding them.',
+    exportWhileOff: (name: string) => `Your tasks are still being added to “${name}”.`,
     exportFailed: 'They couldn’t be added to the calendar. It’ll try again.',
     guide: 'Add Google or Outlook',
     guideHint: 'Step by step',
@@ -83,7 +93,11 @@ export function CalendarBlock() {
   // El «Tasks» de la app no cuenta entre los tuyos: sus eventos son tus tareas, que ya se ven.
   const mine = calendar.calendars.filter((item) => !item.own)
   const shown = mine.filter((item) => !settings.hidden.includes(item.id)).length
-  const exportName = calendar.calendars.find((item) => item.id === settings.export)?.title ?? (settings.export ? '…' : copy.exportOff)
+  const exportTarget = calendar.calendars.find((item) => item.id === settings.export)
+  // El calendario elegido puede haberse borrado (o la cuenta): se dice en ladrillo, no con puntos suspensivos.
+  const exportMissing = Boolean(settings.export) && calendar.calendars.length > 0 && !exportTarget
+  const exportName = exportTarget?.title ?? (settings.export ? (exportMissing ? copy.exportMissing : '…') : copy.exportOff)
+  const device = isNative ? copy.device : copy.genericDevice
 
   const guideRow = (
     <button type="button" className="group__row" onClick={() => setGuiding(true)}>
@@ -109,7 +123,7 @@ export function CalendarBlock() {
             </button>
             {guideRow}
           </div>
-          <p className="group__note">{copy.promptNote}</p>
+          <p className="group__note">{copy.promptNote(device)}</p>
         </>
       )}
 
@@ -158,19 +172,26 @@ export function CalendarBlock() {
               </button>
             )}
             <button type="button" className="group__row" onClick={() => setExporting(true)}>
-              <IconCheck size={18} />
+              <IconCalendar size={18} />
               <span className="group__label">{copy.exportRow}</span>
-              <span className="group__value calexport__value">{exportName}</span>
+              <span className={`group__value calexport__value ${exportMissing ? 'group__value--danger' : ''}`}>{exportName}</span>
               <IconChevronRight size={16} className="group__chevron" />
             </button>
             {guideRow}
           </div>
-          {exportFailed && settings.export && <p className="group__note group__note--danger">{copy.exportFailed}</p>}
+          {exportMissing && <p className="group__note group__note--danger">{copy.exportMissingNote}</p>}
+          {!settings.enabled && exportTarget && <p className="group__note">{copy.exportWhileOff(exportTarget.title)}</p>}
+          {exportFailed && settings.export && !exportMissing && <p className="group__note group__note--danger">{copy.exportFailed}</p>}
         </>
       )}
 
       <CalendarPicker open={picking} onClose={() => setPicking(false)} />
-      <CalendarGuide open={guiding} onClose={() => setGuiding(false)} />
+      <CalendarGuide
+        open={guiding}
+        connected={calendar.status === 'granted'}
+        onConnect={calendar.status === 'prompt' ? () => void connect() : undefined}
+        onClose={() => setGuiding(false)}
+      />
       <CalendarExportSheet open={exporting} onClose={() => setExporting(false)} />
     </section>
   )

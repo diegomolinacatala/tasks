@@ -359,6 +359,20 @@
   margin-top: 0;
 }
 
+/* En el pie de la guía, debajo de "Conectar el calendario": abrir Ajustes como opción secundaria */
+.calguide__secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.calguide__secondary:active {
+  opacity: 0.6;
+}
+
 .calguide__open-note {
   margin: var(--sp-2) 0 0;
   text-align: center;

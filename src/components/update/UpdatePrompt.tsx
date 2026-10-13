@@ -68,14 +68,15 @@ async function lookup(language: 'es' | 'en'): Promise<StoreCheck> {
 }
 
 interface UpdatePromptProps {
-  /** Hay algo delante (la bienvenida, el modo sugerencia): el aviso espera. */
+  /** Hay algo delante (la bienvenida, el modo sugerencia, la barra de escribir, un panel): el aviso espera. */
   paused: boolean
 }
 
 /**
  * Cuando sale una versión nueva en la App Store, al abrir la app (o volver a ella) sube una ficha con sus
  * novedades y **Actualizar**, que abre la página de la app en la App Store (iOS no deja actualizar desde
- * dentro: es un toque más allí). **Ahora no** la aparta para esa versión; la fila de Ajustes sigue.
+ * dentro: es un toque más allí). Solo **Ahora no** la aparta para esa versión (bajarla con el asa o
+ * tocar fuera la quita hasta la próxima vez); la fila de Ajustes sigue.
  */
 export function UpdatePrompt({ paused }: UpdatePromptProps) {
   const copy = useCopy(COPY)
@@ -142,7 +143,7 @@ export function UpdatePrompt({ paused }: UpdatePromptProps) {
   )
 
   return (
-    <Sheet open={open && !paused} onClose={later} title={copy.sheet} footer={footer}>
+    <Sheet open={open && !paused} onClose={() => setOpen(false)} title={copy.sheet} footer={footer}>
       <div className="update">
         <span className="update__seal" aria-hidden="true">
           {release.version}

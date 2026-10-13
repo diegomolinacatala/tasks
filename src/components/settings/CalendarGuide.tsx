@@ -52,6 +52,8 @@ const COPY = {
       ],
     } satisfies Record<Provider, readonly Step[]>,
     back: ['Vuelve a Tasks: tus eventos salen solos en la Agenda.'] as Line,
+    backConnect: ['Vuelve a Tasks y toca ', { b: 'Ver mi calendario en la Agenda' }, '.'] as Line,
+    connect: 'Conectar el calendario',
     tip: '¿No ves Apps? En iOS 17 es Ajustes → Calendario → Cuentas. En cualquier versión, escribe «Cuentas» en el buscador de arriba de Ajustes.',
     open: 'Abrir Ajustes del iPhone',
     openNote: 'Se abre en la página de Tasks: vuelve atrás hasta Apps.',
@@ -89,6 +91,8 @@ const COPY = {
       ],
     } satisfies Record<Provider, readonly Step[]>,
     back: ['Come back to Tasks: your events show up in the Agenda on their own.'] as Line,
+    backConnect: ['Come back to Tasks and tap ', { b: 'Show my calendar in the Agenda' }, '.'] as Line,
+    connect: 'Connect the calendar',
     tip: 'Can’t see Apps? On iOS 17 it’s Settings → Calendar → Accounts. On any version, type “Accounts” in the search field at the top of Settings.',
     open: 'Open iPhone Settings',
     openNote: 'It opens on Tasks’ page: go back to Apps.',
@@ -111,17 +115,44 @@ const Rich = ({ line }: { line: Line }) => (
  * Arriba, la ruta en Ajustes como una fila de botones; debajo, lo de cada proveedor con un dibujo de lo
  * que hay que tocar, tal como sale en el iPhone. Plegado en una fila de Ajustes: solo sale si se pide.
  */
-export function CalendarGuide({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface CalendarGuideProps {
+  open: boolean
+  /** Ya se concedió el acceso: los eventos salen solos. Si no, el último paso dice qué tocar y el pie lo ofrece. */
+  connected: boolean
+  onConnect?: () => void
+  onClose: () => void
+}
+
+export function CalendarGuide({ open, connected, onConnect, onClose }: CalendarGuideProps) {
   const copy = useCopy(COPY)
   const [provider, setProvider] = useState<Provider>('google')
   const steps: readonly Step[] = copy.steps[provider]
   const openSettings = () => void import('../../lib/platform/native').then(({ TasksNative }) => TasksNative.openSettings())
 
+  // Sin conectar, los eventos no "salen solos" por mucho que se añada la cuenta: el pie lo ofrece primero.
   const footer = isNative ? (
     <>
-      <button type="button" className="sheet__primary" onClick={openSettings}>
-        {copy.open}
-      </button>
+      {!connected && onConnect ? (
+        <>
+          <button
+            type="button"
+            className="sheet__primary"
+            onClick={() => {
+              onConnect()
+              onClose()
+            }}
+          >
+            {copy.connect}
+          </button>
+          <button type="button" className="calguide__secondary" onClick={openSettings}>
+            {copy.open}
+          </button>
+        </>
+      ) : (
+        <button type="button" className="sheet__primary" onClick={openSettings}>
+          {copy.open}
+        </button>
+      )}
       <p className="calguide__open-note">{copy.openNote}</p>
     </>
   ) : undefined
@@ -209,7 +240,7 @@ export function CalendarGuide({ open, onClose }: { open: boolean; onClose: () =>
           </span>
           <div className="calguide__body">
             <p>
-              <Rich line={copy.back} />
+              <Rich line={connected ? copy.back : copy.backConnect} />
             </p>
           </div>
         </li>
