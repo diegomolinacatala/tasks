@@ -72,16 +72,18 @@ const CalendarExportSync = lazy(() =>
   import('./components/calendar/CalendarExportSync').then((module) => ({ default: module.CalendarExportSync })),
 )
 // La bienvenida sale la primera vez, tras una actualización que traiga láminas nuevas y desde Ajustes.
-// Si su trozo no llegara a cargarse, la app se abre igual (y no se da por vista).
+// Si su trozo no llegara a cargarse (o tardara más de la cuenta), la app se abre igual (y no se da por vista).
+const WELCOME_LOAD_MS = 8000
 const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
-  import('./components/welcome/Welcome').then(
-    (module) => ({ default: module.Welcome }),
-    () => ({ default: WelcomeUnavailable }),
-  ),
+  Promise.race([
+    import('./components/welcome/Welcome').then((module) => ({ default: module.Welcome })),
+    new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('welcome timeout')), WELCOME_LOAD_MS)),
+  ]).catch(() => ({ default: WelcomeUnavailable })),
 )
 
 interface WelcomeHandlers {
   run: WelcomeRun
+  quick?: boolean
   onReady?: () => void
   onDone: () => void
   onUnavailable: () => void
@@ -254,8 +256,11 @@ export function App() {
   }, [toast, copy, go])
 
   // Cerrada (acabada o saltada): esta versión queda vista y no vuelve a salir sola.
+  // Desde Ajustes la portada no tiene que esperar a ninguna pantalla de arranque.
+  const [welcomeQuick, setWelcomeQuick] = useState(false)
   const closeWelcome = useCallback(() => {
     setWelcome(null)
+    setWelcomeQuick(false)
     dispatch({ type: 'settings/welcome', version: WELCOME_VERSION })
   }, [dispatch])
 
@@ -628,7 +633,13 @@ export function App() {
             {pane('places', <PlacesView />)}
             {pane(
               'settings',
-              <SettingsView onWelcome={() => setWelcome(FULL_WELCOME)} onSuggest={API_URL ? () => setSuggesting(true) : undefined} />,
+              <SettingsView
+                onWelcome={() => {
+                  setWelcomeQuick(true)
+                  setWelcome(FULL_WELCOME)
+                }}
+                onSuggest={API_URL ? () => setSuggesting(true) : undefined}
+              />,
             )}
           </SizingContext.Provider>
           {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
@@ -693,7 +704,7 @@ export function App() {
       )}
       {welcome && (
         <Suspense fallback={null}>
-          <Welcome run={welcome} onReady={finishBoot} onDone={closeWelcome} onUnavailable={() => setWelcome(null)} />
+          <Welcome run={welcome} quick={welcomeQuick} onReady={finishBoot} onDone={closeWelcome} onUnavailable={() => setWelcome(null)} />
         </Suspense>
       )}
     </RowActionsContext.Provider>

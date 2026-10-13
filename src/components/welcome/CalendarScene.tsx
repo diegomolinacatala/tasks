@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { dayNameLong, todayIso } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
 import { isNative } from '../../lib/platform'
 import { useCopy } from '../../state/LanguageProvider'
@@ -29,6 +30,7 @@ const COPY = {
       { at: 1020, minutes: 0, title: 'Llamar al banco' },
     ] satisfies SceneRow[],
     connect: 'Conectar mi calendario',
+    asking: 'Pidiendo permiso…',
     show: 'Enseñarlo en la Agenda',
     connected: 'Conectado',
     denied: 'Sin permiso: abrir Ajustes del iPhone',
@@ -43,6 +45,7 @@ const COPY = {
       { at: 1020, minutes: 0, title: 'Call the bank' },
     ] satisfies SceneRow[],
     connect: 'Connect my calendar',
+    asking: 'Asking for access…',
     show: 'Show it in the Agenda',
     connected: 'Connected',
     denied: 'No access: open iPhone Settings',
@@ -63,6 +66,8 @@ export function CalendarScene() {
   const dispatch = useDispatch()
   const [busy, setBusy] = useState(false)
   const connected = calendar.status === 'granted' && enabled
+  // El día de verdad, no un jueves fijo: la lámina es un día como el de la Agenda.
+  const weekday = useMemo(() => dayNameLong(todayIso()), [])
 
   const act = async () => {
     if (busy || connected) return
@@ -82,14 +87,22 @@ export function CalendarScene() {
     if (status === 'granted') haptic('success')
   }
 
-  const label = connected ? copy.connected : calendar.status === 'denied' ? copy.denied : calendar.status === 'granted' ? copy.show : copy.connect
+  const label = busy
+    ? copy.asking
+    : connected
+      ? copy.connected
+      : calendar.status === 'denied'
+        ? copy.denied
+        : calendar.status === 'granted'
+          ? copy.show
+          : copy.connect
   // Los eventos entran uno detrás de otro.
   const eventTitles = copy.rows.filter((row: SceneRow) => row.color !== undefined).map((row) => row.title)
 
   return (
     <div className="scene scene--calendar">
       <p className="scene__day">
-        {copy.day[0]} <span>{copy.day[1]}</span>
+        {copy.day[0]} <span>{weekday}</span>
       </p>
       <ol className="timeline scene__timeline" aria-label={copy.label}>
         {copy.rows.map((row: SceneRow) => {

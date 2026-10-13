@@ -23,9 +23,12 @@ describe('welcomeOnLaunch', () => {
 
   test('sin calendario (la PWA), la lámina del calendario no cuenta como nueva', () => {
     expect(availablePlates(false)).not.toContain('calendar')
-    expect(welcomeOnLaunch(false, 3, availablePlates(false))).toBeNull()
-    expect(welcomeOnLaunch(false, 3, availablePlates(true))).toEqual({ after: 3, news: true })
+    // Sin Gestos (la 5) de por medio, lo único posterior a la 4 es el calendario: en la PWA no cuenta.
+    const butSwipe = (calendar: boolean) => availablePlates(calendar).filter((id) => id !== 'swipe')
+    expect(welcomeOnLaunch(false, 3, butSwipe(false))).toBeNull()
+    expect(welcomeOnLaunch(false, 3, butSwipe(true))).toEqual({ after: 3, news: true })
     expect(welcomeOnLaunch(false, 2, availablePlates(false))).toEqual({ after: 2, news: true })
+    expect(welcomeOnLaunch(false, WELCOME_VERSION, availablePlates(false))).toBeNull()
   })
 })
 
@@ -44,16 +47,16 @@ describe('platesAfter', () => {
     expect(platesAfter(plates, 0).map((plate) => plate.id)).toEqual(['write', 'details', 'swipe', 'month', 'routine', 'suggest', 'calendar'])
   })
 
-  test('quien vio la de la 1.2 ve lo de después: la ficha del compositor, las sugerencias y el calendario', () => {
-    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'suggest', 'calendar'])
+  test('quien vio la de la 1.2 ve lo de después: la ficha, los gestos (versión 5), las sugerencias y el calendario', () => {
+    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'swipe', 'suggest', 'calendar'])
   })
 
-  test('quien vio la de la 1.4 solo ve el calendario', () => {
-    expect(platesAfter(plates, 3).map((plate) => plate.id)).toEqual(['calendar'])
+  test('quien vio la de la 1.4 ve los gestos y el calendario', () => {
+    expect(platesAfter(plates, 3).map((plate) => plate.id)).toEqual(['swipe', 'calendar'])
   })
 
-  test('sin el calendario (la PWA), quien vio la de la 1.4 no tiene nada nuevo', () => {
-    expect(platesAfter(plates.filter((plate) => plate.id !== 'calendar'), 3)).toEqual([])
+  test('sin el calendario (la PWA), quien vio la de la 1.4 solo tiene los gestos', () => {
+    expect(platesAfter(plates.filter((plate) => plate.id !== 'calendar'), 3).map((plate) => plate.id)).toEqual(['swipe'])
   })
 
   test('con la versión actual no queda ninguna', () => {

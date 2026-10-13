@@ -42,6 +42,8 @@ const COPY = {
   },
 } as const
 const EXTRA_REMINDER = { kind: 'before', minutes: 30 } as const
+/** "A la hora" viene puesto; si se quita, se vuelve a ofrecer (quitar algo tiene que tener vuelta). */
+const ON_TIME = { kind: 'before', minutes: 0 } as const
 
 let ids = 0
 const newId = () => `scene-${++ids}`
@@ -81,6 +83,7 @@ export function DetailsScene() {
   const days = [today, addDays(today, 1), ...(parsed.date && parsed.date > addDays(today, 1) ? [parsed.date] : [])]
   const summary = details ? detailsSummary(details, today, [], []) : []
   const extra = details?.reminders.find((reminder) => reminder.kind === 'before' && reminder.minutes === EXTRA_REMINDER.minutes)
+  const onTime = details?.reminders.find((reminder) => reminder.kind === 'before' && reminder.minutes === ON_TIME.minutes)
 
   return (
     <div className={`scene scene--details ${!touched && !still ? 'is-hinting' : ''}`}>
@@ -185,6 +188,11 @@ export function DetailsScene() {
                 <IconClose size={12} className="chip__remove" />
               </button>
             ))}
+            {!onTime && details.time && (
+              <button type="button" className="chip chip--option" onClick={() => change(addDetailReminder(details, ON_TIME, newId()))}>
+                {reminderLabel(ON_TIME, Date.now())}
+              </button>
+            )}
             {!extra && details.time && (
               <button type="button" className="chip chip--option" onClick={() => change(addDetailReminder(details, EXTRA_REMINDER, newId()))}>
                 {reminderLabel(EXTRA_REMINDER, Date.now())}

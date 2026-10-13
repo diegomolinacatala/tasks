@@ -21,6 +21,8 @@ import './welcome.css'
 interface WelcomeProps {
   /** Qué láminas tocan y si la portada presenta la app o anuncia lo nuevo (`lib/welcome.ts`). */
   run: WelcomeRun
+  /** Desde Ajustes, no desde el arranque: la portada entra sin esperar (no hay relevo que cuidar). */
+  quick?: boolean
   /** Ya está pintada: se puede fundir la pantalla de arranque que tiene encima. */
   onReady?: () => void
   onDone: () => void
@@ -147,7 +149,7 @@ const EXIT_MS = 420
  * Tras una actualización sale igual, con la portada de novedades y solo las láminas nuevas.
  * Nada obliga: se avanza con el botón, se vuelve atrás y «Saltar» está siempre a mano.
  */
-export function Welcome({ run, onReady, onDone }: WelcomeProps) {
+export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
   const copy = useCopy(COPY)
   // Lo que toca se fija al abrir: no cambia mientras se recorre. Tras actualizar, si lo nuevo no es de
   // esta plataforma no hay nada que enseñar (`welcomeOnLaunch` ya no la abre; esto es por si acaso).
@@ -215,7 +217,7 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
       aria-label={news ? copy.newsLabel : copy.welcomeLabel}
     >
       {!plate || !text ? (
-        <section className={`welcome__cover ${backwards ? 'is-back' : ''}`}>
+        <section className={`welcome__cover ${backwards ? 'is-back' : ''} ${quick ? 'is-quick' : ''}`}>
           {/* En el centro exacto y del mismo tamaño que la del arranque: al fundirse aquella, queda esta. */}
           <svg className="welcome__mark" viewBox="0 0 100 100" aria-hidden="true">
             <path fill="currentColor" d={MARK_PATH} />
@@ -244,7 +246,14 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
             <button type="button" className="welcome__back" aria-label={copy.back} onClick={() => go(step - 1)}>
               <IconChevronLeft size={20} />
             </button>
-            <ol className="welcome__progress" aria-label={copy.progress(step, plates.length)}>
+            <ol
+              className="welcome__progress"
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={plates.length}
+              aria-valuenow={step}
+              aria-valuetext={copy.progress(step, plates.length)}
+            >
               {plates.map((item, index) => (
                 <li key={item.id} className={index < step - 1 ? 'is-done' : index === step - 1 ? 'is-current' : ''} />
               ))}
@@ -267,8 +276,9 @@ export function Welcome({ run, onReady, onDone }: WelcomeProps) {
             </div>
           </section>
           <footer className="welcome__foot">
+            {/* Al final, "Listo": "Empezar" ya se dijo en la portada. */}
             <button type="button" className="welcome__next" onClick={last ? finish : () => go(step + 1)}>
-              {last ? (news ? copy.done : copy.start) : copy.next}
+              {last ? copy.done : copy.next}
             </button>
           </footer>
         </>

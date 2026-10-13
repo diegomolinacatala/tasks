@@ -10,12 +10,13 @@ export type PlateId = 'write' | 'details' | 'swipe' | 'month' | 'routine' | 'sug
  * Versión de la bienvenida en que entró cada lámina. Una lámina nueva, o una que cambie para enseñar
  * algo nuevo, lleva la siguiente a la mayor de aquí: quien ya la vio la verá al actualizar, solo con eso.
  * 1: la 1.2. 2: la 1.3 (la ficha del compositor). 3: la 1.4 (las sugerencias). 4: la 1.6 (el calendario
- * del iPhone en la Agenda; solo en el iPhone, ver `platesAfter`).
+ * del iPhone en la Agenda; solo en el iPhone, ver `platesAfter`). 5: la auditoría del 13/10/2026 (Gestos
+ * enseña también mantener pulsado para mover, que llegó en la 1.5 sin lámina).
  */
 export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   write: 1,
   details: 2,
-  swipe: 1,
+  swipe: 5,
   month: 1,
   routine: 1,
   suggest: 3,

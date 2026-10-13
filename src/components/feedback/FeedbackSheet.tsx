@@ -9,6 +9,7 @@ const COPY = {
     placeholder: '¿Qué cambiarías, o qué no va bien?',
     send: 'Enviar',
     sending: 'Enviando…',
+    preparing: 'Preparando la captura…',
     redraw: 'Rodear otra vez',
     removeShot: 'No adjuntar la captura',
     addShot: 'Adjuntar la captura',
@@ -20,6 +21,7 @@ const COPY = {
     placeholder: 'What would you change, or what isn’t working?',
     send: 'Send',
     sending: 'Sending…',
+    preparing: 'Preparing the screenshot…',
     redraw: 'Circle again',
     removeShot: 'Don’t attach the screenshot',
     addShot: 'Attach the screenshot',
@@ -62,10 +64,11 @@ export function FeedbackSheet(props: FeedbackSheetProps) {
       open={open}
       className="fb-sheet"
       title={copy.title}
-      onClose={props.onClose}
+      // Mientras se envía no se cierra: si no, el envío seguiría sin que se viera el resultado.
+      onClose={sending ? undefined : props.onClose}
       footer={
         <button type="button" className="sheet__primary" disabled={!ready} onClick={props.onSend}>
-          {sending ? copy.sending : copy.send}
+          {sending ? copy.sending : waiting ? copy.preparing : copy.send}
         </button>
       }
     >
@@ -81,7 +84,7 @@ export function FeedbackSheet(props: FeedbackSheetProps) {
         )}
         <div className="fb-sheet__meta">
           <p className="fb-sheet__where">{where}</p>
-          <p className="fb-sheet__picked">{picked ?? copy.whole}</p>
+          {hasShot && withShot ? <p className="fb-sheet__picked">{picked ?? copy.whole}</p> : picked && <p className="fb-sheet__picked">{picked}</p>}
           {hasShot && !withShot && <p className="sheet__note">{copy.noShot}</p>}
           <div className="sheet__chips">
             <button type="button" className="chip chip--option" onClick={props.onRedraw}>

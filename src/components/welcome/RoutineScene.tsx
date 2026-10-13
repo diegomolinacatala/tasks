@@ -136,7 +136,8 @@ export function RoutineScene() {
               </svg>
               {firstDone ? <IconCheck size={18} strokeWidth={2.6} /> : <span className="lock__emoji">{first.emoji}</span>}
             </button>
-            <button type="button" className="lock__card" tabIndex={-1} aria-hidden="true" onClick={() => toggle(first.id)}>
+            {/* Decorativa para el lector (el anillo es el control); con el dedo también tacha. */}
+            <div className="lock__card" aria-hidden="true" onClick={() => toggle(first.id)}>
               <span className="lock__glyph">
                 {firstDone ? <IconCheck size={15} strokeWidth={2.6} /> : <span className="lock__emoji">{first.emoji}</span>}
               </span>
@@ -146,7 +147,7 @@ export function RoutineScene() {
                   {firstDone ? copy.doneWord : first.time ? shortTime(first.time) : copy.today} · {copy.count(doneToday, routines.length)}
                 </small>
               </span>
-            </button>
+            </div>
           </div>
         </div>
       )}

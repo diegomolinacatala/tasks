@@ -2,20 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
 import { SwipeRow } from '../task/SwipeRow'
-import { IconCheck, IconChevronLeft, IconChevronRight } from '../ui/Icons'
+import { IconCheck, IconChevronLeft, IconChevronRight, IconGrip } from '../ui/Icons'
 
 /** Lo que tarda en volver la fila borrada, para poder repetir el gesto. */
 const RETURN_MS = 1500
 
 const COPY = {
-  es: { unmark: 'Desmarcar', complete: 'Completar', right: 'Desliza a la derecha', left: 'Desliza a la izquierda' },
-  en: { unmark: 'Unmark', complete: 'Complete', right: 'Swipe right', left: 'Swipe left' },
+  es: { unmark: 'Desmarcar', complete: 'Completar', right: 'Desliza a la derecha', left: 'Desliza a la izquierda', hold: 'Mantén pulsada para moverla' },
+  en: { unmark: 'Unmark', complete: 'Complete', right: 'Swipe right', left: 'Swipe left', hold: 'Hold to move it' },
 } as const
 
 /**
  * Dos filas de verdad (`SwipeRow`, el mismo gesto que en la app): una se tacha deslizándola a la
  * derecha y la otra se borra hacia la izquierda, y vuelve al rato para repetirlo. Hasta que se tocan,
- * se asoman solas hacia su lado para enseñar por dónde van.
+ * se asoman solas hacia su lado para enseñar por dónde van. La tercera se hunde sola, como una fila
+ * que se mantiene pulsada para moverla (sin asa, nadie lo deduce).
  */
 export function SwipeScene() {
   const copy = useCopy(COPY)
@@ -68,6 +69,17 @@ export function SwipeScene() {
             </div>
           </SwipeRow>
         )}
+        <li className={`swipe scene__hold ${touched ? '' : 'is-hint-press'}`}>
+          <div className="swipe__surface">
+            <div className="row">
+              <span className="row__check" aria-hidden="true" />
+              <span className="row__title">
+                <span className="row__text">{copy.hold}</span>
+              </span>
+              <IconGrip size={16} className="scene__arrow" />
+            </div>
+          </div>
+        </li>
       </ul>
     </div>
   )

@@ -10,7 +10,7 @@ const COPY = {
   },
   en: {
     title: 'Go to what you want to comment on',
-    mark: 'Mark',
+    mark: 'Point it out',
     leave: 'Stop suggesting',
   },
 } as const

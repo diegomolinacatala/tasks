@@ -24,13 +24,18 @@ const SCREENS: Record<TabId, string> = { inbox: 'Bandeja', agenda: 'Agenda', pla
 const COPY = {
   es: {
     sent: 'Enviada. ¡Gracias!',
+    discard: 'Toca otra vez para salir sin enviar lo escrito.',
     screens: SCREENS,
   },
   en: {
     sent: 'Sent. Thank you!',
+    discard: 'Tap again to leave without sending what you wrote.',
     screens: { inbox: 'Inbox', agenda: 'Agenda', places: 'Places', settings: 'Settings' } as Record<TabId, string>,
   },
 } as const
+
+/** Lo que vale el primer toque en la × con un mensaje escrito. */
+const DISCARD_MS = 4000
 
 /**
  * `browse`: la app sigue usándose, con una tarjeta abajo y su botón Señalar para cuando se llega a lo
@@ -67,6 +72,23 @@ export function FeedbackMode({ tab, api, onDone }: FeedbackModeProps) {
   const [version, setVersion] = useState('web')
   // La pestaña en que se rodeó: mientras se escribe ya no cambia.
   const [screen, setScreen] = useState(tab)
+  // Con algo escrito, salir del modo pide un segundo toque.
+  const [leaving, setLeaving] = useState(false)
+
+  useEffect(() => {
+    if (!leaving) return
+    const timer = window.setTimeout(() => setLeaving(false), DISCARD_MS)
+    return () => window.clearTimeout(timer)
+  }, [leaving])
+
+  const leave = () => {
+    if (message.trim() && !leaving) {
+      setLeaving(true)
+      toast({ message: copy.discard })
+      return
+    }
+    onDone()
+  }
 
   useEffect(() => {
     if (!isNative) return
@@ -155,12 +177,15 @@ export function FeedbackMode({ tab, api, onDone }: FeedbackModeProps) {
     }
   }
 
-  const picked = mark?.elements.find((info) => info.label)?.label ?? (mark?.region ? (mark.elements[0]?.path ?? null) : null)
+  // Sin captura no se envían textos: tampoco se enseñan (solo la ruta de clases).
+  const picked = attached
+    ? (mark?.elements.find((info) => info.label)?.label ?? (mark?.region ? (mark.elements[0]?.path ?? null) : null))
+    : (mark?.region ? (mark.elements[0]?.path ?? null) : null)
   const where = [copy.screens[screen], mark?.sheet].filter(Boolean).join(' · ')
 
   return createPortal(
     <div className={FEEDBACK_ROOT}>
-      {phase === 'browse' && <FeedbackDock onMark={() => void capture()} onClose={onDone} />}
+      {phase === 'browse' && <FeedbackDock onMark={() => void capture()} onClose={leave} />}
       {(phase === 'draw' || phase === 'write') && (
         <FeedbackDraw
           shot={shot}
@@ -189,7 +214,9 @@ export function FeedbackMode({ tab, api, onDone }: FeedbackModeProps) {
         }}
         onToggleShot={() => setWithShot((on) => !on)}
         onRedraw={() => setPhase('draw')}
-        onClose={backToBrowse}
+        // Cerrar el panel (tocar fuera para soltar el teclado) vuelve a lo rodeado, con el trazo intacto;
+        // solo Cancelar en esa capa descarta.
+        onClose={() => setPhase('draw')}
         onSend={() => void send()}
       />
     </div>,

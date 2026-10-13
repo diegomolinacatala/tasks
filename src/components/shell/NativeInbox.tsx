@@ -55,9 +55,9 @@ export function NativeInbox() {
           continue
         }
         // Lo apuntado con la app delante no debe entrar en silencio: qué es y adónde ha ido.
-        const added = applied.actions.flatMap((action) => (action.type === 'task/add' && action.id ? [action] : []))
+        const added = applied.actions.flatMap((action) => (action.type === 'task/add' && action.id ? [{ ...action, id: action.id }] : []))
         const [first] = added
-        if (!first || !added.length) continue
+        if (!first) continue
         const today = todayIso()
         const { date, time } = first
         const where = date ? `${capitalize(relativeLabel(date, today))}${time ? ` ${shortTime(time)}` : ''}` : text.inbox

@@ -113,6 +113,8 @@ export function FeedbackDraw({ shot, mark, live, onStart, onMark, onSkip, onCanc
   return (
     <div
       className={`fb-draw ${shot ? 'has-shot' : ''} ${live ? 'is-live' : ''}`}
+      role={live ? 'img' : undefined}
+      aria-label={live ? copy.hint : undefined}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}

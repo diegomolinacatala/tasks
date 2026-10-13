@@ -99,6 +99,28 @@
   }
 }
 
+/* Desde Ajustes no hay pantalla de arranque que relevar: la portada entra sin esperar */
+.welcome__cover.is-quick .welcome__mark {
+  animation-duration: 420ms;
+  animation-delay: 0ms;
+}
+
+.welcome__cover.is-quick .welcome__rule {
+  animation-delay: 180ms;
+}
+
+.welcome__cover.is-quick .welcome__name {
+  animation-delay: 240ms;
+}
+
+.welcome__cover.is-quick .welcome__tagline {
+  animation-delay: 300ms;
+}
+
+.welcome__cover.is-quick .welcome__foot {
+  animation-delay: 360ms;
+}
+
 /* Al volver a la portada desde la primera lámina no se repite la entrada */
 .welcome__cover.is-back .welcome__mark {
   animation-duration: 1ms;
@@ -662,6 +684,25 @@
   animation: scene-hint-left 2.8s var(--ease) 2300ms infinite;
 }
 
+/* La tercera fila se hunde sola, como al mantenerla pulsada (`pressCue`), y vuelve */
+.swipe.is-hint-press > .swipe__surface {
+  animation: scene-hint-press 2.8s var(--ease) 3700ms infinite;
+}
+
+@keyframes scene-hint-press {
+  0%,
+  55%,
+  100% {
+    transform: none;
+    background: transparent;
+  }
+  18%,
+  38% {
+    transform: scale(0.97);
+    background: var(--bg-press);
+  }
+}
+
 @keyframes scene-hint-right {
   0%,
   42%,
@@ -965,6 +1006,30 @@
 @media (prefers-reduced-motion: reduce) {
   .scene__event,
   .scene__connect {
+    animation: none;
+  }
+
+  /* La portada aparece entera de golpe, sin la coreografía a trompicones */
+  .welcome__mark,
+  .welcome__rule,
+  .welcome__name,
+  .welcome__tagline,
+  .welcome__cover .welcome__foot {
+    animation: none;
+  }
+
+  .welcome__mark {
+    transform: translateY(-138px) scale(0.8);
+  }
+
+  /* La vuelta de muestra de Sugerencias, ya dibujada y quieta */
+  .scene__demo-trace {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+  }
+
+  .swipe.is-hint-press > .swipe__surface {
     animation: none;
   }
 }

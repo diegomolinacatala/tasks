@@ -5,7 +5,7 @@ import { suggestEmoji } from '../../lib/emoji'
 import { parseTask } from '../../lib/parse'
 import { parseRoutine } from '../../lib/repeat'
 import { useCopy } from '../../state/LanguageProvider'
-import { IconArrowUp, IconBell, IconPlus, IconRepeat, IconSliders } from '../ui/Icons'
+import { IconBell, IconPlus, IconRepeat } from '../ui/Icons'
 import { reducedMotion } from './motion'
 import '../compose/composer.css'
 import '../routines/routines.css'
@@ -121,11 +121,6 @@ export function WriteScene() {
               {!still && <i className="scene__caret" />}
             </span>
           </span>
-          {text && (
-            <span className="composer__send">
-              <IconArrowUp size={17} strokeWidth={2.2} />
-            </span>
-          )}
         </div>
         <div className="composer__foot">
           <div className="composer__tray">
@@ -142,10 +137,6 @@ export function WriteScene() {
               ))
             )}
           </div>
-          <span className="composer__more">
-            <IconSliders size={15} />
-            {copy.details}
-          </span>
         </div>
       </div>
     </div>
