@@ -260,6 +260,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   - Probado con Edge sin ventana y el calendario de muestra: elegir «Tasks», lo que se sincroniza (7
     tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
     tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
+- **La 1.6 está aprobada** (13/10/2026: la subida respondió *train version '1.6' is closed*; el archivo
+  con el Swift de la auditoría compiló bien). `MARKETING_VERSION` subido a **1.7**.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -1624,7 +1626,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.6,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.7,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.
