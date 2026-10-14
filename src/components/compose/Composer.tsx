@@ -14,7 +14,7 @@ import { capitalize } from '../../lib/title'
 import { useCopy, useLanguage } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { IsoDate, Place, TaskDraft } from '../../types'
-import { IconArrowUp, IconBell, IconCheck, IconClose, IconMic, IconPin, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
+import { IconArrowUp, IconBell, IconCheck, IconClose, IconLeave, IconMic, IconPin, IconPlace, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { VoiceBar } from './VoiceBar'
 import { usePullUp } from './usePullUp'
@@ -107,11 +107,13 @@ const REPLACED_MIN_BEFORE = 5
 /** Se enseña una sola vez qué hace la píldora tachada. */
 const LITERAL_HINT_KEY = 'tasks:literal-hinted'
 /** Frases de lugar que en la PWA se quedan tal cual: se avisa de que eso es cosa del iPhone. */
-const PLACE_PHRASE = /\b(al (llegar|pasar por|salir)|cuando (llegue|salga|est[eé])|nada más llegar|en cuanto llegue|when i (get to|arrive|leave)|once i.m at)\b/i
+const PLACE_PHRASE =
+  /\b(al (llegar|pasar por|salir|irme|marcharme)|cuando (llegue|salga|vuelva|me vaya|est[eé])|nada más (llegar|salir)|en cuanto (llegue|salga|me vaya)|when i (get to|arrive|leave|head out of)|once i.m at)\b/i
 
 const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
   bell: IconBell,
   pin: IconPin,
+  leave: IconLeave,
   repeat: IconRepeat,
   size: IconTextSize,
 }
@@ -159,7 +161,8 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   const parsed = useMemo(() => (ready ? parseTask(value, Date.now(), places) : NOTHING), [value, ready, places, language]) // eslint-disable-line react-hooks/exhaustive-deps
   const label = routine?.label ?? parsed.label
   const detected = ready && !details && label !== null
-  const placed = !routine && (Boolean(parsed.newPlace) || parsed.reminders.some((reminder) => reminder.kind === 'place'))
+  // Cómo avisa el lugar dicho: al llegar (la chincheta) o al salir.
+  const placed = routine ? null : (parsed.newPlace?.on ?? parsed.reminders.flatMap((reminder) => (reminder.kind === 'place' ? [reminder.on] : []))[0] ?? null)
   // Con la ficha abierta manda ella; si lo tecleado después dice algo nuevo ("a las 5"), se ofrece aplicarlo.
   const suggestion = details && !details.repeat && !expanded && parsed.label !== null && parsed.title.trim() !== value.trim() ? parsed : null
   // En la PWA una frase de lugar se queda tal cual: se dice por qué.
@@ -451,7 +454,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
                   {routine ? (
                     <IconRepeat size={12} strokeWidth={2} />
                   ) : placed ? (
-                    <IconPin size={12} strokeWidth={2} />
+                    <IconPlace on={placed} size={12} strokeWidth={2} />
                   ) : (
                     parsed.reminders.length > 0 && <IconBell size={12} strokeWidth={2} />
                   )}

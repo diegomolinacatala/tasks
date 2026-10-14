@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import { switchTheme } from '../../lib/theme'
 import { useCopy } from '../../state/LanguageProvider'
 import { useDispatch } from '../../state/StoreProvider'
 import type { Theme } from '../../types'
-import { IconCheck } from '../ui/Icons'
+import { IconCheck, IconHalf, IconMoon, IconSun } from '../ui/Icons'
+import { Sheet } from '../ui/Sheet'
+import { SettingsRow, SettingsSheetTitle } from './SettingsRow'
 
 const OPTIONS: readonly Theme[] = ['light', 'dark', 'auto']
 
@@ -56,5 +59,24 @@ export function AppearancePicker({ value }: { value: Theme }) {
         </button>
       ))}
     </div>
+  )
+}
+
+/**
+ * Ajustes → Apariencia: una fila con la de ahora que abre las tres tarjetas en un panel. En la página
+ * ocupaban media pantalla para algo que se toca una vez.
+ */
+export function AppearanceRow({ value }: { value: Theme }) {
+  const copy = useCopy(COPY)
+  const [open, setOpen] = useState(false)
+  const Icon = value === 'dark' ? IconMoon : value === 'light' ? IconSun : IconHalf
+  return (
+    <>
+      <SettingsRow icon={<Icon size={17} />} label={copy.title} value={copy[value]} onClick={() => setOpen(true)} />
+      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+        <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
+        <AppearancePicker value={value} />
+      </Sheet>
+    </>
   )
 }

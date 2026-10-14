@@ -186,7 +186,7 @@ export function toRoutineDraft(details: Details, title: string): RoutineDraft | 
   return { title: title.trim(), days: details.repeat, time: details.time, label: routineLabel(details.repeat, details.time) }
 }
 
-export type SummaryIcon = 'bell' | 'pin' | 'repeat' | 'size' | null
+export type SummaryIcon = 'bell' | 'pin' | 'leave' | 'repeat' | 'size' | null
 
 export interface SummaryItem {
   key: string
@@ -220,8 +220,8 @@ export function detailsSummary(
   ]
   const [only] = details.reminders
   if (details.reminders.length > 1) items.push({ key: 'reminders', label: en ? `${details.reminders.length} reminders` : `${details.reminders.length} avisos`, icon: 'bell' })
-  else if (only) items.push({ key: 'reminders', label: reminderLabel(only, now, places), icon: only.kind === 'place' ? 'pin' : 'bell' })
-  if (details.newPlace) items.push({ key: 'place', label: details.newPlace.name, icon: 'pin' })
+  else if (only) items.push({ key: 'reminders', label: reminderLabel(only, now, places), icon: only.kind === 'place' ? (only.on === 'leave' ? 'leave' : 'pin') : 'bell' })
+  if (details.newPlace) items.push({ key: 'place', label: details.newPlace.name, icon: details.newPlace.on === 'leave' ? 'leave' : 'pin' })
   const section = details.sectionId ? sections.find((item) => item.id === details.sectionId) : undefined
   if (section) items.push({ key: 'section', label: section.name, icon: null })
   if (details.importance > DEFAULT_IMPORTANCE) {

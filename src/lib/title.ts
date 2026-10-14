@@ -16,6 +16,11 @@ export interface TitleRules {
   question: RegExp
   /** "he quedado con Pedro para cenar" → "cenar con Pedro" (solo en español). */
   meeting?: { regex: RegExp; join: string }
+  /**
+   * El verbo de delante en infinitivo, si lo trae en subjuntivo: "recuérdame que llame a Carlota" →
+   * "llamar a Carlota" (solo en español). Recibe la primera palabra sin tildes ni mayúsculas.
+   */
+  infinitive?: (word: string) => string | undefined
 }
 
 /**
@@ -66,6 +71,25 @@ const LEADING = new RegExp(
   ].join('|')})[,.:;]?\\s+`,
 )
 
+/**
+ * "Recuérdame que llame a Carlota": tras "que", el verbo va en subjuntivo y la tarea se apunta en
+ * infinitivo. Solo los verbos de tareas de cada día, escritos uno a uno: una regla general ("-e" →
+ * "-ar") convertiría palabras que no son verbos ("este", "clase"). Fuera también los que son además un
+ * sustantivo o un nombre ("pase de temporada", "cierre de caja", "Lea").
+ */
+const SUBJUNCTIVES: Record<string, string> = {
+  llame: 'llamar', compre: 'comprar', mande: 'mandar', lleve: 'llevar', quite: 'quitar', tire: 'tirar',
+  baje: 'bajar', mire: 'mirar', tome: 'tomar', deje: 'dejar', cambie: 'cambiar',
+  limpie: 'limpiar', estudie: 'estudiar', termine: 'terminar', prepare: 'preparar', reserve: 'reservar',
+  revise: 'revisar', avise: 'avisar', felicite: 'felicitar', envie: 'enviar', lave: 'lavar',
+  saque: 'sacar', busque: 'buscar', pague: 'pagar', apague: 'apagar', cargue: 'cargar', riegue: 'regar',
+  empiece: 'empezar', recoja: 'recoger', coja: 'coger', haga: 'hacer', ponga: 'poner',
+  escriba: 'escribir', suba: 'subir', beba: 'beber', devuelva: 'devolver',
+  pida: 'pedir', traiga: 'traer', diga: 'decir', abra: 'abrir', compruebe: 'comprobar', cuelgue: 'colgar',
+  pregunte: 'preguntar', conteste: 'contestar', responda: 'responder', imprima: 'imprimir',
+  firme: 'firmar', entregue: 'entregar', renueve: 'renovar', confirme: 'confirmar',
+}
+
 export const SPANISH_TITLE: TitleRules = {
   leading: LEADING,
   connectors: /^(?:(?:y|a|el|la|de|para|,)\s+)+|(?:\s+(?:y|a|el|la|de|para|,))+$/i,
@@ -73,6 +97,7 @@ export const SPANISH_TITLE: TitleRules = {
   question: /^[¿¡]\s*([^¿¡?!]+?)\s*[?!]*$/,
   /** "he quedado con Pedro para cenar" → "cenar con Pedro". "para que revise…" no es una actividad. */
   meeting: { regex: /^(?:he )?quedado con (.+?) para (?!que )(.+)$/d, join: 'con' },
+  infinitive: (word) => SUBJUNCTIVES[word],
 }
 
 const EDGE_PUNCTUATION = /^[,.;:]+|[,.;:]+$/g
@@ -132,5 +157,8 @@ export function cleanTitle(original: string, spans: readonly Span[], rules: Titl
     stripped ||= unprefixed !== trimmed
     title = unprefixed.replace(rules.connectors, '').replace(EDGE_PUNCTUATION, '').trim()
   }
+  const verb = /^[^\s,.;:]+/.exec(title)?.[0] ?? ''
+  const infinitive = verb ? rules.infinitive?.(fold(verb)) : undefined
+  if (infinitive) return capitalize(`${infinitive}${title.slice(verb.length)}`)
   return stripped ? capitalize(title) : title
 }

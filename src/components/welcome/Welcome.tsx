@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import { createPortal } from 'react-dom'
 import { MARK_PATH } from '../../lib/boot'
-import { isNative } from '../../lib/platform'
 import { showsCalendar } from '../../lib/platform/calendar'
+import { isNative, showsPlaces } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import type { PlateId, WelcomeRun } from '../../lib/welcome'
 import { platesAfter } from '../../lib/welcome'
@@ -12,6 +12,7 @@ import { IconChevronLeft } from '../ui/Icons'
 import { CalendarScene } from './CalendarScene'
 import { DetailsScene } from './DetailsScene'
 import { MonthScene } from './MonthScene'
+import { PlacesScene } from './PlacesScene'
 import { RoutineScene } from './RoutineScene'
 import { SuggestScene } from './SuggestScene'
 import { SwipeScene } from './SwipeScene'
@@ -43,6 +44,8 @@ const PLATES: readonly Plate[] = [
   { id: 'swipe', Scene: SwipeScene },
   { id: 'month', Scene: MonthScene },
   { id: 'routine', Scene: RoutineScene },
+  // Los avisos por lugar solo existen en el iPhone (y en local).
+  ...(showsPlaces ? [{ id: 'places' as const, Scene: PlacesScene }] : []),
   { id: 'suggest', Scene: SuggestScene },
   // El calendario solo existe en el iPhone (y en local, con el de muestra).
   ...(showsCalendar ? [{ id: 'calendar' as const, Scene: CalendarScene }] : []),
@@ -67,6 +70,11 @@ const COPY = {
         text: isNative
           ? 'Cada mañana amanecen sin tachar. Se tachan también desde la pantalla de bloqueo.'
           : 'Cada mañana amanecen sin tachar, con su emoji y su racha.',
+      },
+      places: {
+        kicker: 'Lugares',
+        title: 'Al llegar y al salir.',
+        text: '«Llamar a Carlota al salir de casa» suena al cruzar el círculo, aunque la app esté cerrada. Arrastra tu punto.',
       },
       suggest: {
         kicker: 'Sugerencias',
@@ -108,6 +116,11 @@ const COPY = {
         text: isNative
           ? 'Every morning they start unchecked. Check them off from the Lock Screen, too.'
           : 'Every morning they start unchecked, with their emoji and their streak.',
+      },
+      places: {
+        kicker: 'Places',
+        title: 'Arriving and leaving.',
+        text: '“Call Carlota when I leave home” goes off as you cross the circle, even with the app closed. Drag your dot.',
       },
       suggest: {
         kicker: 'Suggestions',

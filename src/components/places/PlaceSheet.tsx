@@ -10,7 +10,7 @@ import type { PlaceLocation, Reminder } from '../../types'
 import { TaskRow } from '../task/TaskRow'
 import { requestOpenTask } from '../task/rowActions'
 import { useTaskActions } from '../task/useTaskActions'
-import { IconChevronRight, IconExpand, IconLocate, IconMap, IconPin, IconSearch, IconTrash } from '../ui/Icons'
+import { IconChevronRight, IconExpand, IconLocate, IconMap, IconPin, IconPlace, IconSearch, IconTrash } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { Slider } from '../ui/Slider'
 import { useToast } from '../ui/Toast'
@@ -74,6 +74,8 @@ const COPY = {
     radius: 'Radio del aviso',
     radiusNote: 'Avisa al entrar o salir de este círculo.',
     linked: 'Avisos aquí',
+    linkedArrive: 'Al llegar',
+    linkedLeave: 'Al salir',
     aliases: 'Otros nombres',
     none: 'Ninguno',
     confirm: 'Toca otra vez para borrar',
@@ -115,6 +117,8 @@ const COPY = {
     radius: 'Reminder radius',
     radiusNote: 'Reminds you when you enter or leave this circle.',
     linked: 'Reminders here',
+    linkedArrive: 'Arriving',
+    linkedLeave: 'Leaving',
     aliases: 'Other names',
     none: 'None',
     confirm: 'Tap again to delete',
@@ -165,6 +169,10 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   const linked = place
     ? state.tasks.filter((task) => !task.done && task.reminders.some((reminder) => reminder.kind === 'place' && reminder.placeId === place.id))
     : []
+  // Lo que avisa al llegar y lo que avisa al salir, cada uno en su grupo (una tarea puede estar en los dos).
+  const linkedBy = (on: 'arrive' | 'leave') =>
+    linked.filter((task) => task.reminders.some((reminder) => reminder.kind === 'place' && reminder.placeId === place?.id && reminder.on === on))
+  const linkedGroups = (['arrive', 'leave'] as const).map((on) => ({ on, tasks: linkedBy(on) })).filter((group) => group.tasks.length > 0)
   const isNew = !place
   const hasLocation = draft.location !== null
   const full = isNew && state.places.length >= MAX_PLACES
@@ -441,19 +449,27 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
       {place && linked.length > 0 && (
         <>
           <p className="sheet__title">{copy.linked}</p>
-          <div className="place-tasks">
-            {linked.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onToggle={() => toggle(task.id)}
-                onOpen={() => {
-                  close()
-                  requestOpenTask(task.id)
-                }}
-              />
-            ))}
-          </div>
+          {linkedGroups.map(({ on, tasks }) => (
+            <div key={on} className="place-tasks">
+              {/* Con los dos sentidos, cada grupo dice el suyo; con uno solo, también: es lo que hace distinto el aviso. */}
+              <p className="place-tasks__trigger">
+                <IconPlace on={on} size={14} />
+                {on === 'arrive' ? copy.linkedArrive : copy.linkedLeave}
+                <span className="place-tasks__count">{tasks.length}</span>
+              </p>
+              {tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onToggle={() => toggle(task.id)}
+                  onOpen={() => {
+                    close()
+                    requestOpenTask(task.id)
+                  }}
+                />
+              ))}
+            </div>
+          ))}
         </>
       )}
 

@@ -7,7 +7,9 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { useExportFailed } from '../calendar/CalendarExportSync'
 import { useCalendar } from '../calendar/CalendarProvider'
 import { IconCalendar, IconChevronRight } from '../ui/Icons'
+import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
+import { SettingsRow, SettingsSheetTitle } from './SettingsRow'
 import { CalendarExportSheet } from './CalendarExportSheet'
 import { CalendarGuide } from './CalendarGuide'
 import { CalendarPicker } from './CalendarPicker'
@@ -35,6 +37,7 @@ const COPY = {
     guide: 'Añadir Google u Outlook',
     guideHint: 'Paso a paso',
     connected: 'Listo: tu calendario ya sale en la Agenda.',
+    value: { prompt: 'Sin conectar', denied: 'Sin permiso', hidden: 'Oculto', missing: 'Revisar' },
   },
   en: {
     title: 'Calendar',
@@ -56,6 +59,7 @@ const COPY = {
     guide: 'Add Google or Outlook',
     guideHint: 'Step by step',
     connected: 'Done: your calendar now shows up in the Agenda.',
+    value: { prompt: 'Not connected', denied: 'No access', hidden: 'Hidden', missing: 'Check' },
   },
 } as const
 
@@ -64,7 +68,7 @@ const COPY = {
  * ven y, plegado en una fila, el paso a paso para traer Google u Outlook (la mayoría no los tiene en el
  * Calendario del iPhone). Sin calendario en la plataforma (la PWA), no sale.
  */
-export function CalendarBlock() {
+export function CalendarRow() {
   const calendar = useCalendar()
   const settings = useAppState().settings.calendar
   const dispatch = useDispatch()
@@ -74,6 +78,7 @@ export function CalendarBlock() {
   const [guiding, setGuiding] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
   const exportFailed = useExportFailed()
 
   if (!calendar.available) return null
@@ -107,83 +112,108 @@ export function CalendarBlock() {
     </button>
   )
 
+  // En la fila, cómo está de un vistazo: sin conectar, sin permiso, oculto, cuántos calendarios se ven, o
+  // que hay algo que revisar (el calendario donde van tus tareas ya no está, o no se han podido añadir).
+  const trouble = exportMissing || (exportFailed && Boolean(settings.export))
+  const value =
+    calendar.status === 'prompt'
+      ? copy.value.prompt
+      : calendar.status === 'denied'
+        ? copy.value.denied
+        : calendar.status === 'granted'
+          ? trouble
+            ? copy.value.missing
+            : settings.enabled
+              ? copy.count(shown, mine.length)
+              : copy.value.hidden
+          : ''
+
   return (
-    <section className="group">
-      <h2 className="group__title">{copy.title}</h2>
+    <>
+      <SettingsRow
+        icon={<IconCalendar size={17} />}
+        label={copy.title}
+        value={value}
+        danger={calendar.status === 'denied' || (calendar.status === 'granted' && trouble)}
+        onClick={() => setOpen(true)}
+      />
+      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+        <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
 
-      {calendar.status === 'unknown' && <div className="group__card group__card--placeholder" aria-hidden="true" />}
+        {calendar.status === 'unknown' && <div className="group__card group__card--placeholder" aria-hidden="true" />}
 
-      {calendar.status === 'prompt' && (
-        <>
-          <div className="group__card">
-            <button type="button" className="group__row calendar-connect" disabled={busy} onClick={() => void connect()}>
-              <IconCalendar size={18} />
-              <span className="group__label">{copy.connect}</span>
-              <IconChevronRight size={16} className="group__chevron" />
-            </button>
-            {guideRow}
-          </div>
-          <p className="group__note">{copy.promptNote(device)}</p>
-        </>
-      )}
-
-      {calendar.status === 'denied' && (
-        <>
-          <div className="group__card">
-            <button type="button" className="group__row group__row--danger" onClick={isNative ? openSettings : undefined}>
-              <IconCalendar size={18} />
-              <span className="group__label">{copy.denied}</span>
-              <IconChevronRight size={16} className="group__chevron" />
-            </button>
-            {guideRow}
-          </div>
-          <p className="group__note">{copy.deniedNote}</p>
-        </>
-      )}
-
-      {calendar.status === 'granted' && (
-        <>
-          <div className="group__card">
-            <div className="group__row group__row--static">
-              <IconCalendar size={18} />
-              <span className="group__label">{copy.shown}</span>
-              <Switch
-                checked={settings.enabled}
-                label={copy.shown}
-                onChange={(enabled) => {
-                  haptic('selection')
-                  dispatch({ type: 'settings/calendar', enabled })
-                }}
-              />
-            </div>
-            {settings.enabled && mine.length > 0 && (
-              <button type="button" className="group__row" onClick={() => setPicking(true)}>
-                <span className="calendar-dots" aria-hidden="true">
-                  {mine
-                    .filter((item) => !settings.hidden.includes(item.id))
-                    .slice(0, 4)
-                    .map((item) => (
-                      <i key={item.id} className="cal-tone" style={{ '--cal': item.color } as CSSProperties} />
-                    ))}
-                </span>
-                <span className="group__label">{copy.calendars}</span>
-                <span className="group__value">{copy.count(shown, mine.length)}</span>
+        {calendar.status === 'prompt' && (
+          <>
+            <div className="group__card">
+              <button type="button" className="group__row calendar-connect" disabled={busy} onClick={() => void connect()}>
+                <IconCalendar size={18} />
+                <span className="group__label">{copy.connect}</span>
                 <IconChevronRight size={16} className="group__chevron" />
               </button>
-            )}
-            <button type="button" className="group__row" onClick={() => setExporting(true)}>
-              <IconCalendar size={18} />
-              <span className="group__label">{copy.exportRow}</span>
-              <span className={`group__value calexport__value ${exportMissing ? 'group__value--danger' : ''}`}>{exportName}</span>
-              <IconChevronRight size={16} className="group__chevron" />
-            </button>
-            {guideRow}
-          </div>
-          {exportMissing && <p className="group__note group__note--danger">{copy.exportMissingNote}</p>}
-          {!settings.enabled && exportTarget && <p className="group__note">{copy.exportWhileOff(exportTarget.title)}</p>}
-          {exportFailed && settings.export && !exportMissing && <p className="group__note group__note--danger">{copy.exportFailed}</p>}
-        </>
-      )}
+              {guideRow}
+            </div>
+            <p className="group__note">{copy.promptNote(device)}</p>
+          </>
+        )}
+
+        {calendar.status === 'denied' && (
+          <>
+            <div className="group__card">
+              <button type="button" className="group__row group__row--danger" onClick={isNative ? openSettings : undefined}>
+                <IconCalendar size={18} />
+                <span className="group__label">{copy.denied}</span>
+                <IconChevronRight size={16} className="group__chevron" />
+              </button>
+              {guideRow}
+            </div>
+            <p className="group__note">{copy.deniedNote}</p>
+          </>
+        )}
+
+        {calendar.status === 'granted' && (
+          <>
+            <div className="group__card">
+              <div className="group__row group__row--static">
+                <IconCalendar size={18} />
+                <span className="group__label">{copy.shown}</span>
+                <Switch
+                  checked={settings.enabled}
+                  label={copy.shown}
+                  onChange={(enabled) => {
+                    haptic('selection')
+                    dispatch({ type: 'settings/calendar', enabled })
+                  }}
+                />
+              </div>
+              {settings.enabled && mine.length > 0 && (
+                <button type="button" className="group__row" onClick={() => setPicking(true)}>
+                  <span className="calendar-dots" aria-hidden="true">
+                    {mine
+                      .filter((item) => !settings.hidden.includes(item.id))
+                      .slice(0, 4)
+                      .map((item) => (
+                        <i key={item.id} className="cal-tone" style={{ '--cal': item.color } as CSSProperties} />
+                      ))}
+                  </span>
+                  <span className="group__label">{copy.calendars}</span>
+                  <span className="group__value">{copy.count(shown, mine.length)}</span>
+                  <IconChevronRight size={16} className="group__chevron" />
+                </button>
+              )}
+              <button type="button" className="group__row" onClick={() => setExporting(true)}>
+                <IconCalendar size={18} />
+                <span className="group__label">{copy.exportRow}</span>
+                <span className={`group__value calexport__value ${exportMissing ? 'group__value--danger' : ''}`}>{exportName}</span>
+                <IconChevronRight size={16} className="group__chevron" />
+              </button>
+              {guideRow}
+            </div>
+            {exportMissing && <p className="group__note group__note--danger">{copy.exportMissingNote}</p>}
+            {!settings.enabled && exportTarget && <p className="group__note">{copy.exportWhileOff(exportTarget.title)}</p>}
+            {exportFailed && settings.export && !exportMissing && <p className="group__note group__note--danger">{copy.exportFailed}</p>}
+          </>
+        )}
+      </Sheet>
 
       <CalendarPicker open={picking} onClose={() => setPicking(false)} />
       <CalendarGuide
@@ -193,6 +223,6 @@ export function CalendarBlock() {
         onClose={() => setGuiding(false)}
       />
       <CalendarExportSheet open={exporting} onClose={() => setExporting(false)} />
-    </section>
+    </>
   )
 }

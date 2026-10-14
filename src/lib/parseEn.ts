@@ -137,7 +137,7 @@ const GENERIC = `(?!${STOP})[a-z0-9]+(?: (?!${STOP})[a-z0-9]+){0,3}`
 /** Tras el lugar: "…Walmart to buy milk". */
 const CONNECTOR = /^ (?:and )?to(?= [a-z])/
 const ARRIVE = "get to|get back to|get back(?= home)|get(?= home)|arrive at|arrive in|arrive|reach|pass by|pass|go by|go past|go to|at|near|in"
-const LEAVE = 'leave|leaving|left|get out of|exit'
+const LEAVE = 'leave|leaving|left|get out of|head out of|walk out of|step out of|exit'
 
 /** "when I get to Walmart", "remind me when I'm at the office", "when I leave home". */
 function placePhraseRegex(places: readonly Place[]): RegExp {

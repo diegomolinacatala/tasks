@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { shortTime } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
 import { isNative } from '../../lib/platform'
@@ -6,6 +7,8 @@ import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
 import { IconArrowUpRight, IconBell, IconBellOff, IconChevronRight } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
+import { Sheet } from '../ui/Sheet'
+import { SettingsRow, SettingsSheetTitle } from './SettingsRow'
 import { Switch } from './Switch'
 
 const COPY = {
@@ -25,6 +28,15 @@ const COPY = {
     nativeSettings: 'Ajustes de notificaciones',
     disable: 'Desactivar avisos',
     disableNote: 'Sin avisos, el dictado usa el del navegador.',
+    value: {
+      on: 'Activados',
+      digest: (time: string) => `Resumen a las ${time}`,
+      off: 'Desactivados',
+      denied: 'Bloqueados',
+      'needs-install': 'Instala la app',
+      unsupported: 'No disponibles',
+      failed: 'Sin programar',
+    },
   },
   en: {
     title: 'Notifications',
@@ -42,22 +54,67 @@ const COPY = {
     nativeSettings: 'Notification settings',
     disable: 'Turn off notifications',
     disableNote: 'Without notifications, dictation uses the browser’s.',
+    value: {
+      on: 'On',
+      digest: (time: string) => `Summary at ${time}`,
+      off: 'Off',
+      denied: 'Blocked',
+      'needs-install': 'Install the app',
+      unsupported: 'Not available',
+      failed: 'Not scheduled',
+    },
   },
 } as const
 
-export function NotificationsBlock() {
+/**
+ * Ajustes → Avisos: una fila que dice cómo están (con el resumen del día, su hora) y, en su panel, todo lo
+ * de antes: activarlos, el resumen y su hora, y los ajustes del sistema. Sin servidor (en local), no sale.
+ */
+export function NotificationsRow() {
+  const push = usePush()
+  const copy = useCopy(COPY)
+  const { digest } = useAppState().settings
+  const [open, setOpen] = useState(false)
+
+  if (push.status === 'unconfigured') return null
+
+  const value =
+    push.status === 'on'
+      ? push.syncFailed
+        ? copy.value.failed
+        : digest.enabled
+          ? copy.value.digest(shortTime(digest.time))
+          : copy.value.on
+      : copy.value[push.status]
+  const danger = push.status === 'denied' || (push.status === 'on' && push.syncFailed)
+
+  return (
+    <>
+      <SettingsRow
+        icon={push.status === 'on' ? <IconBell size={17} /> : <IconBellOff size={17} />}
+        label={copy.title}
+        value={value}
+        danger={danger}
+        onClick={() => setOpen(true)}
+      />
+      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+        <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
+        <NotificationsPanel />
+      </Sheet>
+    </>
+  )
+}
+
+/** Lo de dentro del panel: lo mismo que antes ocupaba su grupo en la página. */
+function NotificationsPanel() {
   const push = usePush()
   const copy = useCopy(COPY)
   const state = useAppState()
   const dispatch = useDispatch()
-
-  if (push.status === 'unconfigured') return null
-
   const { digest } = state.settings
 
   return (
-    <section className="group">
-      <h2 className="group__title">{copy.title}</h2>
+    <>
 
       {push.status === 'needs-install' && (
         <p className="group__note">{copy.install}</p>
@@ -134,6 +191,6 @@ export function NotificationsBlock() {
           {!isNative && push.canTranscribe && <p className="group__note">{copy.disableNote}</p>}
         </>
       )}
-    </section>
+    </>
   )
 }

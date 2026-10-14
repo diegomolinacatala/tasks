@@ -6,6 +6,7 @@ import { eventSpan } from '../../lib/calendar'
 import { spanLabel } from '../../lib/duration'
 import { importanceScale } from '../../lib/importance'
 import { asOf, periodTag } from '../../lib/period'
+import { placeTriggerOf } from '../../lib/places'
 import { nextReminderAt } from '../../lib/reminders'
 import { daysLabel } from '../../lib/routines'
 import type { TimelineRow } from '../../lib/timeline'
@@ -18,7 +19,7 @@ import { useCurrentDay } from '../../hooks/useToday'
 import { useSizing } from '../importance/sizing'
 import { SwipeRow } from '../task/SwipeRow'
 import { useRowActions } from '../task/rowActions'
-import { IconBell, IconCheck, IconPin, IconRepeat } from '../ui/Icons'
+import { IconBell, IconCheck, IconPlace, IconRepeat } from '../ui/Icons'
 import './agenda.css'
 
 const ImportanceKnob = lazy(() =>
@@ -154,7 +155,7 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section, ov
   const scale = task.done ? 0 : importanceScale(sizingTo ?? task.importance)
   const today = useCurrentDay()
   const reminding = nextReminderAt(asOf(task, today), Date.now()) !== null
-  const placed = !task.done && task.reminders.some((reminder) => reminder.kind === 'place')
+  const placed = task.done ? null : placeTriggerOf(task)
   const period = periodTag(task, today)
   const meta = [period?.label, task.time && task.duration ? spanLabel(task.time, task.duration) : null, section].filter(Boolean).join(' · ')
 
@@ -193,7 +194,7 @@ const TimelineTask = memo(function TimelineTask({ task, start, live, section, ov
           {(meta || reminding || placed) && (
             <span className="tl__meta">
               {reminding && <IconBell size={11} strokeWidth={2} />}
-              {placed && <IconPin size={11} strokeWidth={2} />}
+              {placed && <IconPlace on={placed} size={11} strokeWidth={2} />}
               {meta}
             </span>
           )}

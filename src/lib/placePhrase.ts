@@ -4,10 +4,10 @@ import { originalSpan } from './normalize'
 import { capitalize } from './title'
 import { findPlace, matchPlace, placeKeys } from './places'
 
-/** "al llegar a", "cuando pase por", "nada más llegar a", "cuando esté en". */
-const ARRIVE = 'llegar|llegue|llego|pasar|pase|paso|estar|este|ir|vaya|entrar|entre'
-/** "al salir de", "cuando salga del". */
-const LEAVE = 'salir|salga|salgo'
+/** "al llegar a", "cuando pase por", "nada más llegar a", "cuando esté en", "cuando vuelva a casa". */
+const ARRIVE = 'llegar|llegue|llego|pasar|pase|paso|estar|este|ir|vaya|entrar|entre|volver|vuelva|vuelvo|regresar|regrese|regreso'
+/** "al salir de", "cuando salga del", "cuando me vaya de", "al irme del", "al marcharme de". */
+const LEAVE = 'salir|salga|salgo|irme|me vaya|me voy|marcharme|me marche|me marcho|salgamos|irnos|nos vayamos'
 /** Palabras que no pueden abrir ni continuar un nombre de lugar sin guardar. */
 const STOP =
   '(?:de|del|que|para|y|a|al|por|con|en|antes|despues|hoy|manana|la|el|los|las|mi|recuerdame|avisame|recordar|avisar)(?![a-z0-9])'
@@ -37,8 +37,9 @@ export function placePhraseRegex(remindVerb: string, places: readonly Place[]): 
   const names = savedNames(places)
   const target = names.length ? `(?:(${names.join('|')})|(${GENERIC}))` : `(?:()(${GENERIC}))`
   return new RegExp(
-    `(?<![a-z0-9])(?:${remindVerb} )?(?:al|cuando|en cuanto|nada mas) (?:(${ARRIVE})|(${LEAVE})) ` +
-      `(?:a|al|por|de|del|en)(?: (la|el|los|las|mi))? ${target}(?![a-z0-9])`,
+    // Llegar es "a", "por" o "en" un sitio; salir o irse, "de" él ("cuando me vaya a Mercadona" no es salir).
+    `(?<![a-z0-9])(?:${remindVerb}(?: que)? )?(?:al|cuando|en cuanto|nada mas) ` +
+      `(?:(${ARRIVE}) (?:a|al|por|en)|(${LEAVE}) (?:de|del))(?: (la|el|los|las|mi))? ${target}(?![a-z0-9])`,
     'g',
   )
 }

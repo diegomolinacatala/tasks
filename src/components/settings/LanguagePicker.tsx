@@ -7,8 +7,9 @@ import { withTransition } from '../../lib/transition'
 import { useCopy } from '../../state/LanguageProvider'
 import { useDispatch } from '../../state/StoreProvider'
 import type { LanguageSetting } from '../../types'
-import { IconCheck, IconChevronRight } from '../ui/Icons'
+import { IconCheck, IconGlobe } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
+import { SettingsRow, SettingsSheetTitle } from './SettingsRow'
 
 /** Cada idioma se nombra en sí mismo, como en los ajustes de iOS: quien no entiende uno encuentra el suyo. */
 const NATIVE_NAMES = { es: 'Español', en: 'English' } as const
@@ -44,18 +45,11 @@ export function LanguagePicker({ value }: { value: LanguageSetting }) {
   }
 
   return (
-    <section className="group">
-      <h2 className="group__title">{copy.title}</h2>
-      <div className="group__card">
-        <button type="button" className="group__row" onClick={() => setOpen(true)}>
-          <span className="group__label">{copy.title}</span>
-          <span className="group__value">{current}</span>
-          <IconChevronRight size={16} className="group__chevron" />
-        </button>
-      </div>
+    <>
+      <SettingsRow icon={<IconGlobe size={17} />} label={copy.title} value={current} onClick={() => setOpen(true)} />
 
       <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
-        <p className="sheet__title">{copy.title}</p>
+        <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <div className="group__card" role="radiogroup" aria-label={copy.title}>
           {OPTIONS.map((option) => {
             const active = option === value
@@ -79,6 +73,6 @@ export function LanguagePicker({ value }: { value: LanguageSetting }) {
           })}
         </div>
       </Sheet>
-    </section>
+    </>
   )
 }

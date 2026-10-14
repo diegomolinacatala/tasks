@@ -276,6 +276,13 @@ describe('places', () => {
     })
   })
 
+  test('heading out of a place is leaving too', () => {
+    expect(parse('call Carlota when I head out of home', NOW, [])).toMatchObject({
+      title: 'call Carlota',
+      newPlace: { name: 'Home', on: 'leave' },
+    })
+  })
+
   test('a new place keeps its capitalized words', () => {
     expect(parse('buy salmon when I get to Whole Foods', NOW, [])).toMatchObject({ newPlace: { name: 'Whole Foods', on: 'arrive' } })
   })

@@ -26,7 +26,7 @@ import { ImportanceScale } from '../importance/ImportanceScale'
 import { DurationPicker } from '../task/DurationPicker'
 import { ReminderPicker } from '../task/ReminderPicker'
 import { SectionField, TimeField, WhenField } from '../task/fields'
-import { IconChevronDown, IconClose, IconPin } from '../ui/Icons'
+import { IconChevronDown, IconClose, IconPlace } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import '../routines/routines.css'
 import './compose-sheet.css'
@@ -214,7 +214,7 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
                     change(rest)
                   }}
                 >
-                  <IconPin size={13} />
+                  <IconPlace on={view.newPlace.on} size={13} />
                   {view.newPlace.on === 'arrive' ? copy.arrive : copy.leave} {view.newPlace.name}
                   <IconClose size={12} className="chip__remove" />
                 </button>

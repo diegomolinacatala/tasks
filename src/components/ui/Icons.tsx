@@ -136,6 +136,26 @@ export const IconPin = (props: IconProps) => (
   </Icon>
 )
 
+/** Entrar en el círculo de un lugar: el aviso al llegar. */
+export const IconArrive = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M10.5 4.6a7.5 7.5 0 1 1 0 14.8" />
+    <path d="M3 12h10.5M10 8.5l3.5 3.5-3.5 3.5" />
+  </Icon>
+)
+
+/** Salir del círculo de un lugar: el aviso al salir. */
+export const IconLeave = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M13.5 4.6a7.5 7.5 0 1 0 0 14.8" />
+    <path d="M10.5 12H21M17.5 8.5 21 12l-3.5 3.5" />
+  </Icon>
+)
+
+/** El icono de un aviso de lugar: la chincheta al llegar, salir del círculo al salir. */
+export const IconPlace = ({ on, ...props }: IconProps & { on: 'arrive' | 'leave' }) =>
+  on === 'leave' ? <IconLeave {...props} /> : <IconPin {...props} />
+
 export const IconLocate = (props: IconProps) => (
   <Icon {...props}>
     <path d="M20 4 4 11l7 2 2 7 7-16Z" />
@@ -263,5 +283,53 @@ export const IconCalendar = (props: IconProps) => (
     <rect x="3.75" y="5.25" width="16.5" height="15" rx="2.5" />
     <path d="M8 3v4.5M16 3v4.5M3.75 10h16.5" />
     <path d="M8 14h2M12 14h2M8 17h2" />
+  </Icon>
+)
+
+/** Ajustes → Idioma. */
+export const IconGlobe = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5Z" />
+  </Icon>
+)
+
+/** Ajustes → Soporte. */
+export const IconHelp = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.6" />
+    <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+  </Icon>
+)
+
+/** Ajustes → Ver la bienvenida. */
+export const IconSparkle = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5Z" />
+    <path d="M18.5 15.5c.3 1.6 1.1 2.4 2.5 2.7-1.4.3-2.2 1.1-2.5 2.7-.3-1.6-1.1-2.4-2.5-2.7 1.4-.3 2.2-1.1 2.5-2.7Z" />
+  </Icon>
+)
+
+/** Ajustes → Valorar en la App Store. */
+export const IconStar = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m12 4 2.4 5 5.4.6-4 3.7 1.1 5.3L12 16l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6Z" />
+  </Icon>
+)
+
+/** Ajustes → Copias y datos. */
+export const IconArchive = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2" />
+    <path d="M5 9v9a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18V9M10 13h4" />
+  </Icon>
+)
+
+/** Ajustes → Privacidad. */
+export const IconLock = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+    <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
   </Icon>
 )

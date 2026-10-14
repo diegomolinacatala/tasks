@@ -10,6 +10,7 @@ import {
   findPlace,
   formatDistance,
   normalizePlace,
+  placeTriggerOf,
   placeAlerts,
   placeKey,
   placeReminderLabel,
@@ -67,6 +68,16 @@ describe('findPlace', () => {
   test('devuelve null si no hay ninguno con ese nombre', () => {
     expect(findPlace(places, 'Lidl')).toBeNull()
     expect(findPlace(places, '   ')).toBeNull()
+  })
+})
+
+describe('placeTriggerOf', () => {
+  const at = (on: 'arrive' | 'leave', placeId = 'c') => ({ id: on + placeId, kind: 'place' as const, placeId, on })
+  test('al llegar manda si hay de los dos; al salir, solo si todos lo son', () => {
+    expect(placeTriggerOf({ reminders: [at('leave')] })).toBe('leave')
+    expect(placeTriggerOf({ reminders: [at('leave'), at('arrive', 'm')] })).toBe('arrive')
+    expect(placeTriggerOf({ reminders: [at('leave'), at('arrive', 'm')] }, 'c')).toBe('leave')
+    expect(placeTriggerOf({ reminders: [] })).toBeNull()
   })
 })
 

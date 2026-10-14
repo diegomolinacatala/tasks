@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { compareNames } from '../../lib/order'
-import { DEFAULT_RADIUS, distanceMeters, formatDistance } from '../../lib/places'
+import { DEFAULT_RADIUS, distanceMeters, formatDistance, placeTriggerOf } from '../../lib/places'
 import { isNative, showsPlaces } from '../../lib/platform'
 import { browseMap } from '../../lib/platform/mapPicker'
 import type { PermissionStatus } from '../../lib/platform/native'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { Place, Task } from '../../types'
-import { IconArrowUpRight, IconExpand, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
+import { IconArrowUpRight, IconExpand, IconLeave, IconLocate, IconMap, IconPin, IconPlus, IconSearch } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { MapSnapshot } from './MapSnapshot'
 import { usePlaceEditor } from './PlaceEditor'
@@ -35,7 +35,7 @@ const COPY = {
     locate: 'Mi ubicación',
     mapFailed: 'No se ha podido abrir el mapa.',
     onlyIphone: 'Solo en iPhone',
-    pitch: 'Avisos al llegar o al salir de un sitio: «al pasar por Mercadona, comprar leche».',
+    pitch: 'Avisos al llegar o al salir de un sitio: «comprar leche al pasar por Mercadona», «llamar a Carlota al salir de casa».',
     store: 'Descargar en la App Store',
     iphoneOnly: 'Por ahora, solo en la app de iPhone.',
   },
@@ -54,7 +54,7 @@ const COPY = {
     locate: 'My location',
     mapFailed: 'Couldn’t open the map.',
     onlyIphone: 'iPhone only',
-    pitch: 'Reminders when you arrive at or leave a place: “when I get to Walmart, buy milk”.',
+    pitch: 'Reminders when you arrive at or leave a place: “buy milk when I get to Walmart”, “call Carlota when I leave home”.',
     store: 'Download on the App Store',
     iphoneOnly: 'For now, only in the iPhone app.',
   },
@@ -259,7 +259,9 @@ function PlacesList() {
                   <span className="place-card__tasks">
                     {pending.slice(0, PREVIEW_TASKS).map((task) => (
                       <span key={task.id} className="place-card__task">
-                        {task.title}
+                        {/* Lo que avisa al salir lo dice con su icono: al llegar es lo de siempre. */}
+                        {placeTriggerOf(task, place.id) === 'leave' && <IconLeave size={11} strokeWidth={2} />}
+                        <span className="place-card__task-title">{task.title}</span>
                       </span>
                     ))}
                     {rest > 0 && <span className="place-card__more">+{rest}</span>}

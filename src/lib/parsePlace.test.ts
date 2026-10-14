@@ -52,6 +52,39 @@ describe('lugares guardados', () => {
   })
 
   test.each([
+    'cuando me vaya de casa llamar a Carlota',
+    'al irme de casa llamar a Carlota',
+    'al marcharme de casa llamar a Carlota',
+    'en cuanto me vaya de casa llamar a Carlota',
+    'llamar a Carlota cuando me marche de casa',
+  ])('«%s» también es al salir', (text) => {
+    expect(parseTask(text, NOW, PLACES)).toMatchObject({
+      title: 'llamar a Carlota',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'leave' }],
+      label: 'Al salir de Casa',
+    })
+  })
+
+  test('el ejemplo dictado al salir: «recuérdame que cuando me vaya de mi piso llame a Carlota»', () => {
+    const piso = [place('c', 'Casa', ['mi piso'])]
+    expect(parseSpoken('Recuérdame que cuando me vaya de mi piso llame a Carlota', NOW, piso)).toMatchObject({
+      title: 'Llamar a Carlota',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'leave' }],
+    })
+  })
+
+  test('«cuando vuelva a casa» es al llegar', () => {
+    expect(parseTask('cuando vuelva a casa poner la lavadora', NOW, PLACES)).toMatchObject({
+      title: 'poner la lavadora',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'arrive' }],
+    })
+  })
+
+  test('irse «a» un sitio no es salir de él', () => {
+    expect(parseTask('cuando me vaya a Mercadona comprar pan', NOW, PLACES).reminders).toEqual([])
+  })
+
+  test.each([
     'cuando llegue a la universidad ver a José',
     'en cuanto llegue a la universidad ver a José',
     'nada más llegar a la universidad ver a José',

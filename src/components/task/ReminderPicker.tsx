@@ -9,7 +9,7 @@ import { useAppState } from '../../state/StoreProvider'
 import type { PlaceTrigger, Reminder, ReminderDraft, Task } from '../../types'
 import { usePlaceEditor } from '../places/PlaceEditor'
 import { usePush } from '../push/PushProvider'
-import { IconBell, IconClose, IconPin } from '../ui/Icons'
+import { IconArrive, IconBell, IconClose, IconLeave, IconPin, IconPlace } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 import { useToast } from '../ui/Toast'
 
@@ -36,6 +36,7 @@ const COPY = {
     other: 'Otra…',
     arrive: 'Al llegar',
     leave: 'Al salir',
+    byPlace: 'Por lugar',
     otherPlace: 'Otro lugar…',
     place: 'Lugar…',
     where: (name: string) => `Elegir dónde está ${name}`,
@@ -58,6 +59,7 @@ const COPY = {
     other: 'Other…',
     arrive: 'Arriving',
     leave: 'Leaving',
+    byPlace: 'By place',
     otherPlace: 'Other place…',
     place: 'Place…',
     where: (name: string) => `Choose where ${name} is`,
@@ -152,7 +154,7 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
     const className = `chip chip--reminder ${active ? '' : 'is-muted'}`
     const body = (
       <>
-        {reminder.kind === 'place' ? <IconPin size={13} /> : <IconBell size={13} />}
+        {reminder.kind === 'place' ? <IconPlace on={reminder.on} size={13} /> : <IconBell size={13} />}
         {label}
         {issue && <span className="chip__why">· {copy.issue[issue]}</span>}
       </>
@@ -236,23 +238,39 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
       </div>
       {full && !task.done && <p className="sheet__note">{copy.full}</p>}
 
+      {/* Por lugar: primero cuándo (al llegar o al salir), después dónde. Solo en el iPhone. */}
+      {adding && !full && isNative && (
+        <div className="place-trigger">
+          <p className="place-trigger__title">{copy.byPlace}</p>
+          <div className="place-trigger__switch" role="radiogroup" aria-label={copy.byPlace}>
+            {TRIGGERS.map((on) => (
+              <button
+                key={on}
+                type="button"
+                role="radio"
+                className={`place-trigger__option ${trigger === on ? 'is-active' : ''}`}
+                aria-checked={trigger === on}
+                onClick={() => setTrigger(on)}
+              >
+                {on === 'arrive' ? <IconArrive size={16} /> : <IconLeave size={16} />}
+                {on === 'arrive' ? copy.arrive : copy.leave}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {adding && !full && isNative && (
         <div className="sheet__chips sheet__chips--places">
-          {TRIGGERS.map((on) => (
-            <button
-              key={on}
-              type="button"
-              className={`chip ${trigger === on ? 'is-active' : ''}`}
-              aria-pressed={trigger === on}
-              onClick={() => setTrigger(on)}
-            >
-              {on === 'arrive' ? copy.arrive : copy.leave}
-            </button>
-          ))}
           {placeOptions.map((place) => (
-            <button key={place.id} type="button" className="chip chip--option" onClick={() => addPlace(place.id)}>
-              <IconPin size={13} />
-              {reminderLabel({ kind: 'place', placeId: place.id, on: trigger }, now, places)}
+            <button
+              key={place.id}
+              type="button"
+              className="chip chip--option"
+              aria-label={reminderLabel({ kind: 'place', placeId: place.id, on: trigger }, now, places)}
+              onClick={() => addPlace(place.id)}
+            >
+              <IconPlace on={trigger} size={13} />
+              {place.name}
             </button>
           ))}
           <button

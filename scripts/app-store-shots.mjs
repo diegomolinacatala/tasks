@@ -227,7 +227,9 @@ try {
         ...c.places,
         content:
           device(screens.places, 262) +
-          notification({ icon, title: T.place, body: T.placeBody, when: T.now, style: 'left:22px;right:22px;top:640px' }),
+          // Dos avisos, como se apilan en el iPhone: al salir de casa (lo nuevo de la 1.7) y al llegar al Mercadona.
+          notification({ icon, title: T.leave, body: T.leaveBody, when: T.now, style: 'left:22px;right:22px;top:600px' }) +
+          notification({ icon, title: T.place, body: T.placeBody, when: T.earlier, style: 'left:34px;right:34px;top:704px;opacity:.96' }),
       }),
     ],
     ['03-calendario', frame({ ...c.calendar, content: device(screens.calendar, 262) + calendarCard(T.calendarCard) })],

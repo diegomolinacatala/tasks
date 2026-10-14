@@ -45,6 +45,18 @@ describe('cleanTitle', () => {
     expect(clean('¿Qué le regalo a Ana?')).toBe('¿Qué le regalo a Ana?')
   })
 
+  test('tras «recuérdame que» el verbo pasa a infinitivo', () => {
+    expect(cleanTitle('recuérdame que llame a Carlota', [])).toBe('Llamar a Carlota')
+    expect(cleanTitle('recuérdame que saque la basura', [])).toBe('Sacar la basura')
+    expect(cleanTitle('llame a Carlota', [])).toBe('Llamar a Carlota')
+  })
+
+  test('lo que no es un verbo conocido no se toca', () => {
+    expect(cleanTitle('clase de inglés', [])).toBe('clase de inglés')
+    expect(cleanTitle('este finde, playa', [])).toBe('este finde, playa')
+    expect(cleanTitle('cierre de caja', [])).toBe('cierre de caja')
+  })
+
   test('lo escrito sin muletillas no se toca', () => {
     expect(clean('comprar pan')).toBe('comprar pan')
     expect(clean('Tengo que')).toBe('Tengo que')

@@ -88,6 +88,27 @@
   margin-top: var(--sp-1);
 }
 
+.place-tasks + .place-tasks {
+  margin-top: var(--sp-3);
+}
+
+/* «Al llegar · 2» / «Al salir · 1»: de qué lado del círculo salta cada grupo */
+.place-tasks__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.place-tasks__count {
+  color: var(--text-3);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Mapa ─────────────────────────────────────────────────────────────── */
 
 .map {
@@ -374,8 +395,22 @@
   margin-top: 8px;
 }
 
+.place-card__task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-card__task svg {
+  flex: none;
+  color: var(--accent);
+}
+
 .place-card__task,
 .place-card__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   max-width: 100%;
   padding: 4px 10px;
   border-radius: var(--r-full);

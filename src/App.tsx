@@ -13,7 +13,7 @@ import { SAVE_FAILED_EVENT } from './lib/persistence'
 import { draftsFromInterpreted } from './lib/interpret'
 import type { ParsedTask } from './lib/parse'
 import { parseSpoken, warmUpParser } from './lib/parse'
-import { isNative } from './lib/platform'
+import { isNative, showsPlaces } from './lib/platform'
 import { haptic } from './lib/platform/feedback'
 import type { RoutineDraft } from './lib/repeat'
 import { parseRoutine } from './lib/repeat'
@@ -190,7 +190,7 @@ export function App() {
   // La bienvenida: entera la primera vez, con lo nuevo tras actualizar, y a petición desde Ajustes.
   const firstRun = useFirstRun()
   const [welcome, setWelcome] = useState<WelcomeRun | null>(() =>
-    welcomeOnLaunch(firstRun, state.settings.welcome, availablePlates(showsCalendar)),
+    welcomeOnLaunch(firstRun, state.settings.welcome, availablePlates(showsCalendar, showsPlaces)),
   )
   // Tras el primer cambio de pestaña, las pestañas entran con su animación (en el arranque, no).
   const [switched, setSwitched] = useState(false)

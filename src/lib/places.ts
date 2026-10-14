@@ -124,6 +124,18 @@ export function placeTriggerLabel(name: string, on: PlaceTrigger): string {
   return on === 'arrive' ? `Al llegar a ${name}` : `Al salir de ${name}`
 }
 
+/**
+ * Cómo avisa una tarea por lugar, para su icono en las filas: `arrive` si alguno de sus avisos es al
+ * llegar, `leave` si todos son al salir, `null` si no tiene.
+ */
+export function placeTriggerOf(task: Pick<Task, 'reminders'>, placeId?: string): PlaceTrigger | null {
+  const triggers = task.reminders.flatMap((reminder) =>
+    reminder.kind === 'place' && (placeId === undefined || reminder.placeId === placeId) ? [reminder.on] : [],
+  )
+  if (!triggers.length) return null
+  return triggers.includes('arrive') ? 'arrive' : 'leave'
+}
+
 export function placeReminderLabel(reminder: Extract<ReminderDraft, { kind: 'place' }>, places: readonly Place[]): string {
   const fallback = language() === 'en' ? 'a place' : 'un lugar'
   return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? fallback, reminder.on)
