@@ -290,6 +290,22 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     rehechas (`docs/capturas/` y `en/`, la que cambia de verdad es `02-lugares`) y novedades en los dos
     idiomas (`docs/app-store.md` §9.9). Descripción, palabras clave, texto promocional, notas y
     privacidad, sin cambios. Se envía la **1.7 (45)**.
+- **Avisos al salir, lámina *Lugares* y Ajustes nuevo** (14/10/2026, en `capacitor`, **TestFlight 46**, la 1.7;
+  el Swift no cambia). Pedido por el usuario antes de enviar la 1.7 ("que al salir de mi piso me avise de
+  llamar a Carlota", "Ajustes abruma, sin perder nada"):
+  - **Al salir**, que ya existía pero no se encontraba: el analizador entiende "cuando me vaya de", "al irme
+    de", "al marcharme de" (y "cuando vuelva a", al llegar; irse "a" un sitio no es salir), "recuérdame que
+    … llame a Carlota" deja "Llamar a Carlota" (`SPANISH_TITLE.infinitive`, una lista de verbos en
+    subjuntivo) y en inglés "head out of". Icono propio (`IconLeave`, salir del círculo; `IconPlace` elige)
+    en filas, horario, barra, ficha y tarjetas de Lugares; el selector de avisos pregunta primero *Al
+    llegar / Al salir* (`place-trigger`); el panel del lugar agrupa sus avisos en *Al llegar* y *Al salir*.
+    Ver "Lugares".
+  - **Lámina *Lugares*** (`PlacesScene`, versión 6, solo donde hay lugares): ver "Bienvenida".
+  - **Ajustes** en una pantalla de filas (`SettingsRow`), cada una con su valor y su panel. Ver "Pantallas".
+  - **Ficha**: capturas nuevas (la de Lugares con el aviso al salir), descripción, texto promocional,
+    notas y novedades (`docs/app-store.md` §3, §5 y §9.9). Se envía la **1.7 (46)**.
+  - Probado con Edge sin ventana y dedo simulado (la lámina en español e inglés, claro y oscuro; Ajustes y
+    sus paneles; Lugares y el panel de Casa); 972 tests.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -330,8 +346,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Enviar la 1.7 (45)** (`docs/app-store.md` §9.9; los pasos al usuario, en el chat). Antes, el «Hecha»
-   del aviso con el iPhone bloqueado, que sale en las novedades.
+0. **Probar la TestFlight 46 y enviar la 1.7 (46)** (`docs/app-store.md` §9.9; los pasos al usuario, en el
+   chat): la lámina *Lugares* tras actualizar, Ajustes (cada fila y su panel, Avisos y Dictado, que en local
+   no salen), una tarea `llamar a Carlota cuando me vaya de casa` y el selector *Al llegar / Al salir* del
+   panel de una tarea. Antes de enviar, el «Hecha» del aviso con el iPhone bloqueado (sale en las novedades).
 
 0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
    (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
@@ -468,7 +486,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -542,12 +560,13 @@ src/
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
-    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, sugerencias y calendario
+    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, lugares, sugerencias y calendario
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases
-    ├── settings/         # SettingsView (página), AppearancePicker, LanguagePicker, avisos, CalendarBlock (+ CalendarPicker,
-    │                     # CalendarExportSheet, CalendarGuide, Switch), dictado
+    ├── settings/         # SettingsView (la página de filas), SettingsRow, y cada fila con su panel: AppearanceRow,
+    │                     # LanguagePicker, NotificationsRow, CalendarRow (+ CalendarPicker, CalendarExportSheet,
+    │                     # CalendarGuide, Switch), DictationRow, DataRow (copias y datos)
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
@@ -627,11 +646,16 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
      y lo de todo el día no cuentan).
   El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
 - **Lugares** (`PlacesView`, ver "Lugares").
-- **Ajustes** (`SettingsView`): página con grupos a lo iOS: Idioma (una fila con el valor que abre un
-  panel), Apariencia, Avisos (resumen del día con interruptor y "Hora ›"), Calendario, Dictado
-  (interruptor y "Qué se envía ›"), Ayuda (sugerir, soporte), Datos y Tasks (ver la bienvenida, valorar,
-  privacidad, versión o día del build). Dos tipos de control: interruptor para sí/no, fila con valor ›
-  para lo demás.
+- **Ajustes** (`SettingsView`): una sola pantalla de filas a lo iOS (`SettingsRow`: sello con su icono,
+  nombre, valor de ahora y › o ↗), en cuatro grupos: **General** (Apariencia, Idioma), **Avisos y
+  calendario** (Avisos: "Resumen a las 8:00", "Bloqueados"…; Calendario: "3 de 5", "Sin conectar"; Dictado:
+  "Con IA"; cada una solo donde existe, y sin ninguna el grupo no sale), **Ayuda** (Sugerir una mejora,
+  Ver la bienvenida, Soporte, Valorar) y **Tus datos** (Copias y datos: "62 tareas"; Privacidad). Una
+  versión nueva va arriba del todo. Lo que antes eran grupos enteros con sus notas vive en el panel de su
+  fila, entero (las tarjetas de Apariencia, el resumen y su hora, conectar el calendario y sus calendarios,
+  el permiso del dictado y qué se envía, las cifras, exportar, importar y borrar): no se pierde nada, solo
+  deja de estar todo a la vez (lo pidió el usuario: "abruma"). Dentro de los paneles, dos tipos de control:
+  interruptor para sí/no, fila con valor › para lo demás.
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -685,13 +709,17 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
   entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
   (`onReady`): no llega a verse la app vacía.
-- **Siete láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+- **Ocho láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
   `lib/details.ts`; al plegarla queda el resumen), *Gestos* (versión 5: dos `SwipeRow` reales, tachar y
   borrar, y una tercera fila que se hunde sola, "Mantén pulsada para moverla"), *Agenda* (el
   `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
-  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez) y *Sugerencias* (versión 3,
+  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez), *Lugares* (versión 6, la 1.7, solo
+  donde hay lugares: un plano con tu casa y el Mercadona, cada uno con su círculo, y tu punto dentro de casa;
+  se arrastra con el dedo y al cruzar el de casa hacia fuera baja «Al salir de Casa · Llamar a Carlota», al
+  entrar en el del Mercadona, «Comprar pan», y cada tarea dice «Sonó»; hasta el primer toque un punto
+  fantasma hace el camino), *Sugerencias* (versión 3,
   la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
   *Calendario* (versión 4, la 1.6, solo donde hay calendario: un día con tareas en el que entran los
   eventos con su color, y **Conectar mi calendario**). En la PWA no existe: `welcomeOnLaunch` recibe las
@@ -1356,10 +1384,17 @@ de las tareas.
 - **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por
   Mercadona"): `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor
   buscando ese nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
-- **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / al salir
-  de". Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
+- **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / cuando vuelva a" y
+  "al salir de / cuando me vaya de / al irme de / al marcharme de" (llegar va con "a", "por" o "en"; salir,
+  con "de": "cuando me vaya a Mercadona" no es salir). Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
   Corte Inglés"). `parseTask(texto, ahora, null)` desactiva los lugares: así funciona la PWA, que
   no puede avisar por lugar y deja esas frases literales.
+- **Al salir, a la vista** (la 1.7: existía desde el principio y nadie lo encontraba): icono propio
+  (`IconLeave`, una flecha que sale del círculo; `IconPlace` elige entre él y la chincheta con
+  `placeTriggerOf`) en las filas, el horario, la píldora de la barra, la ficha y las tarjetas de la pestaña;
+  en los avisos de una tarea, "+ Añadir" enseña *Por lugar* con un interruptor de dos, **Al llegar / Al
+  salir** (`place-trigger`), y debajo los lugares; el panel del lugar agrupa *Avisos aquí* en *Al llegar* y
+  *Al salir*, con su cifra.
 - **Regiones**: `placeAlerts` hace un aviso por lugar y sentido con todas sus tareas en el
   cuerpo; iOS vigila como mucho 20, con prioridad para lo de hoy o atrasado. Un aviso con varias
   tareas abre `PlaceTasksSheet`.
