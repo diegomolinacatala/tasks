@@ -16,7 +16,7 @@ interface ImportanceScaleProps {
 
 /**
  * La escala del 1 al 10 en el panel de la tarea: cada número crece como crecería el título. Se toca o
- * se arrastra de lado (cada paso vibra).
+ * se arrastra (cada paso vibra).
  */
 const COPY = { es: { label: 'Importancia' }, en: { label: 'Importance' } } as const
 

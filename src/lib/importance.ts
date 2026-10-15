@@ -28,12 +28,13 @@ export function importanceScale(level: number): number {
   return 2 ** (steps / (MAX_IMPORTANCE - MIN_IMPORTANCE)) - 1
 }
 
-/** Arrastrar el mando a la derecha sube un punto cada 18 px y a la izquierda lo baja; lo vertical es scroll. */
-export const importanceFromDrag = (start: number, dx: number): number =>
-  clampImportance(start + Math.round(dx / IMPORTANCE_STEP_PX))
+/** Arrastrar hacia arriba o a la derecha agranda; hacia abajo o a la izquierda, encoge. */
+export const importanceFromDrag = (start: number, dx: number, dy: number): number =>
+  clampImportance(start + Math.round((dx - dy) / IMPORTANCE_STEP_PX))
 
-/** Tocar el mando sin arrastrar sube un punto; en el 10 se queda (volver al 1 de golpe sorprendía). */
-export const nextImportance = (level: number): number => clampImportance(clampImportance(level) + 1)
+/** Tocar el mando sin arrastrar sube un punto; pasado el 10 vuelve a lo normal. */
+export const nextImportance = (level: number): number =>
+  clampImportance(level) >= MAX_IMPORTANCE ? MIN_IMPORTANCE : clampImportance(level) + 1
 
 /** Más importante primero; a igualdad, el orden que ya traían. `Array.prototype.sort` es estable. */
 export const byImportance = (a: Pick<Task, 'importance'>, b: Pick<Task, 'importance'>): number =>

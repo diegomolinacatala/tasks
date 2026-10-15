@@ -7,8 +7,6 @@ import './importance.css'
 
 /** Por debajo de esto, soltar es un toque y no un arrastre. */
 const TAP_SLOP_PX = 6
-/** Más que esto en vertical es scroll: el mando suelta el dedo. */
-const SCROLL_SLOP_PX = 8
 
 interface ImportanceKnobProps {
   value: number
@@ -25,9 +23,9 @@ interface Gesture {
 }
 
 /**
- * Mando de importancia de una fila (modo "Aa"), en el sitio del asa. Arrastrar a la derecha agranda el
- * título y a la izquierda lo encoge (en vertical es scroll: el pulgar por el borde no cambia nada);
- * tocarlo sube un punto. Cada punto vibra, y el título cambia en vivo mientras se arrastra.
+ * Mando de importancia de una fila (modo "Aa"), en el sitio del asa. Arrastrar hacia arriba o a la
+ * derecha agranda el título y hacia abajo o a la izquierda lo encoge; tocarlo sube un punto. Cada
+ * punto vibra, y el título cambia en vivo mientras se arrastra.
  */
 const COPY = {
   es: { label: (title: string) => `Importancia de «${title}»` },
@@ -62,18 +60,9 @@ export function ImportanceKnob({ value, title, onPreview, onChange }: Importance
     event.stopPropagation()
     const dx = event.clientX - start.x
     const dy = event.clientY - start.y
-    if (!start.moved) {
-      if (Math.abs(dy) > SCROLL_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
-        // Quería hacer scroll: el mando se aparta y el navegador sigue con el gesto.
-        gesture.current = null
-        event.currentTarget.releasePointerCapture(event.pointerId)
-        preview(null)
-        return
-      }
-      if (Math.abs(dx) < TAP_SLOP_PX) return
-      gesture.current = { ...start, moved: true }
-    }
-    const next = importanceFromDrag(value, dx)
+    if (!start.moved && Math.hypot(dx, dy) < TAP_SLOP_PX) return
+    if (!start.moved) gesture.current = { ...start, moved: true }
+    const next = importanceFromDrag(value, dx, dy)
     if (next === live.current) return
     live.current = next
     haptic('selection')

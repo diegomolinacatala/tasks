@@ -265,7 +265,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Tras probar la 43** (13/10/2026, en `capacitor`, **TestFlight 44**), lo que pidió el usuario:
   - **La regla de la duración, como antes de la auditoría** (`DurationPicker`, `ruler.css`): con
     `touch-action: pan-y` la soltaba en cuanto el dedo se movía un poco en vertical. Vuelve a coger el dedo
-    desde que se apoya (`touch-action: none`). El mando "Aa" sigue con `pan-y`.
+    desde que se apoya (`touch-action: none`). El mando "Aa", también desde la 47.
   - **La barra de escribir y su ficha, como antes de la auditoría**: tamaños de la barra (36 px, el asa
     de 22), la × delante de las píldoras, los destinos ocultos mientras se aplica lo entendido, la píldora
     tachada (sin "Tal cual"), Repetir e Importancia desplegados en la ficha y las píldoras de los paneles
@@ -306,6 +306,14 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     notas y novedades (`docs/app-store.md` §3, §5 y §9.9). Se envía la **1.7 (46)**.
   - Probado con Edge sin ventana y dedo simulado (la lámina en español e inglés, claro y oscuro; Ajustes y
     sus paneles; Lugares y el panel de Casa); 972 tests.
+- **El mando de los tamaños, como antes** (15/10/2026, en `capacitor`, **TestFlight 47**): el usuario probó
+  la 46 («ahora funciona todo bien pero se ha jodido la mecánica de los tamaños»). La auditoría había
+  dejado el mando del modo "Aa" solo de lado (`touch-action: pan-y`, y arrastrar en vertical hacía
+  scroll) y en el 10 se quedaba en el 10. Vuelve a ser el de antes (`ImportanceKnob`,
+  `importanceFromDrag(start, dx, dy)`, `nextImportance`): coge el dedo desde que se apoya, hacia arriba o a
+  la derecha agranda, hacia abajo o a la izquierda encoge, y tocarlo sube uno (pasado el 10, al 1). La
+  escala del panel también coge el dedo desde que se apoya (`touch-action: none`, como la regla). Sin
+  capturas ni textos de la ficha nuevos: se envía la **1.7 (47)** con lo preparado para la 46.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -322,7 +330,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     el "+ Sección" como campo, vacíos sin rótulos huecos, la primera tarea de la instalación asoma lo que
     hay detrás (una vez), hoy por contexto (las filas cambian a medianoche solas).
   - **Panel de la tarea**: el círculo de tachar arriba, mismo orden que la ficha, Sección e Importancia
-    plegadas, el mando "Aa" solo manda de lado (`touch-action: pan-y`; la regla y el deslizador no, ver la 44 y la 45), avisos
+    plegadas, avisos
     con × propia y "por qué no sonará", plazo en una sola píldora, "A hoy" y "¿Has acabado?" en la barra
     de arriba, toast de adónde se fue la tarea al cerrar.
   - **Rutinas**: se crean desde el pie (cerrar cancela), tope de 50 a la vista, constancia que se nota
@@ -346,7 +354,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar la TestFlight 46 y enviar la 1.7 (46)** (`docs/app-store.md` §9.9; los pasos al usuario, en el
+0. **Probar la TestFlight 47 y enviar la 1.7 (47)** (el mando de los tamaños en el modo "Aa"; lo demás ya
+   se probó en la 46) (`docs/app-store.md` §9.9; los pasos al usuario, en el
    chat): la lámina *Lugares* tras actualizar, Ajustes (cada fila y su panel, Avisos y Dictado, que en local
    no salen), una tarea `llamar a Carlota cuando me vaya de casa` y el selector *Al llegar / Al salir* del
    panel de una tarea. Antes de enviar, el «Hecha» del aviso con el iPhone bloqueado (sale en las novedades).
@@ -1032,12 +1041,13 @@ ni "urgente". Más importante = más grande, con más peso y más apretado, hast
 igual. No reordena nada.
 
 - **Modo "Aa"** (arriba): cada fila cambia el asa de mover por su mando, un número del 1 al 10.
-  Arrastrarlo a la derecha agranda y a la izquierda encoge (18 px por punto, vibra en cada uno, el
-  título cambia en vivo; en vertical es scroll: `touch-action: pan-y`); tocarlo sube uno y en el 10 se
-  queda. La primera vez que se activa, un toast dice que el número se arrastra. En el modo no se
+  Coge el dedo desde que se apoya (`touch-action: none`): arrastrarlo hacia arriba o a la derecha agranda
+  y hacia abajo o a la izquierda encoge (18 px por punto, vibra en cada uno, el título cambia en vivo);
+  tocarlo sube uno y pasado el 10 vuelve al 1. La primera vez que se activa, un toast dice que el número
+  se arrastra (la auditoría lo dejó solo de lado y el usuario lo echó en falta: la 47 lo devolvió). En el modo no se
   reordena. El estado del modo no se guarda.
 - **Panel de la tarea**: la escala del 1 al 10, plegada en una fila "Importancia · Normal ›"; se toca o
-  se arrastra de lado, y en lo hecho va atenuada.
+  se arrastra (coge el dedo desde que se apoya, como la regla), y en lo hecho va atenuada.
 - Lo **hecho** vuelve al tamaño normal (se conserva el valor por si se desmarca) y no lleva mando.
 - Donde no hay sitio para tamaños, la importancia elige: el widget de la pantalla de bloqueo enseña
   las dos pendientes más importantes y el resumen diario adelanta las más importantes en su vista

@@ -1001,7 +1001,7 @@ de la versión es la búsqueda pública de la App Store y no lleva datos del usu
 • When a new version is out, we’ll let you know when you open the app.
 ```
 
-### 9.9 La 1.7 (14/10/2026, compilación 46)
+### 9.9 La 1.7 (15/10/2026, compilación 47)
 
 La 1.6 se aprobó el 13/10/2026. La 1.7 junta la auditoría de experiencia (`docs/auditoria/`), lo que pidió
 el usuario al probarla (la regla, la barra y el deslizador como antes; el radio desde 20 m), lo del buzón
@@ -1015,13 +1015,14 @@ el usuario al probarla (la regla, la barra y el deslizador como antes; el radio 
   Mercadona; al arrastrar tu punto fuera de casa cae «Al salir de Casa · Llamar a Carlota».
 - **Ajustes más sencillo**: una sola pantalla de filas con su valor; el detalle de cada una, en su panel.
 
-Se envía la **1.7 (46)**. Cambian las **capturas** (las veinte; la que más, `02-lugares`, con el aviso al
+Se envía la **1.7 (47)**: la 46 con el mando de los tamaños del modo "Aa" como antes de la auditoría
+(se arrastra hacia arriba o abajo otra vez), sin más cambios en la ficha. Cambian las **capturas** (las veinte; la que más, `02-lugares`, con el aviso al
 salir), la **descripción** (el párrafo de los lugares, §3 y §3.1), el **texto promocional** (§3 y §3.1) y las
 **notas para la revisión** (§5: los avisos al salir y tocar el mapa). La privacidad **no cambia**.
 
 **Antes (en el iPhone, 5 minutos)**
 
-1. *TestFlight* → Tasks → **Actualizar** a la **1.7 (46)**. Al abrir: *Hay cosas nuevas* → **Ver lo nuevo**
+1. *TestFlight* → Tasks → **Actualizar** a la **1.7 (47)**. Al abrir: *Hay cosas nuevas* → **Ver lo nuevo**
    → la lámina *Lugares*: arrastrar el punto fuera de casa y hasta el Mercadona.
 2. Escribir `llamar a Carlota cuando me vaya de casa` (con un lugar «Casa» guardado): la píldora dice *Al
    salir de Casa*. Y el «Hecha» del aviso de una tarea con el iPhone bloqueado (sale en las novedades).
@@ -1033,7 +1034,7 @@ salir), la **descripción** (el párrafo de los lugares, §3 y §3.1), el **text
 5. **Capturas** (*Español (España)*): iPhone 6,9" → borrar las diez → arrastrar las diez de `docs/capturas/`.
 6. **Texto promocional** y **Descripción**: los de §3, enteros. **Palabras clave**: sin cambios.
 7. **Novedades de esta versión**: las de abajo.
-8. **Compilación** → **1.7 (46)**. Cifrado: *Ninguno de los algoritmos mencionados*.
+8. **Compilación** → **1.7 (47)**. Cifrado: *Ninguno de los algoritmos mencionados*.
 9. **Información para la revisión** → **Notas**: las de §5, enteras.
 10. **Publicación**: automática. **Guardar**.
 11. **English (U.S.)**: **Promotional Text** y **Description** de §3.1, **What’s New** de abajo, y las capturas
