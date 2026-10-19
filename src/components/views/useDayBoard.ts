@@ -4,10 +4,20 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { overdueTasks, sortedSections, untimedGroupsFor } from '../../state/selectors'
 import type { IsoDate } from '../../types'
-import { OVERDUE, ROOT, columnKeyOf, dayOfDrop, sectionDragId, sectionIdOf } from '../dnd/ids'
+import { OVERDUE, ROOT, columnKeyOf, dayOfDrop, sectionDragId, timelineOfDrop } from '../dnd/ids'
 import { buzz } from '../dnd/dnd'
 
 export type Columns = Record<string, string[]>
+
+/** Qué se arrastra: una tarea, una sección o un evento del calendario del iPhone. */
+export type DragType = 'task' | 'section' | 'event'
+
+export interface DayDrops {
+  /** Soltado sobre un día de la tira o del mes: `id` es el de la tarea o el del evento (`eventDragId`). */
+  onDay: (id: string, type: DragType, date: IsoDate) => void
+  /** Soltado en el horario, entre dos cosas: quien lo recibe sabe en qué hueco (lo sigue mientras se arrastra). */
+  onTimeline: (id: string, type: DragType) => void
+}
 
 const findColumn = (columns: Columns, taskId: string) =>
   Object.keys(columns).find((key) => columns[key]?.includes(taskId)) ?? null
@@ -15,24 +25,27 @@ const findColumn = (columns: Columns, taskId: string) =>
 const targetColumn = (columns: Columns, over: Over | null) => {
   if (!over) return null
   const id = String(over.id)
-  if (dayOfDrop(id)) return null
+  if (dayOfDrop(id) || timelineOfDrop(id)) return null
   return columnKeyOf(id) ?? findColumn(columns, id)
 }
 
+const typeOf = (data: { type?: unknown } | undefined): DragType => (data?.type === 'section' || data?.type === 'event' ? data.type : 'task')
+
 /**
  * Tablero de un día de la Agenda: lo atrasado (solo hoy) y lo que no tiene hora, con sus secciones.
- * Lo que tiene hora va al horario y no se reordena a mano. Durante el arrastre se trabaja sobre una
- * copia (`preview`) y se confirma de una vez al soltar; la copia vive además en un ref, porque al
- * soltar hay que leer el estado real del gesto y no el del último render.
+ * Durante el arrastre se trabaja sobre una copia (`preview`) y se confirma de una vez al soltar; la
+ * copia vive además en un ref, porque al soltar hay que leer el estado real del gesto y no el del
+ * último render.
  *
  * De `overdue` se puede sacar pero no recibe nada: sus tareas conservan su fecha hasta que se
- * mueven. Soltar sobre un día de la tira de la semana lleva la tarea a ese día (`onDropOnDay`).
+ * mueven. Soltar sobre un día de la tira lleva la tarea a ese día y soltar en el horario le pone hora
+ * (`drops`): esos dos sitios no tocan el tablero. Un evento del calendario solo va a esos dos sitios.
  */
-export function useDayBoard(day: IsoDate, today: IsoDate, onDropOnDay: (taskId: string, date: IsoDate) => void) {
+export function useDayBoard(day: IsoDate, today: IsoDate, drops: DayDrops) {
   const state = useAppState()
   const dispatch = useDispatch()
   const [preview, setPreview] = useState<Columns | null>(null)
-  const [active, setActive] = useState<{ id: string; type: string } | null>(null)
+  const [active, setActive] = useState<{ id: string; type: DragType } | null>(null)
   const previewRef = useRef<Columns | null>(null)
 
   const sections = useMemo(() => sortedSections(state), [state])
@@ -57,14 +70,14 @@ export function useDayBoard(day: IsoDate, today: IsoDate, onDropOnDay: (taskId: 
   }
 
   const onDragStart = ({ active: dragged }: DragStartEvent) => {
-    const type = String(dragged.data.current?.type ?? 'task')
+    const type = typeOf(dragged.data.current)
     setActive({ id: String(dragged.id), type })
     if (type === 'task') applyPreview(base)
     buzz()
   }
 
   const onDragOver = ({ active: dragged, over }: DragOverEvent) => {
-    if (dragged.data.current?.type !== 'task' || !over) return
+    if (typeOf(dragged.data.current) !== 'task' || !over) return
     const taskId = String(dragged.id)
     const from = previewRef.current ?? base
     const source = findColumn(from, taskId)
@@ -110,10 +123,13 @@ export function useDayBoard(day: IsoDate, today: IsoDate, onDropOnDay: (taskId: 
 
   const onDragEnd = ({ active: dragged, over }: DragEndEvent) => {
     const id = String(dragged.id)
-    const dropDay = over ? dayOfDrop(String(over.id)) : null
-    if (sectionIdOf(id)) commitSections(id, over)
-    else if (dropDay) onDropOnDay(id, dropDay)
-    else if (over) commitTasks(id, over)
+    const type = typeOf(dragged.data.current)
+    const overId = over ? String(over.id) : ''
+    const dropDay = dayOfDrop(overId)
+    if (type === 'section') commitSections(id, over)
+    else if (dropDay) drops.onDay(id, type, dropDay)
+    else if (timelineOfDrop(overId)) drops.onTimeline(id, type)
+    else if (over && type === 'task') commitTasks(id, over)
     reset()
   }
 

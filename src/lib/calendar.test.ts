@@ -6,6 +6,8 @@ import {
   MAX_HIDDEN,
   addedCalendars,
   calendarGroups,
+  canMoveEvent,
+  movedStart,
   eventDays,
   eventSpan,
   eventWindow,
@@ -256,6 +258,43 @@ describe('el horario con eventos', () => {
     const meeting = event('reunion', at(DAY, '10:00'), at(DAY, '12:00'))
     const [row] = buildTimeline(timelineItems([], [], eventsOfDay([meeting], DAY).timed), 11 * 60)
     expect(row).toMatchObject({ kind: 'event', live: 0.5 })
+  })
+})
+
+describe('canMoveEvent', () => {
+  const calendars = [calendar('trabajo', 'Google'), { ...calendar('festivos', 'Suscritos'), writable: false }]
+
+  test('solo con hora y en un calendario que se puede escribir', () => {
+    expect(canMoveEvent(event('reunion', at(DAY, '10:00'), at(DAY, '11:00')), calendars)).toBe(true)
+    expect(canMoveEvent(event('fiesta', at(DAY, '10:00'), at(DAY, '11:00'), { calendarId: 'festivos' }), calendars)).toBe(false)
+    expect(canMoveEvent(event('cumple', fromIso(DAY).getTime(), fromIso('2026-10-09').getTime() - 1, { allDay: true }), calendars)).toBe(false)
+    expect(canMoveEvent(event('nadie', at(DAY, '10:00'), at(DAY, '11:00'), { calendarId: 'otro' }), calendars)).toBe(false)
+    // Te han invitado: lo organiza otro y su cuenta desharía el cambio.
+    expect(canMoveEvent(event('invitado', at(DAY, '10:00'), at(DAY, '11:00'), { readonly: true }), calendars)).toBe(false)
+  })
+
+  test('lo que organiza otro llega marcado de iOS', () => {
+    const [mine, theirs] = parseCalendarEvents([
+      { id: 'a', start: 1, end: 2, readonly: false },
+      { id: 'b', start: 1, end: 2, readonly: true },
+    ])
+    expect(mine?.readonly).toBeUndefined()
+    expect(theirs?.readonly).toBe(true)
+  })
+
+  test('lo que empezó otro día no se mueve desde este', () => {
+    const late = event('fiesta', at('2026-10-07', '22:00'), at(DAY, '02:00'))
+    expect(canMoveEvent(late, calendars, DAY)).toBe(false)
+    expect(canMoveEvent(late, calendars, '2026-10-07')).toBe(true)
+  })
+})
+
+describe('movedStart', () => {
+  const meeting = event('reunion', at(DAY, '10:30'), at(DAY, '11:30'))
+
+  test('a otro día conserva la hora; a otra hora, en ese día', () => {
+    expect(movedStart(meeting, '2026-10-09')).toBe(at('2026-10-09', '10:30'))
+    expect(movedStart(meeting, DAY, 15 * 60)).toBe(at(DAY, '15:00'))
   })
 })
 

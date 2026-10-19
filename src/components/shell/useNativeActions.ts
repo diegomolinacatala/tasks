@@ -8,6 +8,8 @@ interface NativeActionHandlers {
   onAdd: (text: string) => void
   /** Acceso rápido "Nueva tarea"; `inbox`, el + del widget de la Bandeja. */
   onCompose: (inbox: boolean) => void
+  /** El widget o el control del micrófono: la app se abre ya escuchando. */
+  onDictate: () => void
   /** Acceso rápido "Semana" y "Mi semana en Tasks". */
   onWeek: () => void
   /** Widget: tocarlo fuera de una tarea. */
@@ -40,6 +42,7 @@ export function useNativeActions(handlers: NativeActionHandlers) {
           const action = parseNativeAction(raw)
           if (action?.type === 'add') current.current.onAdd(action.text)
           if (action?.type === 'compose') current.current.onCompose(action.inbox === true)
+          if (action?.type === 'dictate') current.current.onDictate()
           if (action?.type === 'week') current.current.onWeek()
           if (action?.type === 'today') current.current.onToday()
           if (action?.type === 'open') current.current.onOpenTask(action.taskId)

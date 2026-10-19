@@ -1,5 +1,5 @@
 import type { CalendarSettings, IsoDate } from '../types'
-import { addDays, addMonths, formatTime, fromIso, isoOfInstant, startOfMonth } from './date'
+import { addDays, addMonths, formatTime, fromIso, isoOfInstant, startOfMonth, toInstant } from './date'
 import { spanLabel } from './duration'
 import { compareNames, compareText } from './order'
 
@@ -26,6 +26,8 @@ export interface CalendarEvent {
   /** `#rrggbb`, el del calendario en el iPhone. La app lo apaga para que case con el papel (`.cal-tone`). */
   color: string
   location: string | null
+  /** Te han invitado (lo organiza otro): la cuenta desharía cualquier cambio, así que no se mueve. */
+  readonly?: true
 }
 
 /** De dónde sale un calendario: los suscritos son los de festivos o un enlace .ics. */
@@ -94,6 +96,7 @@ export function parseCalendarEvents(raw: unknown): CalendarEvent[] {
       allDay: item.allDay === true,
       color: color(item.color),
       location: location || null,
+      ...(item.readonly === true ? { readonly: true as const } : {}),
     })
   }
   return events
@@ -220,6 +223,23 @@ export function addedCalendars(before: readonly CalendarInfo[], after: readonly 
   if (!before.length) return []
   const known = new Set(before.map((calendar) => calendar.id))
   return after.filter((calendar) => !known.has(calendar.id) && !calendar.own)
+}
+
+/**
+ * Un evento se puede mover desde la app si es de un calendario que se puede escribir y tiene hora: lo
+ * de todo el día se queda donde está (y los suscritos, los cumpleaños, lo que ya empezó otro día y lo
+ * que organiza otro, también).
+ */
+export function canMoveEvent(event: CalendarEvent, calendars: readonly CalendarInfo[], day?: IsoDate): boolean {
+  if (event.allDay || event.readonly) return false
+  if (day !== undefined && event.start < fromIso(day).getTime()) return false
+  return calendars.some((calendar) => calendar.id === event.calendarId && calendar.writable)
+}
+
+/** El inicio de un evento llevado a otro día (a su misma hora) o a otra hora (`minutes`) de ese día. Epoch ms. */
+export function movedStart(event: CalendarEvent, day: IsoDate, minutes?: number): number {
+  const at = minutes ?? minutesOfDay(event.start)
+  return toInstant(day, formatTime(Math.floor(at / 60) % 24, at % 60))
 }
 
 /** Evento para el widget de hoy (`WidgetEvent` en `WidgetStore.swift`). */

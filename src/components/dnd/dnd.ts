@@ -49,20 +49,22 @@ export const lifted = () => document.querySelectorAll(`.${PRESSING}`).forEach((n
 
 /**
  * Una sección solo se suelta entre secciones; una tarea, nunca sobre una sección. Los días (la
- * tira de la semana, el muelle) cuentan solo si el dedo está encima: pasar cerca de ellos al
- * reordenar no debe llevarse la tarea a otro día.
+ * tira de la semana, el muelle) y el horario cuentan solo si el dedo está encima: pasar cerca de
+ * ellos al reordenar no debe llevarse la tarea a otro día ni ponerle hora. Un evento del calendario
+ * solo va a un día o al horario: entre las tareas no tiene sitio.
  */
 export const scopedCollision: CollisionDetection = (args) => {
   const dragging = args.active.data.current?.type
-  const isDay = (type: unknown) => type === 'day'
+  const isZone = (type: unknown) => type === 'day' || type === 'timeline'
   if (dragging !== 'section') {
-    const days = args.droppableContainers.filter((container) => isDay(container.data.current?.type))
-    const [day] = days.length ? pointerWithin({ ...args, droppableContainers: days }) : []
-    if (day) return [day]
+    const zones = args.droppableContainers.filter((container) => isZone(container.data.current?.type))
+    const [zone] = zones.length ? pointerWithin({ ...args, droppableContainers: zones }) : []
+    if (zone) return [zone]
+    if (dragging === 'event') return []
   }
   const droppableContainers = args.droppableContainers.filter((container) => {
     const type = container.data.current?.type
-    if (isDay(type)) return false
+    if (isZone(type)) return false
     return dragging === 'section' ? type === 'section' : type !== 'section'
   })
   return closestCorners({ ...args, droppableContainers })

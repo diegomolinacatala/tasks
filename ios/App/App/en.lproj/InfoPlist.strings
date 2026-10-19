@@ -6,3 +6,4 @@ NSLocationWhenInUseUsageDescription = "To remind you when you arrive at or leave
 NSLocationAlwaysAndWhenInUseUsageDescription = "To remind you when you arrive at or leave your places, and to find places near you.";
 "Nueva tarea" = "New task";
 "Agenda" = "Agenda";
+"Dictar tarea" = "Dictate task";

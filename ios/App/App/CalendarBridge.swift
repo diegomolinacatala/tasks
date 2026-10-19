@@ -54,18 +54,32 @@ enum CalendarBridge {
             "color": CalendarReader.hex(event.calendar?.cgColor),
         ]
         if let location = event.location, !location.isEmpty { item["location"] = location }
+        if isInvitation(event) { item["readonly"] = true }
         return item
     }
 
-    /** Una ocurrencia concreta: las de un evento que se repite comparten id y se distinguen por el inicio. */
-    fileprivate static func occurrence(id: String, start: Date) -> EKEvent? {
+    /** Te han invitado: lo organiza otro, y la cuenta (Google, Exchange) desharía lo que se moviera aquí. */
+    fileprivate static func isInvitation(_ event: EKEvent) -> Bool {
+        guard event.hasAttendees, let organizer = event.organizer else { return false }
+        return !organizer.isCurrentUser
+    }
+
+    /**
+     * Una ocurrencia concreta: las de un evento que se repite comparten id y se distinguen por el inicio.
+     * Con `exact`, solo la que empieza entonces; sin él, a falta de ella vale el evento por su id (la
+     * ficha de uno que ya se movió).
+     */
+    fileprivate static func occurrence(id: String, start: Date, exact: Bool = false) -> EKEvent? {
         let from = start.addingTimeInterval(-60)
         let to = start.addingTimeInterval(60 * 60 * 24)
         let predicate = store.predicateForEvents(withStart: from, end: to, calendars: nil)
         let found = store.events(matching: predicate).first { event in
             event.eventIdentifier == id && abs(event.startDate.timeIntervalSince(start)) < 1
         }
-        return found ?? store.event(withIdentifier: id)
+        if let found { return found }
+        guard let whole = store.event(withIdentifier: id) else { return nil }
+        // Para escribir, en una serie solo vale la ocurrencia exacta: el id solo daría la primera.
+        return exact && whole.hasRecurrenceRules ? nil : whole
     }
 
     /** La cuenta: "iCloud", "Gmail", el correo de Exchange… Vacía para los del iPhone: la web los nombra en su idioma. */
@@ -131,6 +145,49 @@ extension TasksNativePlugin {
                 hidden: hidden
             )
             call.resolve(["events": events.map(CalendarBridge.describe)])
+        }
+    }
+
+    /**
+     * Lleva una ocurrencia (`id` y su inicio, epoch ms) a otro instante `to`, con lo que dura; si se
+     * repite, solo esa ocurrencia. Lo escribe EventKit y la cuenta del calendario (Google, iCloud…) lo
+     * sincroniza como si se hubiera movido en la app Calendario. Rechaza con `readonly` si el calendario
+     * no se puede escribir (suscritos, cumpleaños) y con `missing` si no lo encuentra.
+     */
+    @objc func moveEvent(_ call: CAPPluginCall) {
+        guard let id = call.getString("id"), let start = call.getDouble("start"), let to = call.getDouble("to") else {
+            call.reject("Falta el evento.", "missing")
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard
+                CalendarReader.canRead,
+                let event = CalendarBridge.occurrence(id: id, start: Date(timeIntervalSince1970: start / 1000), exact: true)
+            else {
+                call.reject("No se encuentra el evento.", "missing")
+                return
+            }
+            guard event.calendar?.allowsContentModifications ?? false, !CalendarBridge.isInvitation(event) else {
+                call.reject("Ese calendario es de solo lectura.", "readonly")
+                return
+            }
+            let duration = max((event.endDate ?? event.startDate).timeIntervalSince(event.startDate), 0)
+            let newStart = Date(timeIntervalSince1970: to / 1000)
+            // A la misma hora no se escribe nada (en una serie crearía una excepción sin motivo).
+            guard abs(newStart.timeIntervalSince(event.startDate)) >= 1 else {
+                call.resolve()
+                return
+            }
+            event.startDate = newStart
+            event.endDate = newStart.addingTimeInterval(duration)
+            do {
+                try CalendarBridge.store.save(event, span: .thisEvent, commit: true)
+                // EventKit no avisa de lo que hace uno mismo: el widget de hoy lee el calendario por su cuenta.
+                WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.kind)
+                call.resolve()
+            } catch {
+                call.reject("No se ha podido mover el evento.", "failed", error)
+            }
         }
     }
 

@@ -8,6 +8,11 @@ struct TasksWidgetBundle: WidgetBundle {
         TasksWidget()
         InboxWidget()
         RoutinesWidget()
+        DictateWidget()
+        // El control del micrófono (centro de control, pantalla de bloqueo, botón de acción) es de iOS 18.
+        if #available(iOS 18.0, *) {
+            DictateControl()
+        }
     }
 }
 

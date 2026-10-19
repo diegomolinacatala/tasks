@@ -9,6 +9,8 @@ const SILENCE_MS = 1500
 const NO_SPEECH_MS = 8000
 export const MAX_MS = 30_000
 const BUFFER_SIZE = 4096
+/** Lo que se espera a que el audio arranque antes de dar por hecho que iOS lo ha dejado en suspenso. */
+const RESUME_TIMEOUT_MS = 2500
 
 export type CaptureResult =
   | { status: 'ok'; samples: Float32Array; sampleRate: number }
@@ -49,7 +51,14 @@ export async function startCapture(context: AudioContext, onLevel: (level: numbe
     void context.close()
     throw error
   }
-  await context.resume()
+  // Sin un gesto (el widget del micrófono abre la app escuchando), iOS podría dejar el audio en
+  // suspenso para siempre: si no arranca en un rato, se suelta el micrófono y se pide el toque.
+  const resumed = await Promise.race([context.resume().then(() => true), new Promise<false>((resolve) => setTimeout(() => resolve(false), RESUME_TIMEOUT_MS))])
+  if (!resumed) {
+    stream.getTracks().forEach((track) => track.stop())
+    void context.close()
+    throw new Error(pick({ es: 'Toca el micrófono para dictar.', en: 'Tap the microphone to dictate.' }))
+  }
 
   const source = context.createMediaStreamSource(stream)
   const processor = context.createScriptProcessor(BUFFER_SIZE, 1, 1)

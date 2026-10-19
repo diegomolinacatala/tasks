@@ -41,6 +41,9 @@
 		7A5C00000000000000000115 /* WidgetText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000016 /* WidgetText.swift */; };
 		7A5C00000000000000000116 /* WidgetText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000016 /* WidgetText.swift */; };
 		7A5C00000000000000000117 /* InboxWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000017 /* InboxWidget.swift */; };
+		7A5C00000000000000000B02 /* DictateWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000B01 /* DictateWidget.swift */; };
+		7A5C00000000000000000B04 /* DictateIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000B03 /* DictateIntent.swift */; };
+		7A5C00000000000000000B05 /* DictateIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000B03 /* DictateIntent.swift */; };
 		7A5C00000000000000000118 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000801 /* Localizable.strings */; };
 		7A5C00000000000000000119 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000803 /* AppShortcuts.strings */; };
 		7A5C0000000000000000011A /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A5C00000000000000000805 /* InfoPlist.strings */; };
@@ -113,6 +116,8 @@
 		7A5C00000000000000000015 /* OverdueMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverdueMover.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000016 /* WidgetText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetText.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000017 /* InboxWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxWidget.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000B01 /* DictateWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictateWidget.swift; sourceTree = "<group>"; };
+		7A5C00000000000000000B03 /* DictateIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictateIntent.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000018 /* CalendarReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarReader.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000A01 /* CalendarBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarBridge.swift; sourceTree = "<group>"; };
 		7A5C00000000000000000A03 /* CalendarExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarExport.swift; sourceTree = "<group>"; };
@@ -202,6 +207,8 @@
 			children = (
 				7A5C00000000000000000009 /* TasksWidget.swift */,
 				7A5C00000000000000000017 /* InboxWidget.swift */,
+				7A5C00000000000000000B01 /* DictateWidget.swift */,
+				7A5C00000000000000000B03 /* DictateIntent.swift */,
 				7A5C0000000000000000000A /* TasksWidgetViews.swift */,
 				7A5C00000000000000000016 /* WidgetText.swift */,
 				7A5C0000000000000000000B /* ToggleTaskIntent.swift */,
@@ -350,6 +357,7 @@
 				7A5C00000000000000000111 /* QuickAdd.swift in Sources */,
 				7A5C00000000000000000702 /* NotificationResponder.swift in Sources */,
 				7A5C00000000000000000112 /* MoveOverdueWidgetIntent.swift in Sources */,
+				7A5C00000000000000000B04 /* DictateIntent.swift in Sources */,
 				7A5C00000000000000000115 /* WidgetText.swift in Sources */,
 				7A5C0000000000000000011C /* CalendarReader.swift in Sources */,
 				7A5C00000000000000000A02 /* CalendarBridge.swift in Sources */,
@@ -370,6 +378,8 @@
 				7A5C00000000000000000108 /* WidgetStore.swift in Sources */,
 				7A5C00000000000000000116 /* WidgetText.swift in Sources */,
 				7A5C00000000000000000117 /* InboxWidget.swift in Sources */,
+				7A5C00000000000000000B02 /* DictateWidget.swift in Sources */,
+				7A5C00000000000000000B05 /* DictateIntent.swift in Sources */,
 				7A5C0000000000000000011D /* CalendarReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -314,6 +314,29 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   la derecha agranda, hacia abajo o a la izquierda encoge, y tocarlo sube uno (pasado el 10, al 1). La
   escala del panel también coge el dedo desde que se apoya (`touch-action: none`, como la regla). Sin
   capturas ni textos de la ficha nuevos: se envía la **1.7 (47)** con lo preparado para la 46.
+- **El micrófono en un widget, soltar en el horario y mover los eventos del calendario** (19/10/2026, en
+  `capacitor`, la 1.7; el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone). Lo pidió el
+  usuario en una sola petición:
+  - **Widget y control Dictar** (`DictateWidget.swift`): un micrófono en la pantalla de inicio (pequeño) y en
+    la de bloqueo (redondo, rectangular, en línea) y, con iOS 18, un **control** para el centro de control,
+    los dos botones de abajo de la pantalla de bloqueo y el botón de acción. Tocarlo abre la app ya
+    escuchando (`<esquema>://dictate` → acción `dictate` → la barra llama a `voice.start()`). iOS no deja
+    grabar sin la app delante: con el iPhone bloqueado, Face ID por medio. También un acceso rápido del
+    icono y el atajo "Dicta en Tasks" (`DictateTaskIntent`). Ver "App de iPhone".
+  - **Soltar una tarea en el horario** (`lib/slot.ts`, `SlotCard`, `task/schedule`): mantener pulsada una
+    tarea de *Sin hora* (o de *Atrasadas*, o una con hora) y soltarla entre dos cosas del `Horario`; un
+    trazo de coñac dice en qué hueco cae y, al soltar, una tarjeta en ese mismo sitio propone la hora
+    (cuando acaba lo de delante) y la duración (ninguna, las de siempre o "hasta las 12:00"). Ver "Pantallas".
+  - **Mover los eventos del calendario del iPhone** (`CalendarBridge.moveEvent`, `calendar.move`): mantener
+    pulsado un evento del horario y soltarlo en un día de la tira o en otro hueco; lo escribe EventKit
+    (solo esa ocurrencia) y la cuenta (Google, Outlook, iCloud) lo sincroniza sola. Ver "Calendario del
+    iPhone". Decisión cerrada actualizada.
+  - Probado con Edge sin ventana y dedo simulado (claro y oscuro: el hueco, la tarjeta, "1 h", Listo,
+    deshacer; un evento a mañana y a otra hora, con deshacer); 1.002 tests. Revisado por un segundo
+    agente (arreglado lo que encontró: la duración que se perdía al mover una tarea con hora dentro del
+    horario, la ocurrencia exacta en una serie, los eventos de los que te invitan, el intent del control
+    en los dos objetivos, el hueco en un día sin horario al arrastrar una sección). El widget, el control y
+    EventKit escribiendo solo se prueban en el iPhone. El JS principal pasa a 157,1 kB gzip.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -354,6 +377,14 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
+0. **Probar en el iPhone la TestFlight con el micrófono, el horario y los eventos** (la siguiente a la 47,
+   desde `capacitor`): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
+   bloqueado (Face ID → la app abre escuchando); en iOS 18, Ajustes → Fondo de pantalla → Personalizar →
+   el botón de abajo a la izquierda → **Dictar en Tasks**, y en el centro de control; el acceso rápido
+   del icono. En la Agenda: mantener pulsada una tarea de *Sin hora* y soltarla entre dos cosas del
+   horario (el trazo, la tarjeta, las píldoras, Listo, deshacer). Con el calendario conectado: mantener
+   pulsado un evento de Google y soltarlo en mañana (que cambie en la app Calendario y en Google) y en
+   otro hueco; uno de un calendario suscrito no se coge. Si todo va, es la que se envía como 1.7.
 0. **Probar la TestFlight 47 y enviar la 1.7 (47)** (el mando de los tamaños en el modo "Aa"; lo demás ya
    se probó en la 46) (`docs/app-store.md` §9.9; los pasos al usuario, en el
    chat): la lámina *Lugares* tras actualizar, Ajustes (cada fila y su panel, Avisos y Dictado, que en local
@@ -495,7 +526,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (157,1 el 19/10/2026, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -527,6 +558,7 @@ src/
 │   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
 │   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
 │   ├── timeline.ts       # horario de un día: lo que tiene hora (también los eventos), tiempo libre y "ahora"
+│   ├── slot.ts           # soltar en el horario: en qué hueco cae, la hora propuesta y las duraciones que se ofrecen
 │   ├── calendar.ts       # calendario del iPhone: validar lo de EventKit, repartirlo por días, ventana, widget
 │   ├── calendarExport.ts # las tareas con hora que van al calendario elegido
 │   ├── update.ts         # aviso de versión nueva: comparar versiones, novedades, si se ofrece
@@ -564,7 +596,7 @@ src/
 ├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
-    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, AllDayEvents, useDayBoard), InboxView (+ DayDock)
+    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, SlotCard, AllDayEvents, useDayBoard), InboxView (+ DayDock)
     ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`);
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
@@ -581,7 +613,7 @@ src/
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
                           # CalendarExport.swift, AppStoreVersion.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget) y Rutinas; WidgetStore, WidgetText, CalendarReader y
+ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget), Rutinas y Dictar (DictateWidget, con el control de iOS 18); WidgetStore, WidgetText, CalendarReader y
                           # MoveOverdueWidgetIntent se compilan también en la app
 ios/App/*/en.lproj/       # inglés de lo que enseña iOS por su cuenta: Siri, Atajos, permisos, accesos rápidos
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
@@ -647,7 +679,8 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
   2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas, rutinas y los eventos del
      calendario del iPhone, ver "Calendario del iPhone") a lo largo de una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
      si está en curso, se va llenando; entre medias, "1 h 30 libres" (desde ahora, si el hueco ya
-     empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora).
+     empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora), pero
+     **se puede soltar algo entre dos cosas** para ponerle hora (ver "Soltar en el horario").
   3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Cada sección lleva un **+** en
      su cabecera: abre la barra con ella como destino ("Añadir a Compra", la píldora en versalitas), en el
      mismo toque para que salga el teclado (`focusRef`), y la despliega si estaba plegada. Un día pasado con
@@ -665,6 +698,32 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
   el permiso del dictado y qué se envía, las cifras, exportar, importar y borrar): no se pierde nada, solo
   deja de estar todo a la vez (lo pidió el usuario: "abruma"). Dentro de los paneles, dos tipos de control:
   interruptor para sí/no, fila con valor › para lo demás.
+
+### Soltar en el horario
+
+Para darle hora a una tarea sin abrir su panel: se coge (mantener pulsada) una de *Sin hora*, de
+*Atrasadas* o una que ya tiene hora, y se suelta entre dos cosas del `Horario`. Como en Structured, pero
+preguntando lo justo al soltar.
+
+- **Mientras se arrastra** (`onDragMove` en `AgendaView`), el horario es una zona (`tl:<día>`, solo si el
+  dedo está encima: `scopedCollision`) y un **trazo de coñac** con la hora propuesta dice en qué hueco
+  caería (`TimelineSlot`): el centro de lo cogido (`active.rect.current.translated`) contra las filas del
+  horario (`slotIndexAt`), sin contar la fila de lo que se arrastra. Un horario vacío enseña "Suelta aquí
+  para ponerle hora". Lo hecho no se suelta ahí.
+- **Al soltar**, en ese mismo hueco aparece la **tarjeta** (`SlotCard`, una fila más del horario, con su
+  hora en la columna): la hora propuesta por `suggestedStart` (cuando acaba lo de delante; sin nada
+  delante, una hora antes de lo de detrás; sin nada, ahora o las 9; hoy nunca en el pasado; algo sin
+  duración ocupa media hora a estos efectos), con un cuarto de hora a cada lado y la rueda nativa para
+  afinar (`PickerChip`); y la duración en píldoras (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay
+  algo detrás, "Hasta las 12:00"). Nada se guarda hasta **Listo**; la × la deja donde estaba; otro día o
+  otro arrastre la cierran.
+- **Listo** despacha `task/schedule` (`lib/slot.ts` para la lógica, `reducer.ts` para el cambio): ese día
+  (de *Atrasadas* o de un plazo, con su sección), esa hora, esa duración y, como al escribir "a las 5", el
+  aviso "a la hora" si no tenía ninguno relativo (`reminderId`, para quitarlo al deshacer). El toast
+  ("Comprar pan · 16:45–17:45") deshace con `tasks/place` + `task/setTime` + `task/setDuration` +
+  `reminder/remove`.
+- Los **eventos del calendario** se sueltan igual (la tarjeta solo pregunta la hora: lo que dura ya está
+  decidido). Ver "Calendario del iPhone".
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -854,6 +913,19 @@ no abrume: nada de pestañas ni vistas nuevas.
   en el mes, un **punto** bajo el número de los días con algo (`eventDays`). Tocar un evento abre la ficha
   de Calendario de iOS (`EKEventViewController`, se puede editar; al cambiar algo, iOS avisa y se vuelve a
   leer). No se desliza ni se tacha.
+- **Se mueve** (la 1.7): mantener pulsado un evento del horario lo coge (`useDraggable`, `event:<key>`)
+  para soltarlo en un día de la tira o del mes (a su misma hora) o en otro hueco del horario (la tarjeta
+  de "Soltar en el horario" con su duración fija). `calendar.move(event, start)` → `TasksNative.moveEvent`
+  (`CalendarBridge.swift`: la ocurrencia por id e inicio, `allowsContentModifications`, `save(span:
+  .thisEvent)`: en una serie solo esa ocurrencia) y la cuenta del calendario (Google, Outlook, iCloud) lo
+  sincroniza como si se hubiera movido en Calendario. Como EventKit no avisa de lo que hace uno mismo, se
+  vuelve a leer al momento (`refresh`) y el widget de hoy recarga. Solo los de un calendario que se
+  puede escribir, con hora y que empiezan ese día (`canMoveEvent`); los suscritos, los cumpleaños y lo
+  que organiza otro (te han invitado: llega con `readonly` de Swift, porque la cuenta desharía el
+  cambio) no se cogen. En una serie solo vale la ocurrencia exacta (id e inicio): por el id a secas
+  EventKit daría la primera. A la misma hora no se escribe nada. Toast con "Deshacer" (lo devuelve a su inicio); si iOS no pudo, "No se ha podido mover el
+  evento". En local, `calendarDemo.ts` guarda los movimientos en memoria (`applyMoves`), y
+  `localStorage.setItem('tasks:demo-calendar', 'granted')` lo da por conectado al arrancar (guiones).
 - **Estado** (`Settings.calendar`: `enabled` y `hidden`, los ids de los calendarios ocultos): es del
   dispositivo, como la apariencia (importar una copia o borrarlo todo no lo cambia). Se enciende al
   conceder el permiso.
@@ -1498,6 +1570,20 @@ la misma.
     `parseRoutineChanges`) y aplica `routine/set`. `headless.js` también lo cuenta (`projected`).
   - `WidgetChanges` se lee con `decodeIfPresent`: un fichero de una versión anterior no trae
     `routines` y no debe perder lo marcado.
+- **Widget y control Dictar** (`DictateWidget.swift`, la 1.7): un micrófono que abre la app ya escuchando.
+  Widget pequeño de inicio (el micrófono en un sello de coñac, "Toca y habla") y de bloqueo (redondo,
+  rectangular y en línea), todos con `widgetURL` `<esquema>://dictate`; y, con iOS 18, un **control**
+  (`DictateControl`, `ControlWidgetButton` con `DictateIntent` → `OpenURLIntent`; el intent va en
+  `DictateIntent.swift`, compilado en la app y en el widget como `WidgetMoveOverdueIntent`) para el
+  centro de control, los dos botones de abajo de la pantalla de bloqueo y el botón de acción
+  (`if #available(iOS 18.0, *)` en el `WidgetBundle`). iOS no deja grabar desde un widget ni desde segundo plano: la app se abre (Face ID
+  si está bloqueado) y `SceneDelegate` → `NativeActions` → acción `dictate` → `App` va a la Agenda de hoy y
+  pide a la barra que escuche (`dictateRequest` → `voice.start()`; la primera vez sale la ficha del permiso
+  del dictado, que pide su toque). En un arranque en frío la barra espera a saber si el dictado está listo
+  (`push.restoring`): si no, diría que no hay avisos; con la bienvenida delante, a que se cierre. Si
+  iOS dejara el audio en suspenso por no haber gesto, `startCapture` lo suelta a los 2,5 s y pide
+  tocar el micrófono. Lo mismo desde el acceso rápido del icono ("Dictar
+  tarea") y desde Atajos o Siri ("Dicta en Tasks", `DictateTaskIntent`).
 - **Permisos**: el de notificaciones se pide solo la primera vez que hay algún recordatorio
   (`tasks:notifications-asked` en localStorage); después manda Ajustes de iOS. El de ubicación, al
   buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). La pestaña Lugares avisa
@@ -1672,9 +1758,10 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - La duración existe para poder preguntar al acabar, no para planificar el día: no hay bloques de
   tiempo ni se avisa de solapes. Lo que no se dice no dura.
 - Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se enseñan en la
-  Agenda y no se cambian desde la app (para eso, su ficha de Calendario) ni se guardan. Lo único que la app
-  escribe son tus tareas con hora, si lo eliges, y en un solo sentido. Sin cuentas de Google ni Microsoft:
-  lo que no esté en el Calendario del iPhone se añade allí.
+  Agenda y no se guardan. Desde la app solo se **mueven** (a otro día o a otra hora, soltándolos; lo
+  escribe EventKit y la cuenta lo sincroniza); para editarlos, su ficha de Calendario. Aparte, la app
+  escribe tus tareas con hora en un calendario, si lo eliges, y en un solo sentido. Sin cuentas de Google
+  ni Microsoft: lo que no esté en el Calendario del iPhone se añade allí.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
   Atajos). Lo único que va solo con hoy es una tarea con plazo, porque el plazo lo puso el usuario.
 - Un plazo no es una rutina ni una tarea recurrente: se hace una vez. "De lunes a viernes" es rutina;

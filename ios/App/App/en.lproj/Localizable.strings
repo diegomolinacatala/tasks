@@ -23,3 +23,8 @@
 "Ver la semana" = "See the week";
 "Abre Tasks en la agenda de la semana." = "Opens Tasks on the week’s agenda.";
 "Semana" = "Week";
+
+/* Dictar tarea */
+"Dictar tarea" = "Dictate task";
+"Abre Tasks escuchando: di la tarea y listo." = "Opens Tasks listening: say the task and you’re done.";
+"Dictar" = "Dictate";

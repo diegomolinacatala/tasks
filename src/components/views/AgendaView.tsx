@@ -1,12 +1,20 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { createId } from '../../lib/id'
 import { capitalize } from '../../lib/title'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
+import type { DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { dayHeading, monthYear, relativeLabel } from '../../lib/date'
+import type { CalendarEvent, TimedEvent } from '../../lib/calendar'
+import { canMoveEvent, eventSpan, movedStart } from '../../lib/calendar'
+import { dayHeading, isoOfInstant, monthYear, relativeLabel, shortTime } from '../../lib/date'
+import { spanLabel } from '../../lib/duration'
+import { placementsOf } from '../../lib/order'
 import { lastDay, shownDay } from '../../lib/period'
 import { haptic } from '../../lib/platform/feedback'
 import { routinesOn } from '../../lib/routines'
+import type { SlotGap } from '../../lib/slot'
+import { gapAround, slotBefore, slotIndexAt, suggestedStart, timeAt } from '../../lib/slot'
 import { buildTimeline, timelineItems } from '../../lib/timeline'
 import { useNowMinutes } from '../../hooks/useNow'
 import { useCopy } from '../../state/LanguageProvider'
@@ -16,7 +24,7 @@ import { useCalendar, useDayEvents } from '../calendar/CalendarProvider'
 import { progressOf, tasksOn } from '../../state/selectors'
 import type { IsoDate, Task } from '../../types'
 import { announcements, pressCue, scopedCollision, useDragSensors } from '../dnd/dnd'
-import { OVERDUE, ROOT, columnId, sectionDragId } from '../dnd/ids'
+import { OVERDUE, ROOT, columnId, eventDragId, eventKeyOf, sectionDragId } from '../dnd/ids'
 import { BlockHeader } from '../section/BlockHeader'
 import { SectionBlock } from '../section/SectionBlock'
 import { TaskColumn } from '../section/TaskColumn'
@@ -26,9 +34,12 @@ import { useTaskActions } from '../task/useTaskActions'
 import { IconChevronDown, IconFeather, IconPlus } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AllDayEvents } from './AllDayEvents'
+import { SlotCard } from './SlotCard'
 import type { DayLoad } from './StripDay'
 import { Timeline } from './Timeline'
+import type { TimelineSlot } from './Timeline'
 import { WeekStrip } from './WeekStrip'
+import type { DragType } from './useDayBoard'
 import { useDayBoard } from './useDayBoard'
 import './views.css'
 import './agenda.css'
@@ -65,6 +76,9 @@ const COPY = {
     sectionAdded: (name: string) => `Sección ${name}`,
     lateTag: ' (atrasada)',
     noPeriodTag: ' (sin plazo)',
+    untitledEvent: 'Evento',
+    eventNotMoved: 'No se ha podido mover el evento.',
+    readonlyCalendar: 'Ese calendario es de solo lectura.',
   },
   en: {
     undo: 'Undo',
@@ -84,18 +98,36 @@ const COPY = {
     sectionAdded: (name: string) => `Section ${name}`,
     lateTag: ' (overdue)',
     noPeriodTag: ' (no time frame)',
+    untitledEvent: 'Event',
+    eventNotMoved: 'The event couldn’t be moved.',
+    readonlyCalendar: 'That calendar is read-only.',
   },
 } as const
+
+/** Con cuántas atrasadas se plegó el bloque: si entran más, se vuelve a abrir solo. */
+const OVERDUE_FOLDED_KEY = 'tasks:overdue-folded-at'
+
+/** Dónde cae lo que se arrastra sobre el horario, mientras se arrastra y al soltar. */
+interface SlotAt extends TimelineSlot {
+  gap: SlotGap
+}
+
+/** Lo soltado en el horario, a la espera de su hora y su duración. */
+type SlotCardState =
+  | { type: 'task'; id: string; title: string; before: string; gap: SlotGap; start: number; duration: number | null }
+  | { type: 'event'; key: string; title: string; before: string; gap: SlotGap; start: number; duration: number }
+
+/** Las filas del horario que cuentan para saber entre cuáles cae el dedo (ni huecos, ni "ahora", ni lo que se arrastra). */
+const ITEM_ROWS = ':scope > li:not(.tl--gap):not(.tl--now):not(.tl--slot):not(.tl--hint):not(.tl--card):not(.is-dragging)'
 
 /**
  * Agenda, como Structured: arriba el día en el que estás y la tira de su semana, que se despliega
  * en el mes entero (tocando el mes o tirando de ella); debajo, lo atrasado (solo hoy), el horario con
  * lo que tiene hora y la lista de lo que no la tiene, con sus secciones. Una tarea se lleva a otro
- * día soltándola sobre él en la tira o en el mes.
+ * día soltándola sobre él en la tira o en el mes, y se le pone hora soltándola en el horario entre
+ * dos cosas: ahí mismo sale una tarjeta con la hora propuesta y la duración. Los eventos del
+ * calendario del iPhone se mueven igual (a otro día o a otra hora) y su cuenta los sincroniza.
  */
-/** Con cuántas atrasadas se plegó el bloque: si entran más, se vuelve a abrir solo. */
-const OVERDUE_FOLDED_KEY = 'tasks:overdue-folded-at'
-
 export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDay, onOpenSection, onAddToSection }: AgendaViewProps) {
   const state = useAppState()
   const dispatch = useDispatch()
@@ -115,11 +147,19 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   // La tira desplegada en el mes entero.
   const [monthOpen, setMonthOpen] = useState(false)
   const below = useRef<HTMLDivElement>(null)
+  // El hueco del horario sobre el que va lo que se arrastra (en un ref para leerlo al soltar) y la
+  // tarjeta de hora y duración de lo que se acaba de soltar ahí.
+  const [slot, setSlot] = useState<TimelineSlot | null>(null)
+  const slotRef = useRef<SlotAt | null>(null)
+  const [card, setCard] = useState<SlotCardState | null>(null)
 
   // Volver a tocar la pestaña: el mes, recogido.
   useEffect(() => {
     if (resetSignal) setMonthOpen(false)
   }, [resetSignal])
+
+  // Otro día: la tarjeta era del anterior.
+  useEffect(() => setCard(null), [shown])
 
   const moveToDay = (taskId: string, date: IsoDate) => {
     const task = state.tasks.find((item) => item.id === taskId)
@@ -135,8 +175,6 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
     })
   }
 
-  const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(shown, today, moveToDay)
-
   const byId = useMemo(() => new Map(state.tasks.map((task) => [task.id, task])), [state.tasks])
   const dayTasks = useMemo(() => tasksOn(state, shown, today), [state, shown, today])
   // El calendario del iPhone, si está conectado: lo de todo el día encima y lo demás en el horario.
@@ -144,15 +182,128 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const calendar = useCalendar()
   const eventDays = useMemo(() => markedDays(calendar.events), [calendar.events])
   const dayRoutines = useMemo(() => routinesOn(state.routines, shown), [state.routines, shown])
+  const items = useMemo(() => timelineItems(dayTasks, dayRoutines, events.timed), [dayTasks, dayRoutines, events.timed])
   // En un día que ya pasó, el tiempo libre no informa de nada.
   const rows = useMemo(() => {
-    const built = buildTimeline(timelineItems(dayTasks, dayRoutines, events.timed), shown === today ? now : null)
+    const built = buildTimeline(items, shown === today ? now : null)
     return shown < today ? built.filter((row) => row.kind !== 'gap') : built
-  }, [dayTasks, dayRoutines, events.timed, shown, today, now])
+  }, [items, shown, today, now])
   // El día en cuyo diario se tachan las rutinas: hoy, el de renovación (de madrugada puede ser ayer).
   const routinesDay = shown === today ? routineDay : shown
   const schedulePending = dayTasks.filter((task) => task.time && !task.done).length + dayRoutines.filter((routine) => routine.time && !routine.done.includes(routinesDay)).length
   const progress = progressOf(dayTasks)
+  // Los eventos que se pueden coger: los de un calendario que se puede escribir, con hora, de este día.
+  const movable = useCallback((event: CalendarEvent) => canMoveEvent(event, calendar.calendars, shown), [calendar.calendars, shown])
+
+  /** Mover un evento del calendario: lo escribe iOS y su cuenta lo sincroniza; "Deshacer" lo devuelve. */
+  const moveEvent = async (event: CalendarEvent, to: number, where: string) => {
+    const result = await calendar.move(event, to)
+    if (result !== 'moved') {
+      toast({ message: result === 'readonly' ? copy.readonlyCalendar : copy.eventNotMoved, tone: 'error' })
+      return
+    }
+    haptic('success')
+    toast({
+      message: `${event.title || copy.untitledEvent} → ${where}`,
+      actionLabel: copy.undo,
+      onAction: () => {
+        // Ya empieza en `to`: así lo encuentra iOS para devolverlo.
+        const moved = { ...event, start: to, end: to + (event.end - event.start) }
+        void calendar.move(moved, event.start).then((undone) => {
+          if (undone !== 'moved') toast({ message: copy.eventNotMoved, tone: 'error' })
+        })
+      },
+    })
+  }
+
+  const timedEvent = (key: string | null): TimedEvent | undefined => events.timed.find((item) => item.event.key === key)
+
+  const moveEventToDay = (key: string | null, date: IsoDate) => {
+    const timed = timedEvent(key)
+    if (!timed || isoOfInstant(timed.event.start) === date) return
+    void moveEvent(timed.event, movedStart(timed.event, date), capitalize(relativeLabel(date, today)))
+  }
+
+  /** Soltado en el horario: la tarjeta aparece en el hueco donde estaba el dedo. */
+  const dropOnTimeline = (id: string, type: DragType) => {
+    const at = slotRef.current
+    if (!at) return
+    const { before, gap, start } = at
+    if (type === 'task') {
+      const task = byId.get(id)
+      if (!task || task.done) return
+      // Una que ya tenía hora conserva lo que duraba, salvo que se elija otra cosa.
+      setCard({ type: 'task', id, title: task.title, before, gap, start, duration: task.time ? task.duration : null })
+      return
+    }
+    const timed = timedEvent(eventKeyOf(id))
+    if (!timed) return
+    setCard({ type: 'event', key: timed.event.key, title: timed.event.title || copy.untitledEvent, before, gap, start, duration: timed.end - timed.start })
+  }
+
+  const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(shown, today, {
+    onDay: (id, type, date) => (type === 'event' ? moveEventToDay(eventKeyOf(id), date) : moveToDay(id, date)),
+    onTimeline: dropOnTimeline,
+  })
+
+  /** En qué hueco del horario está lo que se arrastra: entre qué dos filas cae el centro de lo cogido. */
+  const slotAt = (event: DragMoveEvent): SlotAt | null => {
+    if (event.over?.data.current?.type !== 'timeline') return null
+    const type = event.active.data.current?.type
+    const id = String(event.active.id)
+    if (type === 'task' ? (byId.get(id)?.done ?? true) : type !== 'event') return null
+    // Lo que se arrastra no cuenta: ni su fila (va atenuada en su sitio) ni su hueco.
+    const rest = items.filter((item) => item.id !== id)
+    const list = below.current?.querySelector('.timeline')
+    const rects = list ? [...list.querySelectorAll<HTMLElement>(ITEM_ROWS)].map((node) => node.getBoundingClientRect()) : []
+    const rect = event.active.rect.current.translated
+    const index = slotIndexAt(rect ? rect.top + rect.height / 2 : 0, rects)
+    const gap = gapAround(rest, index)
+    return { before: slotBefore(rest, index), gap, start: suggestedStart(gap, shown === today ? now : null) }
+  }
+
+  const onDragMove = (event: DragMoveEvent) => {
+    const next = slotAt(event)
+    slotRef.current = next
+    setSlot((current) => (current?.before === next?.before && current?.start === next?.start ? current : next && { before: next.before, start: next.start }))
+  }
+
+  const clearSlot = () => {
+    slotRef.current = null
+    setSlot(null)
+  }
+
+  /** "Listo" en la tarjeta: la tarea pasa al horario (con deshacer); un evento, a su hora nueva. */
+  const confirmCard = (start: number, duration: number | null) => {
+    if (!card) return
+    setCard(null)
+    const time = timeAt(start)
+    if (card.type === 'event') {
+      const timed = timedEvent(card.key)
+      if (!timed) return
+      const to = movedStart(timed.event, shown, start)
+      // A la misma hora no hay nada que escribir (ni que deshacer).
+      if (to !== timed.event.start) void moveEvent(timed.event, to, shortTime(time))
+      return
+    }
+    const task = byId.get(card.id)
+    if (!task) return
+    const before = placementsOf(state.tasks, [task.id])
+    const reminderId = createId()
+    dispatch({ type: 'task/schedule', id: task.id, date: shown, time, duration, reminderId })
+    haptic('success')
+    toast({
+      // En un día que ya pasó nace atrasada: se dice, como al soltarla en la tira.
+      message: `${task.title} · ${spanLabel(time, duration)}${shown < today ? copy.lateTag : ''}`,
+      actionLabel: copy.undo,
+      onAction: () => {
+        dispatch({ type: 'tasks/place', placements: before })
+        dispatch({ type: 'task/setTime', id: task.id, time: task.time })
+        if (task.time) dispatch({ type: 'task/setDuration', id: task.id, duration: task.duration })
+        dispatch({ type: 'reminder/remove', taskId: task.id, reminderId })
+      },
+    })
+  }
 
   // Lo que hay cada día, para los anillos de la tira y del mes desplegado. Los días que no cambian
   // conservan su objeto: así solo se repinta el día tocado.
@@ -196,6 +347,9 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const timedTasks = dayTasks.some((task) => task.time)
   // Un día libre no enseña un bloque "Sin hora" vacío (ni hoy): solo que está libre.
   const showUntimed = untimedCount > 0 || (shown === today && !free)
+  // El horario sale también vacío mientras se arrastra una tarea o un evento (para soltarlo ahí; una
+  // sección no tiene hora) o con la tarjeta abierta.
+  const showSchedule = rows.length > 0 || (dragDay !== null && activeType !== 'section') || card !== null
 
   // Plegado con una atrasada y semanas después hay nueve: si entran más de las que había al plegar, se abre solo.
   const overdueCount = (columns[OVERDUE] ?? []).length
@@ -237,6 +391,7 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
 
   const dragged: Task | null = activeType === 'task' && activeId ? (byId.get(activeId) ?? null) : null
   const draggedSection = activeType === 'section' && activeId ? activeId.slice(4) : null
+  const draggedEvent = activeType === 'event' && activeId ? events.timed.find((item) => eventDragId(item.event.key) === activeId) : undefined
 
   // Intro o tocar fuera con un nombre la crean (con deshacer); Escape o vacío, nada.
   const addSection = (name: string) => {
@@ -248,6 +403,19 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   }
 
   const heading = dayHeading(day, today)
+
+  const cardNode = card ? (
+    <SlotCard
+      key={`${card.type === 'task' ? card.id : card.key}:${card.before}`}
+      title={card.title}
+      start={card.start}
+      gap={card.gap}
+      initialDuration={card.type === 'task' ? card.duration : null}
+      fixedDuration={card.type === 'event' ? card.duration : undefined}
+      onConfirm={confirmCard}
+      onCancel={() => setCard(null)}
+    />
+  ) : null
 
   return (
     <div className={`view agenda ${dragDay ? 'is-dragging' : ''}`}>
@@ -288,15 +456,19 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
         accessibility={{ announcements }}
         onDragStart={(event) => {
           setDragDay(shown)
+          setCard(null)
           handlers.onDragStart(event)
         }}
+        onDragMove={onDragMove}
         onDragOver={handlers.onDragOver}
         onDragEnd={(event) => {
           handlers.onDragEnd(event)
+          clearSlot()
           setDragDay(null)
         }}
         onDragCancel={() => {
           handlers.onDragCancel()
+          clearSlot()
           setDragDay(null)
         }}
       >
@@ -344,10 +516,21 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
               </section>
             )}
 
-            {rows.length > 0 && (
+            {showSchedule && (
               <section className="block">
                 <BlockHeader label={copy.schedule} count={schedulePending} />
-                <Timeline rows={rows} day={shown} routineDay={routinesDay} sections={sections} now={shown === today ? now : null} past={shown < today} />
+                <Timeline
+                  rows={rows}
+                  day={shown}
+                  routineDay={routinesDay}
+                  sections={sections}
+                  now={shown === today ? now : null}
+                  past={shown < today}
+                  dragging={dragDay !== null}
+                  slot={slot}
+                  card={card && cardNode ? { before: card.before, node: cardNode } : null}
+                  movable={movable}
+                />
               </section>
             )}
 
@@ -423,6 +606,15 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
           {draggedSection && (
             <div className="section-overlay">
               <p className="section__name">{sections.find((section) => section.id === draggedSection)?.name}</p>
+            </div>
+          )}
+          {draggedEvent && (
+            <div className="task-overlay tl-overlay cal-tone" style={{ '--cal': draggedEvent.event.color } as CSSProperties}>
+              <span className="tl-overlay__bar" aria-hidden="true" />
+              <span>
+                <span className="tl-overlay__title">{draggedEvent.event.title || copy.untitledEvent}</span>
+                <span className="tl-overlay__meta">{eventSpan(draggedEvent)}</span>
+              </span>
             </div>
           )}
         </DragOverlay>

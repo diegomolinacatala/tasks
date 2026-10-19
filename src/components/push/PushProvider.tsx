@@ -51,6 +51,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<PushStatus>(initialStatus)
   const [device, setDevice] = useState<DeviceCredentials | null>(null)
   const [busy, setBusy] = useState(false)
+  // Hasta que se sabe si el dispositivo ya estaba dado de alta (una petición al arrancar).
+  const [restoring, setRestoring] = useState(true)
 
   const forget = useCallback(() => {
     void clearDevice()
@@ -61,7 +63,10 @@ export function PushProvider({ children }: { children: ReactNode }) {
   const { failed: syncFailed, retry } = useScheduleSync({ api, device, state, today, onForgotten: forget })
 
   useEffect(() => {
-    if (!api || status !== 'off') return
+    if (!api || status !== 'off') {
+      setRestoring(false)
+      return
+    }
     let cancelled = false
     const restore = async () => {
       try {
@@ -75,6 +80,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
         if (cancelled || !stored || Notification.permission !== 'granted') return
         setDevice(stored)
         setStatus('on')
+      } finally {
+        if (!cancelled) setRestoring(false)
       }
     }
     void restore()
@@ -135,8 +142,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, retry, enable, disable, canTranscribe: status === 'on', transcribe }),
-    [status, busy, syncFailed, retry, enable, disable, transcribe],
+    () => ({ status, restoring, busy, syncFailed, retry, enable, disable, canTranscribe: status === 'on', transcribe }),
+    [status, restoring, busy, syncFailed, retry, enable, disable, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>

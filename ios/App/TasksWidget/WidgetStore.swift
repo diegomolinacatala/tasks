@@ -13,6 +13,9 @@ enum WidgetStore {
     static let routinesKind = "TasksRoutines"
     /** El widget de la Bandeja: lo que no tiene fecha. */
     static let inboxKind = "TasksInbox"
+    /** El micrófono: abrir la app escuchando. Widget y, con iOS 18, control. */
+    static let dictateKind = "TasksDictate"
+    static let dictateControlKind = "TasksDictateControl"
     /** Días por delante que trae la foto (`WIDGET_DAYS`). */
     static let days = 7
 
@@ -415,7 +418,7 @@ struct WidgetDay {
 
 /**
  * Enlaces del widget a la app: `<esquema>://today`, `://compose` (`://compose/inbox` desde la Bandeja),
- * `://routines`, `://backlog` y `://task/<id>`.
+ * `://routines`, `://backlog`, `://dictate` (abrir escuchando) y `://task/<id>`.
  */
 enum WidgetLink {
     /** Igual que `CFBundleURLSchemes` en el Info.plist de la app. */
@@ -426,6 +429,7 @@ enum WidgetLink {
     static var routines: URL { link("routines") }
     static var backlog: URL { link("backlog") }
     static var composeInbox: URL { link("compose", path: "/inbox") }
+    static var dictate: URL { link("dictate") }
 
     static func task(_ id: String) -> URL {
         link("task", path: "/" + id)
@@ -443,6 +447,8 @@ enum WidgetLink {
             return ["type": "routines"]
         case "backlog":
             return ["type": "backlog"]
+        case "dictate":
+            return ["type": "dictate"]
         case "task":
             let id = url.lastPathComponent
             return id.isEmpty || id == "/" ? nil : ["type": "open", "taskId": id]

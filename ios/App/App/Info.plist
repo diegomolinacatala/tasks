@@ -88,6 +88,14 @@
 		</dict>
 		<dict>
 			<key>UIApplicationShortcutItemType</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).dictate</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Dictar tarea</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>mic.fill</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
 			<string>$(PRODUCT_BUNDLE_IDENTIFIER).week</string>
 			<key>UIApplicationShortcutItemTitle</key>
 			<string>Agenda</string>

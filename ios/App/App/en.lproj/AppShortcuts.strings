@@ -5,3 +5,4 @@
 "Pasa lo atrasado a hoy en ${applicationName}" = "Move overdue to today in ${applicationName}";
 "Pasa las atrasadas a hoy en ${applicationName}" = "Move overdue tasks to today in ${applicationName}";
 "Mi semana en ${applicationName}" = "My week in ${applicationName}";
+"Dicta en ${applicationName}" = "Dictate in ${applicationName}";

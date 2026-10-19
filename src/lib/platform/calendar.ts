@@ -17,6 +17,12 @@ export interface CalendarSource {
   events(from: number, to: number, hidden: readonly string[]): Promise<CalendarEvent[]>
   /** La ficha del evento de Calendario de iOS, encima de la app. */
   open(event: CalendarEvent): Promise<void>
+  /**
+   * Lleva un evento a otro instante (epoch ms) con lo que dura; en una serie, solo esa ocurrencia. La
+   * cuenta (Google, iCloud…) lo sincroniza después por su cuenta. Falla con `code: 'readonly'` si el
+   * calendario no se puede escribir.
+   */
+  move(event: CalendarEvent, start: number): Promise<void>
   /** Avisa cuando algo cambia en el calendario. Devuelve cómo dejar de escuchar. */
   onChange(listener: () => void): () => void
   /** Crea (o reutiliza) el calendario «Tasks» para las tareas. Su id, o `null` si no se pudo. */

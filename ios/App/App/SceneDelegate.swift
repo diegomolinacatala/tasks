@@ -47,7 +47,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func handle(_ shortcut: UIApplicationShortcutItem) -> Bool {
         guard let kind = shortcut.type.split(separator: ".").last else { return false }
         switch kind {
-        case "compose", "week":
+        case "compose", "week", "dictate":
             NativeActions.shared.post(["type": String(kind)])
             return true
         default:
@@ -55,7 +55,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
-    /// Enlaces del widget: abrir hoy, una tarea o la barra de escribir.
+    /// Enlaces del widget: abrir hoy, una tarea, la barra de escribir o el dictado (el micrófono).
     private func handle(_ url: URL) {
         if let action = WidgetLink.action(for: url) {
             NativeActions.shared.post(action)

@@ -178,6 +178,8 @@ export function App() {
   const [routineLoaded, setRoutineLoaded] = useState(false)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [focusRequest, setFocusRequest] = useState(0)
+  // El widget o el control del micrófono: la barra empieza a escuchar en cuanto está delante.
+  const [dictateRequest, setDictateRequest] = useState(0)
   // El + de una sección de la Agenda: la barra se abre con esa sección como destino.
   const [composeSection, setComposeSection] = useState<string | null>(null)
   const focusComposer = useRef<(() => void) | null>(null)
@@ -511,6 +513,12 @@ export function App() {
       // La barra pide el foco cuando el panel que hubiera ya no está delante.
       requestAnimationFrame(() => setFocusRequest((count) => count + 1))
     },
+    onDictate: () => {
+      closeSheets()
+      setDay(today)
+      go('agenda')
+      requestAnimationFrame(() => setDictateRequest((count) => count + 1))
+    },
     onWeek: () => {
       closeSheets()
       go('agenda')
@@ -553,6 +561,8 @@ export function App() {
   }, [])
 
   const onComposing = useCallback((active: boolean) => setComposing(active), [])
+  // Atendida: si la barra se vuelve a montar (otra pestaña y vuelta), no empieza a escuchar sola.
+  const onDictated = useCallback(() => setDictateRequest(0), [])
   // La sección deja de ser el destino cuando la barra se vacía (o se cambia de día o de pestaña), no
   // al soltar el teclado: mientras haya algo escrito, lo elegido sigue valiendo.
   const onComposerReset = useCallback(() => setComposeSection(null), [])
@@ -655,6 +665,9 @@ export function App() {
                 places={places}
                 focusRequest={focusRequest}
                 focusRef={focusComposer}
+                // Con la bienvenida delante se espera a cerrarla, como los avisos tocados.
+                dictateRequest={welcome ? 0 : dictateRequest}
+                onDictated={onDictated}
                 onSubmit={addTask}
                 onRoutine={addRoutine}
                 onVoice={addFromVoice}

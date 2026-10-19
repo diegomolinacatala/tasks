@@ -424,6 +424,81 @@ describe('task/setTime', () => {
   })
 })
 
+describe('task/schedule', () => {
+  const YESTERDAY = '2026-09-10'
+
+  test('pone día, hora y duración, y avisa a la hora si no tenía avisos relativos', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: null, sectionId: null })
+    const id = state.tasks[0]!.id
+    const next = reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: 60, reminderId: 'r-hora' })
+    expect(next.tasks[0]).toMatchObject({ date: TODAY, time: '10:00', duration: 60, reminders: [{ id: 'r-hora', kind: 'before', minutes: 0 }] })
+    expect(state.tasks[0]!.date).toBeNull()
+  })
+
+  test('con un aviso relativo ya puesto no añade otro; sin reminderId tampoco', () => {
+    const base = run(emptyState(), { type: 'task/add', title: 'uno', date: TODAY, sectionId: null, reminders: [{ kind: 'before', minutes: 15 }] })
+    const id = base.tasks[0]!.id
+    const scheduled = reducer(base, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: null, reminderId: 'r-hora' })
+    expect(scheduled.tasks[0]!.reminders.map((reminder) => reminder.id)).toEqual(base.tasks[0]!.reminders.map((reminder) => reminder.id))
+    const plain = run(emptyState(), { type: 'task/add', title: 'dos', date: TODAY, sectionId: null })
+    expect(reducer(plain, { type: 'task/schedule', id: plain.tasks[0]!.id, date: TODAY, time: '10:00', duration: null }).tasks[0]!.reminders).toEqual([])
+  })
+
+  test('de otro día pasa a este con su sección; en el mismo conserva su sitio', () => {
+    const withSection = run(emptyState(), { type: 'section/add', name: 'Trabajo', id: 'trabajo' })
+    const state = run(
+      withSection,
+      { type: 'task/add', title: 'vieja', date: YESTERDAY, sectionId: 'trabajo' },
+      { type: 'task/add', title: 'a', date: TODAY, sectionId: null },
+      { type: 'task/add', title: 'b', date: TODAY, sectionId: null },
+    )
+    const old = state.tasks.find((task) => task.title === 'vieja')!
+    const moved = reducer(state, { type: 'task/schedule', id: old.id, date: TODAY, time: '09:00', duration: 30 })
+    expect(moved.tasks.find((task) => task.title === 'vieja')).toMatchObject({ date: TODAY, sectionId: 'trabajo', time: '09:00', duration: 30 })
+    const first = state.tasks.find((task) => task.title === 'a')!
+    const same = reducer(state, { type: 'task/schedule', id: first.id, date: TODAY, time: '09:00', duration: null })
+    expect(titles(same)).toEqual(['a', 'b'])
+  })
+
+  test('con plazo: a un día dentro de él lo conserva; fuera, se queda solo en ese día', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'semana', date: '2026-09-07', sectionId: null, until: '2026-09-13' })
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: null }).tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13', time: '10:00' })
+    expect(reducer(state, { type: 'task/schedule', id, date: '2026-09-20', time: '10:00', duration: null }).tasks[0]).toMatchObject({ date: '2026-09-20', until: null })
+  })
+
+  test('una que ya tenía hora y duración las cambia por las nuevas', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: TODAY, sectionId: null, time: '09:00', duration: 30 })
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '16:45', duration: 60 }).tasks[0]).toMatchObject({ time: '16:45', duration: 60 })
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '16:45', duration: null }).tasks[0]).toMatchObject({ time: '16:45', duration: null })
+  })
+
+  test('acota la duración y descarta lo inválido', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: 2 }).tasks[0]!.duration).toBe(5)
+    expect(reducer(state, { type: 'task/schedule', id, date: 'hoy', time: '10:00', duration: null })).toBe(state)
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '25:00', duration: null })).toBe(state)
+    expect(reducer(state, { type: 'task/schedule', id: 'nadie', date: TODAY, time: '10:00', duration: null })).toBe(state)
+  })
+
+  test('deshacer: volver a su sitio, quitar la hora y el aviso que trajo', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: null, sectionId: null }, { type: 'task/add', title: 'dos', date: null, sectionId: null })
+    const task = state.tasks[0]!
+    const before = placementsOf(state.tasks, [task.id])
+    const scheduled = reducer(state, { type: 'task/schedule', id: task.id, date: TODAY, time: '10:00', duration: 60, reminderId: 'r-hora' })
+    const undone = run(
+      scheduled,
+      { type: 'tasks/place', placements: before },
+      { type: 'task/setTime', id: task.id, time: task.time },
+      { type: 'reminder/remove', taskId: task.id, reminderId: 'r-hora' },
+    )
+    expect(undone.tasks.find((item) => item.id === task.id)).toMatchObject({ date: null, time: null, duration: null, reminders: [] })
+    expect(inScope(undone.tasks, 'backlog').map((item) => item.title)).toEqual(['uno', 'dos'])
+  })
+})
+
 describe('recordatorios', () => {
   test('añadir y quitar sin mutar', () => {
     const state = withTasks('uno')

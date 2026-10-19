@@ -1,0 +1,259 @@
+/* ── Soltar en el horario ─────────────────────────────────────────────── */
+
+/* El hueco donde caería lo que se arrastra: un trazo de coñac entre dos cosas, con la hora que se propone */
+.tl--slot {
+  min-height: 30px;
+  align-items: center;
+}
+
+.tl--slot .tl__time {
+  padding-top: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tl--slot .tl__rail,
+.tl--hint .tl__rail {
+  align-items: center;
+  padding: 0;
+}
+
+.tl__slot-dot {
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--r-full);
+  border: 2px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.tl__slot-line {
+  grid-column: 3 / -1;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+/* Un horario vacío mientras se arrastra: dónde soltar */
+.tl--hint {
+  min-height: 44px;
+  align-items: center;
+}
+
+.tl--hint .tl__slot-dot {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+.tl__hint {
+  grid-column: 3 / -1;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+/* La tarjeta de hora y duración, en el sitio que ocupará la tarea */
+.tl--card .tl__time {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tl__node--card {
+  border-style: dashed;
+  border-color: var(--accent-line);
+}
+
+.slot {
+  grid-column: 3 / -1;
+  margin: 4px 0 10px;
+  padding: 10px 12px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--line);
+  animation: slot-in var(--dur-3) var(--ease-out);
+}
+
+@keyframes slot-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.slot__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border-radius: var(--r-full);
+  color: var(--text-3);
+}
+
+.slot__close:active {
+  background: var(--bg-press);
+}
+
+.slot__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* La hora: un cuarto de hora a cada lado, y tocarla abre la rueda para afinar */
+.slot__stepper {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+}
+
+.slot__step {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  color: var(--accent);
+}
+
+.slot__step:active {
+  background: var(--bg-press);
+}
+
+.slot__clock {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 34px;
+  padding: 0 4px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.slot__fixed {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: opacity var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.slot__ok:active {
+  opacity: 0.85;
+  transform: scale(0.96);
+}
+
+/* Cuánto dura: píldoras, todas a la vista (en dos filas si hace falta) */
+.slot__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.slot__pill {
+  flex: none;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+
+.slot__pill:active {
+  background: var(--bg-press);
+}
+
+.slot__pill.is-on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* Un evento del calendario cogido: su cinta, levantada como una tarea */
+.tl--event.is-dragging {
+  opacity: 0.3;
+}
+
+.tl-overlay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.tl-overlay__bar {
+  flex: none;
+  width: 4px;
+  height: 28px;
+  border-radius: var(--r-full);
+  background: var(--cal-ink);
+}
+
+.tl-overlay__title {
+  display: block;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+}
+
+.tl-overlay__meta {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot {
+    animation: none;
+  }
+}

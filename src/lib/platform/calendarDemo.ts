@@ -52,7 +52,16 @@ const TITLES = {
 
 const SHOTS = import.meta.env.MODE === 'shots'
 
-let status: CalendarStatus = SHOTS ? 'granted' : 'prompt'
+/** En local, `localStorage.setItem('tasks:demo-calendar', 'granted')` lo da por conectado desde el arranque (para los guiones de prueba). */
+const grantedBefore = (): boolean => {
+  try {
+    return localStorage.getItem('tasks:demo-calendar') === 'granted'
+  } catch {
+    return false
+  }
+}
+
+let status: CalendarStatus = SHOTS || grantedBefore() ? 'granted' : 'prompt'
 let own: CalendarInfo | null = null
 const listeners = new Set<() => void>()
 const COLORS: Record<string, string> = { 'demo-work': '#1a73e8', 'demo-home': '#34c759', 'demo-holidays': '#ff3b30' }
@@ -95,6 +104,22 @@ function eventsOn(day: string, today: string): CalendarEvent[] {
 
 const notify = () => listeners.forEach((listener) => listener())
 
+/**
+ * Lo movido desde la app, por la clave con la que se generó (`origin`): los eventos de muestra se
+ * calculan cada vez, así que el cambio se aplica encima. La clave actual cambia con cada movimiento.
+ */
+const moves = new Map<string, { origin: string; start: number }>()
+
+function applyMoves(events: readonly CalendarEvent[]): CalendarEvent[] {
+  if (!moves.size) return [...events]
+  const byOrigin = new Map([...moves.values()].map((move) => [move.origin, move.start]))
+  return events.map((event) => {
+    const start = byOrigin.get(event.key)
+    if (start === undefined) return event
+    return { ...event, key: `${event.id}@${start}`, start, end: start + (event.end - event.start) }
+  })
+}
+
 /** Lo último que se sincronizó, para verlo desde la consola en local. */
 export const demoSynced: { calendarId: string | null; items: readonly ExportItem[] } = { calendarId: null, items: [] }
 
@@ -111,10 +136,22 @@ export const demoCalendar: CalendarSource = {
   events: async (from, to, hidden) => {
     const today = todayIso()
     const events: CalendarEvent[] = []
-    for (let day = isoOfInstant(from); toInstant(day, '00:00') < to; day = addDays(day, 1)) events.push(...eventsOn(day, today))
-    return events.filter((event) => !hidden.includes(event.calendarId))
+    // Una semana más por cada lado: lo movido desde otro día puede caer dentro.
+    for (let day = addDays(isoOfInstant(from), -7); toInstant(day, '00:00') < to + 7 * 86_400_000; day = addDays(day, 1)) events.push(...eventsOn(day, today))
+    return applyMoves(events).filter((event) => !hidden.includes(event.calendarId) && event.end >= from && event.start < to)
   },
   open: async () => undefined,
+  move: async (event, start) => {
+    const calendar = pick(CALENDARS).find((item) => item.id === event.calendarId)
+    if (calendar && !('writable' in calendar)) throw Object.assign(new Error('Solo lectura'), { code: 'readonly' })
+    // Al deshacer llega con su clave de antes y el inicio de ahora: se busca por los dos.
+    const current = `${event.id}@${event.start}`
+    const origin = moves.get(current)?.origin ?? moves.get(event.key)?.origin ?? event.key
+    moves.delete(current)
+    moves.delete(event.key)
+    moves.set(`${event.id}@${start}`, { origin, start })
+    notify()
+  },
   onChange: (listener) => {
     listeners.add(listener)
     return () => listeners.delete(listener)

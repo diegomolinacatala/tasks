@@ -1015,8 +1015,20 @@ el usuario al probarla (la regla, la barra y el deslizador como antes; el radio 
   Mercadona; al arrastrar tu punto fuera de casa cae «Al salir de Casa · Llamar a Carlota».
 - **Ajustes más sencillo**: una sola pantalla de filas con su valor; el detalle de cada una, en su panel.
 
+Y, pedido el 19/10/2026 (en la compilación siguiente a la 47, si se prueba bien):
+
+- **El micrófono en un widget**: en la pantalla de inicio y en la de bloqueo, y con iOS 18 un control para
+  el centro de control, los botones de abajo de la pantalla de bloqueo y el botón de acción. Un toque abre
+  Tasks escuchando (con Face ID por medio si está bloqueado).
+- **Soltar una tarea en el horario**: mantenerla pulsada y soltarla entre dos cosas del horario; ahí mismo
+  una tarjeta propone la hora y la duración.
+- **Mover los eventos del calendario** desde la Agenda: a otro día (en la tira) o a otra hora (en el
+  horario); el cambio llega a Google, Outlook o iCloud como si se hubiera hecho en Calendario.
+
 Se envía la **1.7 (47)**: la 46 con el mando de los tamaños del modo "Aa" como antes de la auditoría
-(se arrastra hacia arriba o abajo otra vez), sin más cambios en la ficha. Cambian las **capturas** (las veinte; la que más, `02-lugares`, con el aviso al
+(se arrastra hacia arriba o abajo otra vez), sin más cambios en la ficha. (Si se envía la compilación
+con lo del 19/10/2026, añadir a las novedades las tres líneas marcadas abajo y, en §5, que mover un
+evento lo escribe EventKit con el permiso de calendario que ya se pide.) Cambian las **capturas** (las veinte; la que más, `02-lugares`, con el aviso al
 salir), la **descripción** (el párrafo de los lugares, §3 y §3.1), el **texto promocional** (§3 y §3.1) y las
 **notas para la revisión** (§5: los avisos al salir y tocar el mapa). La privacidad **no cambia**.
 
@@ -1052,6 +1064,14 @@ salir), la **descripción** (el párrafo de los lugares, §3 y §3.1), el **text
 • Y decenas de pequeños retoques en toda la app.
 ```
 
+Si va la compilación del 19/10/2026, estas tres líneas delante de las anteriores:
+
+```
+• Dicta desde la pantalla de bloqueo: un widget (y en iOS 18 un control, también para el botón de acción) abre Tasks ya escuchando.
+• Mantén pulsada una tarea y suéltala en el horario: ahí mismo eliges la hora y cuánto dura.
+• Mueve los eventos de tu calendario desde la Agenda: a otro día o a otra hora, y el cambio llega a Google, Outlook o iCloud.
+```
+
 **What’s New in This Version** (la ficha en inglés)
 
 ```
@@ -1061,4 +1081,12 @@ salir), la **descripción** (el párrafo de los lugares, §3 y §3.1), el **text
 • “Done” on a task’s notification checks it off without opening the app, even with your iPhone locked.
 • Undo everywhere: deleting a place, removing a reminder, snoozing, importing a backup…
 • And dozens of small touches all over the app.
+```
+
+Con la compilación del 19/10/2026, estas tres líneas delante:
+
+```
+• Dictate from the Lock Screen: a widget (and, on iOS 18, a control, also for the Action button) opens Tasks already listening.
+• Hold a task and drop it on the schedule: pick the time and how long it takes right there.
+• Move your calendar events from the Agenda: to another day or another time, and the change reaches Google, Outlook or iCloud.
 ```

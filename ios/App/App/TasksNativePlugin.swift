@@ -35,6 +35,7 @@ public class TasksNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "calendars", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "calendarEvents", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showEvent", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "moveEvent", returnType: CAPPluginReturnPromise),
         // Las tareas con hora al calendario (`CalendarExport.swift`).
         CAPPluginMethod(name: "createTasksCalendar", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "syncTaskEvents", returnType: CAPPluginReturnPromise),

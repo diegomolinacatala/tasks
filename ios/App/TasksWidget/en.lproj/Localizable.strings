@@ -9,3 +9,9 @@
 "Día" = "Day";
 "Elige una rutina o deja que enseñe la siguiente que queda por hacer hoy." = "Choose a routine, or let it show the next one left to do today.";
 "Pasar atrasadas a hoy" = "Move overdue to today";
+
+/* El control del micrófono (DictateWidget.swift) */
+"Dictar tarea" = "Dictate task";
+"Dictar en Tasks" = "Dictate in Tasks";
+"Abre Tasks escuchando: di la tarea y listo." = "Opens Tasks listening: say the task and you’re done.";
+"Abre Tasks escuchando para dictar una tarea." = "Opens Tasks listening, to dictate a task.";

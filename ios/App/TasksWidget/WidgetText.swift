@@ -71,6 +71,12 @@ struct WidgetText {
     let nothingInbox: String
     let newInboxTask: String
     let sampleInbox: [String]
+    // El micrófono
+    let dictateName: String
+    let dictateDescription: String
+    let dictate: String
+    let dictateCaps: String
+    let dictateHint: String
     // Siri y Atajos
     let tooManyTasks: String
     let addFailed: String
@@ -121,6 +127,11 @@ struct WidgetText {
         nothingInbox: "Nada sin fecha.",
         newInboxTask: "Nueva tarea en la Bandeja",
         sampleInbox: ["Renovar el pasaporte", "Regalo para Carlota", "Llamar al fontanero", "Leer «Sapiens»"],
+        dictateName: "Dictar",
+        dictateDescription: "Un toque y Tasks te escucha: di la tarea y listo.",
+        dictate: "Dictar una tarea",
+        dictateCaps: "DICTAR",
+        dictateHint: "Toca y habla",
         tooManyTasks: "Hay demasiadas tareas sin ordenar. Abre Tasks para seguir apuntando.",
         addFailed: "No se ha podido apuntar. Prueba otra vez.",
         tooManyChanges: "Hay demasiados cambios sin ordenar. Abre Tasks para seguir.",
@@ -167,6 +178,11 @@ struct WidgetText {
         nothingInbox: "Nothing without a date.",
         newInboxTask: "New task in Inbox",
         sampleInbox: ["Renew the passport", "Gift for Carlota", "Call the plumber", "Read “Sapiens”"],
+        dictateName: "Dictate",
+        dictateDescription: "One tap and Tasks listens: say the task and you’re done.",
+        dictate: "Dictate a task",
+        dictateCaps: "DICTATE",
+        dictateHint: "Tap and speak",
         tooManyTasks: "Too many tasks waiting. Open Tasks to keep adding.",
         addFailed: "Couldn’t add it. Try again.",
         tooManyChanges: "Too many changes waiting. Open Tasks to continue.",

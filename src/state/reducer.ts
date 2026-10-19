@@ -122,6 +122,23 @@ export function reducer(state: AppState, action: Action): AppState {
       return updateTask(state, action.id, (task) => (task.duration === duration ? task : { ...task, duration }))
     }
 
+    case 'task/schedule': {
+      if (!ISO_DATE.test(action.date) || !isValidTime(action.time)) return state
+      const current = state.tasks.find((task) => task.id === action.id)
+      if (!current) return state
+      // A otro día va con su sección, como al pasarla a hoy; en el mismo conserva su sitio.
+      const target = { date: action.date, sectionId: current.sectionId, until: cleanUntil(action.date, current.until) }
+      const moved = current.date === action.date ? state.tasks : moveTask(state.tasks, action.id, target)
+      const duration = action.duration === null ? null : normalizeDuration(action.duration)
+      const tasks = moved.map((task) => {
+        if (task.id !== action.id) return task
+        const timed = { ...task, time: action.time, duration }
+        const hasRelative = task.reminders.some((reminder) => reminder.kind === 'before')
+        return hasRelative || !action.reminderId ? timed : withReminder(timed, { kind: 'before', minutes: 0 }, action.reminderId)
+      })
+      return { ...state, tasks }
+    }
+
     case 'task/extend':
       return updateTask(state, action.id, (task) => {
         const duration = extendedDuration(task, action.now)

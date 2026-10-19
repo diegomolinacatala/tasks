@@ -53,6 +53,10 @@ interface ComposerProps {
    * llega durante el gesto, no en un render posterior.
    */
   focusRef?: MutableRefObject<(() => void) | null>
+  /** Cambia para empezar a escuchar sin tocar nada (el widget y el control del micrófono del iPhone). */
+  dictateRequest?: number
+  /** Ya se ha empezado a escuchar por esa petición: quien la hizo la da por atendida. */
+  onDictated?: () => void
 }
 
 const COPY = {
@@ -129,7 +133,7 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
  * ficha, como el mini reproductor de Spotify se abre en el reproductor entero. Lo decidido allí se
  * queda en la barra en unas píldoras (el día y la hora, los avisos…) hasta que se añade; la × lo quita.
  */
-export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onComposing, onReset, onPlacesHint, places, focusRequest = 0, focusRef }: ComposerProps) {
+export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onComposing, onReset, onPlacesHint, places, focusRequest = 0, focusRef, dictateRequest = 0, onDictated }: ComposerProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
   const language = useLanguage()
@@ -188,6 +192,17 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   }, [focusRef])
 
   const dictating = voice.phase !== 'idle'
+
+  // Desde el widget del micrófono: escuchar nada más estar delante, como si se hubiera tocado el
+  // micrófono (la primera vez sale la ficha del permiso, que pide el toque de siempre). En un
+  // arranque en frío espera a saber si el dictado está listo: si no, diría que no hay avisos.
+  useEffect(() => {
+    if (!dictateRequest || !voice.ready) return
+    onDictated?.()
+    setExpanded(false)
+    input.current?.blur()
+    voice.start()
+  }, [dictateRequest, voice.ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Al empezar el dictado la barra deja de ser un campo: sin este aviso no llegaría el `blur`.
   useEffect(() => {

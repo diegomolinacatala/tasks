@@ -292,5 +292,8 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   useEffect(() => () => session.current?.cancel(), [])
 
-  return { phase, level, partial, remaining, start, stop, cancel, asking, proceed, dismiss, available }
+  /** Ya se sabe adónde puede ir el dictado: antes, `start` podría decir que no hay avisos cuando sí los hay. */
+  const ready = !push.restoring
+
+  return { phase, level, partial, remaining, start, stop, cancel, asking, proceed, dismiss, available, ready }
 }

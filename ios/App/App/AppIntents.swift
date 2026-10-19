@@ -53,6 +53,20 @@ struct ComposeTaskIntent: AppIntent {
     }
 }
 
+/// Abre la app ya escuchando: lo mismo que el widget y el control del micrófono, desde Atajos o
+/// Siri ("Dicta en Tasks"). Para dictar sin abrir la app, "Añadir tarea" con "Dictar texto" delante.
+struct DictateTaskIntent: AppIntent {
+    static var title: LocalizedStringResource = "Dictar tarea"
+    static var description = IntentDescription("Abre Tasks escuchando: di la tarea y listo.")
+    static var openAppWhenRun: Bool = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        NativeActions.shared.post(["type": "dictate"])
+        return .result()
+    }
+}
+
 /// Abre la app directamente en la vista de semana.
 struct OpenWeekIntent: AppIntent {
     static var title: LocalizedStringResource = "Ver la semana"
@@ -86,6 +100,12 @@ struct TasksShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Atrasadas a hoy",
             systemImageName: "arrow.uturn.down.circle"
+        )
+        AppShortcut(
+            intent: DictateTaskIntent(),
+            phrases: ["Dicta en \(.applicationName)"],
+            shortTitle: "Dictar",
+            systemImageName: "mic.fill"
         )
         AppShortcut(
             intent: OpenWeekIntent(),

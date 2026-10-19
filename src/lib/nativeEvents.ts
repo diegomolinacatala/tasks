@@ -12,6 +12,8 @@ export type NativeAction =
   | { type: 'add'; text: string }
   /** `inbox`: desde el widget de la Bandeja, lo escrito va sin fecha. */
   | { type: 'compose'; inbox?: true }
+  /** El widget o el control del micrófono: abrir la app ya escuchando. */
+  | { type: 'dictate' }
   | { type: 'week' }
   /** Widget: tocarlo fuera de una tarea. */
   | { type: 'today' }
@@ -63,7 +65,7 @@ const isIsoDate = (value: unknown): value is IsoDate => typeof value === 'string
 export function parseNativeAction(raw: unknown): NativeAction | null {
   if (!isObject(raw)) return null
   if (raw.type === 'compose') return raw.inbox === true ? { type: 'compose', inbox: true } : { type: 'compose' }
-  if (raw.type === 'week' || raw.type === 'today' || raw.type === 'inbox' || raw.type === 'routines' || raw.type === 'backlog' || raw.type === 'widget') {
+  if (raw.type === 'week' || raw.type === 'today' || raw.type === 'inbox' || raw.type === 'routines' || raw.type === 'backlog' || raw.type === 'widget' || raw.type === 'dictate') {
     return { type: raw.type }
   }
   if (raw.type === 'open') return isId(raw.taskId) ? { type: 'open', taskId: raw.taskId } : null

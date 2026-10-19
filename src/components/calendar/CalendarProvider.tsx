@@ -31,9 +31,18 @@ export interface CalendarApi {
   /** Vuelve a leer calendarios y eventos ya (tras crear el «Tasks»: EventKit no avisa de lo que hace uno mismo). */
   refresh: () => void
   open: (event: CalendarEvent) => void
+  /**
+   * Lleva un evento a otro instante (epoch ms), con lo que dura: lo escribe en el calendario del iPhone y
+   * su cuenta lo sincroniza. `readonly` si ese calendario no se puede escribir; `failed` si iOS no pudo.
+   */
+  move: (event: CalendarEvent, start: number) => Promise<'moved' | 'readonly' | 'failed'>
   /** La fuente, para quien necesita leer otros días (el widget). `null` hasta que carga o si no hay. */
   source: CalendarSource | null
 }
+
+/** El `code` con el que falla `move` (en el iPhone, el del plugin; en local, el del calendario de muestra). */
+const failureCode = (error: unknown): string | null =>
+  typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' ? error.code : null
 
 const INACTIVE: CalendarApi = {
   available: false,
@@ -46,6 +55,7 @@ const INACTIVE: CalendarApi = {
   connect: async () => 'denied',
   refresh: () => undefined,
   open: () => undefined,
+  move: async () => 'failed',
   source: null,
 }
 
@@ -167,9 +177,24 @@ function LiveCalendar({ children }: { children: ReactNode }) {
   const open = useCallback((event: CalendarEvent) => void source?.open(event).catch(() => undefined), [source])
   const refresh = useCallback(() => setRevision((count) => count + 1), [])
 
+  // EventKit no avisa de lo que hace uno mismo: tras mover, se vuelve a leer.
+  const move = useCallback(
+    async (event: CalendarEvent, start: number): Promise<'moved' | 'readonly' | 'failed'> => {
+      if (!source) return 'failed'
+      try {
+        await source.move(event, start)
+      } catch (error) {
+        return failureCode(error) === 'readonly' ? 'readonly' : 'failed'
+      }
+      setRevision((count) => count + 1)
+      return 'moved'
+    },
+    [source],
+  )
+
   const value = useMemo<CalendarApi>(
-    () => ({ available: true, status, active, calendars, events: active ? events : [], revision, watch, connect, refresh, open, source }),
-    [status, active, calendars, events, revision, watch, connect, refresh, open, source],
+    () => ({ available: true, status, active, calendars, events: active ? events : [], revision, watch, connect, refresh, open, move, source }),
+    [status, active, calendars, events, revision, watch, connect, refresh, open, move, source],
   )
 
   return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>

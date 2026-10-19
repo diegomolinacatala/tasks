@@ -30,6 +30,12 @@ export type Action =
   | { type: 'task/until'; id: string; until: IsoDate | null }
   /** Minutos que dura; al acabar se pregunta si ya está hecha. `null` = sin duración. */
   | { type: 'task/setDuration'; id: string; duration: number | null }
+  /**
+   * Soltada en el horario: ese día (conserva su sección) a esa hora, con esa duración. Como al escribir
+   * "a las 5", con hora y sin avisos relativos se avisa a la hora: `reminderId` es el de ese aviso, para
+   * poder quitarlo al deshacer.
+   */
+  | { type: 'task/schedule'; id: string; date: IsoDate; time: IsoTime; duration: number | null; reminderId?: string }
   /** "Todavía no": alarga la tarea para que vuelva a preguntar dentro de un rato. */
   | { type: 'task/extend'; id: string; now: number }
   | { type: 'reminder/add'; taskId: string; reminder: ReminderDraft }

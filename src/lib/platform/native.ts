@@ -69,6 +69,8 @@ interface TasksNativePlugin {
   calendarEvents(options: { from: number; to: number; hidden: string[] }): Promise<{ events: unknown }>
   /** Abre un evento con la ficha de Calendario de iOS (se puede editar ahí). */
   showEvent(options: { id: string; start: number }): Promise<void>
+  /** Lleva la ocurrencia que empieza en `start` a `to` (epoch ms), con lo que dura. Rechaza con `code: 'readonly'` o `'missing'`. */
+  moveEvent(options: { id: string; start: number; to: number }): Promise<void>
   /** Crea (o reutiliza) el calendario «Tasks» para las tareas, en iCloud si lo hay. Llega sin validar. */
   createTasksCalendar(options: { title: string }): Promise<{ id: unknown }>
   /** Las tareas con hora, como eventos de `calendarId` (`CalendarExport.swift`); `null` las quita todas. */

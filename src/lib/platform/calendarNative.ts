@@ -23,6 +23,10 @@ export const nativeSource: CalendarSource = {
     const { TasksNative } = await import('./native')
     await TasksNative.showEvent({ id: event.id, start: event.start })
   },
+  move: async (event, start) => {
+    const { TasksNative } = await import('./native')
+    await TasksNative.moveEvent({ id: event.id, start: event.start, to: start })
+  },
   createOwn: async (title) => {
     const { TasksNative } = await import('./native')
     const { id } = await TasksNative.createTasksCalendar({ title })

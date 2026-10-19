@@ -11,6 +11,10 @@ describe('parseNativeAction', () => {
     expect(parseNativeAction({ type: 'week' })).toEqual({ type: 'week' })
   })
 
+  test('el widget y el control del micrófono: abrir escuchando', () => {
+    expect(parseNativeAction({ type: 'dictate' })).toEqual({ type: 'dictate' })
+  })
+
   test('widget: tocarlo abre hoy y tocar una tarea la abre', () => {
     expect(parseNativeAction({ type: 'today' })).toEqual({ type: 'today' })
     expect(parseNativeAction({ type: 'open', taskId: 't1' })).toEqual({ type: 'open', taskId: 't1' })

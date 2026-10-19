@@ -111,7 +111,8 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, retry, enable, disable, canTranscribe: api !== null, transcribe }),
+    // En el iPhone el dictado no depende de ningún alta previa: está listo desde el arranque.
+    () => ({ status, restoring: false, busy, syncFailed, retry, enable, disable, canTranscribe: api !== null, transcribe }),
     [status, busy, syncFailed, retry, enable, disable, api, transcribe],
   )
 
