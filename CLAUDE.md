@@ -318,9 +318,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   closed*; el usuario la había enviado y Apple la aprobó sin que constara aquí). `MARKETING_VERSION`
   subido a **1.8**.
 - **El micrófono en un widget, soltar en el horario y mover los eventos del calendario** (19/10/2026, en
-  `capacitor`, la **1.8**; el Swift nuevo compila en el CI (el archivado de la primera subida salió bien;
-  falló solo la subida por la 1.7 cerrada); sin probar en el iPhone). Lo pidió el usuario en una sola
-  petición:
+  `capacitor`, **TestFlight 49**, la **1.8**; el Swift nuevo compila en el CI (la primera subida, la 48,
+  falló solo por la 1.7 cerrada); sin probar en el iPhone). Lo pidió el usuario en una sola petición:
   - **Widget y control Dictar** (`DictateWidget.swift`): un micrófono en la pantalla de inicio (pequeño) y en
     la de bloqueo (redondo, rectangular, en línea) y, con iOS 18, un **control** para el centro de control,
     los dos botones de abajo de la pantalla de bloqueo y el botón de acción. Tocarlo abre la app ya
@@ -381,7 +380,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone la TestFlight de la 1.8 y enviarla** (`docs/app-store.md` §9.10; los pasos al
+0. **Probar en el iPhone la TestFlight 49 (la 1.8) y enviarla** (`docs/app-store.md` §9.10; los pasos al
    usuario, en el chat): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
    bloqueado (Face ID → la app abre escuchando); en iOS 18, Ajustes → Fondo de pantalla → Personalizar →
    el botón de abajo a la izquierda → **Dictar en Tasks**, y en el centro de control; el acceso rápido

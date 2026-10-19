@@ -1083,8 +1083,7 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 
 **Antes (en el iPhone)**
 
-1. *TestFlight* → Tasks → **Actualizar** a la **1.8** (la compilación que salga del CI tras el commit
-   `d5b7a24` de `capacitor`). Añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
+1. *TestFlight* → Tasks → **Actualizar** a la **1.8 (49)**. Añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
    bloqueado; en iOS 18, Ajustes → Fondo de pantalla → Personalizar → botón de abajo → **Dictar en Tasks**.
 2. En la Agenda: mantener pulsada una tarea de *Sin hora* y soltarla en el horario; **Listo** y
    **Deshacer**. Con el calendario conectado, mover un evento de Google a mañana y comprobarlo en Calendario.
@@ -1095,7 +1094,7 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 4. **+** junto a *App para iOS* → `1.8` → **Crear**.
 5. **Novedades de esta versión**: las de abajo. Capturas, descripción, palabras clave y texto
    promocional: sin cambios.
-6. **Compilación** → la **1.8** más reciente. Cifrado: *Ninguno de los algoritmos mencionados*.
+6. **Compilación** → **1.8 (49)**. Cifrado: *Ninguno de los algoritmos mencionados*.
 7. **Información para la revisión** → **Notas**: las de §5 con las dos frases nuevas.
 8. **Publicación**: automática. **Guardar**.
 9. **English (U.S.)**: **What’s New** de abajo. **Guardar**.
