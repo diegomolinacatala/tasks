@@ -83,6 +83,15 @@
 
 .composer__input::placeholder {
   color: var(--text-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Una frase de ejemplo que no quepa en un iPhone estrecho se corta con puntos suspensivos. Solo con la
+   barra vacía: lo tecleado se ve como siempre. */
+.composer__input:placeholder-shown {
+  text-overflow: ellipsis;
 }
 
 /* Enviar: el botón redondo de la acción principal, que aparece en cuanto hay algo escrito */
@@ -234,8 +243,8 @@
 
 /* Una sección (el + de su cabecera): en versalitas espaciadas, como su nombre en la lista */
 .composer__target.is-section {
-  font-size: var(--fs-micro);
-  letter-spacing: 0.12em;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   animation: quick-in var(--dur-2) var(--ease-out);
 }

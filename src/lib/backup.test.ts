@@ -26,7 +26,7 @@ const state: AppState = {
   places: [{ id: 'p1', name: 'Mercadona', aliases: [], location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   routines: [{ id: 'r1', title: 'Creatina', emoji: '💊', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
   collapsed: { overdue: false, backlog: true, routines: false },
-  settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
+  settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null, done: [] }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -209,5 +209,17 @@ describe('duración', () => {
     expect(normalizeState(raw(45))!.tasks[0]!.duration).toBe(45)
     expect(normalizeState(raw(99_999))!.tasks[0]!.duration).toBe(720)
     expect(normalizeState(raw('60'))!.tasks[0]!.duration).toBeNull()
+  })
+})
+
+describe('eventos hechos del calendario', () => {
+  test('una copia anterior no los trae: ninguno', () => {
+    const state = normalizeState({ tasks: [], sections: [], settings: { calendar: { enabled: true, hidden: ['festivos'], export: null } } })
+    expect(state!.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null, done: [] })
+  })
+
+  test('se conservan saneados', () => {
+    const state = normalizeState({ tasks: [], sections: [], settings: { calendar: { enabled: true, hidden: [], export: null, done: ['cena@2000', 'cena@2000', 7, 'roto'] } } })
+    expect(state!.settings.calendar.done).toEqual(['cena@2000'])
   })
 })

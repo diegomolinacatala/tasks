@@ -79,9 +79,11 @@ export interface WidgetSnapshot {
    * El calendario del iPhone, si la app lo enseña: el widget de hoy lee los eventos de EventKit sin
    * ocultos. Sin él (apagado, o fotos anteriores), el widget no enseña calendario. Va aunque no haya
    * eventos a mano: la foto que escribe `headless.js` (Siri, los botones de los avisos) no los tiene, y
-   * sin esto el widget dejaría de enseñar el calendario hasta abrir la app.
+   * sin esto el widget dejaría de enseñar el calendario hasta abrir la app. `done`: los eventos marcados
+   * como hechos en la app (claves `id@inicio`), que el widget no enseña; todos, porque uno que empezó ayer
+   * puede seguir hoy (y ya tienen tope); sin ninguno no va.
    */
-  calendar?: { hidden: string[] }
+  calendar?: { hidden: string[]; done?: string[] }
   /** Los eventos de la semana, por si el widget no pudiera leerlos él mismo (solo los escribe la app). */
   events?: WidgetEvent[]
 }
@@ -139,6 +141,7 @@ export function widgetSnapshot(state: AppState, now: number, events: readonly Ca
 
   const { dayStart, calendar } = state.settings
   const week = events && widgetEvents(events, fromIso(today).getTime(), fromIso(addDays(last, 1)).getTime())
+  const { done } = calendar
   return {
     version: WIDGET_VERSION,
     tasks,
@@ -146,7 +149,7 @@ export function widgetSnapshot(state: AppState, now: number, events: readonly Ca
     inbox,
     language: language(),
     dayShift: dayShift(dayStart),
-    ...(calendar.enabled ? { calendar: { hidden: calendar.hidden }, ...(week ? { events: week } : {}) } : {}),
+    ...(calendar.enabled ? { calendar: { hidden: calendar.hidden, ...(done.length ? { done } : {}) }, ...(week ? { events: week } : {}) } : {}),
   }
 }
 

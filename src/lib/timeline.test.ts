@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { Routine, Task } from '../types'
-import { buildTimeline, clockOf, freeLabel, timelineItems } from './timeline'
+import type { TimelineCluster } from './timeline'
+import { MAX_LANES, buildTimeline, clockOf, freeLabel, groupParallel, timelineItems } from './timeline'
 
 const task = (id: string, time: string | null, duration: number | null = null): Task => ({
   id,
@@ -21,12 +22,52 @@ const task = (id: string, time: string | null, duration: number | null = null): 
 const routine = (id: string, time: string | null): Routine => ({ id, title: id, emoji: null, days: [1, 2, 3, 4, 5, 6, 7], time, done: [], order: 0, createdAt: 0 })
 
 const kinds = (rows: ReturnType<typeof buildTimeline>) => rows.map((row) => (row.kind === 'gap' ? `gap ${row.minutes}` : row.kind === 'now' ? 'now' : row.id))
+const lanesOf = (unit: unknown) => (unit as TimelineCluster).lanes.map((lane) => lane.map((item) => item.id))
 
 describe('timelineItems', () => {
   test('solo lo que tiene hora, en orden, con tareas y rutinas', () => {
     const items = timelineItems([task('tarde', '17:00', 60), task('suelta', null), task('manana', '09:00')], [routine('creatina', '10:00'), routine('agua', null)])
     expect(items.map((item) => item.id)).toEqual(['manana', 'routine:creatina', 'tarde'])
     expect(items[2]).toMatchObject({ start: 17 * 60, end: 18 * 60 })
+  })
+})
+
+describe('groupParallel', () => {
+  test('lo que se solapa va junto, en carriles', () => {
+    const units = groupParallel(timelineItems([task('a', '09:00', 60), task('b', '09:30', 60), task('c', '11:00')], []))
+    expect(units.map((unit) => unit.kind)).toEqual(['cluster', 'task'])
+    expect(units[0]).toMatchObject({ id: 'cluster:a', start: 9 * 60, end: 10 * 60 + 30 })
+    expect(lanesOf(units[0])).toEqual([['a'], ['b']])
+  })
+
+  test('lo que acaba justo cuando empieza otra cosa no se solapa', () => {
+    const units = groupParallel(timelineItems([task('a', '09:00', 60), task('b', '10:00', 60)], []))
+    expect(units.map((unit) => unit.kind)).toEqual(['task', 'task'])
+  })
+
+  test('dos cosas a la misma hora, aunque no duren, coinciden; una suelta dentro de algo largo, también', () => {
+    expect(groupParallel(timelineItems([task('a', '09:00'), task('b', '09:00')], [])).map((unit) => unit.kind)).toEqual(['cluster'])
+    const inside = groupParallel(timelineItems([task('larga', '09:00', 180)], [routine('creatina', '10:00')]))
+    expect(lanesOf(inside[0])).toEqual([['larga'], ['routine:creatina']])
+  })
+
+  test('en cadena: el carril que se libera se vuelve a usar', () => {
+    const units = groupParallel(timelineItems([task('a', '09:00', 60), task('b', '09:30', 60), task('c', '10:15', 45)], []))
+    expect(units).toHaveLength(1)
+    expect(lanesOf(units[0])).toEqual([['a', 'c'], ['b']])
+  })
+
+  test(`como mucho ${MAX_LANES} carriles: lo que no cabe va debajo en el que antes se libera`, () => {
+    const units = groupParallel(timelineItems([task('a', '09:00', 180), task('b', '09:00', 60), task('c', '09:30', 30)], []))
+    // En orden: b (acaba antes) va primero; c, en el carril que se libera a las 10.
+    expect(lanesOf(units[0])).toEqual([['b', 'c'], ['a']])
+  })
+
+  test('no toca lo que recibe', () => {
+    const items = timelineItems([task('a', '09:00', 60), task('b', '09:30', 60)], [])
+    const copy = structuredClone(items)
+    groupParallel(items)
+    expect(items).toEqual(copy)
   })
 })
 
@@ -58,6 +99,19 @@ describe('buildTimeline', () => {
     const rows = buildTimeline(items, 9 * 60 + 15)
     expect(kinds(rows)).not.toContain('now')
     expect(rows[0]).toMatchObject({ id: 'a', live: 0.25 })
+  })
+
+  test('lo que coincide es una fila; el hueco se mide desde que acaba lo último de ella', () => {
+    const parallel = timelineItems([task('a', '09:00', 60), task('b', '09:30', 90), task('c', '13:00')], [])
+    const rows = buildTimeline(parallel, null)
+    expect(kinds(rows)).toEqual(['cluster:a', 'gap 120', 'c'])
+    expect(rows[1]).toMatchObject({ start: 11 * 60, end: 13 * 60 })
+  })
+
+  test('en curso dentro de algo en paralelo: lleva su avance y no hay marca de ahora', () => {
+    const parallel = timelineItems([task('a', '09:00', 60), task('b', '09:30', 90)], [])
+    const [row] = buildTimeline(parallel, 9 * 60 + 45)
+    expect((row as TimelineCluster).lanes[0]![0]).toMatchObject({ id: 'a', live: 0.75 })
   })
 
   test('sin nada con hora no hay filas', () => {

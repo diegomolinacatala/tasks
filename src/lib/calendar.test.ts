@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'vitest'
 import type { CalendarEvent, CalendarInfo } from './calendar'
 import {
   FALLBACK_COLOR,
+  MAX_DONE_EVENTS,
   MAX_EVENTS,
   MAX_HIDDEN,
   addedCalendars,
@@ -9,6 +10,8 @@ import {
   canMoveEvent,
   movedStart,
   eventDays,
+  eventKey,
+  eventKeyStart,
   eventSpan,
   eventWindow,
   eventsOfDay,
@@ -19,6 +22,7 @@ import {
   toggleHidden,
   widgetEvents,
   windowCovers,
+  withDoneEvent,
 } from './calendar'
 import { fromIso, toInstant } from './date'
 import { setLanguage } from './i18n'
@@ -121,7 +125,7 @@ describe('parseCalendars', () => {
 
 describe('normalizeCalendarSettings', () => {
   test('lo de antes del calendario está apagado', () => {
-    expect(normalizeCalendarSettings(undefined)).toEqual({ enabled: false, hidden: [], export: null })
+    expect(normalizeCalendarSettings(undefined)).toEqual({ enabled: false, hidden: [], export: null, done: [] })
     expect(normalizeCalendarSettings({ enabled: true, hidden: [] }).export).toBeNull()
   })
 
@@ -131,8 +135,79 @@ describe('normalizeCalendarSettings', () => {
       enabled: true,
       hidden: ['a', 'b'],
       export: 'trabajo',
+      done: [],
     })
     expect(normalizeCalendarSettings({ enabled: 'sí', hidden: many }).hidden).toHaveLength(MAX_HIDDEN)
+  })
+
+  test('hechos: solo claves con inicio, sin repetir, por inicio y los más recientes', () => {
+    const late = 'cena@2000'
+    const early = 'mail@x.com@1000'
+    const long = `${'x'.repeat(320)}@1`
+    expect(normalizeCalendarSettings({ done: [late, early, late, 3, 'sin-inicio', '@5', 'a@', long] }).done).toEqual([early, late])
+    expect(normalizeCalendarSettings({ done: 'cena@2000' }).done).toEqual([])
+    const many = Array.from({ length: MAX_DONE_EVENTS + 5 }, (_, index) => `e${index}@${index}`)
+    const kept = normalizeCalendarSettings({ done: [...many].reverse() }).done
+    expect(kept).toHaveLength(MAX_DONE_EVENTS)
+    expect(kept[0]).toBe('e5@5')
+    expect(kept.at(-1)).toBe(`e${MAX_DONE_EVENTS + 4}@${MAX_DONE_EVENTS + 4}`)
+  })
+})
+
+describe('eventKeyStart', () => {
+  test('el inicio que lleva la clave, también si el id lleva @', () => {
+    expect(eventKeyStart(eventKey('reunion', 1760000000000))).toBe(1760000000000)
+    expect(eventKeyStart('A1B2@calendar.google.com@1760000000000')).toBe(1760000000000)
+    expect(eventKeyStart('antiguo@-5000')).toBe(-5000)
+  })
+
+  test('sin id o sin inicio, nada', () => {
+    for (const key of ['', 'reunion', '@1760000000000', 'reunion@', 'reunion@abc', 'reunion@12x', 'reunion@1e3']) expect(eventKeyStart(key)).toBeNull()
+  })
+
+  test('es la clave de parseCalendarEvents', () => {
+    const [parsed] = parseCalendarEvents([{ id: 'a@b', start: 1000, end: 2000, title: 'x' }])
+    expect(parsed!.key).toBe(eventKey('a@b', 1000))
+    expect(eventKeyStart(parsed!.key)).toBe(1000)
+  })
+})
+
+describe('withDoneEvent', () => {
+  const at = (id: string, start: number) => eventKey(id, start)
+  const meeting = at('reunion', toInstant(DAY, '17:00'))
+  const call = at('llamada', toInstant(DAY, '09:00'))
+
+  test('marca y desmarca sin tocar el original', () => {
+    const done: string[] = [call]
+    expect(withDoneEvent(done, meeting, true)).toEqual([call, meeting])
+    expect(withDoneEvent(done, call, false)).toEqual([])
+    expect(done).toEqual([call])
+  })
+
+  test('si no cambia nada, el mismo array', () => {
+    const done = [call]
+    expect(withDoneEvent(done, call, true)).toBe(done)
+    expect(withDoneEvent(done, meeting, false)).toBe(done)
+  })
+
+  test('una clave sin inicio no se marca', () => {
+    const done = [call]
+    expect(withDoneEvent(done, 'sin-inicio', true)).toBe(done)
+  })
+
+  test('lo tachado hace meses no se desmarca al tachar otra cosa', () => {
+    const june = at('dentista', toInstant('2026-06-10', '10:00'))
+    const done = withDoneEvent([], june, true)
+    expect(withDoneEvent(done, meeting, true)).toEqual([june, meeting])
+  })
+
+  test('se queda con los que empiezan más tarde', () => {
+    const start = toInstant(DAY, '00:00')
+    const many = Array.from({ length: MAX_DONE_EVENTS }, (_, index) => at(`e${index}`, start + index))
+    const next = withDoneEvent(many, at('nuevo', start + MAX_DONE_EVENTS), true)
+    expect(next).toHaveLength(MAX_DONE_EVENTS)
+    expect(next[0]).toBe(many[1])
+    expect(next.at(-1)).toBe(at('nuevo', start + MAX_DONE_EVENTS))
   })
 })
 

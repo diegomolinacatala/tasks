@@ -340,6 +340,32 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     horario, la ocurrencia exacta en una serie, los eventos de los que te invitan, el intent del control
     en los dos objetivos, el hueco en un día sin horario al arrastrar una sección). El widget, el control y
     EventKit escribiendo solo se prueban en el iPhone. El JS principal pasa a 157,1 kB gzip.
+- **Lo del buzón** (19/10/2026, en `capacitor`, la 1.8, **TestFlight 50**; sin probar en el iPhone). Cuatro
+  sugerencias de amigos del 14 al 17/10; el usuario pidió valorarlas frente a la 49 e incorporar lo que
+  encajara, sin preguntar:
+  - *"si arrastras al horario debería ponerse no?"*: ya estaba en la 49 (soltar en el horario). Nada.
+  - *"…poder conectar el Calendario de iOS me impide tachar esas tareas"* (alguien sin tareas propias, con
+    todo en el calendario): **los eventos del horario se tachan**, solo en Tasks (`Settings.calendar.done`,
+    `event/set`, `SCHEMA_VERSION` 16; la fila del evento pasa a ser un `SwipeRow`). Ver "Calendario del
+    iPhone". El widget de hoy (Swift, `WidgetStore.events`) se salta los tachados.
+  - *"…a la hora de crear una sección pudieras elegir tamaño y grosor ya que se camufla con las tareas"*:
+    sin selector (la app no tiene ajustes de estilo), pero las secciones dejan de camuflarse: versalitas
+    en tinta, cifra en serif cursiva, un filete de oro hasta sus botones y aire encima. Ver "Estilo visual".
+  - *"…no voy a empezar a hablarle al móvil en el gimnasio, ¿no puedo escribirlo y ya?"*: escribir ya
+    entendía lo mismo, pero no se sabía. Abierta y vacía, la barra enseña una **frase de ejemplo** que
+    cambia cada vez. Ver "Alta de tareas".
+  - **Soltar en el horario a la altura del dedo** (lo pidió el usuario el mismo día, para la misma
+    compilación): la hora sale de la altura, de cuarto en cuarto (`slotPoint`), con un trazo que salta y lo
+    que se lleva diciendo su hora nueva. Ver "Soltar en el horario".
+  - **Lo que coincide, en paralelo** (también suyo): dos carriles uno al lado del otro (`groupParallel`). Ver
+    "Lo que coincide". El tiempo libre crece un poco con lo que dura.
+  - Probado con Edge sin ventana y dedo simulado (español en claro, inglés en oscuro): tachar un evento
+    tocando la cápsula y deslizando, que a la izquierda no haga nada, que tocarlo no lo tache, que
+    sobreviva a recargar, mover un evento y una tarea a mañana (también desde un carril), las secciones, los
+    ejemplos que rotan, lo que coincide en dos carriles, bajar el dedo de 8 en 8 px (la hora avanza de
+    cuarto en cuarto, nunca hacia atrás), soltar y "Listo" a esa hora, por encima de lo primero (antes) y
+    una de *Sin hora* hasta el horario; 1.041 tests. Revisado por agentes por separado. JS principal 160,3 kB
+    gzip.
 
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
@@ -380,7 +406,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone la TestFlight 49 (la 1.8) y enviarla** (`docs/app-store.md` §9.10; los pasos al
+0. **Probar en el iPhone la TestFlight 50 (la 1.8) y enviarla** (`docs/app-store.md` §9.10; los pasos al
    usuario, en el chat): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
    bloqueado (Face ID → la app abre escuchando); en iOS 18, Ajustes → Fondo de pantalla → Personalizar →
    el botón de abajo a la izquierda → **Dictar en Tasks**, y en el centro de control; el acceso rápido
@@ -389,7 +415,14 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    pulsado un evento de Google y soltarlo en mañana (que cambie en la app Calendario y en Google) y en
    otro hueco; uno de un calendario suscrito no se coge. Lo de la 1.7 que no se llegó a probar: la lámina
    *Lugares* tras actualizar, Ajustes (cada fila y su panel), `llamar a Carlota cuando me vaya de casa`, el
-   selector *Al llegar / Al salir* y el «Hecha» del aviso con el iPhone bloqueado.
+   selector *Al llegar / Al salir* y el «Hecha» del aviso con el iPhone bloqueado. Y lo del buzón (la 50):
+   tachar un evento de Google tocando su cápsula y deslizándolo (que no cambie en Calendario, que siga
+   tachado al reabrir, que el widget Hoy pase al siguiente), que tocar el evento siga abriendo su ficha y
+   mantenerlo pulsado lo siga moviendo; una sección (que se vea como cabecera, con el filete); tocar la
+   barra y ver la frase de ejemplo (la de "al salir de casa" solo sale en el iPhone). Y el horario:
+   mantener pulsada una tarea y bajarla despacio por el horario (que la hora salte de 15 en 15 y la tarjeta
+   que se lleva la diga), soltarla encima de otra cosa (que queden en paralelo), y tachar, abrir y mover
+   algo de un carril.
 
 0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
    (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
@@ -526,7 +559,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (157,1 el 19/10/2026, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -679,8 +712,9 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
   2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas, rutinas y los eventos del
      calendario del iPhone, ver "Calendario del iPhone") a lo largo de una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
      si está en curso, se va llenando; entre medias, "1 h 30 libres" (desde ahora, si el hueco ya
-     empezó); hoy, una marca de coñac con la hora actual. No se reordena a mano (manda la hora), pero
-     **se puede soltar algo entre dos cosas** para ponerle hora (ver "Soltar en el horario").
+     empezó, y un poco más alto cuanto más dura); hoy, una marca de coñac con la hora actual. Lo que
+     coincide va en paralelo (ver "Lo que coincide"). No se reordena a mano (manda la hora), pero **se
+     puede soltar algo a la altura de una hora** para ponérsela (ver "Soltar en el horario").
   3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Cada sección lleva un **+** en
      su cabecera: abre la barra con ella como destino ("Añadir a Compra", la píldora en versalitas), en el
      mismo toque para que salga el teclado (`focusRef`), y la despliega si estaba plegada. Un día pasado con
@@ -702,21 +736,34 @@ arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
 ### Soltar en el horario
 
 Para darle hora a una tarea sin abrir su panel: se coge (mantener pulsada) una de *Sin hora*, de
-*Atrasadas* o una que ya tiene hora, y se suelta entre dos cosas del `Horario`. Como en Structured, pero
-preguntando lo justo al soltar.
+*Atrasadas* o una que ya tiene hora, y se suelta en el `Horario` **a la altura de la hora que se quiere**,
+de cuarto en cuarto de hora (lo pidió el usuario el 19/10/2026: "dependiendo de la altura… que dé como
+saltos de 15 min", no "justo al acabar lo de antes"). Como en Structured, pero preguntando lo justo al
+soltar.
 
 - **Mientras se arrastra** (`onDragMove` en `AgendaView`), el horario es una zona (`tl:<día>`, solo si el
-  dedo está encima: `scopedCollision`) y un **trazo de coñac** con la hora propuesta dice en qué hueco
-  caería (`TimelineSlot`): el centro de lo cogido (`active.rect.current.translated`) contra las filas del
-  horario (`slotIndexAt`), sin contar la fila de lo que se arrastra. Un horario vacío enseña "Suelta aquí
-  para ponerle hora". Lo hecho no se suelta ahí.
-- **Al soltar**, en ese mismo hueco aparece la **tarjeta** (`SlotCard`, una fila más del horario, con su
-  hora en la columna): la hora propuesta por `suggestedStart` (cuando acaba lo de delante; sin nada
-  delante, una hora antes de lo de detrás; sin nada, ahora o las 9; hoy nunca en el pasado; algo sin
-  duración ocupa media hora a estos efectos), con un cuarto de hora a cada lado y la rueda nativa para
-  afinar (`PickerChip`); y la duración en píldoras (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay
-  algo detrás, "Hasta las 12:00"). Nada se guarda hasta **Listo**; la × la deja donde estaba; otro día o
-  otro arrastre la cierran.
+  dedo está encima: `scopedCollision`) que crece sin mover nada (márgenes negativos y relleno en
+  `.timeline-zone.is-dragging`): 44 px por arriba, sobre la cabecera "Horario", y el margen hasta el bloque
+  siguiente por abajo, para elegir antes de lo primero y después de lo último. La hora sale de **la altura
+  del dedo** (`pointerY`: el toque inicial más lo movido) leída entre las filas (`slotPoint` en
+  `lib/slot.ts`): cada fila de arriba del todo dice de qué minuto a qué minuto va (`data-from`/`data-to`,
+  también el tiempo libre y "ahora"; las de dentro de un carril, no) y entre el principio de una y el de la
+  siguiente la hora se reparte a lo alto. Como mucho un cuarto de hora cada `STEP_PX` (8 px): si un trozo
+  vale más horas de las que caben (seis horas libres en una fila), la mitad de arriba cuenta desde la
+  primera y la de abajo hasta la segunda ("justo después", "justo antes"). Por encima de lo primero y por
+  debajo de lo último, a `STEP_PX` por cuarto. Sin pasarse de las horas del trozo (tras algo que acaba a
+  las 10:10, la primera es las 10:15) ni del día (hasta las 23:45). La fila de lo que se arrastra no cuenta.
+- La hora se ve en un **trazo de coñac** a esa altura (`TimelineSlot`, `.tl--slot`, encima de la lista: no
+  aparta nada) que salta de cuarto en cuarto con una vibración suave, y en **lo que se lleva**, que dice
+  su hora nueva en coñac (`.task-overlay.is-timed`): bajo el dedo el trazo no se ve. Un horario vacío
+  enseña "Suelta aquí para ponerle hora" (vale la hora de `suggestedStart`: ahora o las 9). Lo hecho no se
+  suelta ahí.
+- **Al soltar**, aparece la **tarjeta** (`SlotCard`, una fila más del horario, con su hora en la columna)
+  delante de lo primero que empieza después (`rowAfter`; o del tiempo libre en que cae): la hora elegida,
+  con un cuarto de hora a cada lado y la rueda nativa para afinar (`PickerChip`); y la duración en píldoras
+  (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay algo detrás, "Hasta las 12:00", con `gapAt`). Nada se
+  guarda hasta **Listo**; la × la deja donde estaba; otro día o otro arrastre la cierran. Si cae encima de
+  otra cosa, al confirmar quedan **en paralelo** (ver "Lo que coincide").
 - **Listo** despacha `task/schedule` (`lib/slot.ts` para la lógica, `reducer.ts` para el cambio): ese día
   (de *Atrasadas* o de un plazo, con su sección), esa hora, esa duración y, como al escribir "a las 5", el
   aviso "a la hora" si no tenía ninguno relativo (`reminderId`, para quitarlo al deshacer). El toast
@@ -724,6 +771,24 @@ preguntando lo justo al soltar.
   `reminder/remove`.
 - Los **eventos del calendario** se sueltan igual (la tarjeta solo pregunta la hora: lo que dura ya está
   decidido). Ver "Calendario del iPhone".
+
+### Lo que coincide
+
+Lo que se solapa en el tiempo va **en paralelo**, en carriles uno al lado del otro (lo pidió el usuario
+el 19/10/2026: "hay cosas que se van a solapar… que salgan como paralelos"). `groupParallel`
+(`lib/timeline.ts`) junta lo que coincide, aunque sea en cadena, en un `TimelineCluster`; dos cosas sin
+duración a la misma hora también coinciden (cuentan su minuto), y algo suelto dentro de algo largo
+también. Cada cosa va al primer carril libre a su hora; **dos carriles como mucho** (`MAX_LANES`: en un
+móvil no caben más) y lo que no quepa va debajo en el que antes se libera.
+
+- La fila (`li.tl--cluster`) lleva la hora de lo primero en la columna, un nudo de oro en la línea del día
+  (`.tl__fork`) y los carriles (`ul.tl__lane`, separados por un filete de puntos), cada uno con sus filas de
+  siempre (`SwipeRow`: se tachan, se deslizan, se abren y se cogen igual). Sin columna de la hora: cada una
+  dice la suya en su línea de debajo (`parallel`). A media anchura, el título crece con la importancia
+  hasta `--fs-block`, no hasta el doble.
+- Para el tiempo libre y "ahora", la fila entera cuenta como una cosa: de lo que empieza antes a lo que
+  acaba más tarde.
+- No se avisa de solapes ni se impiden: solo se ven.
 
 `Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
 `Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
@@ -912,7 +977,18 @@ no abrume: nada de pestañas ni vistas nuevas.
   un viaje), como **cintas** encima del día (`AllDayEvents`; con más de tres, dos y "+N"). En la tira y
   en el mes, un **punto** bajo el número de los días con algo (`eventDays`). Tocar un evento abre la ficha
   de Calendario de iOS (`EKEventViewController`, se puede editar; al cambiar algo, iOS avisa y se vuelve a
-  leer). No se desliza ni se tacha.
+  leer).
+- **Se tacha** (la 1.8, lo pidió un amigo por el buzón: lleva sus cosas en el calendario): tocar la
+  cápsula o deslizar la fila a la derecha lo marca como hecho, como una tarea (cápsula de coñac con la
+  marca, título tachado); a la izquierda no hace nada. **Solo en Tasks**: nada se escribe en el
+  calendario. Se guarda la clave de esa ocurrencia (`id@inicio`) en `Settings.calendar.done`
+  (`withDoneEvent` en `lib/calendar.ts`, acción `event/set`): 300 como mucho, los que empiezan más tarde
+  (solo por cuántos: algo tachado en junio no se desmarca al tachar otra cosa). Moverlo lleva la marca a
+  la clave nueva (y de vuelta al deshacer); la vieja se queda, porque la fila vieja sigue a la vista
+  hasta que iOS devuelve la lista nueva. El widget de hoy no enseña como "lo siguiente" lo que ya está
+  tachado (la foto lleva `calendar.done` entero: uno que empezó ayer puede seguir hoy). Lo
+  de todo el día no se tacha (cumpleaños, festivos) y lo tachado no cuenta en el anillo del día. Si iOS
+  cambia el id de un evento (pasa al resincronizar una cuenta), la marca se pierde sin avisar.
 - **Se mueve** (la 1.7): mantener pulsado un evento del horario lo coge (`useDraggable`, `event:<key>`)
   para soltarlo en un día de la tira o del mes (a su misma hora) o en otro hueco del horario (la tarjeta
   de "Soltar en el horario" con su duración fija). `calendar.move(event, start)` → `TasksNative.moveEvent`
@@ -926,9 +1002,9 @@ no abrume: nada de pestañas ni vistas nuevas.
   EventKit daría la primera. A la misma hora no se escribe nada. Toast con "Deshacer" (lo devuelve a su inicio); si iOS no pudo, "No se ha podido mover el
   evento". En local, `calendarDemo.ts` guarda los movimientos en memoria (`applyMoves`), y
   `localStorage.setItem('tasks:demo-calendar', 'granted')` lo da por conectado al arrancar (guiones).
-- **Estado** (`Settings.calendar`: `enabled` y `hidden`, los ids de los calendarios ocultos): es del
-  dispositivo, como la apariencia (importar una copia o borrarlo todo no lo cambia). Se enciende al
-  conceder el permiso.
+- **Estado** (`Settings.calendar`: `enabled`, `hidden`, los ids de los calendarios ocultos, `export` y
+  `done`, lo tachado): es del dispositivo, como la apariencia (importar una copia no lo cambia; *Borrar
+  todo* solo vacía `done`). Se enciende al conceder el permiso.
 - **`CalendarProvider`** (`components/calendar/`): pregunta el permiso al arrancar, lee los calendarios y
   los eventos de la ventana del día que se mira (`eventWindow`: su mes, una semana antes y dos después;
   `useDayEvents` la mueve al cambiar de mes) y vuelve a leer cuando iOS avisa de un cambio
@@ -1284,6 +1360,14 @@ como los filtros de una búsqueda: "Hoy", "Mañana", "Sin fecha" y, si se mira o
 añada mientras la barra siga abierta. Se envía con Intro o con el botón redondo de la derecha, y la
 barra **sigue abierta** para la siguiente; se suelta tocando el velo, con Escape o con Intro sin nada
 escrito. Vacía, el micrófono dicta.
+
+**Abierta y vacía, el texto de muestra es una frase de ejemplo** (`composeExamples` en `lib/compose.ts`):
+"Llamar a Carlota mañana a las 6", "Sacar la basura al salir de casa" (solo donde hay lugares), "Gimnasio
+de 7 a 8 de la tarde", "Leer todas las noches", "Renovar el DNI esta semana" (y sus versiones en inglés).
+Cambia cada vez que se abre la barra y tras cada alta, no con un temporizador. Es para que se sepa que
+**escribir entiende lo mismo que dictar** (un amigo creía que solo hablando: buzón, 17/10/2026). En reposo,
+con una sección de destino o un día pasado, sigue diciendo adónde va ("Añadir a hoy"); el `aria-label`
+siempre es ese. `composeExamples.test.ts` comprueba que el analizador de verdad entiende cada frase.
 
 Crea donde se está mirando: **sin fecha** en la Bandeja y **en el día elegido** en la Agenda. Si dice
 que se repite, es una rutina (ver "Rutinas"). `parseTask` reconoce día,
@@ -1706,7 +1790,9 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - Letra: fechas, bloques (Atrasadas, Horario, Sin hora, Rutinas), títulos de panel, nombres de lugar
   y vacíos en **New York**
   (`--font-serif`: `ui-serif`, la serif del sistema, sin descargar nada); el resto, San Francisco.
-  Secciones y etiquetas en versalitas espaciadas.
+  Secciones y etiquetas en versalitas espaciadas. Las secciones del usuario, en tinta, con la cifra en
+  serif cursiva y un filete de oro del nombre a sus botones (`section.css`): no se distinguen de las
+  tareas por tamaño (una importante llega al doble) sino por forma. Sin tamaños ni grosores a elegir.
 - Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.** Contrastes
   comprobados: tinta 13:1, secundario 6,5:1, terciario 4,6:1, coñac 5:1 sobre el papel; de noche,
   tinta 14:1, secundario 8:1, terciario 5,7:1, camel 9:1. Cualquier color nuevo, en los dos temas.
@@ -1756,10 +1842,11 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
 - La duración existe para poder preguntar al acabar, no para planificar el día: no hay bloques de
-  tiempo ni se avisa de solapes. Lo que no se dice no dura.
+  tiempo ni se avisa de solapes. Lo que se solapa se ve en paralelo, y nada más. Lo que no se dice no dura.
 - Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se enseñan en la
   Agenda y no se guardan. Desde la app solo se **mueven** (a otro día o a otra hora, soltándolos; lo
-  escribe EventKit y la cuenta lo sincroniza); para editarlos, su ficha de Calendario. Aparte, la app
+  escribe EventKit y la cuenta lo sincroniza) y se **tachan** (solo en Tasks: el calendario no se
+  entera); para editarlos, su ficha de Calendario. Aparte, la app
   escribe tus tareas con hora en un calendario, si lo eliges, y en un solo sentido. Sin cuentas de Google
   ni Microsoft: lo que no esté en el Calendario del iPhone se añade allí.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de

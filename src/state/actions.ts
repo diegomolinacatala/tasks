@@ -85,6 +85,8 @@ export type Action =
   | { type: 'settings/dayStart'; time: IsoTime }
   /** El calendario del iPhone en la Agenda: enseñarlo o no y qué calendarios se ocultan. */
   | { type: 'settings/calendar'; enabled?: boolean; hidden?: string[]; export?: string | null }
+  /** Marca o desmarca como hecho un evento del calendario (su clave, `id@inicio`), solo en este dispositivo. */
+  | { type: 'event/set'; key: string; done: boolean }
   /** Se ha cerrado la bienvenida de esa versión (`lib/welcome.ts`). */
   | { type: 'settings/welcome'; version: number }
   | { type: 'state/replace'; state: AppState }

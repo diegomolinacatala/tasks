@@ -1,5 +1,6 @@
 import type { IsoDate } from '../types'
 import { addDays, dayNameLong, dayNameShort, dayNumber, relativeLabel } from './date'
+import type { Language } from './i18n'
 import { language, pick } from './i18n'
 
 /** Un sitio donde dejar lo escrito en el compositor: "Hoy", "Mañana", "Jue 2", "Bandeja" o una sección. */
@@ -62,4 +63,40 @@ export function addLabel(date: IsoDate | null, today: IsoDate, section?: string)
   // Un día que ya pasó: lo que se añada nace atrasado, y se dice.
   const past = date < today ? (en ? ' (past)' : ' (pasado)') : ''
   return en ? `Add to ${relativeLabel(date, today)}${past}` : `Añadir al ${dayNameLong(date)} ${dayNumber(date)}${past}`
+}
+
+interface ComposeExample {
+  text: string
+  /** Solo se entiende donde hay avisos por lugar (la app de iPhone): en la PWA se quedaría tal cual. */
+  place?: true
+}
+
+// Cada una enseña una cosa que se entiende al escribir: día y hora, lugar, lo que dura, lo que se
+// repite y un plazo. Cortas, para que quepan en la barra de un iPhone estrecho. Las que llevan a
+// Carlota las pidió el usuario.
+const EXAMPLES: Readonly<Record<Language, readonly ComposeExample[]>> = {
+  es: [
+    { text: 'Llamar a Carlota mañana a las 6' },
+    { text: 'Sacar la basura al salir de casa', place: true },
+    { text: 'Gimnasio de 7 a 8 de la tarde' },
+    { text: 'Leer todas las noches' },
+    { text: 'Renovar el DNI esta semana' },
+  ],
+  en: [
+    { text: 'Call Carlota tomorrow at 6pm' },
+    { text: 'Buy milk when I leave work', place: true },
+    { text: 'Gym tomorrow from 7 to 8pm' },
+    { text: 'Read every night' },
+    { text: 'Renew passport this week' },
+  ],
+}
+
+/**
+ * Frases de ejemplo para la barra abierta y vacía, en orden (la primera es la que sale antes): que
+ * escribiendo también se entiende el día, la hora, el sitio y lo demás, no solo dictando.
+ */
+export function composeExamples(withPlaces: boolean): readonly string[] {
+  return pick(EXAMPLES)
+    .filter((example) => withPlaces || !example.place)
+    .map((example) => example.text)
 }

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'vitest'
 import type { Task } from '../types'
 import { setLanguage } from './i18n'
-import { SLOT_END, fillUntil, gapAround, slotBefore, slotIndexAt, slotOptions, steppedStart, suggestedStart, timeAt } from './slot'
+import { STEP_PX, fillUntil, gapAt, slotOptions, slotPoint, steppedStart, suggestedStart, timeAt } from './slot'
 import { timelineItems } from './timeline'
 
 const task = (id: string, time: string, duration: number | null = null): Task => ({
@@ -26,31 +26,86 @@ const H = (hours: number, minutes = 0) => hours * 60 + minutes
 
 afterEach(() => setLanguage('es'))
 
-describe('gapAround', () => {
-  test('entre dos: acaba la de delante, empieza la de detrás', () => {
-    expect(gapAround(items, 1)).toEqual({ before: H(10), after: H(12) })
-  })
-
-  test('una larga con una corta dentro: el hueco empieza cuando acaba la larga', () => {
-    const nested = timelineItems([task('larga', '09:00', 180), task('corta', '10:00', 30), task('tarde', '15:00')], [])
-    expect(gapAround(nested, 2)).toEqual({ before: H(12), after: H(15) })
+describe('gapAt', () => {
+  test('hasta dónde llega lo de antes y cuándo empieza lo siguiente', () => {
+    expect(gapAt(items, H(10, 30))).toEqual({ before: H(10), after: H(12) })
+    // A la vez que algo: cuenta como de antes.
+    expect(gapAt(items, H(12))).toEqual({ before: H(13), after: H(15) })
   })
 
   test('delante de todo y detrás de todo', () => {
-    expect(gapAround(items, 0)).toEqual({ before: null, after: H(9) })
+    expect(gapAt(items, H(8))).toEqual({ before: null, after: H(9) })
     // La última no dura: a estos efectos ocupa media hora.
-    expect(gapAround(items, 3)).toEqual({ before: H(15, 30), after: null })
+    expect(gapAt(items, H(16))).toEqual({ before: H(15, 30), after: null })
   })
 
   test('sin nada con hora', () => {
-    expect(gapAround([], 0)).toEqual({ before: null, after: null })
+    expect(gapAt([], H(10))).toEqual({ before: null, after: null })
   })
 })
 
-describe('slotBefore', () => {
-  test('el id de lo que va detrás, o el final', () => {
-    expect(slotBefore(items, 1)).toBe('b')
-    expect(slotBefore(items, 3)).toBe(SLOT_END)
+describe('slotPoint', () => {
+  // Una fila de 9 a 10 (64 px), el hueco libre de 10 a 12 (34 px), otra de 12 a 13 (64 px).
+  const anchors = [
+    { y: 0, minutes: H(9) },
+    { y: 64, minutes: H(10) },
+    { y: 98, minutes: H(12) },
+    { y: 162, minutes: H(13) },
+  ]
+
+  test('dentro de una fila, su hora repartida a lo alto, al cuarto de hora', () => {
+    expect(slotPoint(32, anchors)).toEqual({ minutes: H(9, 30), y: 32 })
+    // 9:09 va a las 9:15, y la marca se pinta a la altura de las 9:15 (salta, no sigue al dedo).
+    expect(slotPoint(10, anchors)).toEqual({ minutes: H(9, 15), y: 16 })
+  })
+
+  test('un hueco con más horas de las que caben: justo después arriba, justo antes abajo', () => {
+    expect(slotPoint(70, anchors)).toEqual({ minutes: H(10, 15), y: 64 + STEP_PX })
+    expect(slotPoint(90, anchors)).toEqual({ minutes: H(11, 45), y: 90 })
+    expect(slotPoint(97, anchors)).toEqual({ minutes: H(12), y: 98 })
+  })
+
+  test('por encima de lo primero y por debajo de lo último, a un cuarto por paso', () => {
+    expect(slotPoint(-2 * STEP_PX, anchors)).toEqual({ minutes: H(8, 30), y: -2 * STEP_PX })
+    expect(slotPoint(162 + 3 * STEP_PX, anchors)).toEqual({ minutes: H(13, 45), y: 162 + 3 * STEP_PX })
+  })
+
+  test('sin salirse del día', () => {
+    expect(slotPoint(1000, [{ y: 0, minutes: H(23, 30) }])?.minutes).toBe(H(23, 45))
+    expect(slotPoint(-1000, [{ y: 0, minutes: H(0, 30) }])?.minutes).toBe(0)
+  })
+
+  test('lo de antes de que empiece un trozo no cuenta: el primer cuarto de hora tras las 10:10 es las 10:15', () => {
+    const odd = [
+      { y: 0, minutes: H(10, 10) },
+      { y: 64, minutes: H(11, 40) },
+    ]
+    expect(slotPoint(0, odd)?.minutes).toBe(H(10, 15))
+    expect(slotPoint(10, odd)?.minutes).toBe(H(10, 30))
+  })
+
+  test('en la marca de ahora (un trozo sin cuarto de hora dentro), el siguiente cuarto: nunca uno ya pasado', () => {
+    const today = [
+      { y: 0, minutes: H(9) },
+      { y: 100, minutes: H(11, 22) },
+      { y: 126, minutes: H(11, 22) },
+      { y: 160, minutes: H(14) },
+    ]
+    expect(slotPoint(110, today)?.minutes).toBe(H(11, 30))
+  })
+
+  test('las horas no bajan al bajar el dedo', () => {
+    const nested = [
+      { y: 0, minutes: H(10) },
+      { y: 50, minutes: H(9, 30) },
+      { y: 100, minutes: H(11) },
+    ]
+    expect(slotPoint(25, nested)?.minutes).toBe(H(10))
+    expect(slotPoint(75, nested)?.minutes).toBe(H(10, 30))
+  })
+
+  test('sin filas, nada', () => {
+    expect(slotPoint(10, [])).toBeNull()
   })
 })
 
@@ -121,23 +176,6 @@ describe('slotOptions', () => {
     const options = slotOptions(H(10, 30), { before: null, after: H(12) })
     expect(options[0]?.label).toBe('No duration')
     expect(options.at(-1)?.label).toBe('Until 12:00 PM')
-  })
-})
-
-describe('slotIndexAt', () => {
-  const rows = [
-    { top: 100, bottom: 150 },
-    { top: 150, bottom: 250 },
-    { top: 250, bottom: 300 },
-  ]
-
-  test('delante de la primera fila cuya mitad queda por debajo', () => {
-    expect(slotIndexAt(50, rows)).toBe(0)
-    expect(slotIndexAt(124, rows)).toBe(0)
-    expect(slotIndexAt(126, rows)).toBe(1)
-    expect(slotIndexAt(210, rows)).toBe(2)
-    expect(slotIndexAt(400, rows)).toBe(3)
-    expect(slotIndexAt(10, [])).toBe(0)
   })
 })
 

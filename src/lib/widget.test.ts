@@ -237,7 +237,7 @@ describe('el calendario en el widget', () => {
   const far = { ...meeting, key: 'lejos', start: toInstant(addDays(TODAY, 20), '09:00'), end: toInstant(addDays(TODAY, 20), '10:00') }
 
   test('encendido, lleva qué calendarios oculta y los eventos de la semana', () => {
-    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null } } }
+    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null, done: [] } } }
     const snapshot = widgetSnapshot(state, NOW, [meeting, far])
     expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
     expect(snapshot.events).toEqual([{ id: meeting.key, title: 'Reunión', start: meeting.start, end: meeting.end, allDay: false, color: '#1a73e8' }])
@@ -248,9 +248,25 @@ describe('el calendario en el widget', () => {
   })
 
   test('encendido pero sin eventos a mano (Siri, avisos), el widget sigue leyendo el calendario', () => {
-    const on = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null } } }
+    const on = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: ['festivos'], export: null, done: [] } } }
     const snapshot = widgetSnapshot(on, NOW, null)
     expect(snapshot.calendar).toEqual({ hidden: ['festivos'] })
     expect(snapshot).not.toHaveProperty('events')
+  })
+
+  test('lleva los eventos hechos, para que el widget no los enseñe; también uno que empezó ayer y sigue hoy', () => {
+    const overnight = `guardia@${toInstant(addDays(TODAY, -1), '22:00')}`
+    const tomorrow = `manana@${toInstant(addDays(TODAY, 1), '09:00')}`
+    const done = [overnight, meeting.key, tomorrow]
+    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: [], export: null, done } } }
+    const snapshot = widgetSnapshot(state, NOW, [meeting])
+    expect(snapshot.calendar).toEqual({ hidden: [], done })
+    // La foto lleva el evento igual: es el widget el que no lo enseña (también con EventKit).
+    expect(snapshot.events).toHaveLength(1)
+  })
+
+  test('sin nada hecho, no lleva la lista', () => {
+    const state = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: true, hidden: [], export: null, done: [] } } }
+    expect(widgetSnapshot(state, NOW, null).calendar).toEqual({ hidden: [] })
   })
 })

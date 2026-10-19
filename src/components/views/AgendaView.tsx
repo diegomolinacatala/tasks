@@ -6,15 +6,16 @@ import { DndContext, DragOverlay } from '@dnd-kit/core'
 import type { DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { CalendarEvent, TimedEvent } from '../../lib/calendar'
-import { canMoveEvent, eventSpan, movedStart } from '../../lib/calendar'
+import { canMoveEvent, eventKey, eventSpan, movedStart } from '../../lib/calendar'
 import { dayHeading, isoOfInstant, monthYear, relativeLabel, shortTime } from '../../lib/date'
 import { spanLabel } from '../../lib/duration'
 import { placementsOf } from '../../lib/order'
 import { lastDay, shownDay } from '../../lib/period'
 import { haptic } from '../../lib/platform/feedback'
 import { routinesOn } from '../../lib/routines'
-import type { SlotGap } from '../../lib/slot'
-import { gapAround, slotBefore, slotIndexAt, suggestedStart, timeAt } from '../../lib/slot'
+import type { SlotAnchor, SlotGap } from '../../lib/slot'
+import { SLOT_END, SLOT_STEP, gapAt, slotPoint, suggestedStart, timeAt } from '../../lib/slot'
+import type { TimelineRow } from '../../lib/timeline'
 import { buildTimeline, timelineItems } from '../../lib/timeline'
 import { useNowMinutes } from '../../hooks/useNow'
 import { useCopy } from '../../state/LanguageProvider'
@@ -107,8 +108,10 @@ const COPY = {
 /** Con cuántas atrasadas se plegó el bloque: si entran más, se vuelve a abrir solo. */
 const OVERDUE_FOLDED_KEY = 'tasks:overdue-folded-at'
 
-/** Dónde cae lo que se arrastra sobre el horario, mientras se arrastra y al soltar. */
+/** Dónde cae lo que se arrastra sobre el horario, mientras se arrastra y al soltar: la hora, la altura de
+ * la marca, delante de qué fila iría la tarjeta y lo que queda hasta lo siguiente. */
 interface SlotAt extends TimelineSlot {
+  before: string
   gap: SlotGap
 }
 
@@ -117,8 +120,36 @@ type SlotCardState =
   | { type: 'task'; id: string; title: string; before: string; gap: SlotGap; start: number; duration: number | null }
   | { type: 'event'; key: string; title: string; before: string; gap: SlotGap; start: number; duration: number }
 
-/** Las filas del horario que cuentan para saber entre cuáles cae el dedo (ni huecos, ni "ahora", ni lo que se arrastra). */
-const ITEM_ROWS = ':scope > li:not(.tl--gap):not(.tl--now):not(.tl--slot):not(.tl--hint):not(.tl--card):not(.is-dragging)'
+/**
+ * Las filas del horario que dicen su hora (también las de los carriles y la de lo que se arrastra, que
+ * sigue ocupando su sitio): a su altura se lee la hora del dedo.
+ */
+const TIMED_ROWS = '.timeline li[data-from]'
+/** Las de arriba del todo: la última dice dónde acaba el día que se ve. */
+const TOP_ROWS = ':scope > .timeline > li[data-from]'
+
+/**
+ * La altura del dedo en pantalla; con el teclado (sin dedo), el centro de lo cogido. Lo movido sale del
+ * rectángulo de lo cogido y no de `delta`, que suma lo que la lista se haya desplazado sola (el auto-scroll):
+ * las filas se miden en la pantalla, así que el dedo también.
+ */
+function pointerY(event: DragMoveEvent): number | null {
+  const start = event.activatorEvent
+  const touch = typeof TouchEvent !== 'undefined' && start instanceof TouchEvent ? (start.touches[0] ?? start.changedTouches[0]) : null
+  const y = touch ? touch.clientY : start instanceof MouseEvent ? start.clientY : null
+  const { initial, translated } = event.active.rect.current
+  if (y !== null && initial && translated) return y + translated.top - initial.top
+  return translated ? translated.top + translated.height / 2 : null
+}
+
+/**
+ * Delante de qué fila va la tarjeta de lo soltado a esa hora: la primera que empieza después (también la
+ * marca de "ahora"), o el tiempo libre en que cae.
+ */
+function rowAfter(rows: readonly TimelineRow[], minutes: number): string {
+  const next = rows.find((row) => (row.kind === 'now' ? row.minutes > minutes : row.start > minutes || (row.kind === 'gap' && row.end > minutes)))
+  return next?.id ?? SLOT_END
+}
 
 /**
  * Agenda, como Structured: arriba el día en el que estás y la tira de su semana, que se despliega
@@ -194,6 +225,26 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const progress = progressOf(dayTasks)
   // Los eventos que se pueden coger: los de un calendario que se puede escribir, con hora, de este día.
   const movable = useCallback((event: CalendarEvent) => canMoveEvent(event, calendar.calendars, shown), [calendar.calendars, shown])
+  // Los marcados como hechos (solo en la app). En un ref, para leerlos al acabar de mover uno.
+  const doneEvents = useMemo(() => new Set(state.settings.calendar.done), [state.settings.calendar.done])
+  const latestDone = useRef(doneEvents)
+  latestDone.current = doneEvents
+  const toggleEvent = useCallback(
+    (key: string, done: boolean) => {
+      // Marcar se nota más que desmarcar, como al tachar una tarea.
+      haptic(done ? 'success' : 'tap')
+      dispatch({ type: 'event/set', key, done })
+    },
+    [dispatch],
+  )
+  /**
+   * Un evento hecho que cambia de inicio cambia de clave: la marca va con él. La de antes no se quita: la
+   * fila vieja sigue a la vista hasta que iOS devuelve la lista nueva y se destacharía un momento; esa
+   * clave ya no casa con nada (y el tope la acaba olvidando).
+   */
+  const carryDone = (from: string, to: string) => {
+    if (latestDone.current.has(from)) dispatch({ type: 'event/set', key: to, done: true })
+  }
 
   /** Mover un evento del calendario: lo escribe iOS y su cuenta lo sincroniza; "Deshacer" lo devuelve. */
   const moveEvent = async (event: CalendarEvent, to: number, where: string) => {
@@ -203,6 +254,8 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
       return
     }
     haptic('success')
+    const movedKey = eventKey(event.id, to)
+    carryDone(event.key, movedKey)
     toast({
       message: `${event.title || copy.untitledEvent} → ${where}`,
       actionLabel: copy.undo,
@@ -211,6 +264,7 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
         const moved = { ...event, start: to, end: to + (event.end - event.start) }
         void calendar.move(moved, event.start).then((undone) => {
           if (undone !== 'moved') toast({ message: copy.eventNotMoved, tone: 'error' })
+          else carryDone(movedKey, event.key)
         })
       },
     })
@@ -224,7 +278,7 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
     void moveEvent(timed.event, movedStart(timed.event, date), capitalize(relativeLabel(date, today)))
   }
 
-  /** Soltado en el horario: la tarjeta aparece en el hueco donde estaba el dedo. */
+  /** Soltado en el horario: la tarjeta aparece en su sitio, con la hora que marcaba el dedo. */
   const dropOnTimeline = (id: string, type: DragType) => {
     const at = slotRef.current
     if (!at) return
@@ -246,26 +300,48 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
     onTimeline: dropOnTimeline,
   })
 
-  /** En qué hueco del horario está lo que se arrastra: entre qué dos filas cae el centro de lo cogido. */
+  /**
+   * A qué hora caería lo que se arrastra: la que hay a la altura del dedo, leyendo las horas de las filas
+   * del horario (`slotPoint`), de cuarto en cuarto. Lo que se arrastra no cuenta (va atenuado en su sitio).
+   */
   const slotAt = (event: DragMoveEvent): SlotAt | null => {
     if (event.over?.data.current?.type !== 'timeline') return null
     const type = event.active.data.current?.type
     const id = String(event.active.id)
     if (type === 'task' ? (byId.get(id)?.done ?? true) : type !== 'event') return null
-    // Lo que se arrastra no cuenta: ni su fila (va atenuada en su sitio) ni su hueco.
+    const zone = below.current?.querySelector<HTMLElement>('.timeline-zone')
+    const y = pointerY(event)
+    if (!zone || y === null) return null
+    const top = zone.getBoundingClientRect().top
+    const anchors: SlotAnchor[] = [...zone.querySelectorAll<HTMLElement>(TIMED_ROWS)].map((node) => ({
+      y: node.getBoundingClientRect().top - top,
+      minutes: Number(node.dataset.from),
+    }))
+    const last = [...zone.querySelectorAll<HTMLElement>(TOP_ROWS)].at(-1)
+    if (last) {
+      // El final de lo último: hasta donde acaba (lo que no dura, un cuarto de hora).
+      const from = Number(last.dataset.from)
+      anchors.push({ y: last.getBoundingClientRect().bottom - top, minutes: Math.max(Number(last.dataset.to), from + SLOT_STEP) })
+    } else {
+      // Un horario vacío: la nota de "suelta aquí" vale la hora de siempre (ahora, o las 9).
+      const hint = zone.querySelector<HTMLElement>('.tl--hint')?.getBoundingClientRect()
+      const middle = hint ? hint.top + hint.height / 2 - top : zone.getBoundingClientRect().height / 2
+      anchors.push({ y: middle, minutes: suggestedStart({ before: null, after: null }, shown === today ? now : null) })
+    }
+    const point = slotPoint(y - top, anchors)
+    if (!point) return null
     const rest = items.filter((item) => item.id !== id)
-    const list = below.current?.querySelector('.timeline')
-    const rects = list ? [...list.querySelectorAll<HTMLElement>(ITEM_ROWS)].map((node) => node.getBoundingClientRect()) : []
-    const rect = event.active.rect.current.translated
-    const index = slotIndexAt(rect ? rect.top + rect.height / 2 : 0, rects)
-    const gap = gapAround(rest, index)
-    return { before: slotBefore(rest, index), gap, start: suggestedStart(gap, shown === today ? now : null) }
+    return { start: point.minutes, y: point.y, before: rowAfter(rows, point.minutes), gap: gapAt(rest, point.minutes) }
   }
 
   const onDragMove = (event: DragMoveEvent) => {
     const next = slotAt(event)
+    const previous = slotRef.current
     slotRef.current = next
-    setSlot((current) => (current?.before === next?.before && current?.start === next?.start ? current : next && { before: next.before, start: next.start }))
+    // La hora va a saltos: solo cambia algo al pasar a otro cuarto de hora, y cada salto se nota en el dedo.
+    if (next?.start === previous?.start && next?.y === previous?.y) return
+    if (next && next.start !== previous?.start) haptic('selection')
+    setSlot(next && { start: next.start, y: next.y })
   }
 
   const clearSlot = () => {
@@ -530,6 +606,8 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
                   slot={slot}
                   card={card && cardNode ? { before: card.before, node: cardNode } : null}
                   movable={movable}
+                  doneEvents={doneEvents}
+                  onToggleEvent={toggleEvent}
                 />
               </section>
             )}
@@ -598,9 +676,10 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
         </div>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2,0.8,0.2,1)' }}>
+          {/* Sobre el horario, lo que se lleva dice la hora a la que caería: la marca queda bajo el dedo */}
           {dragged && (
-            <div className="task-overlay">
-              <TaskRow task={dragged} />
+            <div className={`task-overlay ${slot ? 'is-timed' : ''}`}>
+              <TaskRow task={slot ? { ...dragged, time: timeAt(slot.start) } : dragged} />
             </div>
           )}
           {draggedSection && (
@@ -609,11 +688,13 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
             </div>
           )}
           {draggedEvent && (
-            <div className="task-overlay tl-overlay cal-tone" style={{ '--cal': draggedEvent.event.color } as CSSProperties}>
+            <div className={`task-overlay tl-overlay cal-tone ${slot ? 'is-timed' : ''}`} style={{ '--cal': draggedEvent.event.color } as CSSProperties}>
               <span className="tl-overlay__bar" aria-hidden="true" />
               <span>
                 <span className="tl-overlay__title">{draggedEvent.event.title || copy.untitledEvent}</span>
-                <span className="tl-overlay__meta">{eventSpan(draggedEvent)}</span>
+                <span className="tl-overlay__meta">
+                  {eventSpan(slot ? { start: slot.start, end: slot.start + draggedEvent.end - draggedEvent.start } : draggedEvent)}
+                </span>
               </span>
             </div>
           )}

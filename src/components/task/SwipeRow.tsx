@@ -25,6 +25,8 @@ interface SwipeRowProps {
   done?: boolean
   /** Una vez por instalación (`claimSwipeHint`): la fila asoma lo que hay detrás y vuelve. */
   peek?: boolean
+  /** En el horario: de qué minuto a qué minuto va la fila (para leer la hora a la altura del dedo al soltar algo). */
+  span?: readonly [number, number]
   children: ReactNode
 }
 
@@ -60,7 +62,7 @@ export function claimSwipeHint(): boolean {
  * Fila deslizable: lo que asoma por detrás (hecha a la izquierda, borrar a la derecha) crece con el
  * gesto y da un pequeño salto al pasar el umbral, que es cuando vibra.
  */
-export function SwipeRow({ onRight, onLeft, disabled, className = '', style, flip, nodeRef, hold, dragId, done = false, peek = false, children }: SwipeRowProps) {
+export function SwipeRow({ onRight, onLeft, disabled, className = '', style, flip, nodeRef, hold, dragId, done = false, peek = false, span, children }: SwipeRowProps) {
   const { rootRef, surfaceRef, handlers } = useSwipe({ onLeft, onRight, disabled })
   // Tras arrastrarla (`disabled` mientras dura), soltar sin moverse no debe abrirla.
   const dragged = useRef(false)
@@ -92,7 +94,15 @@ export function SwipeRow({ onRight, onLeft, disabled, className = '', style, fli
   )
 
   return (
-    <li ref={setRoot} className={`swipe ${className} ${peek ? 'is-peek' : ''}`} style={style} data-flip={flip} data-drag-id={dragId}>
+    <li
+      ref={setRoot}
+      className={`swipe ${className} ${peek ? 'is-peek' : ''}`}
+      style={style}
+      data-flip={flip}
+      data-drag-id={dragId}
+      data-from={span?.[0]}
+      data-to={span?.[1]}
+    >
       <div className="swipe__behind" aria-hidden="true">
         <span className="swipe__act swipe__act--right">
           {done ? <IconUndo size={18} strokeWidth={2} /> : <IconCheck size={18} strokeWidth={2.2} />}

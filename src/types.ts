@@ -136,7 +136,8 @@ export interface DigestSettings {
 
 /**
  * El calendario del iPhone en la Agenda (`lib/calendar.ts`). Es de este dispositivo, como la apariencia:
- * los ids de sus calendarios no valen en otro, así que importar una copia o borrarlo todo no lo cambia.
+ * los ids de sus calendarios no valen en otro, así que importar una copia no lo cambia, y borrarlo todo
+ * solo quita los eventos hechos.
  */
 export interface CalendarSettings {
   /** Enseñar los eventos. Se enciende al conceder el permiso y se puede apagar sin quitarlo. */
@@ -148,6 +149,11 @@ export interface CalendarSettings {
    * el que se elija. `null` = no se añaden.
    */
   export: string | null
+  /**
+   * Eventos marcados como hechos en Tasks, por su clave (`id@inicio`): solo en este dispositivo; nunca se
+   * escribe en el calendario. Ver `withDoneEvent` en `lib/calendar.ts`.
+   */
+  done: string[]
 }
 
 export interface Settings {

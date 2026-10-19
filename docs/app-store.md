@@ -1076,6 +1076,16 @@ La 1.7 se aprobó el 19/10/2026. La 1.8 trae lo que pidió el usuario ese día, 
 - **Mover los eventos del calendario** desde la Agenda: a otro día (en la tira) o a otra hora (en el
   horario); el cambio llega a Google, Outlook o iCloud como si se hubiera hecho en Calendario.
 
+Y lo del buzón (la compilación **50**, del mismo día):
+
+- **Tachar los eventos del calendario** en la Agenda (tocar su cápsula o deslizarlos a la derecha), solo en
+  Tasks: el calendario no cambia.
+- **Secciones que se distinguen** de las tareas: en tinta y con un filete de oro.
+- Al abrir la barra de escribir, **una frase de ejemplo** que enseña que escribir entiende lo mismo que
+  dictar.
+- **Soltar en el horario a la altura de la hora**, de 15 en 15 minutos, y **lo que coincide, en paralelo**
+  (lo pidió el usuario para esta misma compilación).
+
 Cambian las **novedades** (abajo) y las **notas para la revisión** (§5: añadir que mover un evento lo
 escribe EventKit con el permiso de calendario que ya se pide, y que el widget Dictar abre la app con el
 micrófono, con el permiso de siempre). Descripción, palabras clave, texto promocional, capturas y
@@ -1083,10 +1093,12 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 
 **Antes (en el iPhone)**
 
-1. *TestFlight* → Tasks → **Actualizar** a la **1.8 (49)**. Añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
+1. *TestFlight* → Tasks → **Actualizar** a la **1.8 (50)** (la 49 trae lo de abajo; la 50, además, lo del buzón y el horario). Añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
    bloqueado; en iOS 18, Ajustes → Fondo de pantalla → Personalizar → botón de abajo → **Dictar en Tasks**.
 2. En la Agenda: mantener pulsada una tarea de *Sin hora* y soltarla en el horario; **Listo** y
    **Deshacer**. Con el calendario conectado, mover un evento de Google a mañana y comprobarlo en Calendario.
+   Con la **50**: tocar la cápsula de un evento (se tacha) y deslizar otro a la derecha; en Calendario, igual.
+   Bajar despacio una tarea por el horario (la hora salta de 15 en 15) y soltarla encima de otra (en paralelo).
 
 **En App Store Connect** (https://appstoreconnect.apple.com → **Apps** → *Tasks: tareas y lugares*)
 
@@ -1094,7 +1106,7 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 4. **+** junto a *App para iOS* → `1.8` → **Crear**.
 5. **Novedades de esta versión**: las de abajo. Capturas, descripción, palabras clave y texto
    promocional: sin cambios.
-6. **Compilación** → **1.8 (49)**. Cifrado: *Ninguno de los algoritmos mencionados*.
+6. **Compilación** → **1.8 (50)**, la que trae lo del buzón y el horario. Cifrado: *Ninguno de los algoritmos mencionados*.
 7. **Información para la revisión** → **Notas**: las de §5 con las dos frases nuevas.
 8. **Publicación**: automática. **Guardar**.
 9. **English (U.S.)**: **What’s New** de abajo. **Guardar**.
@@ -1104,14 +1116,22 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 
 ```
 • Dicta desde la pantalla de bloqueo: un widget (y en iOS 18 un control, también para el botón de acción) abre Tasks ya escuchando.
-• Mantén pulsada una tarea y suéltala en el horario: ahí mismo eliges la hora y cuánto dura.
+• Mantén pulsada una tarea y suéltala en el horario a la altura de la hora que quieras, de 15 en 15 minutos: ahí mismo eliges cuánto dura.
+• Lo que coincide en el tiempo se ve en paralelo, uno al lado del otro.
 • Mueve los eventos de tu calendario desde la Agenda: a otro día o a otra hora, y el cambio llega a Google, Outlook o iCloud.
+• Tacha los eventos del calendario como si fueran tareas: solo en Tasks, tu calendario no cambia.
+• Las secciones se distinguen mejor de las tareas.
+• Al abrir la barra de escribir, una frase de ejemplo: escribiendo se entiende lo mismo que hablando.
 ```
 
 **What’s New in This Version** (la ficha en inglés)
 
 ```
 • Dictate from the Lock Screen: a widget (and, on iOS 18, a control, also for the Action button) opens Tasks already listening.
-• Hold a task and drop it on the schedule: pick the time and how long it takes right there.
+• Hold a task and drop it on the schedule at the time you want, in 15-minute steps: pick how long it takes right there.
+• Things that happen at the same time show side by side.
 • Move your calendar events from the Agenda: to another day or another time, and the change reaches Google, Outlook or iCloud.
+• Check off calendar events like tasks: only in Tasks, your calendar stays as it is.
+• Sections stand out more from tasks.
+• Open the writing bar to see an example sentence: typing understands everything dictation does.
 ```

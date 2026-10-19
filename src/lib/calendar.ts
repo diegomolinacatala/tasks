@@ -6,7 +6,8 @@ import { compareNames, compareText } from './order'
 /**
  * El calendario del iPhone (iCloud, Google, Outlook… todo lo que tenga en Ajustes → Calendario) dentro
  * del día: sus eventos salen en el horario, junto a las tareas, y los de todo el día encima. Solo se
- * leen, en el propio iPhone (EventKit): nada se guarda en el estado de la app ni sale del dispositivo.
+ * leen, en el propio iPhone (EventKit): nada se guarda en el estado de la app ni sale del dispositivo,
+ * salvo la clave de los que se marcan como hechos (`withDoneEvent`), que tampoco se escribe en el calendario.
  * Aquí, lo que se puede probar sin iPhone: validar lo que llega de Swift y repartirlo por días.
  */
 
@@ -59,12 +60,19 @@ const HEX = /^#[0-9a-f]{6}$/i
 /** Si un calendario llega sin color: un gris tostado que no desentona. */
 export const FALLBACK_COLOR = '#8c7b66'
 
-export const defaultCalendarSettings = (): CalendarSettings => ({ enabled: false, hidden: [], export: null })
+/** Eventos marcados como hechos que se recuerdan: los que empiezan más tarde. */
+export const MAX_DONE_EVENTS = 300
+const MAX_DONE_KEY = 320
+
+export const defaultCalendarSettings = (): CalendarSettings => ({ enabled: false, hidden: [], export: null, done: [] })
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 const text = (value: unknown, max: number): string => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 const color = (value: unknown): string => (typeof value === 'string' && HEX.test(value) ? value.toLowerCase() : FALLBACK_COLOR)
 const instant = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+
+/** La clave de una ocurrencia (`CalendarEvent.key`): la misma que `CalendarReader.key` en Swift. */
+export const eventKey = (id: string, start: number): string => `${id}@${start}`
 
 export function parseCalendarStatus(raw: unknown): CalendarStatus {
   return raw === 'granted' || raw === 'prompt' ? raw : 'denied'
@@ -82,7 +90,7 @@ export function parseCalendarEvents(raw: unknown): CalendarEvent[] {
     const start = instant(item.start)
     const end = instant(item.end)
     if (!id || start === null || end === null) continue
-    const key = `${id}@${start}`
+    const key = eventKey(id, start)
     if (seen.has(key)) continue
     seen.add(key)
     const location = text(item.location, MAX_TITLE)
@@ -114,12 +122,49 @@ export function parseCalendars(raw: unknown): CalendarInfo[] {
   })
 }
 
-/** Los ocultos de una copia o de un estado roto: textos, sin repetir y con tope. */
+/** Los ocultos y los hechos de una copia o de un estado roto: textos, sin repetir y con tope. */
 export function normalizeCalendarSettings(raw: unknown): CalendarSettings {
   if (!isObject(raw)) return defaultCalendarSettings()
   const hidden = Array.isArray(raw.hidden) ? raw.hidden.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
   const target = typeof raw.export === 'string' && raw.export.length > 0 ? raw.export.slice(0, 300) : null
-  return { enabled: raw.enabled === true, hidden: [...new Set(hidden)].slice(0, MAX_HIDDEN), export: target }
+  const done = Array.isArray(raw.done) ? raw.done.filter((key): key is string => typeof key === 'string' && isDoneKey(key)) : []
+  return { enabled: raw.enabled === true, hidden: [...new Set(hidden)].slice(0, MAX_HIDDEN), export: target, done: newestDone([...new Set(done)]) }
+}
+
+/**
+ * El inicio (epoch ms) que lleva la clave de un evento (`id@inicio`, ver `parseCalendarEvents`). El id de
+ * EventKit puede llevar `@`: cuenta el último. `null` si no lo lleva.
+ */
+export function eventKeyStart(key: string): number | null {
+  const at = key.lastIndexOf('@')
+  if (at <= 0) return null
+  const raw = key.slice(at + 1)
+  if (!/^-?\d+(\.\d+)?$/.test(raw)) return null
+  const start = Number(raw)
+  return Number.isFinite(start) ? start : null
+}
+
+const isDoneKey = (key: string): boolean => key.length <= MAX_DONE_KEY && eventKeyStart(key) !== null
+
+/** Por inicio, y solo los más recientes. */
+function newestDone(keys: readonly string[]): string[] {
+  const sorted = keys
+    .map((key) => ({ key, start: eventKeyStart(key) ?? 0 }))
+    .sort((a, b) => a.start - b.start || compareText(a.key, b.key))
+    .map(({ key }) => key)
+  return sorted.length > MAX_DONE_EVENTS ? sorted.slice(-MAX_DONE_EVENTS) : sorted
+}
+
+/**
+ * Los eventos hechos con ese marcado o sin marcar. Devuelve el mismo array si no cambia nada (así no se
+ * guarda ni se reescribe el widget); si cambia, se queda con los `MAX_DONE_EVENTS` que empiezan más
+ * tarde. Solo por cuántos, no por su edad: lo que se ve tachado (también un evento de junio) no se
+ * desmarca solo al tachar otra cosa.
+ */
+export function withDoneEvent(done: readonly string[], key: string, value: boolean): string[] {
+  if (done.includes(key) === value || (value && !isDoneKey(key))) return done as string[]
+  const kept = done.filter((item) => item !== key)
+  return newestDone(value ? [...kept, key] : kept)
 }
 
 /** Mostrar u ocultar un calendario. */

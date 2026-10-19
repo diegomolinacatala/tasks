@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent, MutableRefObject } from 'react'
 import type { ComposeTarget } from '../../lib/compose'
-import { addLabel } from '../../lib/compose'
+import { addLabel, composeExamples } from '../../lib/compose'
 import type { Details, SummaryIcon } from '../../lib/details'
 import { applyParsed, detailsFrom, detailsSummary, toRoutineDraft, toTaskDraft } from '../../lib/details'
 import { createId } from '../../lib/id'
@@ -48,6 +48,8 @@ interface ComposerProps {
   places: readonly Place[] | null
   /** Cambia para pedir el foco (acceso rápido "Nueva tarea" del icono). */
   focusRequest?: number
+  /** Ya se ha dado el foco por esa petición: quien la hizo la da por atendida. */
+  onFocused?: () => void
   /**
    * Para dar el foco dentro del mismo toque (el + de una sección): iOS solo saca el teclado si el foco
    * llega durante el gesto, no en un render posterior.
@@ -114,6 +116,13 @@ const LITERAL_HINT_KEY = 'tasks:literal-hinted'
 const PLACE_PHRASE =
   /\b(al (llegar|pasar por|salir|irme|marcharme)|cuando (llegue|salga|vuelva|me vaya|est[eé])|nada más (llegar|salir)|en cuanto (llegue|salga|me vaya)|when i (get to|arrive|leave|head out of)|once i.m at)\b/i
 
+/**
+ * La frase de ejemplo que toca (`composeExamples`). Vive fuera de la barra para seguir la cuenta
+ * aunque se desmonte (al pasar por Lugares o Ajustes); empieza antes de la primera porque abrir la
+ * barra ya avanza una.
+ */
+let exampleTurn = -1
+
 const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
   bell: IconBell,
   pin: IconPin,
@@ -133,7 +142,7 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
  * ficha, como el mini reproductor de Spotify se abre en el reproductor entero. Lo decidido allí se
  * queda en la barra en unas píldoras (el día y la hora, los avisos…) hasta que se añade; la × lo quita.
  */
-export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onComposing, onReset, onPlacesHint, places, focusRequest = 0, focusRef, dictateRequest = 0, onDictated }: ComposerProps) {
+export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onComposing, onReset, onPlacesHint, places, focusRequest = 0, onFocused, focusRef, dictateRequest = 0, onDictated }: ComposerProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
   const language = useLanguage()
@@ -152,6 +161,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   const [absorbed, setAbsorbed] = useState<{ phrase: string; title: string } | null>(null)
   // La ficha se monta la primera vez que se despliega y después se queda (para animar al plegarse).
   const [sheetUsed, setSheetUsed] = useState(false)
+  const [exampleIndex, setExampleIndex] = useState(exampleTurn)
   const fallback = targets[0]?.key
   const targetItem = targets.find((item) => item.key === chosen) ?? targets[0]
   const target = targetItem?.date ?? null
@@ -172,13 +182,21 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   // En la PWA una frase de lugar se queda tal cual: se dice por qué.
   const placesHint = places === null && !details && ready && PLACE_PHRASE.test(value)
   // El texto de la barra vacía dice adónde cae lo que se escriba (también al cambiar de destino).
-  const placeholder = targetItem ? addLabel(targetItem.date, today, targetItem.sectionName) : ''
+  const where = targetItem ? addLabel(targetItem.date, today, targetItem.sectionName) : ''
+  // Abierta y vacía, una frase de ejemplo enseña que escribiendo también se entiende el día, la hora,
+  // el sitio… (el destino ya lo dicen las píldoras). Una sección o un día pasado dicen algo que no se
+  // ve en otro sitio ("Añadir a Compra", "(pasado)"): esos se quedan.
+  const pastTarget = target !== null && target < today
+  const examples = active && !ready && !details && !targetSection && !pastTarget ? composeExamples(places !== null) : []
+  const placeholder = examples.length ? (examples[exampleIndex % examples.length] ?? where) : where
 
+  // Atendida: si la barra se vuelve a montar (otra pestaña y vuelta), no se abre sola.
   useEffect(() => {
     if (!focusRequest) return
+    onFocused?.()
     setExpanded(false)
     input.current?.focus()
-  }, [focusRequest])
+  }, [focusRequest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!focusRef) return
@@ -231,6 +249,20 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     onReset?.()
   }
 
+  // Otra frase de ejemplo al abrir la barra y tras añadir algo; nunca con un temporizador (nada cambia
+  // mientras se lee).
+  const nextExample = () => {
+    exampleTurn += 1
+    setExampleIndex(exampleTurn)
+  }
+
+  /** Se ha añadido: la barra se vacía para la siguiente, con otro ejemplo si sigue abierta (si no, ya
+   * cambia al volver a abrirla). */
+  const added = () => {
+    reset()
+    if (active) nextExample()
+  }
+
   /** La sección elegida (el + de una sección), si lo añadido tiene día. */
   const inSection = (date: IsoDate | null) => (date && targetSection ? { sectionId: targetSection } : {})
 
@@ -243,7 +275,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     // Una rutina que no cabe (ya hay 50) se queda en la ficha: lo rellenado no se pierde.
     if (routineDraft && !onRoutine(routineDraft)) return
     if (!routineDraft) onSubmit(toTaskDraft(current, value))
-    reset()
+    added()
     setExpanded(false)
   }
 
@@ -253,7 +285,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     if (details) return submitDetails(details)
     const fresh = parseRoutine(value, Date.now())
     if (fresh && !literal) {
-      if (onRoutine(fresh)) reset()
+      if (onRoutine(fresh)) added()
       return
     }
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
@@ -266,7 +298,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
         ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}), ...inSection(date) }
         : literalDraft(target),
     )
-    reset()
+    added()
   }
 
   /** Lo entendido después de abrir la ficha pasa a sus campos; del texto queda el título. */
@@ -345,6 +377,13 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     }
   }
 
+  // El foco que pasa de un sitio a otro dentro de la barra no es abrirla.
+  const onFocus = () => {
+    if (active) return
+    setActive(true)
+    nextExample()
+  }
+
   const choose = (key: string) => {
     haptic('selection')
     setChosen(key)
@@ -384,7 +423,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
         ref={pull.card}
         className={`composer ${active ? 'is-active' : ''} ${tray ? 'has-tray' : ''} ${expanded ? 'is-expanded' : ''}`}
         onSubmit={submit}
-        onFocus={() => setActive(true)}
+        onFocus={onFocus}
         onBlur={onBlur}
       >
         {tray && (
@@ -401,7 +440,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
             className="composer__input"
             value={value}
             placeholder={placeholder}
-            aria-label={placeholder}
+            aria-label={where}
             enterKeyHint={ready ? 'send' : 'done'}
             autoComplete="off"
             maxLength={MAX_TITLE}

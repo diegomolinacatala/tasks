@@ -548,8 +548,9 @@ html[lang='en'] .tl__time {
 }
 
 /* Tiempo libre: la línea se vuelve de puntos y una nota al margen dice cuánto */
+/* Crece un poco con lo que dura (`--gap-h`): tres horas libres se ven más largas que una */
 .tl--gap {
-  min-height: 34px;
+  min-height: var(--gap-h, 34px);
   align-items: center;
 }
 
@@ -635,9 +636,91 @@ html[lang='en'] .tl__time {
   }
 }
 
+/* ── Lo que coincide: en paralelo ──────────────────────────────────────── */
+
+/* Varias cosas a la vez: la línea del día sigue, con un nudo de oro donde se abren los carriles, y cada
+   carril es una columna con su cápsula, su título y su hora (no hay columna de la hora para cada una) */
+.tl--cluster {
+  /* Si es lo último, la línea del día acaba en el nudo */
+  --node: 14px;
+}
+
+.tl--cluster > .tl__rail {
+  padding-top: calc(var(--rail-top) + 5px);
+}
+
+.tl__fork {
+  position: relative;
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--gold);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.tl__lanes {
+  grid-column: 3 / -1;
+  display: grid;
+  grid-template-columns: repeat(var(--lanes, 2), minmax(0, 1fr));
+  min-width: 0;
+}
+
+.tl__lane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Entre carriles, un filete de puntos: lo de un lado y lo del otro van a la vez */
+.tl__lane + .tl__lane {
+  margin-left: var(--sp-2);
+  padding-left: var(--sp-2);
+  border-left: 1px dashed var(--line-2);
+}
+
+.tl__lanes .tl,
+html[lang='en'] .tl__lanes .tl {
+  /* Media anchura: el título crece con la importancia, pero menos */
+  --title-size: calc(var(--fs-md) + (var(--fs-block) - var(--fs-md)) * var(--imp, 0));
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: var(--sp-2);
+}
+
+.tl__lanes .tl__time,
+.tl__lanes .tl__rail::before {
+  display: none;
+}
+
+/* El mando del modo "Aa", debajo del título: a media anchura no cabe al lado */
+.tl__lanes .tl__body ~ * {
+  grid-column: 2;
+  justify-self: start;
+  margin: -6px 0 var(--sp-2);
+}
+
+/* La cápsula va pegada al borde del carril, que recorta: el área de toque crece hacia dentro */
+.tl__lanes .tl__node::after {
+  inset: -10px -18px -10px -2px;
+}
+
+/* En media anchura la hora y lo demás se parten en dos líneas: el icono, arriba, con la primera */
+.tl__lanes .tl__meta {
+  align-items: flex-start;
+}
+
+.tl__lanes .tl__meta svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* ── Calendario del iPhone ─────────────────────────────────────────────── */
 
-/* Un evento en el horario: cápsula rellena con el color de su calendario (ya está decidido, no se tacha) */
+/* Un evento en el horario: cápsula rellena con el color de su calendario. Se tacha como una tarea, solo en la app */
 .tl--event {
   min-height: 44px;
 }
@@ -676,6 +759,16 @@ html[lang='en'] .tl__time {
 
 .tl--event.is-over .tl__node--event {
   opacity: 0.55;
+}
+
+/* Hecho en Tasks: como una tarea hecha (coñac y la marca), también en curso o ya acabado */
+.tl-row--event.is-done .tl__node--event {
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+.tl-row--event.is-done .tl__node--event::before {
+  transform: scaleY(0);
 }
 
 /* Lo de todo el día: cintas encima del día, cada una con el color de su calendario */

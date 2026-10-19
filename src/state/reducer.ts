@@ -1,4 +1,4 @@
-import { defaultCalendarSettings, normalizeCalendarSettings } from '../lib/calendar'
+import { defaultCalendarSettings, normalizeCalendarSettings, withDoneEvent } from '../lib/calendar'
 import { isValidTime } from '../lib/date'
 import { extendedDuration, normalizeDuration } from '../lib/duration'
 import { cleanEmoji } from '../lib/emoji'
@@ -14,7 +14,7 @@ import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 15
+export const SCHEMA_VERSION = 16
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
@@ -423,14 +423,25 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'settings/calendar': {
       const current = state.settings.calendar
-      const calendar = normalizeCalendarSettings({
-        enabled: action.enabled ?? current.enabled,
-        hidden: action.hidden ?? current.hidden,
-        export: action.export === undefined ? current.export : action.export,
-      })
+      // Los eventos hechos no se tocan aquí (`event/set`): se conservan tal cual, con su mismo array.
+      const calendar = {
+        ...normalizeCalendarSettings({
+          enabled: action.enabled ?? current.enabled,
+          hidden: action.hidden ?? current.hidden,
+          export: action.export === undefined ? current.export : action.export,
+        }),
+        done: current.done,
+      }
       const sameHidden = calendar.hidden.length === current.hidden.length && calendar.hidden.every((id, index) => id === current.hidden[index])
       if (calendar.enabled === current.enabled && sameHidden && calendar.export === current.export) return state
       return { ...state, settings: { ...state.settings, calendar } }
+    }
+
+    case 'event/set': {
+      const current = state.settings.calendar
+      const done = withDoneEvent(current.done, action.key, action.done)
+      if (done === current.done) return state
+      return { ...state, settings: { ...state.settings, calendar: { ...current, done } } }
     }
 
     // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
@@ -459,6 +470,7 @@ export function reducer(state: AppState, action: Action): AppState {
       }
 
     // Borrarlo todo no cambia cómo se ve la app, su idioma, su calendario ni vuelve a enseñar la bienvenida.
+    // Lo que sí se va son los eventos marcados como hechos: son lo que se hizo, como las tareas.
     case 'state/clear':
       return {
         ...emptyState(),
@@ -466,7 +478,7 @@ export function reducer(state: AppState, action: Action): AppState {
           ...defaultSettings(),
           theme: state.settings.theme,
           language: state.settings.language,
-          calendar: state.settings.calendar,
+          calendar: { ...state.settings.calendar, done: [] },
           welcome: state.settings.welcome,
         },
       }

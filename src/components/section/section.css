@@ -1,5 +1,8 @@
+/* Aire encima: una sección empieza un grupo nuevo, no es una fila más. En margen, no en relleno: al
+   cogerla, dnd-kit mide la caja y lo cogido debe salir a la altura de su cabecera */
 .section {
   position: relative;
+  margin-top: calc(var(--sp-4) - var(--sp-1));
   padding-top: var(--sp-1);
   touch-action: pan-y;
 }
@@ -44,13 +47,14 @@
   transform: rotate(-90deg);
 }
 
-/* Secciones del usuario: versalitas espaciadas, por debajo de los bloques */
+/* Secciones del usuario: versalitas espaciadas en tinta, por debajo de los bloques. No se distinguen
+   por tamaño (una tarea importante llega al doble) sino por forma: mayúsculas espaciadas y un filete */
 .section__name {
-  font-size: var(--fs-micro);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-2);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -58,9 +62,22 @@
 
 .section__count {
   margin-left: 4px;
-  font-size: var(--fs-xs);
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  font-style: italic;
   color: var(--text-3);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Un filete de oro del nombre a los botones, como el encabezado de un libro de cuentas. Dentro del
+   botón, así tocarlo también pliega; con base 0, un nombre largo se sigue recortando */
+.section .section__toggle::after {
+  content: '';
+  flex: 1 1 0;
+  min-width: var(--sp-4);
+  height: 1px;
+  margin-left: var(--sp-2);
+  background: var(--gold-dim);
 }
 
 /* Bloques fijos (Atrasadas, Hoy, Sin fecha): titulares en serif, como capítulos de una agenda */

@@ -1,15 +1,48 @@
 /* ── Soltar en el horario ─────────────────────────────────────────────── */
 
-/* El hueco donde caería lo que se arrastra: un trazo de coñac entre dos cosas, con la hora que se propone */
-.tl--slot {
-  min-height: 30px;
-  align-items: center;
+/* La zona donde soltar. Mientras se arrastra crece por arriba (sobre la cabecera "Horario") y por abajo
+   (el margen hasta el bloque siguiente) sin mover nada: antes de lo primero y después de lo último también
+   hay horas que elegir */
+.timeline-zone {
+  --zone-top: 44px;
+  --zone-bottom: var(--sp-5);
+  position: relative;
 }
 
+.timeline-zone.is-dragging {
+  margin: calc(-1 * var(--zone-top)) 0 calc(-1 * var(--zone-bottom));
+  padding: var(--zone-top) 0 var(--zone-bottom);
+}
+
+/* A qué hora caería lo que se arrastra: un trazo de coñac a la altura del dedo, encima de lo que haya
+   (no aparta nada), que salta de cuarto en cuarto de hora */
+.tl--slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 28px;
+  align-items: center;
+  pointer-events: none;
+  transform: translateY(calc(var(--y, 0px) - 14px));
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+/* La hora, sobre papel: tapa la de la fila que haya debajo */
 .tl--slot .tl__time {
   padding-top: 0;
   color: var(--accent);
   font-weight: 700;
+  background: var(--bg);
+  box-shadow: 0 0 0 4px var(--bg);
+  border-radius: var(--r-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl--slot {
+    transition: none;
+  }
 }
 
 .tl--slot .tl__rail,
@@ -46,6 +79,12 @@
 .tl--hint .tl__slot-dot {
   border-style: dashed;
   border-color: var(--line-2);
+}
+
+/* Con la marca encima, la nota se aparta */
+.tl--hint.is-armed .tl__hint,
+.tl--hint.is-armed .tl__slot-dot {
+  opacity: 0;
 }
 
 .tl__hint {
@@ -219,11 +258,6 @@
   color: var(--on-primary);
 }
 
-/* Un evento del calendario cogido: su cinta, levantada como una tarea */
-.tl--event.is-dragging {
-  opacity: 0.3;
-}
-
 .tl-overlay {
   display: flex;
   align-items: center;
@@ -250,6 +284,13 @@
   font-size: var(--fs-xs);
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
+}
+
+/* Sobre el horario, la hora a la que caería, en coñac: la marca de la línea queda bajo el dedo */
+.task-overlay.is-timed .row__meta,
+.task-overlay.is-timed .tl-overlay__meta {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

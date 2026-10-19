@@ -833,13 +833,13 @@ describe('el calendario del iPhone', () => {
 
   test('se enciende y se apaga sin tocar los ocultos', () => {
     const hidden = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['festivos'] })
-    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null })
-    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'], export: null })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null, done: [] })
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'], export: null, done: [] })
   })
 
   test('el calendario donde van las tareas se elige y se quita sin tocar lo demás', () => {
     const chosen = reducer(on(emptyState()), { type: 'settings/calendar', export: 'trabajo' })
-    expect(chosen.settings.calendar).toEqual({ enabled: true, hidden: [], export: 'trabajo' })
+    expect(chosen.settings.calendar).toEqual({ enabled: true, hidden: [], export: 'trabajo', done: [] })
     expect(reducer(chosen, { type: 'settings/calendar', export: null }).settings.calendar.export).toBeNull()
     expect(reducer(chosen, { type: 'settings/calendar', export: 'trabajo' })).toBe(chosen)
   })
@@ -852,9 +852,57 @@ describe('el calendario del iPhone', () => {
 
   test('es de este dispositivo: importar una copia o borrarlo todo no lo cambia', () => {
     const state = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['trabajo'] })
-    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'], export: 'x' } } }
-    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null })
-    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null })
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'], export: 'x', done: [] } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null, done: [] })
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null, done: [] })
+  })
+})
+
+describe('event/set', () => {
+  const meeting = `reunion@${toInstant(TODAY, '17:00')}`
+  const call = `llamada@${toInstant(TODAY, '09:00')}`
+  const mark = (state: AppState, key: string, done = true): AppState => reducer(state, { type: 'event/set', key, done })
+  const marked = () => mark(reducer(emptyState(), { type: 'settings/calendar', enabled: true, export: 'tasks' }), meeting)
+
+  test('marca y desmarca un evento como hecho', () => {
+    const state = marked()
+    expect(state.settings.calendar.done).toEqual([meeting])
+    expect(mark(state, meeting, false).settings.calendar.done).toEqual([])
+  })
+
+  test('lo que ya está así devuelve el mismo estado', () => {
+    const state = marked()
+    expect(mark(state, meeting)).toBe(state)
+    const empty = emptyState()
+    expect(mark(empty, call, false)).toBe(empty)
+  })
+
+  test('una clave sin inicio no se marca', () => {
+    const state = emptyState()
+    expect(mark(state, 'sin-inicio')).toBe(state)
+  })
+
+  test('no muta el estado anterior', () => {
+    const before = marked()
+    const snapshot = structuredClone(before)
+    mark(before, call)
+    mark(before, meeting, false)
+    expect(before).toEqual(snapshot)
+  })
+
+  test('cambiar el resto del calendario conserva lo hecho', () => {
+    const state = marked()
+    const hidden = reducer(state, { type: 'settings/calendar', hidden: ['festivos'] })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: 'tasks', done: [meeting] })
+    expect(hidden.settings.calendar.done).toBe(state.settings.calendar.done)
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false, export: null }).settings.calendar.done).toEqual([meeting])
+  })
+
+  test('importar una copia lo conserva; borrarlo todo lo quita y deja el resto del calendario', () => {
+    const state = marked()
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: [], export: null, done: [call] } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar.done).toEqual([meeting])
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: [], export: 'tasks', done: [] })
   })
 })
 

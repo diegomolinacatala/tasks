@@ -84,12 +84,14 @@ enum WidgetStore {
 
     static func events(from: Date, to: Date) -> [WidgetEvent] {
         guard let snapshot = read(WidgetSnapshot.self, snapshotFile), let calendar = snapshot.calendar else { return [] }
+        // Lo marcado como hecho en la app no se enseña (ni cuenta como lo siguiente).
+        let done = Set<String>(calendar.done ?? [])
         if CalendarReader.canRead {
-            return CalendarReader.widgetEvents(from: from, to: to, hidden: Set(calendar.hidden))
+            return CalendarReader.widgetEvents(from: from, to: to, hidden: Set(calendar.hidden)).filter { !done.contains($0.id) }
         }
         let start = CalendarReader.millis(from)
         let end = CalendarReader.millis(to)
-        return (snapshot.events ?? []).filter { $0.end >= start && $0.start < end }
+        return (snapshot.events ?? []).filter { $0.end >= start && $0.start < end && !done.contains($0.id) }
     }
 
     /** Idioma de la app (`es` o `en`) según la última foto; `nil` si aún no hay foto o es de antes del inglés. */
@@ -310,9 +312,11 @@ struct WidgetSnapshot: Codable {
     let events: [WidgetEvent]?
 }
 
-/** Qué calendarios oculta la app (`settings.calendar.hidden`). */
+/** Qué calendarios oculta la app (`settings.calendar.hidden`) y qué eventos se marcaron como hechos. */
 struct WidgetCalendarConfig: Codable {
     let hidden: [String]
+    /** Claves (`id@inicio`, las de `WidgetEvent.id`) de hoy en adelante. Falta en las fotos de antes y sin ninguno. */
+    let done: [String]?
 }
 
 struct WidgetChanges: Codable {

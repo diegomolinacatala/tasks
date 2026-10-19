@@ -160,7 +160,7 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
     // El calendario conectado: en las capturas sale el de muestra (`calendarDemo.ts`) junto a las tareas.
     settings: {
       digest: { enabled: true, time: '08:30' },
-      calendar: { enabled: true, hidden: [], export: null },
+      calendar: { enabled: true, hidden: [], export: null, done: [] },
       dictation: false,
       theme,
       language,

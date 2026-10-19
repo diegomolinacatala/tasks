@@ -563,6 +563,7 @@ export function App() {
   const onComposing = useCallback((active: boolean) => setComposing(active), [])
   // Atendida: si la barra se vuelve a montar (otra pestaña y vuelta), no empieza a escuchar sola.
   const onDictated = useCallback(() => setDictateRequest(0), [])
+  const onFocused = useCallback(() => setFocusRequest(0), [])
   // La sección deja de ser el destino cuando la barra se vacía (o se cambia de día o de pestaña), no
   // al soltar el teclado: mientras haya algo escrito, lo elegido sigue valiendo.
   const onComposerReset = useCallback(() => setComposeSection(null), [])
@@ -664,6 +665,7 @@ export function App() {
                 today={today}
                 places={places}
                 focusRequest={focusRequest}
+                onFocused={onFocused}
                 focusRef={focusComposer}
                 // Con la bienvenida delante se espera a cerrarla, como los avisos tocados.
                 dictateRequest={welcome ? 0 : dictateRequest}
