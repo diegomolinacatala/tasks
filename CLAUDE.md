@@ -314,9 +314,13 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   la derecha agranda, hacia abajo o a la izquierda encoge, y tocarlo sube uno (pasado el 10, al 1). La
   escala del panel también coge el dedo desde que se apoya (`touch-action: none`, como la regla). Sin
   capturas ni textos de la ficha nuevos: se envía la **1.7 (47)** con lo preparado para la 46.
+- **La 1.7 está aprobada** (19/10/2026: la subida de lo de abajo respondió *train version '1.7' is
+  closed*; el usuario la había enviado y Apple la aprobó sin que constara aquí). `MARKETING_VERSION`
+  subido a **1.8**.
 - **El micrófono en un widget, soltar en el horario y mover los eventos del calendario** (19/10/2026, en
-  `capacitor`, la 1.7; el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone). Lo pidió el
-  usuario en una sola petición:
+  `capacitor`, la **1.8**; el Swift nuevo compila en el CI (el archivado de la primera subida salió bien;
+  falló solo la subida por la 1.7 cerrada); sin probar en el iPhone). Lo pidió el usuario en una sola
+  petición:
   - **Widget y control Dictar** (`DictateWidget.swift`): un micrófono en la pantalla de inicio (pequeño) y en
     la de bloqueo (redondo, rectangular, en línea) y, con iOS 18, un **control** para el centro de control,
     los dos botones de abajo de la pantalla de bloqueo y el botón de acción. Tocarlo abre la app ya
@@ -377,19 +381,16 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone la TestFlight con el micrófono, el horario y los eventos** (la siguiente a la 47,
-   desde `capacitor`): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
+0. **Probar en el iPhone la TestFlight de la 1.8 y enviarla** (`docs/app-store.md` §9.10; los pasos al
+   usuario, en el chat): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
    bloqueado (Face ID → la app abre escuchando); en iOS 18, Ajustes → Fondo de pantalla → Personalizar →
    el botón de abajo a la izquierda → **Dictar en Tasks**, y en el centro de control; el acceso rápido
    del icono. En la Agenda: mantener pulsada una tarea de *Sin hora* y soltarla entre dos cosas del
    horario (el trazo, la tarjeta, las píldoras, Listo, deshacer). Con el calendario conectado: mantener
    pulsado un evento de Google y soltarlo en mañana (que cambie en la app Calendario y en Google) y en
-   otro hueco; uno de un calendario suscrito no se coge. Si todo va, es la que se envía como 1.7.
-0. **Probar la TestFlight 47 y enviar la 1.7 (47)** (el mando de los tamaños en el modo "Aa"; lo demás ya
-   se probó en la 46) (`docs/app-store.md` §9.9; los pasos al usuario, en el
-   chat): la lámina *Lugares* tras actualizar, Ajustes (cada fila y su panel, Avisos y Dictado, que en local
-   no salen), una tarea `llamar a Carlota cuando me vaya de casa` y el selector *Al llegar / Al salir* del
-   panel de una tarea. Antes de enviar, el «Hecha» del aviso con el iPhone bloqueado (sale en las novedades).
+   otro hueco; uno de un calendario suscrito no se coge. Lo de la 1.7 que no se llegó a probar: la lámina
+   *Lugares* tras actualizar, Ajustes (cada fila y su panel), `llamar a Carlota cuando me vaya de casa`, el
+   selector *Al llegar / Al salir* y el «Hecha» del aviso con el iPhone bloqueado.
 
 0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
    (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
@@ -1797,7 +1798,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.7,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.8,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.
