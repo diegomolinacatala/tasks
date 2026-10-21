@@ -33,7 +33,7 @@ function understood(result: RoutineDraft | ParsedTask): boolean {
       result.time !== null ||
       Boolean(result.until) ||
       result.newPlace !== undefined ||
-      result.reminders.some((reminder) => reminder.kind === 'place'))
+      result.reminders.some((reminder) => reminder.kind === 'place' || reminder.kind === 'here'))
   )
 }
 
@@ -45,6 +45,7 @@ const EXPECTED: Record<Language, readonly object[]> = {
     { title: 'Gimnasio', time: '19:00', duration: 60 },
     { title: 'Leer', days: EVERY_DAY, time: '21:00' },
     { title: 'Renovar el DNI', date: '2026-10-19', until: '2026-10-25' },
+    { title: 'Llamar a Raúl', reminders: [{ kind: 'here' }] },
   ],
   en: [
     { title: 'Call Carlota', date: '2026-10-20', time: '18:00' },
@@ -52,6 +53,7 @@ const EXPECTED: Record<Language, readonly object[]> = {
     { title: 'Gym', date: '2026-10-20', time: '19:00', duration: 60 },
     { title: 'Read', days: EVERY_DAY, time: '21:00' },
     { title: 'Renew passport', date: '2026-10-19', until: '2026-10-25' },
+    { title: 'Call Raúl', reminders: [{ kind: 'here' }] },
   ],
 }
 
@@ -77,15 +79,16 @@ describe.each(['es', 'en'] as const)('composeExamples (%s)', (lang) => {
     }
   })
 
-  test('sin avisos por lugar se quita solo la frase de lugar, y la primera sigue siendo la misma', () => {
+  test('sin avisos por lugar se quitan solo las frases de lugar, y la primera sigue siendo la misma', () => {
     const all = composeExamples(true)
     const withoutPlaces = composeExamples(false)
     const dropped = all.filter((text) => !withoutPlaces.includes(text))
-    expect(dropped).toHaveLength(1)
+    expect(dropped).toHaveLength(2)
     expect(understand(dropped[0]!, MONDAY, [])).toMatchObject({ newPlace: { on: 'leave' } })
-    // Sin lugares, esa frase no se entendería: por eso no se ofrece.
-    expect(understood(understand(dropped[0]!, MONDAY, null))).toBe(false)
-    expect(withoutPlaces).toEqual(all.filter((text) => text !== dropped[0]))
+    expect(understand(dropped[1]!, MONDAY, [])).toMatchObject({ reminders: [{ kind: 'here' }] })
+    // Sin lugares, esas frases no se entenderían: por eso no se ofrecen.
+    for (const text of dropped) expect(understood(understand(text, MONDAY, null)), text).toBe(false)
+    expect(withoutPlaces).toEqual(all.filter((text) => !dropped.includes(text)))
     expect(withoutPlaces[0]).toBe(all[0])
   })
 

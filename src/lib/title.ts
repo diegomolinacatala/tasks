@@ -83,7 +83,7 @@ const SUBJUNCTIVES: Record<string, string> = {
   limpie: 'limpiar', estudie: 'estudiar', termine: 'terminar', prepare: 'preparar', reserve: 'reservar',
   revise: 'revisar', avise: 'avisar', felicite: 'felicitar', envie: 'enviar', lave: 'lavar',
   saque: 'sacar', busque: 'buscar', pague: 'pagar', apague: 'apagar', cargue: 'cargar', riegue: 'regar',
-  empiece: 'empezar', recoja: 'recoger', coja: 'coger', haga: 'hacer', ponga: 'poner',
+  empiece: 'empezar', recoja: 'recoger', coja: 'coger', haga: 'hacer', ponga: 'poner', mueva: 'mover',
   escriba: 'escribir', suba: 'subir', beba: 'beber', devuelva: 'devolver',
   pida: 'pedir', traiga: 'traer', diga: 'decir', abra: 'abrir', compruebe: 'comprobar', cuelgue: 'colgar',
   pregunte: 'preguntar', conteste: 'contestar', responda: 'responder', imprima: 'imprimir',

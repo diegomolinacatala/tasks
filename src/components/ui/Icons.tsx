@@ -156,6 +156,24 @@ export const IconLeave = (props: IconProps) => (
 export const IconPlace = ({ on, ...props }: IconProps & { on: 'arrive' | 'leave' }) =>
   on === 'leave' ? <IconLeave {...props} /> : <IconPin {...props} />
 
+/** Alejarse de donde se está: un punto (tú), su radio a trazos y la flecha que sale. */
+export const IconHere = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="10" cy="12" r="1.9" fill="currentColor" stroke="none" />
+    <path d="M13.5 4.6a7.5 7.5 0 1 0 0 14.8" strokeDasharray="2.6 2.4" />
+    <path d="M13 12h8M17.5 8.5 21 12l-3.5 3.5" />
+  </Icon>
+)
+
+/** La cesta de la compra. */
+export const IconBasket = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3.5 9.5h17l-1.55 8.9a2 2 0 0 1-1.97 1.6H7.02a2 2 0 0 1-1.97-1.6z" />
+    <path d="m8.3 9.5 3.2-5.5M15.7 9.5l-3.2-5.5" />
+    <path d="M9.2 13.2v3.3M12 13.2v3.3M14.8 13.2v3.3" />
+  </Icon>
+)
+
 export const IconLocate = (props: IconProps) => (
   <Icon {...props}>
     <path d="M20 4 4 11l7 2 2 7 7-16Z" />

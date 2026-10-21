@@ -54,6 +54,8 @@ export interface NotificationEvent {
   ask?: true
   /** Aviso de una rutina: cuál y qué día. */
   routine?: { id: string; date: IsoDate }
+  /** La cesta al llegar a su tienda: se abre la cesta. */
+  shopping?: true
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
@@ -90,7 +92,14 @@ export function parseNotificationEvent(actionId: string, extra: unknown): Notifi
   const ids = placeId ? extra.taskIds : extra.taskId
   const taskIds = typeof ids === 'string' ? ids.split(',').filter(Boolean) : []
   const routine = isId(extra.routineId) && isIsoDate(extra.day) ? { id: extra.routineId, date: extra.day } : null
-  return { action, taskIds, placeId, ...(extra.ask === '1' ? { ask: true as const } : {}), ...(routine ? { routine } : {}) }
+  return {
+    action,
+    taskIds,
+    placeId,
+    ...(extra.ask === '1' ? { ask: true as const } : {}),
+    ...(routine ? { routine } : {}),
+    ...(extra.shopping === '1' ? { shopping: true as const } : {}),
+  }
 }
 
 /**

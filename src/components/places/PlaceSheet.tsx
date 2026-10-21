@@ -304,13 +304,15 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
     const reminders: { taskId: string; reminder: Reminder }[] = state.tasks.flatMap((task) =>
       task.reminders.flatMap((reminder) => (reminder.kind === 'place' && reminder.placeId === place.id ? [{ taskId: task.id, reminder }] : [])),
     )
+    // La cesta avisaba al llegar aquí: deshacer lo devuelve también.
+    const shopping = state.shopping.placeId === place.id
     dispatch({ type: 'place/remove', id: place.id })
     haptic('warning')
     onClose()
     toast({
       message: copy.removed(place.name),
       actionLabel: copy.undo,
-      onAction: () => dispatch({ type: 'place/restore', place, reminders }),
+      onAction: () => dispatch({ type: 'place/restore', place, reminders, ...(shopping ? { shopping: true } : {}) }),
     })
   }
 

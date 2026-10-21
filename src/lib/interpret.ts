@@ -2,11 +2,14 @@ import type { IsoDate, Place, PlaceTrigger, ReminderDraft } from '../types'
 import { addDays, isValidTime, isoOfInstant, toInstant, toIso } from './date'
 import { normalizeDuration } from './duration'
 import type { ParsedTask } from './parse'
-import { draftLabel, parseSpoken, withPlaceLabel } from './parse'
-import { MAX_PLACE_NAME, matchPlace, placeTriggerLabel } from './places'
-import { MAX_BEFORE_MINUTES, MAX_REMINDERS } from './reminders'
+import { draftLabel, hasHerePhrase, parseSpoken, withPlaceLabel } from './parse'
+import { MAX_PLACE_NAME, matchPlace, placeKey, placeTriggerLabel } from './places'
+import { DEFAULT_HERE_RADIUS, MAX_BEFORE_MINUTES, MAX_REMINDERS } from './reminders'
 
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1)
+
+/** Lo que la IA puede devolver como "lugar" cuando se dijo "de aquí". */
+const HERE_NAMES = new Set(['aqui', 'aca', 'donde estoy', 'here'])
 
 const MAX_TASKS = 5
 const MAX_TITLE = 200
@@ -63,7 +66,14 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
 
   const drafts = raw.slice(0, MAX_TASKS).flatMap((item: unknown): ParsedTask[] => {
     if (!isObject(item) || typeof item.title !== 'string') return []
-    const heard = placeOf(item.place)
+    // "Aquí" nunca es un lugar: si lo dicho era "al moverme", el aviso lo pone el analizador del móvil; con
+    // varias tareas (sin análisis local) vale lo que la IA dijo de esta: salir de "aquí" es alejarse.
+    const said = placeOf(item.place)
+    const saidHere = said !== null && HERE_NAMES.has(placeKey(said.name))
+    const spokenHere =
+      spoken?.reminders.find((reminder) => reminder.kind === 'here') ??
+      (saidHere && said.on === 'leave' && places !== null ? ({ kind: 'here', radius: DEFAULT_HERE_RADIUS, from: null, since: now } as const) : undefined)
+    const heard = said && (spokenHere || saidHere) ? null : said
     const rawTitle = item.title.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE)
     // Sin lugares en esta plataforma (la PWA) el lugar no se tira: se queda dicho en el título.
     const title = places === null && heard && rawTitle ? `${rawTitle} (${lowerFirst(placeTriggerLabel(heard.name, heard.on))})` : rawTitle
@@ -83,10 +93,15 @@ export function draftsFromInterpreted(raw: unknown, now: number, places: readonl
     const spokenPlace = places === null ? null : heard
     const saved = spokenPlace ? matchPlace(places ?? [], spokenPlace.name) : null
     if (spokenPlace && saved) reminders.push({ kind: 'place', placeId: saved.id, on: spokenPlace.on })
+    // La IA tampoco sabe de "al moverme": si lo dicho lo trae, lo pone el analizador del móvil (y su
+    // título, si el de la IA se quedó con la frase).
+    if (spokenHere) reminders.push(spokenHere)
     const isDefault = time !== null && reminders.length === 0 && !spokenPlace
     if (isDefault) reminders.push({ kind: 'before', minutes: 0 })
 
-    const draft = { title, date, ...(period ? { until: period.until } : {}), time, duration, reminders }
+    // Si el título de la IA aún lleva "al moverme…", no entendió el aviso: vale el título del móvil.
+    const kept = spokenHere && spoken && hasHerePhrase(title) ? spoken.title : title
+    const draft = { title: kept, date, ...(period ? { until: period.until } : {}), time, duration, reminders }
     const label = draftLabel(draft, isDefault, now, places ?? [])
     if (!spokenPlace || saved) return [{ ...draft, label }]
     return [{ ...draft, label: withPlaceLabel(label, spokenPlace), newPlace: spokenPlace }]

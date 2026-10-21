@@ -1,7 +1,8 @@
-import type { AppState, IsoDate, Place, PlaceLocation, PlaceTrigger, ReminderDraft, Task } from '../types'
-import { language } from './i18n'
+import type { AppState, IsoDate, Place, PlaceLocation, PlaceTrigger, ReminderDraft, ShoppingState, Task } from '../types'
+import { language, pick } from './i18n'
 import { compareNames } from './order'
 import { fold } from './normalize'
+import { sortedItems } from './shopping'
 
 export const DEFAULT_RADIUS = 150
 /** Lo pidió el usuario (un portal, una tienda pequeña). Por debajo de unos 100 m iOS avisa con menos precisión. */
@@ -129,9 +130,11 @@ export function placeTriggerLabel(name: string, on: PlaceTrigger): string {
  * llegar, `leave` si todos son al salir, `null` si no tiene.
  */
 export function placeTriggerOf(task: Pick<Task, 'reminders'>, placeId?: string): PlaceTrigger | null {
-  const triggers = task.reminders.flatMap((reminder) =>
-    reminder.kind === 'place' && (placeId === undefined || reminder.placeId === placeId) ? [reminder.on] : [],
-  )
+  const triggers = task.reminders.flatMap((reminder): PlaceTrigger[] => {
+    // "Al alejarme" es salir de donde se estaba.
+    if (reminder.kind === 'here') return placeId === undefined ? ['leave'] : []
+    return reminder.kind === 'place' && (placeId === undefined || reminder.placeId === placeId) ? [reminder.on] : []
+  })
   if (!triggers.length) return null
   return triggers.includes('arrive') ? 'arrive' : 'leave'
 }
@@ -182,7 +185,7 @@ export function normalizePlace(raw: unknown): Place | null {
 }
 
 export interface PlaceAlert {
-  /** `<lugar>:<arrive|leave>`: estable entre sincronizaciones. */
+  /** `<lugar>:<arrive|leave>`, `here:<aviso>` o `shopping:<lugar>`: estable entre sincronizaciones. */
   key: string
   placeId: string
   on: PlaceTrigger
@@ -192,7 +195,19 @@ export interface PlaceAlert {
   title: string
   body: string
   taskIds: string[]
+  /** La cesta al llegar a la tienda: tocarlo la abre (no hay tareas). */
+  shopping?: true
 }
+
+/**
+ * El cuerpo del aviso de la cesta no lleva la lista: cambiaría con cada cosa que se tacha en la tienda y
+ * iOS volvería a registrar la región estando dentro (`sameAlert` compara el cuerpo), que puede hacer
+ * sonar el aviso otra vez. La lista se ve al tocarlo, que abre la cesta.
+ */
+const ALERT_TEXT = {
+  es: { movedAway: (radius: number) => `Te has alejado ${radius} m`, basket: 'Lo que queda de la cesta', withBasket: 'y la cesta' },
+  en: { movedAway: (radius: number) => `You’re ${radius} m away`, basket: 'What’s left in your basket', withBasket: 'and the basket' },
+} as const
 
 /** Un aviso de lugar cuenta si la tarea sigue pendiente y su día ya ha llegado (o no tiene). */
 const isArmed = (task: Task, today: IsoDate) => !task.done && (task.date === null || task.date <= today)
@@ -205,12 +220,89 @@ function bodyOf(tasks: readonly Task[]): string {
   return [...titles.slice(0, BODY_PREVIEW), rest > 0 ? `+${rest}` : ''].filter(Boolean).join(' · ')
 }
 
+/** Regiones de "al alejarme" a la vez como mucho: cada una es una tarea, y hay 20 para todo. */
+export const MAX_HERE_ALERTS = 5
+/** Un "al alejarme" de hace más de un día ya no dice nada de dónde estás: deja de vigilarse. */
+export const HERE_TTL_MS = 24 * 60 * 60_000
+
+/** Sigue valiendo: aún no ha pasado un día desde que se pidió. */
+export const hereAlive = (since: number, now: number): boolean => now - since <= HERE_TTL_MS
+
+type Ranked = PlaceAlert & { rank: number }
+
 /**
- * Qué regiones debe vigilar el iPhone: una por lugar y sentido, con todas sus tareas en el
- * cuerpo. Si hay más que el máximo de iOS, gana lo que es para hoy o está atrasado y después
- * los lugares con más tareas.
+ * Las regiones de "al alejarme": una por aviso ubicado y vivo (menos de un día, `hereAlive`), con su
+ * tarea, da igual para qué día sea (alejarse es ahora). La región crece con el error del GPS al fijar el
+ * punto: si no, iOS podría dar el punto por fuera del círculo desde el principio. Los más recientes
+ * primero, cinco como mucho.
  */
-export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: IsoDate): PlaceAlert[] {
+function hereAlerts(tasks: readonly Task[], now: number | null): Ranked[] {
+  const text = pick(ALERT_TEXT)
+  return tasks
+    .filter((task) => !task.done)
+    .flatMap((task) =>
+      task.reminders.flatMap((reminder) => {
+        if (reminder.kind !== 'here' || !reminder.from || (now !== null && !hereAlive(reminder.since, now))) return []
+        const id = `here:${reminder.id}`
+        const radius = Math.min(MAX_RADIUS, Math.max(reminder.radius, Math.ceil(reminder.from.accuracy ?? 0)))
+        const alert: Ranked = {
+          key: id,
+          placeId: id,
+          on: 'leave',
+          lat: reminder.from.lat,
+          lng: reminder.from.lng,
+          radius,
+          title: task.title,
+          body: text.movedAway(reminder.radius),
+          taskIds: [task.id],
+          rank: 0,
+        }
+        return [{ alert, since: reminder.since }]
+      }),
+    )
+    .sort((a, b) => b.since - a.since)
+    .slice(0, MAX_HERE_ALERTS)
+    .map(({ alert }) => alert)
+}
+
+/**
+ * La cesta al llegar a la tienda elegida, si hay algo pendiente. Si ese lugar ya avisa al llegar por
+ * sus tareas, la cesta va en el mismo aviso (una región, un aviso): se añade al cuerpo y se marca. La
+ * clave es la misma con tareas o sin ellas (`<lugar>:arrive`): el id no cambia al fundirse.
+ */
+function withShopping(alerts: Ranked[], shopping: ShoppingState | undefined, located: ReadonlyMap<string, Place>): Ranked[] {
+  const place = shopping?.placeId ? located.get(shopping.placeId) : undefined
+  if (!shopping || !place?.location || !sortedItems(shopping.items).pending.length) return alerts
+  const text = pick(ALERT_TEXT)
+  const key = `${place.id}:arrive`
+  const existing = alerts.find((alert) => alert.key === key)
+  if (existing) return alerts.map((alert) => (alert === existing ? { ...alert, body: `${alert.body} · ${text.withBasket}`, shopping: true, rank: 1 } : alert))
+  return [
+    ...alerts,
+    {
+      key,
+      placeId: place.id,
+      on: 'arrive',
+      lat: place.location.lat,
+      lng: place.location.lng,
+      radius: place.radius,
+      title: place.name,
+      body: text.basket,
+      taskIds: [],
+      shopping: true,
+      rank: 1,
+    },
+  ]
+}
+
+/**
+ * Qué regiones debe vigilar el iPhone: una por lugar y sentido, con todas sus tareas en el cuerpo;
+ * una por aviso "al alejarme" ubicado; y la cesta al llegar a su tienda. Si hay más que el máximo de
+ * iOS, por este orden: lo de "al alejarme" (es ahora), lo que es para hoy o está atrasado y la cesta,
+ * y después los demás lugares, los de más tareas primero. `now` decide qué "al alejarme" sigue vivo;
+ * sin él, todos.
+ */
+export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'> & Partial<Pick<AppState, 'shopping'>>, today: IsoDate, now: number | null = null): PlaceAlert[] {
   const located = new Map(state.places.flatMap((place) => (place.location ? [[place.id, place] as const] : [])))
 
   const groups = state.tasks
@@ -222,7 +314,7 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
     )
     .reduce((acc, { key, task }) => acc.set(key, [...(acc.get(key) ?? []), task]), new Map<string, Task[]>())
 
-  const alerts = [...groups].flatMap(([key, tasks]): (PlaceAlert & { due: boolean })[] => {
+  const alerts = [...groups].flatMap(([key, tasks]): Ranked[] => {
     const [placeId = '', on] = key.split(':')
     const place = located.get(placeId)
     if (!place?.location || (on !== 'arrive' && on !== 'leave')) return []
@@ -238,13 +330,14 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
         title: on === 'arrive' ? place.name : placeTriggerLabel(place.name, 'leave'),
         body: bodyOf(sorted),
         taskIds: sorted.map((task) => task.id),
-        due: hasDayDue(sorted, today),
+        rank: hasDayDue(sorted, today) ? 1 : 2,
       },
     ]
   })
 
-  return alerts
-    .sort((a, b) => Number(b.due) - Number(a.due) || b.taskIds.length - a.taskIds.length || compareNames(a.title, b.title))
+  // Lo de "al alejarme" ya viene en su orden (lo más reciente primero): el sort es estable y no lo toca.
+  return [...hereAlerts(state.tasks, now), ...withShopping(alerts, state.shopping, located)]
+    .sort((a, b) => a.rank - b.rank || (a.rank === 0 ? 0 : b.taskIds.length - a.taskIds.length || compareNames(a.title, b.title)))
     .slice(0, MAX_PLACE_ALERTS)
-    .map(({ due: _due, ...alert }) => alert)
+    .map(({ rank: _rank, ...alert }) => alert)
 }

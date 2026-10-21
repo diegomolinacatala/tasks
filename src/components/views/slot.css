@@ -5,7 +5,8 @@
    hay horas que elegir */
 .timeline-zone {
   --zone-top: 44px;
-  --zone-bottom: var(--sp-5);
+  /* El margen hasta el bloque siguiente y su cabecera ("Sin hora"), que no es un sitio donde soltar */
+  --zone-bottom: 56px;
   position: relative;
 }
 
@@ -158,43 +159,23 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-/* La hora: un cuarto de hora a cada lado, y tocarla abre la rueda para afinar */
-.slot__stepper {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--r-full);
-  background: var(--bg-elev-2);
-}
-
-.slot__step {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-full);
-  color: var(--accent);
-}
-
-.slot__step:active {
-  background: var(--bg-press);
-}
-
+/* La hora, grande y en serif: la elige la cinta de debajo, y tocarla abre la rueda para afinar */
 .slot__clock {
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 58px;
-  height: 34px;
-  padding: 0 4px;
+  min-height: 36px;
+  padding: 0 2px;
   font-family: var(--font-serif);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-size: 24px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text);
+  text-decoration: underline dotted var(--accent-line);
+  text-underline-offset: 5px;
   cursor: pointer;
 }
 

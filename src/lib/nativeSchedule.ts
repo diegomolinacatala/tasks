@@ -53,8 +53,8 @@ export interface PlaceNotification {
   on: PlaceTrigger
   title: string
   body: string
-  /** `taskIds` separados por comas. */
-  extra: { placeId: string; on: PlaceTrigger; taskIds: string }
+  /** `taskIds` separados por comas; `shopping: '1'` si es la cesta al llegar a la tienda (sin tareas). */
+  extra: { placeId: string; on: PlaceTrigger; taskIds: string; shopping?: string }
   category?: typeof TASK_CATEGORY
 }
 
@@ -110,7 +110,7 @@ export function fitSchedule(entries: readonly ScheduleEntry[], slots: number): S
 
 /** Qué debe tener programado el iPhone ahora: regiones primero y, con el hueco que dejan, lo más próximo. */
 export function nativePlan(state: AppState, now: number): NativePlan {
-  const alerts = placeAlerts(state, isoOfInstant(now))
+  const alerts = placeAlerts(state, isoOfInstant(now), now)
   const entries = fitSchedule(upcomingSchedule(state, now), MAX_PENDING - alerts.length)
 
   const timedIds = new Set<number>()
@@ -140,7 +140,7 @@ export function nativePlan(state: AppState, now: number): NativePlan {
       on: alert.on,
       title: alert.title,
       body: alert.body,
-      extra: { placeId: alert.placeId, on: alert.on, taskIds: alert.taskIds.join(',') },
+      extra: { placeId: alert.placeId, on: alert.on, taskIds: alert.taskIds.join(','), ...(alert.shopping ? { shopping: '1' } : {}) },
     }
     return alert.taskIds.length === 1 ? { ...base, category: TASK_CATEGORY } : base
   })

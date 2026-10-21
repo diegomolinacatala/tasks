@@ -63,6 +63,7 @@ const TEXT = {
     addedMany: (count: number, titles: string) => `Apuntadas ${count} tareas: ${titles}.`,
     and: ' y ',
     wherePlace: (names: string) => `Abre Tasks para decir dónde está ${names}.`,
+    whereHere: 'Abre Tasks para fijar dónde estás.',
     notUnderstood: 'No te he entendido.',
     openForOverdue: 'Abre Tasks para ver lo atrasado.',
     noOverdue: 'No hay nada atrasado.',
@@ -79,6 +80,7 @@ const TEXT = {
     addedMany: (count: number, titles: string) => `Added ${count} tasks: ${titles}.`,
     and: ' and ',
     wherePlace: (names: string) => `Open Tasks to say where ${names} is.`,
+    whereHere: 'Open Tasks to pin where you are.',
     notUnderstood: 'I didn’t catch that.',
     openForOverdue: 'Open Tasks to see what’s overdue.',
     noOverdue: 'Nothing is overdue.',
@@ -153,8 +155,10 @@ function summary(drafts: readonly ParsedTask[], entry: InboxEntry): string {
       ? text.added(first.title, first.label ? spoken(first.label) : text.noDate)
       : text.addedMany(drafts.length, drafts.map((draft) => draft.title).join(', '))
   const missing = entry.places.map((place) => place.name).join(text.and)
-  // Sin ubicación el aviso no puede sonar; en la app se abriría el editor del lugar.
-  return missing ? `${added} ${text.wherePlace(missing)}` : added
+  // Sin ubicación el aviso no puede sonar; en la app se abriría el editor del lugar. "Al alejarme" sin
+  // punto: la app lo fija al abrirse.
+  const unpinned = drafts.some((draft) => draft.reminders.some((reminder) => reminder.kind === 'here' && !reminder.from))
+  return [added, missing ? text.wherePlace(missing) : '', unpinned ? text.whereHere : ''].filter(Boolean).join(' ')
 }
 
 export function addFromText(input: HeadlessInput, newId: () => string): HeadlessResult {

@@ -14,8 +14,8 @@ import { lastDay, shownDay } from '../../lib/period'
 import { haptic } from '../../lib/platform/feedback'
 import { routinesOn } from '../../lib/routines'
 import type { SlotAnchor, SlotGap } from '../../lib/slot'
-import { SLOT_END, SLOT_STEP, gapAt, slotPoint, suggestedStart, timeAt } from '../../lib/slot'
-import type { TimelineRow } from '../../lib/timeline'
+import { EDGE_FIRST_TICK_MS, EDGE_GRACE_PX, EDGE_TICK_MS, LAST_SLOT, SLOT_END, SLOT_STEP, gapAt, slotPoint, suggestedStart, timeAt } from '../../lib/slot'
+import type { TimelineItem, TimelineRow } from '../../lib/timeline'
 import { buildTimeline, timelineItems } from '../../lib/timeline'
 import { useNowMinutes } from '../../hooks/useNow'
 import { useCopy } from '../../state/LanguageProvider'
@@ -113,12 +113,23 @@ const OVERDUE_FOLDED_KEY = 'tasks:overdue-folded-at'
 interface SlotAt extends TimelineSlot {
   before: string
   gap: SlotGap
+  /** Lo que tiene hora ese día sin lo que se arrastra: para seguir leyendo el hueco mientras avanza la hora. */
+  rest: readonly TimelineItem[]
+  /** Más allá de la primera o la última fila: mantener el dedo ahí avanza (o retrocede) la hora. */
+  edge: 'before' | 'after' | null
+}
+
+/** Mantener el dedo en un borde: la hora avanza sola, de cuarto en cuarto, hasta que el dedo vuelve. */
+interface Dwell {
+  kind: 'before' | 'after'
+  at: SlotAt
+  timer: number
 }
 
 /** Lo soltado en el horario, a la espera de su hora y su duración. */
 type SlotCardState =
-  | { type: 'task'; id: string; title: string; before: string; gap: SlotGap; start: number; duration: number | null }
-  | { type: 'event'; key: string; title: string; before: string; gap: SlotGap; start: number; duration: number }
+  | { type: 'task'; id: string; title: string; before: string; start: number; duration: number | null }
+  | { type: 'event'; key: string; title: string; before: string; start: number; duration: number }
 
 /**
  * Las filas del horario que dicen su hora (también las de los carriles y la de lo que se arrastra, que
@@ -183,6 +194,11 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const [slot, setSlot] = useState<TimelineSlot | null>(null)
   const slotRef = useRef<SlotAt | null>(null)
   const [card, setCard] = useState<SlotCardState | null>(null)
+  // El dedo quieto en un borde del horario: la hora corre sola (`Dwell`). Y por dónde iba el dedo y el
+  // scroll: con auto-scroll la lista se mueve bajo un dedo quieto y no hay que releer la hora.
+  const dwell = useRef<Dwell | null>(null)
+  const [dwelling, setDwelling] = useState(false)
+  const pointerTrack = useRef<{ y: number | null; scroll: number } | null>(null)
 
   // Volver a tocar la pestaña: el mes, recogido.
   useEffect(() => {
@@ -282,17 +298,17 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const dropOnTimeline = (id: string, type: DragType) => {
     const at = slotRef.current
     if (!at) return
-    const { before, gap, start } = at
+    const { before, start } = at
     if (type === 'task') {
       const task = byId.get(id)
       if (!task || task.done) return
       // Una que ya tenía hora conserva lo que duraba, salvo que se elija otra cosa.
-      setCard({ type: 'task', id, title: task.title, before, gap, start, duration: task.time ? task.duration : null })
+      setCard({ type: 'task', id, title: task.title, before, start, duration: task.time ? task.duration : null })
       return
     }
     const timed = timedEvent(eventKeyOf(id))
     if (!timed) return
-    setCard({ type: 'event', key: timed.event.key, title: timed.event.title || copy.untitledEvent, before, gap, start, duration: timed.end - timed.start })
+    setCard({ type: 'event', key: timed.event.key, title: timed.event.title || copy.untitledEvent, before, start, duration: timed.end - timed.start })
   }
 
   const { columns, hasOverdue, sections, activeId, activeType, handlers } = useDayBoard(shown, today, {
@@ -317,7 +333,9 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
       y: node.getBoundingClientRect().top - top,
       minutes: Number(node.dataset.from),
     }))
-    const last = [...zone.querySelectorAll<HTMLElement>(TOP_ROWS)].at(-1)
+    const tops = [...zone.querySelectorAll<HTMLElement>(TOP_ROWS)]
+    const first = tops[0]
+    const last = tops.at(-1)
     if (last) {
       // El final de lo último: hasta donde acaba (lo que no dura, un cuarto de hora).
       const from = Number(last.dataset.from)
@@ -328,14 +346,82 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
       const middle = hint ? hint.top + hint.height / 2 - top : zone.getBoundingClientRect().height / 2
       anchors.push({ y: middle, minutes: suggestedStart({ before: null, after: null }, shown === today ? now : null) })
     }
-    const point = slotPoint(y - top, anchors)
+    const local = y - top
+    const point = slotPoint(local, anchors)
     if (!point) return null
     const rest = items.filter((item) => item.id !== id)
-    return { start: point.minutes, y: point.y, before: rowAfter(rows, point.minutes), gap: gapAt(rest, point.minutes) }
+    // Pasada la última fila (o antes de la primera), el dedo está en un borde: la hora corre sola ahí.
+    const firstTop = first ? first.getBoundingClientRect().top - top : null
+    const lastBottom = last ? last.getBoundingClientRect().bottom - top : null
+    const edge: SlotAt['edge'] =
+      lastBottom !== null && local > lastBottom + EDGE_GRACE_PX ? 'after' : firstTop !== null && local < firstTop - EDGE_GRACE_PX ? 'before' : null
+    // La marca se queda en el borde mientras la hora corre.
+    const pinned = edge === 'after' && lastBottom !== null ? lastBottom + EDGE_GRACE_PX : edge === 'before' && firstTop !== null ? firstTop - EDGE_GRACE_PX : point.y
+    return { start: point.minutes, y: pinned, before: rowAfter(rows, point.minutes), gap: gapAt(rest, point.minutes), rest, edge }
+  }
+
+  const applySlot = (at: SlotAt, buzz: boolean) => {
+    slotRef.current = at
+    if (buzz) haptic('selection')
+    setSlot({ start: at.start, y: at.y })
+  }
+
+  const stopDwell = () => {
+    const current = dwell.current
+    if (!current) return
+    window.clearTimeout(current.timer)
+    window.clearInterval(current.timer)
+    dwell.current = null
+    setDwelling(false)
+  }
+
+  /** El dedo en un borde: un cuarto de hora más (o menos) cada tanto, con su vibración, hasta el fin del día. */
+  const startDwell = (at: SlotAt) => {
+    stopDwell()
+    const kind = at.edge
+    if (!kind) return
+    const handle: Dwell = { kind, at, timer: 0 }
+    dwell.current = handle
+    // Mientras corre la hora, la lista no se desplaza sola: el dedo está pidiendo tiempo, no scroll.
+    setDwelling(true)
+    const tick = () => {
+      if (dwell.current !== handle) return
+      const { start } = handle.at
+      const minutes = kind === 'after' ? Math.min(LAST_SLOT, start + SLOT_STEP) : Math.max(0, start - SLOT_STEP)
+      if (minutes === start) return
+      handle.at = { ...handle.at, start: minutes, before: rowAfter(rows, minutes), gap: gapAt(handle.at.rest, minutes) }
+      applySlot(handle.at, true)
+    }
+    handle.timer = window.setTimeout(() => {
+      tick()
+      if (dwell.current === handle) handle.timer = window.setInterval(tick, EDGE_TICK_MS)
+    }, EDGE_FIRST_TICK_MS)
   }
 
   const onDragMove = (event: DragMoveEvent) => {
+    // Fuera del horario no hay hora que leer ni borde que correr, se mueva el dedo o la lista.
+    if (event.over?.data.current?.type !== 'timeline') {
+      pointerTrack.current = null
+      if (slotRef.current || dwell.current) clearSlot()
+      return
+    }
+    // Cerca del borde de la pantalla dnd-kit desplaza la lista sola: bajo un dedo quieto pasan otras
+    // filas, y leerlas dispararía la hora. Hasta que el dedo se mueva, lo que había.
+    const y = pointerY(event)
+    const scroll = below.current?.closest<HTMLElement>('.app__scroll')?.scrollTop ?? 0
+    const track = pointerTrack.current
+    pointerTrack.current = { y, scroll }
+    if (track && track.y === y && track.scroll !== scroll) return
+
     const next = slotAt(event)
+    if (next?.edge) {
+      // Ya corriendo en ese borde: el dedo que se mueve dentro de él no cambia nada.
+      if (dwell.current?.kind === next.edge) return
+      applySlot(next, next.start !== slotRef.current?.start)
+      startDwell(next)
+      return
+    }
+    stopDwell()
     const previous = slotRef.current
     slotRef.current = next
     // La hora va a saltos: solo cambia algo al pasar a otro cuarto de hora, y cada salto se nota en el dedo.
@@ -345,9 +431,14 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   }
 
   const clearSlot = () => {
+    stopDwell()
+    pointerTrack.current = null
     slotRef.current = null
     setSlot(null)
   }
+
+  // Si el componente se va con el dedo en un borde, el temporizador también.
+  useEffect(() => stopDwell, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** "Listo" en la tarjeta: la tarea pasa al horario (con deshacer); un evento, a su hora nueva. */
   const confirmCard = (start: number, duration: number | null) => {
@@ -465,6 +556,10 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
     )
   }
 
+  // Lo que tiene hora ese día sin lo que se está colocando: la tarjeta sombrea la cinta y lee el hueco con ello.
+  const cardTarget = card ? (card.type === 'task' ? card.id : `event:${card.key}`) : null
+  const cardItems = useMemo(() => (cardTarget ? items.filter((item) => item.id !== cardTarget) : items), [items, cardTarget])
+
   const dragged: Task | null = activeType === 'task' && activeId ? (byId.get(activeId) ?? null) : null
   const draggedSection = activeType === 'section' && activeId ? activeId.slice(4) : null
   const draggedEvent = activeType === 'event' && activeId ? events.timed.find((item) => eventDragId(item.event.key) === activeId) : undefined
@@ -482,10 +577,11 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
 
   const cardNode = card ? (
     <SlotCard
-      key={`${card.type === 'task' ? card.id : card.key}:${card.before}`}
+      key={card.type === 'task' ? card.id : card.key}
       title={card.title}
       start={card.start}
-      gap={card.gap}
+      items={cardItems}
+      now={shown === today ? now : null}
       initialDuration={card.type === 'task' ? card.duration : null}
       fixedDuration={card.type === 'event' ? card.duration : undefined}
       onConfirm={confirmCard}
@@ -527,6 +623,7 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
       <DndContext
         sensors={sensors}
         collisionDetection={scopedCollision}
+        autoScroll={{ enabled: !dwelling }}
         onDragPending={pressCue.onDragPending}
         onDragAbort={pressCue.onDragAbort}
         accessibility={{ announcements }}

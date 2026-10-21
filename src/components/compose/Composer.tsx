@@ -14,7 +14,7 @@ import { capitalize } from '../../lib/title'
 import { useCopy, useLanguage } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { IsoDate, Place, TaskDraft } from '../../types'
-import { IconArrowUp, IconBell, IconCheck, IconClose, IconLeave, IconMic, IconPin, IconPlace, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
+import { IconArrowUp, IconBell, IconCheck, IconClose, IconHere, IconLeave, IconMic, IconPin, IconPlace, IconPlus, IconRepeat, IconSliders, IconTextSize } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { VoiceBar } from './VoiceBar'
 import { usePullUp } from './usePullUp'
@@ -114,7 +114,7 @@ const REPLACED_MIN_BEFORE = 5
 const LITERAL_HINT_KEY = 'tasks:literal-hinted'
 /** Frases de lugar que en la PWA se quedan tal cual: se avisa de que eso es cosa del iPhone. */
 const PLACE_PHRASE =
-  /\b(al (llegar|pasar por|salir|irme|marcharme)|cuando (llegue|salga|vuelva|me vaya|est[eé])|nada más (llegar|salir)|en cuanto (llegue|salga|me vaya)|when i (get to|arrive|leave|head out of)|once i.m at)\b/i
+  /\b(al (llegar|pasar por|salir|irme|marcharme|moverme|alejarme)|cuando (llegue|salga|vuelva|me vaya|me mueva|me aleje|est[eé])|nada más (llegar|salir|moverme)|en cuanto (llegue|salga|me vaya|me mueva)|when i (get to|arrive|leave|head out|move|walk away)|once i.m at|once i move)\b/i
 
 /**
  * La frase de ejemplo que toca (`composeExamples`). Vive fuera de la barra para seguir la cuenta
@@ -127,6 +127,7 @@ const SUMMARY_ICONS: Record<Exclude<SummaryIcon, null>, typeof IconBell> = {
   bell: IconBell,
   pin: IconPin,
   leave: IconLeave,
+  here: IconHere,
   repeat: IconRepeat,
   size: IconTextSize,
 }
@@ -177,6 +178,8 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   const detected = ready && !details && label !== null
   // Cómo avisa el lugar dicho: al llegar (la chincheta) o al salir.
   const placed = routine ? null : (parsed.newPlace?.on ?? parsed.reminders.flatMap((reminder) => (reminder.kind === 'place' ? [reminder.on] : []))[0] ?? null)
+  // "Al moverme": al alejarse de donde se está, con su propio icono.
+  const here = !routine && parsed.reminders.some((reminder) => reminder.kind === 'here')
   // Con la ficha abierta manda ella; si lo tecleado después dice algo nuevo ("a las 5"), se ofrece aplicarlo.
   const suggestion = details && !details.repeat && !expanded && parsed.label !== null && parsed.title.trim() !== value.trim() ? parsed : null
   // En la PWA una frase de lugar se queda tal cual: se dice por qué.
@@ -507,6 +510,8 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
                 >
                   {routine ? (
                     <IconRepeat size={12} strokeWidth={2} />
+                  ) : here ? (
+                    <IconHere size={12} strokeWidth={2} />
                   ) : placed ? (
                     <IconPlace on={placed} size={12} strokeWidth={2} />
                   ) : (

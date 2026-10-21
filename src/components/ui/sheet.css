@@ -238,6 +238,28 @@
   margin-right: -4px;
 }
 
+/* Una píldora cuyo cuerpo se toca (el aviso "al alejarme" abre sus radios): el botón ocupa la píldora
+   entera salvo la ×, que es su hermana, no su hija */
+.chip--here {
+  padding: 0 6px 0 0;
+}
+
+.chip__body {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 6px 8px 15px;
+  border-radius: var(--r-full);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.chip__body:active {
+  background: var(--bg-press);
+}
+
 /* Un `before` sin fecha u hora, o un aviso que ya sonó: inactivo pero legible (sin bajar el contraste) */
 .chip.is-muted {
   color: var(--text-3);

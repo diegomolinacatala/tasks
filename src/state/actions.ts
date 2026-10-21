@@ -1,5 +1,5 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, Task, Theme } from '../types'
+import type { AppState, BlockId, HerePoint, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, ShoppingItem, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -40,6 +40,11 @@ export type Action =
   | { type: 'task/extend'; id: string; now: number }
   | { type: 'reminder/add'; taskId: string; reminder: ReminderDraft }
   | { type: 'reminder/remove'; taskId: string; reminderId: string }
+  /**
+   * Un aviso "al alejarme": su radio y el punto desde el que cuenta (`null` lo deja sin fijar). Fijar el
+   * punto reinicia `since` a `now`: la caducidad cuenta desde que se sabe dónde se está.
+   */
+  | { type: 'reminder/here'; taskId: string; reminderId: string; radius?: number; from?: HerePoint | null; now?: number }
   /** `now` viaja en la acción para que el reducer siga siendo puro. */
   | { type: 'task/snooze'; id: string; at: number; now: number }
   | { type: 'task/rename'; id: string; title: string }
@@ -66,8 +71,11 @@ export type Action =
   | { type: 'place/update'; id: string; name?: string; aliases?: string[]; location?: PlaceLocation | null; radius?: number }
   /** Quita también sus avisos de las tareas. */
   | { type: 'place/remove'; id: string }
-  /** Deshacer un borrado: vuelve el lugar y los avisos que se llevó (los de tareas que sigan existiendo). */
-  | { type: 'place/restore'; place: Place; reminders: readonly { taskId: string; reminder: Reminder }[] }
+  /**
+   * Deshacer un borrado: vuelve el lugar y los avisos que se llevó (los de tareas que sigan existiendo);
+   * `shopping`, si la cesta avisaba al llegar a él.
+   */
+  | { type: 'place/restore'; place: Place; reminders: readonly { taskId: string; reminder: Reminder }[]; shopping?: true }
   | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; emoji?: string | null; id?: string }
   /** `emoji: null` lo quita; sin el campo, se queda como está. */
   | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null; emoji?: string | null }
@@ -77,6 +85,19 @@ export type Action =
   | { type: 'routine/set'; id: string; date: IsoDate; done: boolean }
   | { type: 'routine/remove'; id: string }
   | { type: 'routine/restore'; routine: Routine }
+  /**
+   * La cesta (`lib/shopping.ts`). Añadir algo que ya está pendiente no duplica (con cantidad, la cambia);
+   * algo ya comprado vuelve a pendiente.
+   */
+  | { type: 'shopping/add'; name: string; qty?: string | null; id?: string; now: number }
+  /** Comprar o devolver a pendiente; al comprar se apunta en el historial (las habituales). */
+  | { type: 'shopping/toggle'; id: string; now: number }
+  | { type: 'shopping/remove'; id: string }
+  | { type: 'shopping/restore'; item: ShoppingItem }
+  /** Vaciar lo comprado. */
+  | { type: 'shopping/clearDone' }
+  /** El lugar guardado al que, al llegar, avisa con lo pendiente; `null` lo quita. */
+  | { type: 'shopping/place'; placeId: string | null }
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }

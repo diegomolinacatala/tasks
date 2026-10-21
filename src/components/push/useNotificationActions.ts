@@ -42,6 +42,8 @@ interface NotificationHandlers {
   onOpenTask: (taskId: string) => void
   /** Aviso de lugar con varias tareas: se enseñan todas juntas. */
   onOpenPlace: (placeId: string) => void
+  /** El aviso de la cesta al llegar a su tienda: se abre la cesta. */
+  onOpenBasket: () => void
   /** Aviso de una rutina tocado sin botón: se va a la Bandeja, donde están. */
   onOpenRoutine: (routineId: string) => void
   /** El resumen diario (tocado o tras pasar lo atrasado a hoy): la Agenda, en hoy. */
@@ -56,7 +58,7 @@ interface NotificationHandlers {
  * si ya está hecha: "Sí" la tacha, "Todavía no" alarga la tarea y vuelve a preguntar, y tocarlo
  * sin botón repite la pregunta en un aviso de la propia app, para acabar en un solo toque.
  */
-export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine, onOpenToday, paused = false }: NotificationHandlers) {
+export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenBasket, onOpenRoutine, onOpenToday, paused = false }: NotificationHandlers) {
   const state = useAppState()
   const dispatch = useDispatch()
   const toast = useToast()
@@ -148,12 +150,16 @@ export function useNotificationActions({ onOpenTask, onOpenPlace, onOpenRoutine,
   }
 
   const handle = (event: NotificationEvent) => {
-    const { action, taskIds, placeId, ask, routine } = event
+    const { action, taskIds, placeId, ask, routine, shopping } = event
     const text = pick(TEXT)
     if (routine) return answerRoutine(routine.id, routine.date, action)
     // Las que se borraron después de programar el aviso ya no cuentan.
     const found = taskIds.flatMap((id) => tasks.current.find((task) => task.id === id) ?? [])
     const [first] = found
+    // La cesta al llegar a la tienda: la cesta; si el aviso llevaba también tareas, el lugar con todo.
+    if (shopping && action === 'open') return found.length ? onOpenPlace(placeId ?? '') : onOpenBasket()
+    // Un "al alejarme" ya ha sonado y se ha visto: no vuelve a sonar la próxima vez que se salga.
+    if (placeId?.startsWith('here:') && first) dispatch({ type: 'reminder/remove', taskId: first.id, reminderId: placeId.slice(5) })
 
     // Sin tarea es el resumen diario: todo lo atrasado, y la Agenda en hoy.
     if (action === 'today' && !placeId) {

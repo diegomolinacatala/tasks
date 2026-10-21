@@ -30,6 +30,11 @@ const LAYOUT_ACTIONS = new Set([
   'routine/add',
   'routine/remove',
   'routine/restore',
+  'shopping/add',
+  'shopping/toggle',
+  'shopping/remove',
+  'shopping/restore',
+  'shopping/clearDone',
 ])
 
 let captured: { at: number; tops: Map<string, number> } | null = null

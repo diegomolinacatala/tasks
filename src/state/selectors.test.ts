@@ -46,6 +46,7 @@ const state: AppState = {
   sections: [section('s2', 1), section('s1', 0)],
   places: [],
   routines: [],
+  shopping: { items: [], history: [], placeId: null },
   collapsed: { overdue: false, backlog: false, routines: false },
   settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null, done: [] }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }

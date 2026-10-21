@@ -28,7 +28,15 @@ const DAY_MIN = 24 * 60
 /** Lo último que se puede proponer: que quede un rato de día. */
 const LATEST = DAY_MIN - 5
 /** Lo último que se elige arrastrando: el último cuarto de hora. */
-const LAST_SLOT = DAY_MIN - SLOT_STEP
+export const LAST_SLOT = DAY_MIN - SLOT_STEP
+/**
+ * Más allá de la primera o la última fila, mantener el dedo en el borde del horario avanza la hora un
+ * cuarto cada tanto (como el auto-scroll al arrastrar): así se llega a las 21:00 con un día que acaba a
+ * las 15:00. `EDGE_GRACE_PX` es lo que hay que pasarse del borde para que empiece.
+ */
+export const EDGE_TICK_MS = 150
+export const EDGE_FIRST_TICK_MS = 320
+export const EDGE_GRACE_PX = 10
 /** Las duraciones de siempre, además de "sin duración" y "hasta las …". */
 const PRESETS = [15, 30, 60, 120] as const
 

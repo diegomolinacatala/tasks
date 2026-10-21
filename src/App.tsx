@@ -39,7 +39,9 @@ import type { RowActions } from './components/task/rowActions'
 import type { TaskOrigin } from './components/task/TaskSheet'
 import { OPEN_TASK_EVENT, RowActionsContext } from './components/task/rowActions'
 import { useTaskActions } from './components/task/useTaskActions'
-import { IconTextSize } from './components/ui/Icons'
+import { IconBasket, IconTextSize } from './components/ui/Icons'
+import { HereLocatorProvider } from './components/places/HereLocator'
+import { pendingCount } from './lib/shopping'
 import { Skeleton } from './components/ui/Skeleton'
 import { useToast } from './components/ui/Toast'
 import { AgendaView } from './components/views/AgendaView'
@@ -50,8 +52,10 @@ import './components/shell/shell.css'
 const SIZING_HINT_KEY = 'tasks:sizing-hint'
 
 const loadInbox = () => import('./components/views/InboxView')
+const loadBasket = () => import('./components/shopping/BasketPopover')
 const loadSheets = () =>
-  Promise.all([loadInbox(), import('./components/task/TaskSheet'), import('./components/section/SectionSheet')])
+  Promise.all([loadInbox(), import('./components/task/TaskSheet'), import('./components/section/SectionSheet'), loadBasket()])
+const BasketPopover = lazy(() => loadBasket().then((module) => ({ default: module.BasketPopover })))
 const InboxView = lazy(() => loadInbox().then((module) => ({ default: module.InboxView })))
 const TaskSheet = lazy(() => import('./components/task/TaskSheet').then((module) => ({ default: module.TaskSheet })))
 const SectionSheet = lazy(() => import('./components/section/SectionSheet').then((module) => ({ default: module.SectionSheet })))
@@ -108,6 +112,7 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tareas: ${titles}`,
     sizing: 'Tamaño según importancia',
     sizingHint: 'Arrastra el número de cada tarea: hacia arriba, más grande; hacia abajo, más pequeña.',
+    basket: (count: number) => (count ? `Cesta, ${count} por comprar` : 'Cesta'),
     noSection: 'sin sección',
     stopWriting: 'Dejar de escribir',
     schedule: 'Horario',
@@ -125,6 +130,7 @@ const COPY = {
     many: (count: number, titles: string) => `${count} tasks: ${titles}`,
     sizing: 'Size by importance',
     sizingHint: 'Drag each task’s number: up makes it bigger, down makes it smaller.',
+    basket: (count: number) => (count ? `Basket, ${count} to buy` : 'Basket'),
     noSection: 'no section',
     stopWriting: 'Stop writing',
     schedule: 'Schedule',
@@ -185,6 +191,9 @@ export function App() {
   const focusComposer = useRef<(() => void) | null>(null)
   // Modo "Aa": las filas enseñan su mando de importancia en lugar del asa de mover.
   const [sizing, setSizing] = useState(false)
+  // La cesta (la lista de la compra), desplegada desde su icono; se monta la primera vez que se abre.
+  const [basketOpen, setBasketOpen] = useState(false)
+  const [basketUsed, setBasketUsed] = useState(false)
   // La barra de escribir tiene el foco: las pestañas se apartan y la lista queda tras un velo.
   const [composing, setComposing] = useState(false)
   // Modo sugerencia (desde Ajustes): ir a cualquier sitio, rodearlo y escribir qué cambiarías.
@@ -325,7 +334,21 @@ export function App() {
     setSectionId(null)
     setRoutineId(null)
     setPlaceId(null)
+    setBasketOpen(false)
   }, [])
+
+  const openBasket = useCallback(() => {
+    setBasketUsed(true)
+    setBasketOpen(true)
+  }, [])
+  const closeBasket = useCallback(() => setBasketOpen(false), [])
+  // Desde fuera (un aviso, el panel de un lugar): la cesta se despliega de su icono, que solo está en la
+  // Bandeja y la Agenda; desde otra pestaña, a la Agenda.
+  const showBasket = useCallback(() => {
+    closeSheets()
+    if (!WRITING.has(currentTab.current)) go('agenda')
+    openBasket()
+  }, [closeSheets, go, openBasket])
 
   useNotificationActions({
     onOpenTask: (id) => {
@@ -337,6 +360,7 @@ export function App() {
       closeSheets()
       setPlaceId(id)
     },
+    onOpenBasket: showBasket,
     onOpenRoutine: () => {
       closeSheets()
       go('inbox')
@@ -544,6 +568,7 @@ export function App() {
   })
 
   const hasOverdue = useMemo(() => state.tasks.some((task) => isOverdue(task, today)), [state.tasks, today])
+  const basketCount = pendingCount(state.shopping.items)
   // Lo de la barra de escribir va con la pestaña que se ve, no con la que se acaba de tocar.
   const writing = WRITING.has(shownTab)
   const inAgenda = shownTab === 'agenda'
@@ -606,14 +631,35 @@ export function App() {
 
   return (
     <TodayContext.Provider value={today}>
+    <HereLocatorProvider>
     <RowActionsContext.Provider value={rowActions}>
       <div
         inert={welcome !== null}
         data-welcome={welcome !== null ? '' : undefined}
         className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
           writing ? 'has-composer' : ''
-        } ${writing && composing ? 'is-composing' : ''}`}
+        } ${writing && composing ? 'is-composing' : ''} ${basketOpen ? 'has-basket' : ''}`}
       >
+        {writing && (
+          <button
+            type="button"
+            className="app__basket"
+            aria-label={copy.basket(basketCount)}
+            aria-haspopup="dialog"
+            aria-expanded={basketOpen}
+            onClick={() => {
+              haptic('selection')
+              openBasket()
+            }}
+          >
+            <IconBasket size={21} />
+            {basketCount > 0 && (
+              <span className="app__basket-count" aria-hidden="true">
+                {basketCount > 99 ? '99+' : basketCount}
+              </span>
+            )}
+          </button>
+        )}
         {writing && (
           <button
             type="button"
@@ -692,10 +738,11 @@ export function App() {
           />
           <SectionSheet sectionId={sectionId} onClose={() => setSectionId(null)} />
           {routineLoaded && <RoutineSheet routineId={routineId} today={routineToday} onClose={() => setRoutineId(null)} />}
+          {basketUsed && <BasketPopover open={basketOpen} onClose={closeBasket} />}
         </Suspense>
         {(isNative || import.meta.env.DEV) && (
           <Suspense fallback={null}>
-            <UpdatePrompt paused={welcome !== null || suggesting || composing || taskId !== null || routineId !== null || sectionId !== null} />
+            <UpdatePrompt paused={welcome !== null || suggesting || composing || taskId !== null || routineId !== null || sectionId !== null || basketOpen} />
           </Suspense>
         )}
         {/* También con el ajuste quitado: así borra lo que había añadido. */}
@@ -706,7 +753,7 @@ export function App() {
         )}
         {isNative && (
           <Suspense fallback={null}>
-            <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onClose={() => setPlaceId(null)} />
+            <PlaceTasksSheet placeId={placeId} onOpenTask={openTask} onOpenBasket={showBasket} onClose={() => setPlaceId(null)} />
             <NativeWidget today={today} />
             <NativeInbox />
           </Suspense>
@@ -723,6 +770,7 @@ export function App() {
         </Suspense>
       )}
     </RowActionsContext.Provider>
+    </HereLocatorProvider>
     </TodayContext.Provider>
   )
 }

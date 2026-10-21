@@ -3,18 +3,24 @@ import type { CSSProperties } from 'react'
 import { shortTime } from '../../lib/date'
 import { durationLabel, minutesOf } from '../../lib/duration'
 import { haptic } from '../../lib/platform/feedback'
-import type { SlotGap, SlotOption } from '../../lib/slot'
-import { fillUntil, slotOptions, steppedStart, timeAt } from '../../lib/slot'
+import type { SlotOption } from '../../lib/slot'
+import { fillUntil, gapAt, slotOptions, timeAt } from '../../lib/slot'
+import { busySpans } from '../../lib/tape'
+import type { TimelineItem } from '../../lib/timeline'
 import { useCopy } from '../../state/LanguageProvider'
-import { IconCheck, IconChevronLeft, IconChevronRight, IconClose } from '../ui/Icons'
+import { IconCheck, IconClose } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
+import { HourTape } from './HourTape'
 import { Clock } from './Timeline'
 
 interface SlotCardProps {
   title: string
   /** La hora propuesta, en minutos desde medianoche. */
   start: number
-  gap: SlotGap
+  /** Lo que tiene hora ese día, sin lo que se está colocando: sombrea la cinta y dice hasta cuándo hay hueco. */
+  items: readonly TimelineItem[]
+  /** Minutos de ahora si el día es hoy. */
+  now: number | null
   /** Lo que ya duraba la tarea (si tenía hora): se conserva salvo que se elija otra cosa. */
   initialDuration?: number | null
   /** Un evento del calendario: lo que dura ya está decidido; aquí solo se mueve. */
@@ -26,8 +32,7 @@ interface SlotCardProps {
 const COPY = {
   es: {
     label: (title: string) => `Hora y duración de «${title}»`,
-    earlier: 'Un cuarto de hora antes',
-    later: 'Un cuarto de hora después',
+    tape: 'Hora: arrastra la cinta',
     pick: 'Elegir la hora exacta',
     done: 'Listo',
     cancel: 'Dejarla donde estaba',
@@ -35,8 +40,7 @@ const COPY = {
   },
   en: {
     label: (title: string) => `Time and duration of “${title}”`,
-    earlier: 'A quarter hour earlier',
-    later: 'A quarter hour later',
+    tape: 'Time: drag the tape',
     pick: 'Pick the exact time',
     done: 'Done',
     cancel: 'Leave it where it was',
@@ -45,17 +49,20 @@ const COPY = {
 } as const
 
 /**
- * La tarjeta que aparece en el hueco del horario al soltar ahí una tarea: la hora a la que empieza
- * (lo que acaba de proponer el hueco, con un cuarto de hora arriba o abajo o la rueda para afinar) y
- * cuánto dura, en píldoras. Ocupa el sitio que ocupará la tarea, con su hora en la columna: lo que se
- * ve es lo que va a quedar. Nada se guarda hasta "Listo"; la × la deja donde estaba.
+ * La tarjeta que aparece en el hueco del horario al soltar ahí una tarea: la hora a la que empieza,
+ * que se elige en la **cinta de horas** (cualquier hora del día a un gesto, con lo ocupado sombreado) o
+ * tocando la hora grande, que abre la rueda; y cuánto dura, en píldoras ("Hasta las …" sigue a la hora:
+ * siempre es hasta lo siguiente que haya). Ocupa el sitio donde se soltó, con su hora en la columna.
+ * Nada se guarda hasta "Listo"; la × la deja donde estaba.
  */
-export function SlotCard({ title, start: proposed, gap, initialDuration = null, fixedDuration, onConfirm, onCancel }: SlotCardProps) {
+export function SlotCard({ title, start: proposed, items, now, initialDuration = null, fixedDuration, onConfirm, onCancel }: SlotCardProps) {
   const copy = useCopy(COPY)
   const [start, setStart] = useState(proposed)
   const [duration, setDuration] = useState<number | null>(fixedDuration ?? initialDuration)
   // "Hasta las 12:00" sigue a la hora de empezar: si esta cambia, lo que queda hasta las 12 también.
   const [untilNext, setUntilNext] = useState(false)
+  const gap = useMemo(() => gapAt(items, start), [items, start])
+  const busy = useMemo(() => busySpans(items), [items])
   const options = useMemo(() => slotOptions(start, gap, initialDuration), [start, gap, initialDuration])
   const time = timeAt(start)
   const root = useRef<HTMLLIElement>(null)
@@ -76,14 +83,9 @@ export function SlotCard({ title, start: proposed, gap, initialDuration = null, 
   const moveStart = (next: number) => {
     setStart(next)
     if (!untilNext) return
-    const fill = fillUntil(next, gap)
+    const fill = fillUntil(next, gapAt(items, next))
     setDuration(fill)
     if (fill === null) setUntilNext(false)
-  }
-
-  const step = (steps: number) => {
-    haptic('selection')
-    moveStart(steppedStart(start, steps))
   }
 
   const choose = (option: SlotOption) => {
@@ -108,23 +110,16 @@ export function SlotCard({ title, start: proposed, gap, initialDuration = null, 
           </button>
         </div>
         <div className="slot__row">
-          <div className="slot__stepper">
-            <button type="button" className="slot__step" aria-label={copy.earlier} onClick={() => step(-1)}>
-              <IconChevronLeft size={16} strokeWidth={2.2} />
-            </button>
-            <PickerChip type="time" value={time} className="slot__clock" aria-label={copy.pick} onCommit={(value) => moveStart(minutesOf(value))}>
-              {shortTime(time)}
-            </PickerChip>
-            <button type="button" className="slot__step" aria-label={copy.later} onClick={() => step(1)}>
-              <IconChevronRight size={16} strokeWidth={2.2} />
-            </button>
-          </div>
+          <PickerChip type="time" value={time} className="slot__clock" aria-label={copy.pick} onCommit={(value) => moveStart(minutesOf(value))}>
+            {shortTime(time)}
+          </PickerChip>
           {fixedDuration !== undefined && <span className="slot__fixed">{copy.lasts(durationLabel(fixedDuration))}</span>}
           <button type="button" className="slot__ok" onClick={() => onConfirm(start, duration)}>
             <IconCheck size={14} strokeWidth={2.6} />
             {copy.done}
           </button>
         </div>
+        <HourTape start={start} busy={busy} now={now} duration={fixedDuration ?? duration} label={copy.tape} onChange={moveStart} />
         {fixedDuration === undefined && (
           <div className="slot__pills" role="radiogroup">
             {options.map((option) => (

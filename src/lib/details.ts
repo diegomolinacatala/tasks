@@ -4,7 +4,7 @@ import { normalizeDuration, spanLabel } from './duration'
 import { language } from './i18n'
 import { DEFAULT_IMPORTANCE, clampImportance } from './importance'
 import { cleanUntil, periodLabel } from './period'
-import { MAX_REMINDERS, reminderLabel, sameReminder } from './reminders'
+import { MAX_REMINDERS, clampHereRadius, reminderLabel, sameReminder } from './reminders'
 import type { RoutineDraft } from './repeat'
 import { routineLabel } from './repeat'
 import { cleanDays } from './routines'
@@ -120,6 +120,12 @@ export function addDetailReminder(details: Details, draft: ReminderDraft, id: st
   return { ...details, date, reminders: [...details.reminders, { ...draft, id }] }
 }
 
+/** El radio de un aviso "al alejarme" de la ficha, en el sitio (el aviso sigue siendo el mismo). */
+export const setDetailHereRadius = (details: Details, id: string, radius: number): Details => ({
+  ...details,
+  reminders: details.reminders.map((reminder) => (reminder.id === id && reminder.kind === 'here' ? { ...reminder, radius: clampHereRadius(radius) } : reminder)),
+})
+
 export const removeDetailReminder = (details: Details, id: string): Details => ({
   ...details,
   reminders: details.reminders.filter((reminder) => reminder.id !== id),
@@ -186,7 +192,7 @@ export function toRoutineDraft(details: Details, title: string): RoutineDraft | 
   return { title: title.trim(), days: details.repeat, time: details.time, label: routineLabel(details.repeat, details.time) }
 }
 
-export type SummaryIcon = 'bell' | 'pin' | 'leave' | 'repeat' | 'size' | null
+export type SummaryIcon = 'bell' | 'pin' | 'leave' | 'here' | 'repeat' | 'size' | null
 
 export interface SummaryItem {
   key: string
@@ -220,7 +226,7 @@ export function detailsSummary(
   ]
   const [only] = details.reminders
   if (details.reminders.length > 1) items.push({ key: 'reminders', label: en ? `${details.reminders.length} reminders` : `${details.reminders.length} avisos`, icon: 'bell' })
-  else if (only) items.push({ key: 'reminders', label: reminderLabel(only, now, places), icon: only.kind === 'place' ? (only.on === 'leave' ? 'leave' : 'pin') : 'bell' })
+  else if (only) items.push({ key: 'reminders', label: reminderLabel(only, now, places), icon: only.kind === 'place' ? (only.on === 'leave' ? 'leave' : 'pin') : only.kind === 'here' ? 'here' : 'bell' })
   if (details.newPlace) items.push({ key: 'place', label: details.newPlace.name, icon: details.newPlace.on === 'leave' ? 'leave' : 'pin' })
   const section = details.sectionId ? sections.find((item) => item.id === details.sectionId) : undefined
   if (section) items.push({ key: 'section', label: section.name, icon: null })

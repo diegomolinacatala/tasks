@@ -81,6 +81,7 @@ const EXAMPLES: Readonly<Record<Language, readonly ComposeExample[]>> = {
     { text: 'Gimnasio de 7 a 8 de la tarde' },
     { text: 'Leer todas las noches' },
     { text: 'Renovar el DNI esta semana' },
+    { text: 'Llamar a Raúl al moverme', place: true },
   ],
   en: [
     { text: 'Call Carlota tomorrow at 6pm' },
@@ -88,6 +89,7 @@ const EXAMPLES: Readonly<Record<Language, readonly ComposeExample[]>> = {
     { text: 'Gym tomorrow from 7 to 8pm' },
     { text: 'Read every night' },
     { text: 'Renew passport this week' },
+    { text: 'Call Raúl when I move', place: true },
   ],
 }
 

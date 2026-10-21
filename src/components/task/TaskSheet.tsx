@@ -215,6 +215,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
         task={asOf(shown, today)}
         onAdd={(reminder) => task && dispatch({ type: 'reminder/add', taskId: task.id, reminder })}
         onRemove={(reminderId) => task && dispatch({ type: 'reminder/remove', taskId: task.id, reminderId })}
+        onHereRadius={(reminderId, radius) => task && dispatch({ type: 'reminder/here', taskId: task.id, reminderId, radius })}
       />
 
       {/* Las secciones agrupan dentro del día: sin fecha no hay dónde agrupar. */}

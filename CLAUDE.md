@@ -367,6 +367,29 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     una de *Sin hora* hasta el horario; 1.041 tests. Revisado por agentes por separado. JS principal 160,3 kB
     gzip.
 
+- **La cesta, la cinta de horas y el aviso al alejarme** (20/10/2026, en `capacitor`, **TestFlight 51**, la
+  1.8; sin cambios de Swift; sin probar en el iPhone). Lo pidió el usuario en una sola petición, y sin capturas
+  ni ficha todavía (hará más cambios antes de enviar):
+  - **La cesta** (la lista de la compra): un icono de cesta a la izquierda de la "A", con la cifra de lo que
+    queda, que despliega un popover anclado al icono (no un panel a pantalla completa). Ver "La cesta".
+  - **El horario, de verdad funcional**: la tarjeta de soltar lleva una **cinta de horas** (el día entero
+    bajo una aguja, con lo ocupado sombreado) y, al arrastrar, mantener el dedo más allá de la última fila
+    (o de la primera) hace correr la hora de cuarto en cuarto: con un día que acaba a las 15:00 se llega a
+    las 21:00 sin soltar. Ver "Soltar en el horario".
+  - **"Al moverme recuérdame que llame a Raúl"**: un aviso nuevo, al alejarse de donde se está
+    (`kind: 'here'`, con radio). Ver "Al alejarme de aquí".
+  - Probado con Edge sin ventana y dedo simulado (la cesta: "huevos, 2 kg de arroz" son dos filas, una
+    habitual de un toque, comprar, el pliegue, el icono clonado que cierra; el borde del horario corriendo
+    de 18:15 a 20:30 en 1,4 s, la cinta en los dos sentidos y tocándola, Listo a las 23:45; la píldora del
+    aviso y sus radios); 1.117 tests. `SCHEMA_VERSION` 17. Diseño revisado antes de implementarlo por tres
+    agentes (uso, código, iOS): de ahí los radios desde 25 m, la región que crece con el error del GPS, la
+    caducidad del aviso y que el toast no suba con el popover. Y el código, revisado después por cinco
+    lentes (arreglado: "cuando me aleje de casa" y "move away from the office" ya no son "aquí", el "que"
+    tras "de aquí", el título "Mover el coche" de la IA, el "aquí" con varias tareas, "Kleenex 2" en la
+    cesta, la región de la cesta con cuerpo fijo y clave estable, `since` al fijar el punto, el borde que
+    seguía corriendo fuera del horario, la píldora de la ficha "· al añadir", lo comprado a la vista en
+    sesión). `scripts/perf.mjs 6 3` antes y después: sin cambios fuera del ruido (desplegar el mes 247 →
+    207 ms de peor fotograma, tachar 69 → 88, abrir tarea 186 → 225: varían igual entre pasadas).
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
@@ -405,6 +428,19 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
 **Pendiente, en este orden**
+
+0. **Probar en el iPhone la TestFlight 51** (la 1.8; sin ficha aún: el usuario hará más cambios). La cesta:
+   el icono con la cifra, abrir, escribir "pan, leche y 2 kg de arroz" (tres filas), una habitual, tocar una
+   para comprarla y deslizar otra a la izquierda (el toast con "Deshacer" sale abajo, no sobre el popover),
+   el pliegue "En la cesta" y "Vaciar", el teclado con el campo arriba (que el popover no se descoloque) y,
+   en el pie, "Avisar al llegar a…" → Mercadona: al llegar, un solo aviso ("Cesta: Pan · Leche") que abre la
+   cesta. El horario: mantener pulsada una tarea de *Sin hora*, llevarla por debajo de la última fila y
+   quedarse quieto (la hora corre, vibrando por cuarto), soltar, arrastrar la cinta hasta las 21:00 (vibra
+   en las horas en punto), tocar la cinta, "Hasta las…" y Listo; y que al soltar cerca del borde de abajo de
+   la pantalla el auto-scroll no dispare la hora. "Al moverme recuérdame que llame a Raúl", dictado y
+   escrito: la píldora "Al alejarme 100 m" (ubicando… → fija), cambiar el radio tocándola, alejarse unos
+   100 m y que suene, y que al tocar el aviso no vuelva a sonar al salir otra vez; desde Siri con la app
+   cerrada, al abrirla pasado un rato, el toast que ofrece fijarlo.
 
 0. **Probar en el iPhone la TestFlight 50 (la 1.8) y enviarla** (`docs/app-store.md` §9.10; los pasos al
    usuario, en el chat): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
@@ -559,7 +595,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -591,7 +627,10 @@ src/
 │   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
 │   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
 │   ├── timeline.ts       # horario de un día: lo que tiene hora (también los eventos), tiempo libre y "ahora"
-│   ├── slot.ts           # soltar en el horario: en qué hueco cae, la hora propuesta y las duraciones que se ofrecen
+│   ├── slot.ts           # soltar en el horario: en qué hueco cae, la hora propuesta, el borde que corre y las duraciones
+│   ├── tape.ts           # la cinta de horas de la tarjeta: px por hora, la hora bajo la aguja, lo ocupado, las marcas
+│   ├── shopping.ts       # la cesta: filas, historial y habituales, saneado, el cuerpo del aviso al llegar a la tienda
+│   ├── shoppingParse.ts  # lo escrito en la cesta → filas con cantidad ("pan, leche y 2 kg de arroz"); solo la cesta lo carga
 │   ├── calendar.ts       # calendario del iPhone: validar lo de EventKit, repartirlo por días, ventana, widget
 │   ├── calendarExport.ts # las tareas con hora que van al calendario elegido
 │   ├── update.ts         # aviso de versión nueva: comparar versiones, novedades, si se ofrece
@@ -629,7 +668,8 @@ src/
 ├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
-    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, SlotCard, AllDayEvents, useDayBoard), InboxView (+ DayDock)
+    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, SlotCard y HourTape, AllDayEvents, useDayBoard), InboxView (+ DayDock)
+    ├── shopping/         # BasketPopover: la cesta (lista de la compra) desplegada desde su icono
     ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`);
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
@@ -637,7 +677,8 @@ src/
     ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, lugares, sugerencias y calendario
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
-    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases
+    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases,
+    │                     # HereLocator (fija el punto de los avisos "al alejarme")
     ├── settings/         # SettingsView (la página de filas), SettingsRow, y cada fila con su panel: AppearanceRow,
     │                     # LanguagePicker, NotificationsRow, CalendarRow (+ CalendarPicker, CalendarExportSheet,
     │                     # CalendarGuide, Switch), DictationRow, DataRow (copias y datos)
@@ -739,7 +780,10 @@ Para darle hora a una tarea sin abrir su panel: se coge (mantener pulsada) una d
 *Atrasadas* o una que ya tiene hora, y se suelta en el `Horario` **a la altura de la hora que se quiere**,
 de cuarto en cuarto de hora (lo pidió el usuario el 19/10/2026: "dependiendo de la altura… que dé como
 saltos de 15 min", no "justo al acabar lo de antes"). Como en Structured, pero preguntando lo justo al
-soltar.
+soltar. El horario es compacto (una cápsula no mide lo que dura), así que cualquier hora del día queda a
+mano por dos vías (la 51, tras quejarse el usuario de que "se ciñe" a las horas de lo que hay: con cosas
+hasta las 15:00 no llegaba a las 21:00): **el borde corre** mientras se arrastra y **la cinta de horas**
+de la tarjeta.
 
 - **Mientras se arrastra** (`onDragMove` en `AgendaView`), el horario es una zona (`tl:<día>`, solo si el
   dedo está encima: `scopedCollision`) que crece sin mover nada (márgenes negativos y relleno en
@@ -750,20 +794,38 @@ soltar.
   también el tiempo libre y "ahora"; las de dentro de un carril, no) y entre el principio de una y el de la
   siguiente la hora se reparte a lo alto. Como mucho un cuarto de hora cada `STEP_PX` (8 px): si un trozo
   vale más horas de las que caben (seis horas libres en una fila), la mitad de arriba cuenta desde la
-  primera y la de abajo hasta la segunda ("justo después", "justo antes"). Por encima de lo primero y por
-  debajo de lo último, a `STEP_PX` por cuarto. Sin pasarse de las horas del trozo (tras algo que acaba a
-  las 10:10, la primera es las 10:15) ni del día (hasta las 23:45). La fila de lo que se arrastra no cuenta.
+  primera y la de abajo hasta la segunda ("justo después", "justo antes"). Sin pasarse de las horas del
+  trozo (tras algo que acaba a las 10:10, la primera es las 10:15) ni del día (hasta las 23:45). La fila de
+  lo que se arrastra no cuenta.
+- **El borde corre** (`Dwell` en `AgendaView`, `EDGE_*` en `lib/slot.ts`): pasada la última fila (o antes
+  de la primera) más de `EDGE_GRACE_PX`, el dedo quieto hace avanzar (o retroceder) la hora un cuarto cada
+  `EDGE_TICK_MS` (150 ms, el primero a los 320), con su vibración, hasta las 23:45 (o las 0:00); la marca se
+  queda en el borde y lo que se lleva dice la hora. Volver sobre las filas lo para. Es el mismo idioma que
+  el auto-scroll al arrastrar, y por eso no depende de la altura: con `STEP_PX` por cuarto no cabría el
+  resto del día en los 56 px de `--zone-bottom` (el margen más la cabecera de "Sin hora", que no es un sitio
+  donde soltar). Mientras corre, el auto-scroll de dnd-kit se apaga (`autoScroll={{ enabled: !dwelling }}`:
+  el dedo pide tiempo, no scroll); fuera del horario (`event.over` ya no es `timeline`) se para y la marca se
+  quita, se mueva el dedo o la lista. Y como dnd-kit desplaza la lista sola cerca del borde de la pantalla,
+  **con el dedo quieto no se relee la hora** (`pointerTrack`: si cambió el scroll y no el dedo, se conserva lo
+  que había).
 - La hora se ve en un **trazo de coñac** a esa altura (`TimelineSlot`, `.tl--slot`, encima de la lista: no
   aparta nada) que salta de cuarto en cuarto con una vibración suave, y en **lo que se lleva**, que dice
   su hora nueva en coñac (`.task-overlay.is-timed`): bajo el dedo el trazo no se ve. Un horario vacío
   enseña "Suelta aquí para ponerle hora" (vale la hora de `suggestedStart`: ahora o las 9). Lo hecho no se
   suelta ahí.
 - **Al soltar**, aparece la **tarjeta** (`SlotCard`, una fila más del horario, con su hora en la columna)
-  delante de lo primero que empieza después (`rowAfter`; o del tiempo libre en que cae): la hora elegida,
-  con un cuarto de hora a cada lado y la rueda nativa para afinar (`PickerChip`); y la duración en píldoras
-  (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay algo detrás, "Hasta las 12:00", con `gapAt`). Nada se
-  guarda hasta **Listo**; la × la deja donde estaba; otro día o otro arrastre la cierran. Si cae encima de
-  otra cosa, al confirmar quedan **en paralelo** (ver "Lo que coincide").
+  delante de lo primero que empieza después (`rowAfter`; o del tiempo libre en que cae), y ahí se queda
+  aunque la hora cambie: la hora elegida, grande en serif (tocarla abre la rueda nativa, `PickerChip`); la
+  **cinta de horas** (`HourTape`, `lib/tape.ts`): el día entero en una tira que se arrastra bajo una aguja
+  fija, como la cinta de una cámara, a 48 px por hora (12 por cuarto); el dedo mueve la tira sin pasar por
+  React (el `transform` se escribe en cada movimiento, como en `useSwipe`), la hora bajo la aguja es la
+  elegida, vibra solo al cruzar una hora en punto, tocar un punto lleva esa hora a la aguja, y coge el dedo
+  desde que se apoya (`touch-action: none`, como la regla). En ella, lo ocupado ese día sombreado
+  (`busySpans`, sin lo que se coloca), "ahora" en coñac y la duración elegida como banda de tinta desde la
+  aguja. Y la duración en píldoras (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay algo detrás, "Hasta
+  las 12:00", con `gapAt` leído con la hora de ahora mismo: sigue a la cinta). Nada se guarda hasta
+  **Listo**; la × la deja donde estaba; otro día o otro arrastre la cierran. Si cae encima de otra cosa, al
+  confirmar quedan **en paralelo** (ver "Lo que coincide").
 - **Listo** despacha `task/schedule` (`lib/slot.ts` para la lógica, `reducer.ts` para el cambio): ese día
   (de *Atrasadas* o de un plazo, con su sección), esa hora, esa duración y, como al escribir "a las 5", el
   aviso "a la hora" si no tenía ninguno relativo (`reminderId`, para quitarlo al deshacer). El toast
@@ -771,6 +833,45 @@ soltar.
   `reminder/remove`.
 - Los **eventos del calendario** se sueltan igual (la tarjeta solo pregunta la hora: lo que dura ya está
   decidido). Ver "Calendario del iPhone".
+
+### La cesta
+
+La lista de la compra, aparte de las tareas (lo pidió el usuario el 20/10/2026: "sutil, que no abrume",
+tras mirar cómo lo hacen Bring, AnyList, Listonic y Recordatorios: lo que de verdad usa la gente es
+apuntar rápido, tachar en la tienda, repetir lo de siempre de un toque y que avise al llegar al súper).
+Un **icono de cesta** a la izquierda de la "A" (`.app__basket`, solo en la Bandeja y la Agenda), con la
+cifra de lo que queda por comprar, despliega un **popover** anclado al icono (`BasketPopover`, trozo
+`lazy` precargado con los paneles): deja aire a los lados, se abre desde la esquina del icono (origen del
+`transform`), con un pico y el propio icono repetido encendido dentro de la capa (tocarlo cierra, como el
+velo o Escape); la app de debajo queda `inert` (`acquireModal('popover')`: no pone `has-sheet`, así que el
+toast sigue abajo y no tapa el cierre).
+
+- **Dentro**, de arriba abajo: cabecera (versalitas y cifra en serif cursiva); el campo "Añadir…" (16 px;
+  no se enfoca solo al abrir: lo enfoca el +); las **habituales** (`suggestions`: lo más comprado antes que
+  no está en la lista, por veces y recencia, seis como mucho, píldoras de borde discontinuo con +); lo
+  pendiente, en filas `SwipeRow` (tocar la fila o deslizar a la derecha la compra; a la izquierda la quita,
+  con deshacer); lo comprado plegado en una línea ("En la cesta · 2") con "Vaciar la cesta" dentro; y, solo
+  en el iPhone con lugares ubicados y algo pendiente, el pie **"Avisar al llegar a…"** (píldoras con los
+  lugares y "Sin aviso"). Vacía: "Nada que comprar." Nada de categorías, pasillos ni cantidades aparte.
+- **Escribir** (`lib/shoppingParse.ts`, solo en el trozo de la cesta): "pan, leche y huevos" son tres
+  filas; "2 kg de arroz", "3 manzanas", "media docena de huevos", "2 bottles of water" llevan la cantidad
+  delante (`qty`: "2 kg", "3", "½ docena") y "pan x2", detrás ("×2"). Mayúscula inicial. Lo que ya está
+  pendiente no se duplica (con cantidad, la cambia); lo comprado vuelve a pendiente.
+- **Datos** (`AppState.shopping`, `lib/shopping.ts`, `SCHEMA_VERSION` 17): `items` (200 pendientes como
+  mucho), `history` (nombre → veces y última vez; 60) y `placeId`. Comprar (`shopping/toggle`, con `now`
+  dentro) apunta en el historial; devolver a pendiente no lo borra. Va en la copia y `state/clear` la
+  vacía: es de los datos, no del dispositivo. Borrar el lugar quita `placeId` (y deshacerlo lo devuelve).
+- **Al llegar a la tienda**: `placeAlerts` añade una región `<lugar>:arrive` (la misma clave que si el
+  lugar tuviera tareas: el id no cambia al fundirse) con el cuerpo **fijo** "Lo que queda de la cesta" o,
+  si ese lugar ya avisa al llegar por sus tareas, **va en ese mismo aviso** ("Comprar pilas · y la cesta";
+  `extra.shopping: '1'`, una sola región). El cuerpo no lleva la lista a propósito: cambiaría con cada cosa
+  tachada en la tienda y `PlaceAlerts.sync` (que compara el cuerpo) volvería a registrar la región estando
+  dentro, que puede hacer sonar el aviso otra vez; la lista se ve al tocarlo. Tocarlo abre la cesta
+  (`showBasket` en `App`, pasando a la Agenda si hacía falta) o, con tareas, el panel del lugar con una fila
+  "Cesta · N ›". Cuenta para el tope de 20 regiones; `useNativeSchedule` reprograma al cambiar la cesta
+  (solo cuando pasa de vacía a tener algo, o al revés).
+- Lo comprado **mientras la cesta está abierta** se queda a la vista, tachado, al final de lo pendiente
+  (`openedAt`: se ve el círculo llenarse y un toque de más se arregla con otro); lo de antes se pliega.
 
 ### Lo que coincide
 
@@ -1491,6 +1592,7 @@ toast enseña lo entendido con "Deshacer".
 - `place`: al llegar a un lugar guardado o al salir (solo en la app de iPhone). No tiene
   instante: suena cada vez que se cruza el radio mientras la tarea siga pendiente y su día haya
   llegado (una tarea para mañana no avisa hoy).
+- `here`: al alejarse de donde se estaba al ponerlo (solo iPhone). Ver "Al alejarme de aquí".
 
 Posponer (`task/snooze`) descarta los `at` que ya sonaron y añade uno nuevo. Máximo 20 por
 tarea. Aparte de estos, una tarea con duración tiene su aviso al acabar, que no se guarda:
@@ -1562,8 +1664,56 @@ de las tareas.
   salir** (`place-trigger`), y debajo los lugares; el panel del lugar agrupa *Avisos aquí* en *Al llegar* y
   *Al salir*, con su cifra.
 - **Regiones**: `placeAlerts` hace un aviso por lugar y sentido con todas sus tareas en el
-  cuerpo; iOS vigila como mucho 20, con prioridad para lo de hoy o atrasado. Un aviso con varias
+  cuerpo; iOS vigila como mucho 20, por este orden: lo de "al alejarme" (es ahora; cinco como mucho), lo de
+  hoy o atrasado y la cesta, y los demás lugares (los de más tareas primero). Un aviso con varias
   tareas abre `PlaceTasksSheet`.
+
+### Al alejarme de aquí
+
+"Al moverme recuérdame que llame a Raúl" (lo pidió el usuario el 20/10/2026, con "un radio de 10 m por
+ejemplo"): un aviso que suena al **alejarse de donde se está** al ponerlo, sin lugar guardado.
+
+- **Modelo**: `ReminderDraft` de `kind: 'here'` con `radius` (metros), `from` (el punto, con `accuracy` del
+  GPS si se sabe; `null` mientras no se sabe) y `since` (cuándo se pidió). Uno por tarea (`sameReminder`).
+  `HERE_RADII` = 25, 50, 100, 200, 500, **100 por defecto**: iOS vigila las regiones con posicionamiento
+  de baja potencia y por debajo de unos 100 m avisa tarde o no avisa, así que no se ofrecen 10 m (una opción
+  que no suena es peor que no tenerla); 25 es el suelo y **la región que se registra crece con el error del
+  GPS** (`max(radio, accuracy)`: si no, iOS podría dar el punto por fuera del círculo desde el principio).
+  La píldora sigue diciendo el radio elegido ("Al alejarme 100 m" · "Once I’m 100 m away").
+- **Cómo nace**: escribiendo o dictando ("al moverme", "cuando me mueva", "en cuanto me mueva de aquí", "al
+  alejarme", "cuando me aleje", "cuando me vaya / al salir / al irme de aquí (o de donde estoy)", con un radio
+  opcional: "más de 30 metros"; en inglés "when I move", "once I move away", "when I leave here", "when I head
+  out", "more than 50 meters"), que se lee **antes** que los lugares (`herePhraseRegexEs`, `RE_HERE`): "cuando
+  me vaya de casa" y "cuando me aleje de casa" siguen siendo el lugar Casa (moverse o alejarse "de" algo
+  que no sea aquí no cuenta; `alejarme` está también en `LEAVE`), "move away from the office" o "move house"
+  tampoco (las colas van en el lookahead de `HERE_EN`), y "aquí"/"here" están en `STOP` para no ser nunca un
+  lugar nuevo. El tramo se lleva el conector que siga ("al salir de aquí **que** llame a Raúl" → "Llamar a
+  Raúl"). La IA del dictado no lo sabe: `draftsFromInterpreted` lo añade si el analizador local lo encuentra
+  en lo dicho (y usa el título del móvil solo si el de la IA aún lleva la frase: `hasHerePhrase`; "Mover el
+  coche" se respeta); con varias tareas, un "lugar" llamado aquí al salir es este aviso. En el panel de la tarea y en la ficha: con el interruptor
+  en *Al salir*, la primera píldora de la fila de lugares es **Aquí** (`IconHere`); añadido, su píldora tiene
+  cuerpo tocable (`chip__body`, un botón junto a la ×, no dentro) que abre la fila de radios
+  (`reminder/here` cambia el radio en el sitio: nunca el id ni el punto). En la PWA no existe
+  (`places === null`: la frase se queda literal y la barra lleva a Lugares). Ejemplo en la barra vacía:
+  "Llamar a Raúl al moverme".
+- **El punto** lo fija `HereLocatorProvider` (en `App`, solo iPhone) con `TasksNative.currentPosition` (pide
+  el permiso "mientras se usa" si no lo hay): solo si se pidió hace menos de `HERE_PIN_WINDOW_MS` (15 min);
+  mientras, la píldora dice "· ubicando…" sin atenuarse (en la ficha del compositor, donde la tarea aún no
+  existe, "· al añadir"). Fijar el punto **reinicia `since`** (`reminder/here` lleva `now`): el día de vida
+  cuenta desde que se sabe dónde se está, no desde que se dictó. Lo que viene de Siri con la app cerrada
+  (nace sin punto; Siri dice "Abre Tasks para fijar dónde estás") y se abre pasado un rato **no se fija en
+  silencio**: un toast pregunta ("¿avisarte al alejarte de aquí?" · Sí), porque "aquí" ya puede ser otro
+  sitio; se pregunta una vez por aviso y dispositivo (`tasks:here-offered`) y de uno en uno (dos toasts se
+  pisan). Si no hay posición: toast con "Reintentar" (o "Abrir Ajustes" con el permiso negado) y en el panel
+  "Fijar dónde estoy" (`sheet__hint`). Sin punto, `reminderIssue` es `no-place` ("sin ubicar"); caducado,
+  `past`; fuera del iPhone, `phone-only`.
+- **La región** (`hereAlerts` en `places.ts`): `key`/`placeId` `here:<aviso>`, `on: 'leave'`, una por aviso
+  ubicado y vivo, con su tarea (categoría `task`: "Hecha" funciona sin abrir la app, como cualquier aviso de
+  lugar), cuerpo "Te has alejado 100 m". Da igual para qué día sea la tarea (alejarse es ahora). **Caduca
+  al día** (`HERE_TTL_MS`: pasado, deja de vigilarse) y **tocar el aviso lo consume** (`useNotificationActions`
+  quita el aviso de la tarea): las regiones de iOS se repiten, y sin esto sonaría cada vez que se saliera de
+  casa mientras la tarea siguiera pendiente. En las filas cuenta como salir (`placeTriggerOf` → `leave`).
+  Nada sale del iPhone: el punto va al fichero de estado y a la copia, no al Worker.
 
 ### App de iPhone
 
@@ -1861,6 +2011,11 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
   marfil sigue siendo la cara de la app (icono, capturas).
 - Cuatro pestañas y ninguna más (Bandeja, Agenda, Lugares, Ajustes). Lo que no es de primer nivel
   va en paneles.
+- La cesta es la única lista aparte de las tareas: sin fecha, sin secciones, sin categorías ni
+  pasillos, en el dispositivo como todo lo demás. No es un sitio al que vayan las tareas ("comprar pan"
+  escrito en la barra sigue siendo una tarea).
+- "Al alejarme" no es un lugar: es un aviso de la tarea con su propio punto, que caduca al día y se
+  consume al tocarlo. Los radios empiezan en 25 m y la región crece con el error del GPS: iOS no da más.
 
 ## Despliegue
 

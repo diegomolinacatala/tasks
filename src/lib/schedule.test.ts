@@ -29,6 +29,7 @@ const stateOf = (tasks: Task[], digest = { enabled: false, time: '08:30' }): App
   sections: [{ id: 's1', name: 'Trabajo', order: 0, collapsed: false }],
   places: [],
   routines: [],
+  shopping: { items: [], history: [], placeId: null },
   collapsed: { overdue: false, backlog: false, routines: false },
   settings: { digest, calendar: { enabled: false, hidden: [], export: null, done: [] }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 })

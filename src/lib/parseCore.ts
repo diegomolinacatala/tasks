@@ -5,9 +5,9 @@ import type { NormalizedText } from './normalize'
 import { originalSpan } from './normalize'
 import type { DayRange } from './period'
 import { periodLabel } from './period'
-import type { PlacePhrase } from './placePhrase'
+import type { HerePhrase, PlacePhrase } from './placePhrase'
 import { placeTriggerLabel } from './places'
-import { reminderLabel } from './reminders'
+import { DEFAULT_HERE_RADIUS, clampHereRadius, reminderLabel } from './reminders'
 import type { Span } from './title'
 import { capitalize } from './title'
 
@@ -111,6 +111,8 @@ export const literal = (input: string): ParsedTask => ({
 /** Lo que un analizador ha reconocido en la frase, ya resuelto a fechas, horas y minutos. */
 export interface Extracted {
   placePhrase: PlacePhrase | null
+  /** "Al moverme", "cuando me aleje 100 metros": al alejarse de donde se está. */
+  here: HerePhrase | null
   /** Avisos que no dependen del día de la tarea ("en 30 min", "10 minutos antes"). */
   explicit: ReminderDraft[]
   pending: PendingAt[]
@@ -174,7 +176,11 @@ export function assemble(
   const placeReminders: ReminderDraft[] = placePhrase?.place
     ? [{ kind: 'place', placeId: placePhrase.place.id, on: placePhrase.on }]
     : []
-  const reminders: ReminderDraft[] = [...explicit, ...atReminders, ...placeReminders]
+  // Dónde se está se sabe al crear la tarea, no al escribirla: nace sin punto, con la hora en que se pidió.
+  const hereReminders: ReminderDraft[] = found.here
+    ? [{ kind: 'here', radius: found.here.radius === null ? DEFAULT_HERE_RADIUS : clampHereRadius(found.here.radius), from: null, since: now }]
+    : []
+  const reminders: ReminderDraft[] = [...explicit, ...atReminders, ...placeReminders, ...hereReminders]
   const isDefault = time !== null && reminders.length === 0 && !placePhrase
   // Con hora y sin avisos pedidos, se avisa a la hora.
   if (isDefault) reminders.push({ kind: 'before', minutes: 0 })

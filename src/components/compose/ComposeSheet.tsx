@@ -7,6 +7,7 @@ import {
   addDetailReminder,
   draftTask,
   removeDetailReminder,
+  setDetailHereRadius,
   withDate,
   withDuration,
   withImportance,
@@ -203,6 +204,7 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
             task={draftTask(view, shown.title)}
             onAdd={(reminder) => change(addDetailReminder(view, reminder, createId()))}
             onRemove={(id) => change(removeDetailReminder(view, id))}
+            onHereRadius={(id, radius) => change(setDetailHereRadius(view, id, radius))}
             leading={
               view.newPlace && (
                 <button

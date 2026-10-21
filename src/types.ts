@@ -17,6 +17,20 @@ export type ReminderDraft =
   | { kind: 'at'; at: number }
   | { kind: 'before'; minutes: number }
   | { kind: 'place'; placeId: string; on: PlaceTrigger }
+  /**
+   * `here`: al alejarse `radius` metros de donde se estaba al ponerlo ("al moverme recuérdame…"), solo en
+   * la app de iPhone. `from` es ese punto; `null` mientras no se sabe (el aviso no suena hasta saberlo).
+   * `since`: cuándo se pidió (epoch ms): el punto solo se fija en los minutos siguientes y el aviso caduca
+   * en un día (`lib/places.ts`).
+   */
+  | { kind: 'here'; radius: number; from: HerePoint | null; since: number }
+
+/** Dónde se estaba al poner un aviso "al alejarme"; `accuracy`, los metros de error del GPS, si se saben. */
+export interface HerePoint {
+  lat: number
+  lng: number
+  accuracy?: number
+}
 
 export type Reminder = ReminderDraft & { id: string }
 
@@ -119,6 +133,34 @@ export interface Routine {
   createdAt: number
 }
 
+/** Una cosa de la cesta (`lib/shopping.ts`): lo que hay que comprar, aparte de las tareas. */
+export interface ShoppingItem {
+  id: string
+  name: string
+  /** `2 kg`, `×3`, `½ docena`; `null` sin cantidad. */
+  qty: string | null
+  /** Comprada: va abajo, tachada, hasta que se vacía la cesta. */
+  done: boolean
+  order: number
+  createdAt: number
+  doneAt: number | null
+}
+
+/** Lo que se ha comprado otras veces: de aquí salen las habituales. */
+export interface ShoppingMemory {
+  name: string
+  count: number
+  /** Última vez que se compró (epoch ms). */
+  at: number
+}
+
+export interface ShoppingState {
+  items: ShoppingItem[]
+  history: ShoppingMemory[]
+  /** Lugar guardado al que, al llegar, avisa con lo pendiente de la cesta; `null` = sin aviso. */
+  placeId: string | null
+}
+
 /** Bloques que se pueden plegar. */
 export type BlockId = 'overdue' | 'backlog' | 'routines'
 
@@ -186,6 +228,8 @@ export interface AppState {
   sections: Section[]
   places: Place[]
   routines: Routine[]
+  /** La cesta: la lista de la compra (`lib/shopping.ts`). */
+  shopping: ShoppingState
   collapsed: Record<BlockId, boolean>
   settings: Settings
 }

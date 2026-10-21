@@ -5,7 +5,7 @@ import type { ParsedTask, PendingAt } from './parseCore'
 import { Scanner, assemble, durationMinutes, groupCount, readOffset, word } from './parseCore'
 import type { DayRange } from './period'
 import { between, dayOnOrAfter, nextWeek, onOrAfter, thisMonth, thisWeek, weekendOf } from './period'
-import { readPlacePhrase, savedNames } from './placePhrase'
+import { readHerePhrase, readPlacePhrase, savedNames } from './placePhrase'
 import type { Span, TitleRules } from './title'
 import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
 import { resolveDay, resolveDayOfMonth } from './when'
@@ -132,7 +132,21 @@ function adjectiveDuration([, number, unit, spaced, spacedUnit, hourLong]: Group
 
 /** Palabras que no pueden abrir ni continuar un nombre de lugar sin guardar. */
 const STOP =
-  '(?:to|that|and|at|for|by|with|on|in|before|after|today|tomorrow|tonight|the|my|a|an|remind|me|i|so|then|from|of|is|it|please)(?![a-z0-9])'
+  '(?:to|that|and|at|for|by|with|on|in|before|after|today|tomorrow|tonight|the|my|a|an|remind|me|i|so|then|from|of|is|it|please|here)(?![a-z0-9])'
+
+/** "when I move", "once I move away", "when I leave here", "when I head out": de donde se está, sin lugar guardado. */
+const HERE_EN =
+  "(?:(?:move(?: away| on| off)?|start moving|get moving|get going|head out|walk away|go away|wander off|am on the move|'m on the move)(?: from here)?" +
+  // "head out of the office", "move to Madrid", "move away from the office", "move house": eso va con un
+  // sitio (o es una mudanza), no es "de aquí". Las colas opcionales van también aquí: si el motor
+  // retrocede a "move" a secas, no puede colarse con " away from…".
+  '(?! (?:away|on|off|out|house|home|of|to|into|in|at|from|the|my|a|an)(?![a-z0-9]))' +
+  '|leave (?:here|this place|this spot)|get away from here)'
+/** "more than 20 meters", "about 100 m". */
+const HERE_RADIUS_EN = '(?: (?:more than |over |about |by |some )?(\\d+) ?(?:m|meters?|metres?)(?![a-z0-9]))?'
+
+/** Expresión de "when I move": el radio, si se dice, va en el primer grupo (`readHerePhrase`). */
+const RE_HERE = new RegExp(`(?<![a-z0-9])(?:${REMIND_VERB} )?(?:when|once|as soon as|whenever|after|if) (?:i |i'm |i am )?${HERE_EN}${HERE_RADIUS_EN}`, 'g')
 const GENERIC = `(?!${STOP})[a-z0-9]+(?: (?!${STOP})[a-z0-9]+){0,3}`
 /** Tras el lugar: "…Walmart to buy milk". */
 const CONNECTOR = /^ (?:and )?to(?= [a-z])/
@@ -251,6 +265,14 @@ export function parseTaskEn(input: string, now: number, places: readonly Place[]
 
   // El lugar va primero: se lleva la petición que lo acompaña ("remind me when I get to…").
   const known = places ?? []
+  // "When I leave here" no es un lugar llamado Here: se mira antes que los lugares.
+  const here =
+    places === null
+      ? null
+      : scanner.firstSized(RE_HERE, (match) => {
+          const phrase = readHerePhrase(match, scanner.normalized, CONNECTOR)
+          return { value: phrase, length: phrase.length }
+        })
   const placePhrase =
     places === null
       ? null
@@ -334,7 +356,7 @@ export function parseTaskEn(input: string, now: number, places: readonly Place[]
   const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
   const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
-  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
+  const found = { placePhrase, here, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
   return assemble(input, now, scanner, found, cleanTitleEn, known)
 }
 

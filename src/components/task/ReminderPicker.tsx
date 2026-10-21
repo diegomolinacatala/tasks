@@ -2,14 +2,16 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { isoOfInstant, timeOfInstant, toInstant } from '../../lib/date'
 import { isNative } from '../../lib/platform'
-import { MAX_REMINDERS, isPending, reminderIssue, reminderLabel, reminderPresets } from '../../lib/reminders'
+import { DEFAULT_HERE_RADIUS, HERE_RADII, MAX_REMINDERS, isPending, reminderIssue, reminderLabel, reminderPresets } from '../../lib/reminders'
 import type { ReminderIssue } from '../../lib/reminders'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState } from '../../state/StoreProvider'
 import type { PlaceTrigger, Reminder, ReminderDraft, Task } from '../../types'
+import { hereAlive } from '../../lib/places'
+import { useHereLocator } from '../places/HereLocator'
 import { usePlaceEditor } from '../places/PlaceEditor'
 import { usePush } from '../push/PushProvider'
-import { IconArrive, IconBell, IconClose, IconLeave, IconPin, IconPlace } from '../ui/Icons'
+import { IconArrive, IconBell, IconClose, IconHere, IconLeave, IconLocate, IconPin, IconPlace } from '../ui/Icons'
 import { PickerChip } from '../ui/PickerChip'
 import { useToast } from '../ui/Toast'
 
@@ -18,6 +20,8 @@ interface ReminderPickerProps {
   task: Task
   onAdd: (reminder: ReminderDraft) => void
   onRemove: (reminderId: string) => void
+  /** Cambiar el radio de un aviso "al alejarme" (el aviso sigue siendo el mismo). */
+  onHereRadius?: (reminderId: string, radius: number) => void
   /** Delante de los avisos (en la ficha del compositor, el lugar nuevo que se nombró). */
   leading?: ReactNode
 }
@@ -40,6 +44,12 @@ const COPY = {
     otherPlace: 'Otro lugar…',
     place: 'Lugar…',
     where: (name: string) => `Elegir dónde está ${name}`,
+    here: 'Aquí',
+    hereRadius: 'Avisar al alejarme',
+    radius: (meters: number) => `${meters} m`,
+    pinHere: 'Fijar dónde estoy',
+    locating: 'ubicando…',
+    onAdd: 'al añadir',
     issue: { 'no-time': 'sin hora', past: 'pasado', 'no-place': 'sin ubicar', 'phone-only': 'solo en el iPhone' },
     enable: 'Activar avisos en este dispositivo',
     install: 'Para recibir avisos, añade la app a la pantalla de inicio.',
@@ -63,6 +73,12 @@ const COPY = {
     otherPlace: 'Other place…',
     place: 'Place…',
     where: (name: string) => `Choose where ${name} is`,
+    here: 'Here',
+    hereRadius: 'Remind me once I’m away',
+    radius: (meters: number) => `${meters} m`,
+    pinHere: 'Pin where I am',
+    locating: 'locating…',
+    onAdd: 'when added',
     issue: { 'no-time': 'no time', past: 'past', 'no-place': 'no location', 'phone-only': 'iPhone only' },
     enable: 'Turn on reminders on this device',
     install: 'To get reminders, add the app to your Home Screen.',
@@ -84,16 +100,22 @@ const localDateTime = (at: number) => `${isoOfInstant(at)}T${timeOfInstant(at)}`
  * aviso) y, en los de fecha, el cuerpo abre el selector para cambiarlo. Uno que no va a sonar dice por
  * qué ("· sin hora", "· pasado"). "+ Añadir" despliega los atajos y pasa a "Listo".
  */
-export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPickerProps) {
-  const { places } = useAppState()
+export function ReminderPicker({ task, onAdd, onRemove, onHereRadius, leading }: ReminderPickerProps) {
+  const { places, tasks } = useAppState()
   const openPlace = usePlaceEditor()
+  const { locating, locate } = useHereLocator()
   const toast = useToast()
   const copy = useCopy(COPY)
   const [adding, setAdding] = useState(false)
   const [trigger, setTrigger] = useState<PlaceTrigger>('arrive')
+  // La fila de radios del aviso "al alejarme": se abre al añadirlo y al tocar su píldora.
+  const [radiusOpen, setRadiusOpen] = useState(false)
   const now = Date.now()
   const full = task.reminders.length >= MAX_REMINDERS
   const presets = adding && !full ? reminderPresets(task, now) : []
+  const here = task.reminders.find((reminder) => reminder.kind === 'here')
+  // Solo una tarea que existe puede fijar su punto (en la ficha del compositor aún no existe).
+  const saved = tasks.some((item) => item.id === task.id)
 
   const parseLocal = (value: string): number | null => {
     const match = LOCAL_DATETIME.exec(value)
@@ -132,6 +154,13 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
     setAdding(false)
   }
 
+  /** "Aquí": al alejarse de donde se está. El punto lo fija la app en cuanto puede (`HereLocator`). */
+  const addHere = () => {
+    onAdd({ kind: 'here', radius: DEFAULT_HERE_RADIUS, from: null, since: Date.now() })
+    setAdding(false)
+    setRadiusOpen(true)
+  }
+
   const usedPlaces = new Set(
     task.reminders.flatMap((reminder) => (reminder.kind === 'place' && reminder.on === trigger ? [reminder.placeId] : [])),
   )
@@ -141,7 +170,9 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
   const isActive = (reminder: Reminder) =>
     reminder.kind === 'place'
       ? isNative && !task.done && Boolean(places.find((place) => place.id === reminder.placeId)?.location)
-      : isPending(task, reminder, now)
+      : reminder.kind === 'here'
+        ? isNative && !task.done && reminder.from !== null && hereAlive(reminder.since, now)
+        : isPending(task, reminder, now)
 
   const unset = places.filter(
     (place) => !place.location && task.reminders.some((reminder) => reminder.kind === 'place' && reminder.placeId === place.id),
@@ -150,12 +181,19 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
   const chip = (reminder: Reminder) => {
     const label = reminderLabel(reminder, now, places)
     const active = isActive(reminder)
-    const issue: ReminderIssue | null = active ? null : reminderIssue(task, reminder, now, places, isNative)
-    const className = `chip chip--reminder ${active ? '' : 'is-muted'}`
+    // Mientras se pide la posición de un "al alejarme" no está fallando: se dice y no se atenúa. Y en la
+    // ficha del compositor la tarea aún no existe: el punto se fija al añadirla.
+    const locatingNow = reminder.kind === 'here' && locating.has(reminder.id)
+    const pendingPin = reminder.kind === 'here' && reminder.from === null && isNative && !saved
+    const live = active || locatingNow || pendingPin
+    const issue: ReminderIssue | null = live ? null : reminderIssue(task, reminder, now, places, isNative)
+    const className = `chip chip--reminder ${live ? '' : 'is-muted'}`
     const body = (
       <>
-        {reminder.kind === 'place' ? <IconPlace on={reminder.on} size={13} /> : <IconBell size={13} />}
+        {reminder.kind === 'place' ? <IconPlace on={reminder.on} size={13} /> : reminder.kind === 'here' ? <IconHere size={13} /> : <IconBell size={13} />}
         {label}
+        {locatingNow && <span className="chip__why">· {copy.locating}</span>}
+        {pendingPin && !locatingNow && <span className="chip__why">· {copy.onAdd}</span>}
         {issue && <span className="chip__why">· {copy.issue[issue]}</span>}
       </>
     )
@@ -187,6 +225,17 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
           {body}
           {clear}
         </PickerChip>
+      )
+    }
+    // "Al alejarme": su cuerpo abre la fila de radios (un botón junto a la ×, no uno dentro de otro).
+    if (reminder.kind === 'here' && !task.done) {
+      return (
+        <span key={reminder.id} className={`${className} chip--here`}>
+          <button type="button" className="chip__body" aria-expanded={radiusOpen} aria-label={copy.change(label)} onClick={() => setRadiusOpen((open) => !open)}>
+            {body}
+          </button>
+          {clear}
+        </span>
       )
     }
     return (
@@ -238,6 +287,31 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
       </div>
       {full && !task.done && <p className="sheet__note">{copy.full}</p>}
 
+      {/* El radio del aviso "al alejarme": una fila de píldoras, la elegida en marino. */}
+      {here && radiusOpen && !task.done && (
+        <div className="sheet__chips sheet__chips--places" role="radiogroup" aria-label={copy.hereRadius}>
+          {HERE_RADII.map((radius) => (
+            <button
+              key={radius}
+              type="button"
+              role="radio"
+              aria-checked={radius === here.radius}
+              className={`chip ${radius === here.radius ? 'is-active' : ''}`}
+              onClick={() => onHereRadius?.(here.id, radius)}
+            >
+              {copy.radius(radius)}
+            </button>
+          ))}
+        </div>
+      )}
+      {/* Sin punto (no se pudo, o vino de Siri hace rato): se fija a mano. */}
+      {here && !here.from && isNative && saved && !task.done && !locating.has(here.id) && (
+        <button type="button" className="sheet__hint" onClick={() => locate(task.id, here.id)}>
+          <IconLocate size={14} />
+          {copy.pinHere}
+        </button>
+      )}
+
       {/* Por lugar: primero cuándo (al llegar o al salir), después dónde. Solo en el iPhone. */}
       {adding && !full && isNative && (
         <div className="place-trigger">
@@ -261,6 +335,13 @@ export function ReminderPicker({ task, onAdd, onRemove, leading }: ReminderPicke
       )}
       {adding && !full && isNative && (
         <div className="sheet__chips sheet__chips--places">
+          {/* Al salir de donde se está ahora mismo, sin lugar guardado. Uno por tarea. */}
+          {trigger === 'leave' && !here && (
+            <button type="button" className="chip chip--option" aria-label={reminderLabel({ kind: 'here', radius: DEFAULT_HERE_RADIUS, from: null, since: 0 }, now)} onClick={addHere}>
+              <IconHere size={13} />
+              {copy.here}
+            </button>
+          )}
           {placeOptions.map((place) => (
             <button
               key={place.id}

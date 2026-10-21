@@ -1,9 +1,34 @@
-import type { Place, Reminder, ReminderDraft, Task } from '../types'
+import type { HerePoint, Place, Reminder, ReminderDraft, Task } from '../types'
 import { addDays, isoOfInstant, relativeLabel, shortTime, timeOfInstant, toInstant } from './date'
 import { language, pick } from './i18n'
-import { placeReminderLabel } from './places'
+import { hereAlive, placeReminderLabel } from './places'
 
 export const MAX_REMINDERS = 20
+/**
+ * Radios que se ofrecen para "al alejarme". iOS vigila las regiones con posicionamiento de baja
+ * potencia: por debajo de unos 100 m avisa tarde o no avisa, así que 25 m es el suelo (el usuario pidió
+ * radios pequeños) y la región que se registra crece con el error del GPS (`placeAlerts`).
+ */
+export const HERE_RADII: readonly number[] = [25, 50, 100, 200, 500]
+export const DEFAULT_HERE_RADIUS = 100
+export const MIN_HERE_RADIUS = 25
+export const MAX_HERE_RADIUS = 1000
+/** Siri con la app cerrada no sabe dónde estás: el punto se fija al abrir la app, pero solo si es enseguida. */
+export const HERE_PIN_WINDOW_MS = 15 * 60_000
+
+export const clampHereRadius = (radius: number): number => Math.min(MAX_HERE_RADIUS, Math.max(MIN_HERE_RADIUS, Math.round(radius)))
+
+/** Un punto saneado desde datos externos; `null` si no es un punto. */
+export function normalizeHerePoint(raw: unknown): HerePoint | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const { lat, lng, accuracy } = raw as Record<string, unknown>
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
+  return typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy >= 0 ? { lat, lng, accuracy: Math.round(accuracy) } : { lat, lng }
+}
+
+/** `Al alejarme 50 m` · `Once I’m 50 m away`. */
+export const hereLabel = (radius: number): string => (language() === 'en' ? `Once I’m ${radius} m away` : `Al alejarme ${radius} m`)
 /** Tope de avisos que se suben al servidor de una vez. */
 export const MAX_SCHEDULE = 200
 /** `before` admite hasta 30 días de antelación. */
@@ -23,20 +48,22 @@ export function taskInstant(task: Task): number | null {
 /** Cuándo suena un recordatorio. `null` = sin instante (un `before` sin fecha u hora, o un lugar). */
 export function resolveAt(task: Task, reminder: ReminderDraft): number | null {
   if (reminder.kind === 'at') return reminder.at
-  if (reminder.kind === 'place') return null
+  if (reminder.kind === 'place' || reminder.kind === 'here') return null
   const base = taskInstant(task)
   return base === null ? null : base - reminder.minutes * MINUTE
 }
 
+/** Una tarea solo lleva un "al alejarme": da igual el radio. */
 export function sameReminder(a: ReminderDraft, b: ReminderDraft): boolean {
   if (a.kind === 'at') return b.kind === 'at' && a.at === b.at
   if (a.kind === 'place') return b.kind === 'place' && a.placeId === b.placeId && a.on === b.on
+  if (a.kind === 'here') return b.kind === 'here'
   return b.kind === 'before' && a.minutes === b.minutes
 }
 
 export const isPending = (task: Task, reminder: ReminderDraft, now: number): boolean => {
   if (task.done) return false
-  if (reminder.kind === 'place') return true
+  if (reminder.kind === 'place' || reminder.kind === 'here') return true
   const at = resolveAt(task, reminder)
   return at !== null && at > now
 }
@@ -58,6 +85,11 @@ export function reminderIssue(
   if (reminder.kind === 'place') {
     if (!native) return 'phone-only'
     return places.find((place) => place.id === reminder.placeId)?.location ? null : 'no-place'
+  }
+  if (reminder.kind === 'here') {
+    if (!native) return 'phone-only'
+    if (!reminder.from) return 'no-place'
+    return hereAlive(reminder.since, now) ? null : 'past'
   }
   if (reminder.kind === 'before' && taskInstant(task) === null) return 'no-time'
   const at = resolveAt(task, reminder)
@@ -108,6 +140,7 @@ const WORDS = {
 export function reminderLabel(reminder: ReminderDraft, now: number, places: readonly Place[] = []): string {
   if (reminder.kind === 'before') return beforeLabel(reminder.minutes)
   if (reminder.kind === 'place') return placeReminderLabel(reminder, places)
+  if (reminder.kind === 'here') return hereLabel(reminder.radius)
   return `${relativeLabel(isoOfInstant(reminder.at), isoOfInstant(now))} ${shortTime(timeOfInstant(reminder.at))}`
 }
 
@@ -186,6 +219,10 @@ export function normalizeReminder(raw: unknown): Reminder | null {
   }
   if (value.kind === 'place' && typeof value.placeId === 'string' && value.placeId && (value.on === 'arrive' || value.on === 'leave')) {
     return { id: value.id, kind: 'place', placeId: value.placeId, on: value.on }
+  }
+  if (value.kind === 'here' && typeof value.radius === 'number' && Number.isFinite(value.radius)) {
+    const since = typeof value.since === 'number' && Number.isFinite(value.since) && value.since > 0 ? Math.round(value.since) : 0
+    return { id: value.id, kind: 'here', radius: clampHereRadius(value.radius), from: normalizeHerePoint(value.from), since }
   }
   return null
 }

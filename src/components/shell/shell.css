@@ -76,6 +76,60 @@
   }
 }
 
+/* La cesta, a la izquierda de la "A": el mismo botón, con la cifra de lo que queda por comprar */
+.app__basket {
+  position: absolute;
+  top: calc(var(--safe-t) + 14px);
+  right: 54px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.app__basket:active,
+.app__basket[aria-expanded='true'] {
+  color: var(--on-primary);
+  background: var(--primary);
+  transform: scale(0.92);
+}
+
+.app__basket[aria-expanded='true'] {
+  transform: none;
+}
+
+/* Abierta, el clon del popover ocupa su sitio exacto: el de verdad se esconde para no verse doble */
+.app.has-basket .app__basket {
+  visibility: hidden;
+}
+
+/* La cifra: una pastilla de coñac en la esquina del icono */
+.app__basket-count {
+  position: absolute;
+  top: 5px;
+  right: 3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--on-primary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.is-entering .app__basket {
+  animation: app-fade var(--dur-3) var(--ease) 260ms both;
+}
+
 /* Modo "Aa" (importancia), arriba a la derecha en la Bandeja y la Agenda */
 .app__sizing {
   position: absolute;

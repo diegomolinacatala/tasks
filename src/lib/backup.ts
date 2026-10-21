@@ -8,6 +8,7 @@ import { normalizeImportance } from './importance'
 import { cleanUntil } from './period'
 import { MAX_PLACES, cleanAliases, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
+import { normalizeShopping } from './shopping'
 import { isLanguageSetting, pick } from './i18n'
 import { normalizeWelcome } from './welcome'
 
@@ -155,6 +156,8 @@ export function normalizeState(raw: unknown): AppState | null {
     sections,
     places,
     routines: normalizeRoutines(candidate.routines),
+    // Las copias anteriores a la cesta no la traen: vacía.
+    shopping: normalizeShopping(candidate.shopping, knownPlaces),
     collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true, routines: collapsed.routines === true },
     settings: normalizeSettings(candidate.settings),
   }

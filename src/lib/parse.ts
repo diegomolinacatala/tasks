@@ -7,7 +7,7 @@ import { Scanner, assemble, durationMinutes, literal, readOffset, word } from '.
 import type * as EnglishParser from './parseEn'
 import type { DayRange } from './period'
 import { between, dayOnOrAfter, isWeekend, nextWeek, onOrAfter, thisMonth, thisWeek, weekendOf } from './period'
-import { placePhraseRegex, readPlacePhrase } from './placePhrase'
+import { herePhraseRegexEs, placePhraseRegex, readHerePhrase, readPlacePhrase } from './placePhrase'
 import { capitalize, cleanTitle, isRequestQuestion, unwrapQuestion } from './title'
 import {
   AMOUNT_SOURCE,
@@ -45,6 +45,9 @@ export function provideEnglish(parser: typeof EnglishParser): void {
 export const hasEnglish = (): boolean => english !== null
 
 export const loadEnglish = (): Promise<void> => (english ? Promise.resolve() : import('./parseEn').then(provideEnglish))
+
+/** Si un texto (el título que devuelve la IA) aún lleva la frase de "al moverme": no la entendió como aviso. */
+export const hasHerePhrase = (text: string): boolean => herePhraseRegexEs(REMIND_VERB).test(normalizeText(text).text)
 
 /** Una frase con un poco de todo: al analizarla, el motor compila sus expresiones. */
 const WARM_UP = { es: 'llamar a Ana mañana a las 5 durante una hora y recuérdamelo 10 minutos antes', en: 'call Ana tomorrow at 5pm for an hour and remind me 10 minutes before' }
@@ -186,8 +189,16 @@ function parseTaskEs(input: string, now: number, places: readonly Place[] | null
   const nextWeekday = (name: string) => addDays(today, (WEEKDAYS.indexOf(name) - new Date(now).getDay() + 7) % 7 || 7)
   const dayWord = (value: string) => addDays(today, value === 'hoy' ? 0 : value === 'manana' ? 1 : 2)
 
-  // El lugar va primero: se lleva la petición que lo acompaña ("recuérdame al pasar por…").
+  // "Al moverme" va antes que los lugares: "cuando me vaya de aquí" no es un lugar llamado Aquí. Y el
+  // lugar, antes que lo demás: se lleva la petición que lo acompaña ("recuérdame al pasar por…").
   const known = places ?? []
+  const here =
+    places === null
+      ? null
+      : scanner.firstSized(herePhraseRegexEs(REMIND_VERB), (match) => {
+          const phrase = readHerePhrase(match, scanner.normalized)
+          return { value: phrase, length: phrase.length }
+        })
   const placePhrase =
     places === null
       ? null
@@ -274,7 +285,7 @@ function parseTaskEs(input: string, now: number, places: readonly Place[] | null
   const namedDay = scanner.first(RE_DAY_WORD, ([value = '']) => dayWord(value))
   const weekday = scanner.first(RE_WEEKDAY, ([, name = '']) => nextWeekday(name))
 
-  const found = { placePhrase, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
+  const found = { placePhrase, here, explicit, pending, offsetDate: offset.date, span, until, duration, date, period, part, time, namedDay, weekday }
   return assemble(input, now, scanner, found, cleanTitle, known)
 }
 

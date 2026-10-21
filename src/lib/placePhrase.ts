@@ -6,11 +6,45 @@ import { findPlace, matchPlace, placeKeys } from './places'
 
 /** "al llegar a", "cuando pase por", "nada más llegar a", "cuando esté en", "cuando vuelva a casa". */
 const ARRIVE = 'llegar|llegue|llego|pasar|pase|paso|estar|este|ir|vaya|entrar|entre|volver|vuelva|vuelvo|regresar|regrese|regreso'
-/** "al salir de", "cuando salga del", "cuando me vaya de", "al irme del", "al marcharme de". */
-const LEAVE = 'salir|salga|salgo|irme|me vaya|me voy|marcharme|me marche|me marcho|salgamos|irnos|nos vayamos'
+/** "al salir de", "cuando salga del", "cuando me vaya de", "al irme del", "al marcharme de", "cuando me aleje de". */
+const LEAVE = 'salir|salga|salgo|irme|me vaya|me voy|marcharme|me marche|me marcho|salgamos|irnos|nos vayamos|alejarme|me aleje|me alejo'
 /** Palabras que no pueden abrir ni continuar un nombre de lugar sin guardar. */
 const STOP =
-  '(?:de|del|que|para|y|a|al|por|con|en|antes|despues|hoy|manana|la|el|los|las|mi|recuerdame|avisame|recordar|avisar)(?![a-z0-9])'
+  '(?:de|del|que|para|y|a|al|por|con|en|antes|despues|hoy|manana|la|el|los|las|mi|recuerdame|avisame|recordar|avisar|aqui|aca)(?![a-z0-9])'
+
+/**
+ * "Al moverme", "cuando me aleje", "al alejarme de aquí": de donde se está, sin lugar guardado. Irse,
+ * marcharse o salir solo cuentan "de aquí" ("cuando me vaya de casa" es el lugar Casa), y moverse o
+ * alejarse "de" otro sitio ("cuando me aleje de casa") tampoco es esto.
+ */
+const HERE_ES =
+  // Un "de" detrás es un sitio ("de casa"), salvo "de que" ("al moverme de que apague la luz": conector).
+  '(?:(?:me mueva|me muevo|moverme|me aleje|me alejo|alejarme)(?: de (?:aqui|aca|donde estoy))?(?! (?:del|de(?! que(?![a-z0-9])))(?![a-z0-9]))' +
+  '|(?:me vaya|me voy|irme|me marche|me marcho|marcharme|salga|salgo|salir) de (?:aqui|aca|donde estoy))'
+/** "más de 20 metros", "unos 100 m": el radio dicho. */
+const HERE_RADIUS_ES = '(?: (?:mas de |unos |al menos |a )?(\\d+) ?(?:m|metros?)(?![a-z0-9]))?'
+
+export interface HerePhrase {
+  /** Metros dichos; `null` si no se dijo radio. */
+  radius: number | null
+  /** Longitud del tramo reconocido en el texto normalizado. */
+  length: number
+}
+
+/** Expresión de "al moverme" en español. `remindVerb`: la petición opcional delante, que forma parte del tramo. */
+export const herePhraseRegexEs = (remindVerb: string): RegExp =>
+  new RegExp(`(?<![a-z0-9])(?:${remindVerb}(?: que)? )?(?:al|cuando|en cuanto|nada mas|si) ${HERE_ES}${HERE_RADIUS_ES}`, 'g')
+
+/**
+ * Convierte un resultado de `herePhraseRegexEs` (o del inglés) en lo dicho (el radio va en el primer
+ * grupo). Como con los lugares, el tramo se lleva el conector que siga ("al salir de aquí **que** apague
+ * la luz"): así el título queda en infinitivo.
+ */
+export function readHerePhrase(match: RegExpExecArray, normalized?: NormalizedText, connector: RegExp = CONNECTOR): HerePhrase {
+  const radius = match[1] ? Number(match[1]) : null
+  const tail = normalized ? (connector.exec(normalized.text.slice(match.index + match[0].length))?.[0].length ?? 0) : 0
+  return { radius: radius !== null && Number.isFinite(radius) && radius > 0 ? radius : null, length: match[0].length + tail }
+}
 const GENERIC = `(?!${STOP})[a-z0-9]+(?: (?!${STOP})[a-z0-9]+){0,3}`
 /** Tras el lugar: "…Mercadona de comprar pan", "…universidad que tengo que…". "casa de Pepe" no. */
 const CONNECTOR = /^ (?:de que|que|de(?= [a-z]+(?:ar|er|ir)(?:me|te|se|lo|la|le)?(?![a-z0-9])))(?![a-z0-9])/

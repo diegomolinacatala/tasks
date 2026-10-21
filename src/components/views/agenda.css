@@ -4,26 +4,42 @@
   padding-bottom: 10px;
 }
 
-/* El mes y, si no es hoy, el atajo de vuelta; a la derecha queda sitio para el botón "Aa" */
+/* El mes y, si no es hoy, el atajo de vuelta; a la derecha queda sitio para la cesta y el botón "Aa".
+   Nunca salta a dos líneas: si no cabe, cede el mes (se recorta), no la altura */
 .agenda__kicker {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
   /* El alto del botón "Hoy": que aparezca no mueve lo de debajo */
   min-height: 30px;
-  margin: -7px 52px 1px 0;
+  margin: -7px 96px 1px 0;
 }
 
 /* El mes es un botón: despliega el calendario entero. La flecha se da la vuelta al abrirlo */
 .agenda__month {
   position: relative;
+  flex: 1 1 0;
+  /* Cabe "OCT 2026": con "Pasar 12 a hoy" y "Hoy" a la vez, cede antes el botón de pasar */
+  min-width: 84px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-height: 28px;
   color: var(--accent);
   transition: opacity var(--dur-1) var(--ease);
+}
+
+.agenda__month .view__kicker {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda__month svg {
+  flex: none;
 }
 
 /* Área de toque de 44 px de alto sin mover la cabecera */
@@ -77,8 +93,14 @@
   inset: -4px -6px;
 }
 
-/* "Pasar 2 a hoy" en un día pasado: la acción, en acento macizo, delante de "Hoy" */
+/* "Pasar 2 a hoy" en un día pasado: la acción, en acento macizo, delante de "Hoy". Si no cabe con la
+   cesta y la "A", se recorta él antes que el mes */
 .agenda__today--move {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--on-primary);
   background: var(--primary);
   border-color: var(--primary);

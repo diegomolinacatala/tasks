@@ -1,0 +1,136 @@
+/* ── La cinta de horas de la tarjeta del horario ───────────────────────── */
+
+/* La cinta entera es del gesto: el dedo la arrastra de lado sin que el scroll de la lista se lo lleve */
+.tape {
+  margin: 8px -4px 0;
+  outline: none;
+}
+
+.tape:focus-visible .tape__needle::before {
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* Lo que se ve de la cinta: una ventana con los bordes que se desvanecen (sigue a los dos lados) */
+.tape__window {
+  position: relative;
+  height: 58px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  touch-action: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+.tape__window:active {
+  cursor: grabbing;
+}
+
+/* La tira del día: se mueve con `transform` (lo escribe el gesto, fuera de React) */
+.tape__strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  will-change: transform;
+}
+
+/* Lo ocupado ese día: una sombra sobre el papel */
+.tape__busy {
+  position: absolute;
+  top: 8px;
+  height: 26px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+}
+
+/* Lo que dura lo que se coloca: tinta desde la aguja, como en la regla */
+.tape__ink {
+  position: absolute;
+  top: 19px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  opacity: 0.85;
+}
+
+/* Las marcas: cuartos finos, horas en oro y más largas, con su cifra debajo en serif */
+.tape__tick {
+  position: absolute;
+  top: 26px;
+  width: 1px;
+  height: 7px;
+  margin-left: -0.5px;
+  background: var(--line-2);
+}
+
+.tape__tick.is-major {
+  top: 22px;
+  width: 1.5px;
+  height: 15px;
+  margin-left: -0.75px;
+  background: var(--gold);
+}
+
+.tape__hour {
+  position: absolute;
+  top: 38px;
+  transform: translateX(-50%);
+  font-family: var(--font-serif);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+
+/* Ahora: una marca de coñac (quieta: nada late en una tarjeta) */
+.tape__now {
+  position: absolute;
+  top: 4px;
+  width: 2px;
+  height: 34px;
+  margin-left: -1px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+}
+
+/* La aguja: fija en el centro, de arriba abajo, con una punta */
+.tape__needle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tape__needle::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: -1px;
+  width: 2px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+}
+
+.tape__needle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -5px;
+  border: 5px solid transparent;
+  border-top: 6px solid var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape__strip {
+    transition: none !important;
+  }
+}
