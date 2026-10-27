@@ -1,6 +1,6 @@
 // Los widgets de las capturas, copiados de `ios/App/TasksWidget/TasksWidgetViews.swift` (mismas
-// medidas y colores): mediano y pequeño de Hoy, pequeño de la Bandeja y de Rutinas y los de la
-// pantalla de bloqueo. `labels`: los textos del idioma de la captura (`WIDGET_LABELS`).
+// medidas y colores): mediano y pequeño de Hoy, pequeño de la Bandeja, de Rutinas y de Dictar, y los de
+// la pantalla de bloqueo. `labels`: los textos del idioma de la captura (`WIDGET_LABELS`).
 
 import { INK } from './brand.mjs'
 
@@ -82,6 +82,23 @@ export function smallWidget(tasks, pending, label = WIDGET_LABELS.es.today) {
     `<div style="display:flex;flex-direction:column;height:100%;gap:4px">
       <div style="display:flex;align-items:baseline;gap:6px">${count(pending, 28)}${caps(label)}</div>
       <div style="flex:1;display:flex;flex-direction:column">${rows(tasks.slice(0, 3), { circleSize: 17, title: 13, detailed: false })}</div>
+    </div>`,
+  )
+}
+
+/** Widget pequeño de Dictar (`DictateWidget.swift`): el micrófono en un sello de coñac y «Toca y habla». */
+export function dictateWidget({ label, hint }) {
+  return card(
+    176,
+    176,
+    `<div style="display:flex;flex-direction:column;height:100%">
+      ${caps(label)}
+      <div style="flex:1;display:grid;place-items:center">
+        <div style="display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:${C.accent};box-shadow:0 10px 24px rgba(138,90,44,.35)">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f7f2e8" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+        </div>
+      </div>
+      <div style="text-align:center;font:500 13px Inter;color:${C.text3}">${hint}</div>
     </div>`,
   )
 }

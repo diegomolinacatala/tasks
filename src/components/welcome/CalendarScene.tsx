@@ -24,10 +24,10 @@ const COPY = {
   es: {
     day: ['Hoy', 'jueves'],
     rows: [
-      { at: 570, minutes: 15, title: 'Reunión diaria', color: '#1a73e8', meta: 'Meet' },
-      { at: 660, minutes: 30, title: 'Enviar el presupuesto' },
+      { at: 570, minutes: 15, title: 'Reunión con Jorge', color: '#1a73e8', meta: 'Meet' },
+      { at: 660, minutes: 30, title: 'Enviar el presupuesto a David' },
       { at: 810, minutes: 75, title: 'Comida con Carlota', color: '#34c759', meta: 'La Pepica' },
-      { at: 1020, minutes: 0, title: 'Llamar al banco' },
+      { at: 1020, minutes: 0, title: 'Llamar a Sarita' },
     ] satisfies SceneRow[],
     connect: 'Conectar mi calendario',
     asking: 'Pidiendo permiso…',
@@ -39,10 +39,10 @@ const COPY = {
   en: {
     day: ['Today', 'Thursday'],
     rows: [
-      { at: 570, minutes: 15, title: 'Daily standup', color: '#1a73e8', meta: 'Meet' },
-      { at: 660, minutes: 30, title: 'Send the quote' },
+      { at: 570, minutes: 15, title: 'Meeting with Jorge', color: '#1a73e8', meta: 'Meet' },
+      { at: 660, minutes: 30, title: 'Send the quote to David' },
       { at: 810, minutes: 75, title: 'Lunch with Carlota', color: '#34c759', meta: 'La Pepica' },
-      { at: 1020, minutes: 0, title: 'Call the bank' },
+      { at: 1020, minutes: 0, title: 'Call Sarita' },
     ] satisfies SceneRow[],
     connect: 'Connect my calendar',
     asking: 'Asking for access…',

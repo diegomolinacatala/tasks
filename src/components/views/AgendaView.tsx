@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createId } from '../../lib/id'
 import { capitalize } from '../../lib/title'
@@ -35,7 +35,11 @@ import { useTaskActions } from '../task/useTaskActions'
 import { IconChevronDown, IconFeather, IconPlus } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import { AllDayEvents } from './AllDayEvents'
-import { SlotCard } from './SlotCard'
+
+// La tarjeta de soltar en el horario (con la cinta de horas) solo hace falta al soltar: va en su trozo,
+// pedido en cuanto se empieza a arrastrar para que al soltar ya esté.
+const loadSlotCard = () => import('./SlotCard')
+const SlotCard = lazy(() => loadSlotCard().then((module) => ({ default: module.SlotCard })))
 import type { DayLoad } from './StripDay'
 import { Timeline } from './Timeline'
 import type { TimelineSlot } from './Timeline'
@@ -576,17 +580,18 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
   const heading = dayHeading(day, today)
 
   const cardNode = card ? (
-    <SlotCard
-      key={card.type === 'task' ? card.id : card.key}
-      title={card.title}
-      start={card.start}
-      items={cardItems}
-      now={shown === today ? now : null}
-      initialDuration={card.type === 'task' ? card.duration : null}
-      fixedDuration={card.type === 'event' ? card.duration : undefined}
-      onConfirm={confirmCard}
-      onCancel={() => setCard(null)}
-    />
+    <Suspense key={card.type === 'task' ? card.id : card.key} fallback={null}>
+      <SlotCard
+        title={card.title}
+        start={card.start}
+        items={cardItems}
+        now={shown === today ? now : null}
+        initialDuration={card.type === 'task' ? card.duration : null}
+        fixedDuration={card.type === 'event' ? card.duration : undefined}
+        onConfirm={confirmCard}
+        onCancel={() => setCard(null)}
+      />
+    </Suspense>
   ) : null
 
   return (
@@ -628,6 +633,7 @@ export function AgendaView({ day, today, routineDay, resetSignal = 0, onSelectDa
         onDragAbort={pressCue.onDragAbort}
         accessibility={{ announcements }}
         onDragStart={(event) => {
+          void loadSlotCard().catch(() => undefined)
           setDragDay(shown)
           setCard(null)
           handlers.onDragStart(event)

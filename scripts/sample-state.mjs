@@ -1,7 +1,8 @@
-// Tareas, rutinas y lugares de ejemplo para las capturas de la App Store (y para revisar el diseño
-// con datos reales), en español o en inglés. Las fechas son relativas al día en que se ejecuta.
+// Tareas, rutinas, lugares y cesta de ejemplo para las capturas de la App Store (y para revisar el
+// diseño con datos reales), en español o en inglés. Las fechas son relativas al día en que se ejecuta.
+// Los nombres son los de la gente del autor (la cena es con Carlota, su novia): así salen en la tienda.
 
-/** Los textos de cada idioma, por id. La cena es con Carlota (la novia del autor): así sale en la tienda. */
+/** Los textos de cada idioma, por id. */
 const WORDS = {
   es: {
     trabajo: 'Trabajo',
@@ -14,29 +15,32 @@ const WORDS = {
     gym: 'Gimnasio',
     luz: 'Pagar la factura de la luz',
     jorge: 'Reunión con Jorge',
-    presupuesto: 'Enviar el presupuesto a Javier',
-    comida: 'Comida con Ana',
+    presupuesto: 'Enviar el presupuesto a David',
+    comida: 'Comida con Adriana',
     pan: 'Comprar pan',
     presentacion: 'Preparar la presentación',
     ropa: 'Tender la ropa',
     contrato: 'Revisar el contrato',
     leche: 'Leche y huevos',
     basura: 'Sacar la basura',
-    llamar: 'Llamar a Carlota',
+    llamar: 'Llamar a Sarita',
+    miguel: 'Llamar a Miguel',
     libro: 'Devolver el libro',
-    regalo: 'Pensar el regalo de Lucía',
+    regalo: 'Regalo de Victor',
     dni: 'Renovar el DNI',
     dentista: 'Dentista',
     carlota: 'Cena con Carlota',
+    xoxi: 'Cena en casa de Xoxi',
     itv: 'ITV del coche',
     ingles: 'Clase de inglés',
-    padel: 'Partido de pádel',
+    padel: 'Pádel con Ibán',
     mama: 'Llamar a mamá',
     banco: 'Llamar al banco',
     informe: 'Entregar el informe',
     casaOtros: ['el piso', 'casa de mis padres'],
     hecha: 'Hecha',
     pendiente: 'Pendiente',
+    cesta: ['Pan', 'Leche', 'Huevos', 'Arroz', 'Café', 'Aceite', 'Plátanos', 'Yogures'],
   },
   en: {
     trabajo: 'Work',
@@ -48,30 +52,33 @@ const WORDS = {
     estirar: 'Stretch',
     gym: 'Gym',
     luz: 'Pay the electricity bill',
-    jorge: 'Meeting with Jordan',
-    presupuesto: 'Send the quote to James',
-    comida: 'Lunch with Anna',
+    jorge: 'Meeting with Jorge',
+    presupuesto: 'Send the quote to David',
+    comida: 'Lunch with Adriana',
     pan: 'Buy bread',
     presentacion: 'Prepare the presentation',
     ropa: 'Hang out the laundry',
     contrato: 'Review the contract',
     leche: 'Milk and eggs',
     basura: 'Take out the trash',
-    llamar: 'Call Carlota',
+    llamar: 'Call Sarita',
+    miguel: 'Call Miguel',
     libro: 'Return the book',
-    regalo: 'Think of a gift for Lucy',
+    regalo: 'Gift for Victor',
     dni: 'Renew my passport',
     dentista: 'Dentist',
     carlota: 'Dinner with Carlota',
+    xoxi: 'Dinner at Xoxi’s',
     itv: 'Car inspection',
     ingles: 'Spanish class',
-    padel: 'Tennis match',
+    padel: 'Padel with Ibán',
     mama: 'Call mom',
     banco: 'Call the bank',
     informe: 'Hand in the report',
     casaOtros: ['my flat', 'my parents’ house'],
     hecha: 'Done',
     pendiente: 'Pending',
+    cesta: ['Bread', 'Milk', 'Eggs', 'Rice', 'Coffee', 'Olive oil', 'Bananas', 'Yogurt'],
   },
 }
 
@@ -140,13 +147,32 @@ function monthFiller(w) {
 
 const place = (w, id, lat, lng, radius, aliases = []) => ({ id, name: w[id][0], aliases, location: { lat, lng, address: w[id][1] }, radius })
 
+/** La cesta: cuatro cosas pendientes (una con cantidad), una comprada y lo habitual en el historial. */
+function shopping(w) {
+  const [pan, leche, huevos, arroz, cafe, aceite, platanos, yogures] = w.cesta
+  const now = Date.now()
+  const item = (id, name, order, extra = {}) => ({ id, name, qty: null, done: false, order, createdAt: now - 3_600_000, doneAt: null, ...extra })
+  const day = 86_400_000
+  return {
+    items: [item('pan', pan, 0), item('leche', leche, 1), item('huevos', huevos, 2), item('arroz', arroz, 3, { qty: '2 kg' }), item('cafe', cafe, 4, { done: true, doneAt: now - 1_800_000 })],
+    history: [
+      { name: cafe, count: 9, at: now - 1_800_000 },
+      { name: aceite, count: 5, at: now - 9 * day },
+      { name: platanos, count: 7, at: now - 4 * day },
+      { name: yogures, count: 4, at: now - 12 * day },
+      { name: pan, count: 11, at: now - 2 * day },
+    ],
+    placeId: 'mercadona',
+  }
+}
+
 /** `theme`: la apariencia con la que se abre la app (la captura del modo oscuro). `language`: `es` o `en`. */
 export function sampleState({ theme = 'light', language = 'es' } = {}) {
   const w = WORDS[language]
   const today = isoFromToday(0)
   const iso = isoFromToday
   return {
-    schemaVersion: 15,
+    schemaVersion: 17,
     sections: [{ id: 'trabajo', name: w.trabajo, order: 0, collapsed: false }],
     places: [place(w, 'mercadona', 39.4699, -0.3763, 150), place(w, 'casa', 39.4632, -0.3589, 100, w.casaOtros), place(w, 'uni', 39.4808, -0.3443, 300)],
     routines: [
@@ -155,6 +181,7 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
       routine('estirar', w.estirar, null, { emoji: '🧘', done: history(6, [0, 2]), order: 2 }),
       routine('gym', w.gym, '19:00', { emoji: '🏋️', days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
     ],
+    shopping: shopping(w),
     collapsed: { overdue: false, backlog: false, routines: false },
     // La bienvenida, dada por vista (de cualquier versión futura): que no tape las capturas.
     // El calendario conectado: en las capturas sale el de muestra (`calendarDemo.ts`) junto a las tareas.
@@ -182,19 +209,25 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
         order: 2,
       }),
       task('presentacion', w.presentacion, today, { importance: 6, order: 3 }),
+      // Al alejarse de donde se está (la 1.8): ubicado hace un rato, con el radio por defecto.
+      task('miguel', w.miguel, today, {
+        reminders: [{ id: 'r14', kind: 'here', radius: 100, from: { lat: 39.4702, lng: -0.3768, accuracy: 12 }, since: Date.now() - 20 * 60_000 }],
+        order: 4,
+      }),
       // Plazos: una que viene de hace dos días y vale hasta dentro de cuatro, y otra cuyo último día es hoy.
       task('banco', w.banco, iso(-2), { until: iso(4), order: 0 }),
       task('informe', w.informe, iso(-3), { until: today, order: 1, importance: 3 }),
-      task('ropa', w.ropa, today, { done: true, completedAt: Date.now(), order: 4 }),
+      task('ropa', w.ropa, today, { done: true, completedAt: Date.now(), order: 5 }),
       task('contrato', w.contrato, today, { importance: 3, sectionId: 'trabajo', order: 1 }),
       task('leche', w.leche, null, { reminders: [{ id: 'r10', kind: 'place', placeId: 'mercadona', on: 'arrive' }], order: 0 }),
       // Al salir de casa (la 1.7): la tarjeta de Casa y el aviso de la captura de Lugares.
       task('llamar', w.llamar, null, { reminders: [{ id: 'r13', kind: 'place', placeId: 'casa', on: 'leave' }], order: 1 }),
       task('basura', w.basura, null, { reminders: [{ id: 'r11', kind: 'place', placeId: 'casa', on: 'leave' }], order: 1 }),
       task('libro', w.libro, null, { reminders: [{ id: 'r12', kind: 'place', placeId: 'uni', on: 'arrive' }], order: 2 }),
-      task('regalo', w.regalo, null, { order: 3 }),
+      task('regalo', w.regalo, null, { order: 3, importance: 4 }),
       task('dni', w.dni, null, { order: 4 }),
       task('dentista', w.dentista, iso(1), { time: '09:30', duration: 45, reminders: [{ id: 'r5', kind: 'before', minutes: 60 }] }),
+      task('xoxi', w.xoxi, iso(1), { time: '21:00', reminders: atTime('r15'), order: 1 }),
       task('carlota', w.carlota, iso(2), { time: '21:00', reminders: atTime('r6') }),
       task('itv', w.itv, iso(3), { time: '10:00', reminders: atTime('r7'), importance: 3 }),
       task('ingles', w.ingles, iso(4), { time: '18:00', duration: 90, reminders: atTime('r8') }),

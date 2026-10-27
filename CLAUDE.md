@@ -12,7 +12,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (28/09/2026)
+## Estado actual (27/10/2026)
 
 **Hecho**
 
@@ -61,8 +61,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. La 17 (`capacitor`) y la
   18 (`main`), el mismo commit, traen además el tramo con franja ("de 9 a 11 de la noche"). La 18
   es la que hay que instalar para probar y la que se envía a revisión.
-- **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: siete a 1320 × 2868, en orden de
-  subida, generadas con la app real y `scripts/app-store-shots.mjs`.
+- **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: a 1320 × 2868, en orden de
+  subida, generadas con la app real y `scripts/app-store-shots.mjs` (seis desde el 27/10/2026).
 - **Enviada a revisión** (21/09/2026, 23:29): la 1.0 con la compilación 18 y publicación manual.
   Ficha, privacidad, precio (gratis, 175 países) y capturas de 6,9" puestas en App Store Connect.
 - **Rechazada** (22/09/2026) con *2.1 Information Needed*, lo habitual en una cuenta nueva: Apple
@@ -390,6 +390,35 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     seguía corriendo fuera del horario, la píldora de la ficha "· al añadir", lo comprado a la vista en
     sesión). `scripts/perf.mjs 6 3` antes y después: sin cambios fuera del ruido (desplegar el mes 247 →
     207 ms de peor fotograma, tachar 69 → 88, abrir tarea 186 → 225: varían igual entre pasadas).
+- **Bienvenida nueva, seis capturas nuevas y dos optimizaciones** (27/10/2026, en `capacitor`, **TestFlight 52**,
+  la 1.8; sin cambios de Swift; sin probar en el iPhone). Lo pidió el usuario para enviar la 1.8 «a otro nivel»:
+  - **Bienvenida** (versión 7, `PLATE_SINCE`): la portada lleva *Edición 1.8* (la `MARKETING_VERSION`, por
+    `__APP_VERSION__` de `vite.config.ts`) y un **índice** con las láminas que vienen; tres láminas nuevas,
+    *Dictar* (`DictateScene`, solo iPhone: el widget del micrófono en un trozo de pantalla de bloqueo, tocarlo
+    "escucha" y la frase se apunta sola), *Horario* (`DayScene`: «Llamar a Ibán» se sube por el horario con el
+    trazo de coñac y al soltar sale la tarjeta de verdad con `HourTape`) y *La cesta* (`BasketScene`: el campo
+    se escribe solo y `parseShoppingText` lo pasa a filas que se tachan); *Lugares* pasa a la 7 con el círculo
+    de «Aquí · 100 m» que suena una vez al salir. Orden: Escribir, Detalles, Dictar, Gestos, Horario, Agenda,
+    Rutinas, La cesta, Lugares, Sugerencias, Calendario. CSS nuevo en `welcome/plates.css` (`welcome.css` ya
+    pasaba de 800 líneas). Cuidado con las clases de escena: `scene__zone` y `scene__wave` son de Lugares.
+  - **Easter egg**: los nombres de su gente (Carlota, Sarita, Adriana, Ibán, David, Jorge, Victor, Xoxi,
+    Miguel, Aitana) en las láminas, los datos de ejemplo y las capturas. No quitarlos.
+  - **Capturas** (`docs/capturas/` y `en/`): **seis** nuevas, `01-escribir`, `02-horario`, `03-lugares`,
+    `04-rutinas`, `05-sin-abrir` y `06-tuyas`, con una plantilla distinta (doble filete de oro, el número en
+    romanos como marca de agua, titular a la izquierda, el iPhone girado y asomando por abajo; `store-frames.mjs`
+    con `slotCard`, `creed` y `dictateWidget` en `store-widgets.mjs`). El calendario de muestra lleva «Café con
+    Aitana» a las 14:45 para que la comida salga en paralelo.
+  - **Optimización**: la barra entiende lo escrito con `useDeferredValue` (cada tecla pinta antes de
+    analizar: escribir pasa de 968 a 264 ms de respuesta y de 679 a 304 de tareas largas con la CPU 6× más
+    lenta; ver "Rendimiento" por la cifra engañosa de "soltar la barra") y `SlotCard` (con `HourTape` y
+    `lib/tape`) va en su trozo, pedido al empezar a arrastrar. JS principal 163,9 kB gzip (165,4 antes). Lo
+    demás, igual dentro del ruido (desplegar el mes 158 → 158 ms de peor fotograma, tachar 33 → 33).
+  - Revisado por un segundo agente (arreglado lo que encontró: el temporizador de la cesta pisaba lo
+    tocado, cancelar el arrastre contaba como soltar, los latidos en reposo animaban sombras, el guion de
+    capturas borraba las de antes antes de tener las nuevas, desplegar la ficha leía lo entendido una tecla
+    atrás, `aria-hidden` sobre controles).
+  - Probado con el navegador del escritorio (claro y oscuro, 390 × 844): la portada, las cuatro láminas nuevas
+    con el dedo (arrastrar, la cinta, Listo, comprar, el aviso de aquí). Ficha de la 1.8: `docs/app-store.md` §9.11.
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
@@ -429,7 +458,11 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Probar en el iPhone la TestFlight 51** (la 1.8; sin ficha aún: el usuario hará más cambios). La cesta:
+0. **Probar en el iPhone la TestFlight 52 y enviar la 1.8** (`docs/app-store.md` §9.11; al usuario, los pasos
+   en el chat). Al abrir: la portada de novedades con el índice y las cuatro láminas nuevas (tocar el
+   micrófono, subir la tarea por el horario y mover la cinta, la cesta, el punto hasta «Te has alejado 100 m»).
+   Después, lo de la 51 de abajo.
+0. **Probar en el iPhone lo de la TestFlight 51** (la 1.8). La cesta:
    el icono con la cifra, abrir, escribir "pan, leche y 2 kg de arroz" (tres filas), una habitual, tocar una
    para comprarla y deslizar otra a la izquierda (el toast con "Deshacer" sale abajo, no sobre el popover),
    el pliegue "En la cesta" y "Vaciar", el teclado con el campo arriba (que el popover no se descoloque) y,
@@ -595,7 +628,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (163,9 el 27/10/2026, con la barra que analiza en diferido y la tarjeta del horario en su trozo; 165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -674,7 +707,7 @@ src/
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
-    ├── welcome/          # Welcome (portada y láminas) y sus escenas: escribir, detalles, gestos, mes, rutinas, lugares, sugerencias y calendario
+    ├── welcome/          # Welcome (portada con índice y láminas) y sus escenas: escribir, detalles, dictar, gestos, horario, mes, rutinas, cesta, lugares, sugerencias y calendario
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases,
@@ -943,17 +976,27 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
   entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
   (`onReady`): no llega a verse la app vacía.
-- **Ocho láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+- **Portada con índice** (la 1.8): bajo la frase, las láminas que vienen con su número en romanos
+  (`welcome__index`), y en la de novedades *Edición 1.8* (`__APP_VERSION__`). En pantallas bajas (< 660 px)
+  el índice no sale.
+- **Once láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
-  `lib/details.ts`; al plegarla queda el resumen), *Gestos* (versión 5: dos `SwipeRow` reales, tachar y
-  borrar, y una tercera fila que se hunde sola, "Mantén pulsada para moverla"), *Agenda* (el
+  `lib/details.ts`; al plegarla queda el resumen), *Dictar* (versión 7, la 1.8, solo iPhone: la pantalla de
+  bloqueo con el widget del micrófono; tocarlo escucha, la frase sale palabra a palabra y el analizador la
+  entiende: «Café con David mañana a las 10», «Llamar a Miguel al moverme»), *Gestos* (versión 5: dos `SwipeRow` reales, tachar y
+  borrar, y una tercera fila que se hunde sola, "Mantén pulsada para moverla"), *Horario* (versión 7, la 1.8:
+  tres cosas con hora (Jorge, Adriana, Xoxi) y «Llamar a Ibán» sin ella; se coge y se sube por el horario con
+  el trazo de coñac de cuarto en cuarto, y al soltar sale la tarjeta real con la cinta de horas y la duración;
+  «Listo» la deja en su sitio), *Agenda* (el
   `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
-  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez), *Lugares* (versión 6, la 1.7, solo
-  donde hay lugares: un plano con tu casa y el Mercadona, cada uno con su círculo, y tu punto dentro de casa;
-  se arrastra con el dedo y al cruzar el de casa hacia fuera baja «Al salir de Casa · Llamar a Carlota», al
-  entrar en el del Mercadona, «Comprar pan», y cada tarea dice «Sonó»; hasta el primer toque un punto
-  fantasma hace el camino), *Sugerencias* (versión 3,
+  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez), *La cesta* (versión 7, la 1.8: el
+  icono con la cifra y el popover; el campo escribe «pan, leche y 2 kg de arroz» y bajan tres filas que se
+  compran de un toque, con las habituales y, en el iPhone, «Avisar al llegar a Mercadona»), *Lugares* (versión
+  7, la 1.8, solo donde hay lugares: un plano con tu punto («Aquí · 100 m», que suena una vez al salir: «Te has
+  alejado 100 m · Llamar a Miguel»), tu casa y el Mercadona, cada uno con su círculo; se arrastra con el dedo y
+  al cruzar el de casa hacia fuera baja «Al salir de Casa · Llamar a Carlota», al entrar en el del Mercadona,
+  «Comprar pan», y cada tarea dice «Sonó»; hasta el primer toque un punto fantasma hace el camino), *Sugerencias* (versión 3,
   la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
   *Calendario* (versión 4, la 1.6, solo donde hay calendario: un día con tareas en el que entran los
   eventos con su color, y **Conectar mi calendario**). En la PWA no existe: `welcomeOnLaunch` recibe las
@@ -966,7 +1009,8 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   arranca sin ella. Mientras está abierta, la app de debajo va con `inert` y los avisos tocados esperan.
 - Es la única pantalla con texto explicativo: un titular y una frase por lámina.
 - Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…", la cena que se rodea en
-  *Sugerencias*), la novia del usuario: lo pidió él. No cambiarlo. También sale en las capturas de la
+  *Sugerencias*), la novia del usuario, y desde la 1.8 a su gente (Sarita, Adriana, Ibán, David, Jorge,
+  Victor, Xoxi, Miguel, Aitana): lo pidió él. No cambiarlo. También salen en las capturas de la
   App Store (la frase de la primera, el widget de Siri) y en los datos de ejemplo (`sample-state.mjs`).
 
 ### Arranque
@@ -1049,6 +1093,13 @@ cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir
   `transform` u `opacity` (lo hace la GPU).
 - **Nada de `localeCompare`** para ordenar fechas, horas o ids: en JavaScriptCore cada llamada monta un
   cotejador. `compareText` (`order.ts`); para nombres escritos, `compareNames` (un `Intl.Collator`).
+- **La barra entiende lo escrito en diferido** (`useDeferredValue` en `Composer`, la 1.8): cada tecla pinta
+  la letra y el analizador corre en un render que no bloquea la siguiente; al teclear a 60 ms por letra
+  con la CPU 6× más lenta, la respuesta pasó de 968 a 264 ms y las tareas largas de 679 a 304. La píldora
+  sale igualmente mientras se escribe (en cuanto el diferido alcanza al dedo). Ojo con `scripts/perf.mjs`:
+  desde entonces "soltar la barra" da una respuesta de ~4,5 s que no es real: Chrome (Event Timing) cuenta
+  los `input` de las teclas como presentados en el siguiente toque discreto; los fotogramas siguen a
+  < 200 ms y lo que hay que mirar ahí son las tareas largas y el peor fotograma.
 - **Lo que tarda en pintarse no bloquea el toque**: la pestaña nueva (`shownTab`) y el día nuevo de la
   Agenda (`shown`) van con `useDeferredValue`: la barra de pestañas y la tira cambian al momento y lo
   de debajo llega en cuanto está (si tarda, lo de antes se apaga un poco: `.agenda__below.is-stale`).

@@ -448,41 +448,39 @@ sistema), así que TestFlight no pregunta por la exportación.
 ## 5. Notas para la revisión de Apple
 
 En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
-Notas** (máximo 4000 caracteres; estas son unas 3990 desde la 1.7, que añadió los avisos al salir; antes, la 1.6
+Notas** (máximo 4000 caracteres; estas son unas 3970 desde la 1.8, que añadió la cesta, "al moverme" y el widget Dictar; la 1.7 añadió los avisos al salir; antes, la 1.6
 añadió mantener pulsado, los plazos, el mapa y el calendario del iPhone; van justas: para añadir algo hay que quitar otra cosa). Son lo mismo que pidió Apple en el rechazo del
 22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
 
 ```
-No account or login. Tasks and places are stored only on the device. Interface in the device language, Spanish or English (also Ajustes → Idioma). Spanish names below: "Bandeja" = Inbox, "Lugares" = Places, "Ajustes" = Settings.
+No account or login. Tasks and places are stored only on the device. Interface in the device language, Spanish or English (also Ajustes → Idioma). Below: "Bandeja" = Inbox, "Lugares" = Places, "Ajustes" = Settings.
 
 PURPOSE AND AUDIENCE
-A daily to-do list with no sign-up: write or say a task as you would say it and the app sets the day, time and reminder (at a time or a place).
+A daily to-do list with no sign-up: write or say a task as you would say it and the app sets the day, time and reminder (by time or place).
 
 HOW TO TEST
-- First launch shows a short welcome: "Empezar", "Continuar", or "Saltar" (Skip). The app starts empty.
-- Add: tap the bar at the bottom, type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return or the round arrow. A chip shows the detected day and time and a reminder is scheduled (notification permission is asked the first time). With no date, the chips under the bar ("Hoy", "Mañana", "Sin fecha" = Today, Tomorrow, No date) choose where it goes.
-- Swipe a task right to complete it, left to delete it (Undo appears). Touch and hold a task to pick it up: drag to reorder, or onto a day of the week strip to move it. Pull the week strip down for the month.
+- First launch shows a short welcome ("Empezar", "Continuar", "Saltar" = Skip). The app starts empty.
+- Add: tap the bar at the bottom, type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return. A chip shows the detected day and time and a reminder is scheduled (notification permission is asked the first time). With no date, the chips under the bar ("Hoy", "Mañana", "Sin fecha") choose where it goes.
+- Swipe a task right to complete it, left to delete it (Undo appears). Touch and hold a task to pick it up: drag to reorder, onto a day of the week strip, or onto the schedule to give it a time. Pull the week strip down for the month.
 - Time frames: "llamar al banco esta semana" (call the bank this week) shows up every day until done ("Hasta el domingo" = until Sunday). Also in a task → Cuándo → "Hasta…".
-- Tap a task to edit it. The "A" button (top right) is importance mode: drag the number on a task; more important tasks get a larger title.
-- Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas; tick it for today and it resets the next day, also from the "Rutinas" Lock Screen widget.
-- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
-- Location reminders: Lugares → search a place (Apple Maps), use the current location ("while using" only) or tap the map. Then a task → Avisos → Añadir → "Al llegar" or "Al salir" (arriving/leaving) → the place, or type "llamar a Ana al salir de casa". iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
-- Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve" (dinner today at 9).
-- Siri (Spanish): "Apunta en Tasks", then the task. It is added without opening the app. Same actions in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy").
-- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" asks for full Calendar access. Events from the iPhone's Calendar app then show in the Agenda and the "Hoy" widget. Optional: "Añadir mis tareas" adds timed tasks as events to a calendar the user picks. All on device.
+- Tap a task to edit it. The "A" button (top right) is importance mode: drag the number to make its title larger.
+- Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas; tick it for today and it resets the next day, also from the Lock Screen widget.
+- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no".
+- Location reminders: Lugares → search a place (Apple Maps), use the current location ("while using" only) or tap the map. Then a task → Avisos → Añadir → "Al llegar" or "Al salir" (arriving/leaving) → the place, or type "llamar a Ana al salir de casa" or "llamar a Ana al moverme" (when I move: 100 m from the current spot). iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed. The basket icon (top right) is a shopping list that can alert at a chosen place.
+- Dictation: with the bar empty, tap the microphone (also the "Dictar" widget or control, which opens the app listening). The first time, a notice explains that the audio is sent to our server and processed by Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission request. Example: "cena hoy a las nueve".
+- Siri (Spanish): "Apunta en Tasks", then the task: added without opening the app. Same actions in Shortcuts ("Añadir tarea", "Pasar atrasadas a hoy").
+- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" asks for full Calendar access; events then show in the Agenda and the "Hoy" widget. Optional: "Añadir mis tareas" writes timed tasks to a calendar the user picks. All on device.
 
 EXTERNAL SERVICES
 - Our own backend on Cloudflare Workers, used for dictation. It receives the audio (from Siri, only the text) and the device's local date and time; Whisper transcribes it and NVIDIA Nemotron interprets the text, both on Cloudflare Workers AI. Nothing is stored or logged, nor used to train models. It is sent only after that notice and microphone access (off in Ajustes → Dictado); otherwise Siri input is parsed on the device.
-- The backend keeps only a random device ID and a hash of its token, for rate limiting.
-- Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send (message, optional screenshot, app version); only the developer reads them.
+- The backend keeps only a random device ID and a token hash, for rate limiting.
+- Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send (message, optional screenshot); only the developer reads them.
 - Apple Maps (MapKit), EventKit, iOS local notifications and region monitoring. iTunes Search API, to offer updates.
-- No analytics, advertising, tracking, third-party SDKs, payments or authentication services.
+- No analytics, ads, tracking, third-party SDKs, payments or authentication.
 
-REGIONAL DIFFERENCES
-None. Spanish and English, chosen by the device language or in Ajustes.
+REGIONAL DIFFERENCES: none. Spanish and English, by device language or in Ajustes.
 
-REGULATED INDUSTRY OR THIRD-PARTY MATERIAL
-Not applicable.
+REGULATED INDUSTRY OR THIRD-PARTY MATERIAL: not applicable.
 ```
 
 Si la revisión alega la norma 4.2 (funcionalidad mínima de una web empaquetada), responde señalando
@@ -617,7 +615,7 @@ No login, credentials or sample files are needed. The interface is in Spanish; l
 - Swipe a task right to complete it, left to delete it (Undo appears). Drag the handle on the right to reorder, or onto a day of the week strip to move it. Swipe the week strip to change week.
 - Tap a task to edit date, time, duration, reminders and importance. The "A" button (top right) is importance mode: drag the number on a task; more important tasks get a larger title.
 - Routines: type "tomar creatina todos los días a las 10" (take creatine every day at 10). It appears in Bandeja → Rutinas; tick it for today and it resets the next day. The "Rutinas" Lock Screen widget ticks it with one tap.
-- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no" (long-press the notification).
+- Duration: "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour). When it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no".
 - Location reminders: Lugares → "Buscar o añadir un lugar" → search a place (Apple Maps) or "Usar mi ubicación actual". Location is requested "while using" only. Then open a task → Recordatorios → Añadir → the place. iOS delivers the notification on arrival or departure (UNLocationNotificationTrigger), even with the app closed.
 - Dictation: with the bar empty, tap the microphone. The first time, a sheet explains that the audio is sent to our server and processed by Cloudflare Workers AI, and asks for permission ("Permitir"); then iOS asks for the microphone. Example: "cena hoy a las nueve y recuérdamelo media hora antes" (dinner today at 9, remind me half an hour before).
 - Siri (Spanish): "Apunta en Tasks", then the task. It is added in the background without opening the app. The same actions are in the Shortcuts app ("Añadir tarea", "Pasar atrasadas a hoy"). Also: "Hoy" widget and Home Screen quick actions (long-press the icon).
@@ -706,7 +704,7 @@ versión nueva y su revisión. Lo demás sigue igual:
 Release) es la versión que se publica y tiene que ser mayor que la última aprobada: App Store Connect
 rechaza las compilaciones de una versión ya aprobada y el CI falla al subir (`ITMS-90186`,
 `ITMS-90062`), también la ejecución programada del día 1. Por eso, **en cuanto Apple apruebe una
-versión, se sube** (1.6 → 1.7…) antes del siguiente push que toque la app. Ahora es la 1.7.
+versión, se sube** (1.7 → 1.8…) antes del siguiente push que toque la app. Ahora es la 1.8.
 
 ### 9.2 Probar la compilación (tú, en el iPhone)
 
@@ -1133,5 +1131,83 @@ privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone).
 • Move your calendar events from the Agenda: to another day or another time, and the change reaches Google, Outlook or iCloud.
 • Check off calendar events like tasks: only in Tasks, your calendar stays as it is.
 • Sections stand out more from tasks.
+• Open the writing bar to see an example sentence: typing understands everything dictation does.
+```
+
+### 9.11 La 1.8, lo que se envía (27/10/2026, compilación 52)
+
+Antes de enviar la 1.8 el usuario pidió (27/10/2026) llevar la presentación «a otro nivel»: **bienvenida
+nueva** (portada con *Edición 1.8* y el índice de láminas; tres láminas nuevas, *Dictar*, *Horario* y *La
+cesta*, y *Lugares* con el aviso al alejarse; versión 7 de la bienvenida, así que quien actualiza ve esas
+cuatro con la portada de novedades), **seis capturas nuevas** en español e inglés (`docs/capturas/` y
+`en/`: escribir, el horario con la tarjeta de soltar, los tres avisos por lugar, las rutinas, lo que se hace sin
+abrir la app y la privacidad en modo oscuro; plantilla editorial con doble filete de oro y el número en
+romanos) con los nombres de su gente (Carlota, Sarita, Adriana, Ibán, David, Jorge, Victor, Xoxi, Miguel y
+Aitana), y dos optimizaciones (el analizador ya no bloquea el teclado; la tarjeta del horario se carga al
+arrastrar). Además de lo de §9.10 (la 49 y la 50), la 1.8 trae lo de la **51**: la cesta, la cinta de horas y
+el aviso al alejarse.
+
+Cambian las **capturas** (las seis, en los dos idiomas), las **novedades**, las **notas para la revisión** (§5,
+ya actualizadas: "al moverme", la cesta y el widget Dictar) y el **texto promocional** (abajo). Descripción,
+palabras clave y privacidad, sin cambios (la privacidad: nada nuevo sale del iPhone; el punto de "al
+alejarme" se guarda solo en el dispositivo).
+
+**Antes (en el iPhone)**
+
+1. *TestFlight* → Tasks → **Actualizar** a la **1.8 (52)**. Al abrirla sale la portada *Hay cosas nuevas ·
+   Edición 1.8* con el índice y cuatro láminas: tocar el micrófono de *Dictar*, subir «Llamar a Ibán» por
+   el horario y arrastrar la cinta, escribir en *La cesta* y arrastrar el punto en *Lugares* hasta que suene
+   «Te has alejado 100 m».
+2. Lo de la 51 que no se ha probado (§9.10 y CLAUDE.md): la cesta de verdad (el icono con la cifra, escribir
+   «pan, leche y 2 kg de arroz», comprar una, «Avisar al llegar a…»), soltar una tarea por debajo del horario
+   (la hora corre) y la cinta de la tarjeta, y «Al moverme recuérdame que llame a Raúl» (la píldora
+   «ubicando…» → fija, alejarse 100 m).
+
+**En App Store Connect** (https://appstoreconnect.apple.com → **Apps** → *Tasks: tareas y lugares*)
+
+3. **+** junto a *App para iOS* → `1.8` → **Crear** (si la 1.7 sale como *Pendiente de publicación del
+   desarrollador*, antes **Publicar esta versión**).
+4. **Capturas de pantalla** → iPhone 6,9" → borrar las diez antiguas → arrastrar las seis de `docs/capturas/`
+   en orden (`01-escribir` … `06-tuyas`).
+5. **Texto promocional** y **Novedades de esta versión**: los de abajo.
+6. **Compilación** → **1.8 (52)**. Cifrado: *Ninguno de los algoritmos mencionados*.
+7. **Información para la revisión** → **Notas**: las de §5 (pegar entero: ya llevan la cesta, "al moverme" y
+   el widget Dictar).
+8. **Publicación**: automática. **Guardar**.
+9. **English (U.S.)**: capturas de `docs/capturas/en/` (borrar las diez antiguas), **Promotional Text** y
+   **What’s New** de abajo. **Guardar**.
+10. **Añadir para revisión** → **Enviar a App Review**. Aprobada: subir `MARKETING_VERSION` a 1.9.
+
+**Texto promocional** (170 caracteres como mucho; se cambia sin revisión)
+
+```
+Escribe como hablas, suelta cada cosa a su hora, avisos al llegar, al salir o al alejarte, rutinas de un toque y la lista de la compra. Todo en tu iPhone.
+```
+
+```
+Type it like you talk, drop each thing at its time, alerts when you arrive, leave or move away, one-tap routines and a shopping list. All on your iPhone.
+```
+
+**Novedades de esta versión**
+
+```
+• Bienvenida nueva: pruébala con el dedo. Y, tras actualizar, solo lo nuevo.
+• La cesta: la lista de la compra, aparte de las tareas. «Pan, leche y 2 kg de arroz» son tres filas; táchalas en la tienda, repite lo de siempre de un toque y que avise al llegar al súper.
+• «Al moverme recuérdame que llame a Raúl»: un aviso que suena al alejarte 100 m de donde estás.
+• Mantén pulsada una tarea y suéltala en el horario a la hora que quieras: una cinta de horas y la duración, ahí mismo. Más allá de la última fila, la hora corre sola.
+• Dicta desde la pantalla de bloqueo: un widget (y en iOS 18 un control, también para el botón de acción) abre Tasks ya escuchando.
+• Lo que coincide se ve en paralelo, y los eventos de tu calendario se mueven y se tachan desde la Agenda.
+• Al abrir la barra de escribir, una frase de ejemplo: escribiendo se entiende lo mismo que hablando.
+```
+
+**What’s New in This Version** (la ficha en inglés)
+
+```
+• New welcome: try it with your finger. After an update, only what’s new.
+• The basket: a shopping list, apart from your tasks. “Bread, milk and 2 kg of rice” becomes three rows; check them off at the store, add the usual with one tap and get an alert when you arrive.
+• “Call Raúl when I move”: an alert that goes off once you’re 100 m from where you are.
+• Hold a task and drop it on the schedule at the time you want: an hour tape and the duration, right there. Past the last row, the time keeps running.
+• Dictate from the Lock Screen: a widget (and, on iOS 18, a control, also for the Action button) opens Tasks already listening.
+• Things at the same time show side by side, and your calendar events can be moved and checked off from the Agenda.
 • Open the writing bar to see an example sentence: typing understands everything dictation does.
 ```

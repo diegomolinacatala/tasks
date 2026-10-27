@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ComponentType } from 'react'
+import type { CSSProperties, ComponentType } from 'react'
 import { createPortal } from 'react-dom'
 import { MARK_PATH } from '../../lib/boot'
 import { showsCalendar } from '../../lib/platform/calendar'
@@ -9,8 +9,11 @@ import type { PlateId, WelcomeRun } from '../../lib/welcome'
 import { platesAfter } from '../../lib/welcome'
 import { useCopy } from '../../state/LanguageProvider'
 import { IconChevronLeft } from '../ui/Icons'
+import { BasketScene } from './BasketScene'
 import { CalendarScene } from './CalendarScene'
+import { DayScene } from './DayScene'
 import { DetailsScene } from './DetailsScene'
+import { DictateScene } from './DictateScene'
 import { MonthScene } from './MonthScene'
 import { PlacesScene } from './PlacesScene'
 import { RoutineScene } from './RoutineScene'
@@ -18,6 +21,7 @@ import { SuggestScene } from './SuggestScene'
 import { SwipeScene } from './SwipeScene'
 import { WriteScene } from './WriteScene'
 import './welcome.css'
+import './plates.css'
 
 interface WelcomeProps {
   /** Qué láminas tocan y si la portada presenta la app o anuncia lo nuevo (`lib/welcome.ts`). */
@@ -41,9 +45,13 @@ interface Plate {
 const PLATES: readonly Plate[] = [
   { id: 'write', Scene: WriteScene },
   { id: 'details', Scene: DetailsScene },
+  // El widget del micrófono solo existe en el iPhone (y en local, para verlo).
+  ...(isNative || import.meta.env.DEV ? [{ id: 'dictate' as const, Scene: DictateScene }] : []),
   { id: 'swipe', Scene: SwipeScene },
+  { id: 'day', Scene: DayScene },
   { id: 'month', Scene: MonthScene },
   { id: 'routine', Scene: RoutineScene },
+  { id: 'basket', Scene: BasketScene },
   // Los avisos por lugar solo existen en el iPhone (y en local).
   ...(showsPlaces ? [{ id: 'places' as const, Scene: PlacesScene }] : []),
   { id: 'suggest', Scene: SuggestScene },
@@ -62,8 +70,23 @@ const COPY = {
         title: 'Todo, antes de añadir.',
         text: 'Toca Detalles o tira de la barra hacia arriba: día, hora, avisos y si se repite.',
       },
+      dictate: {
+        kicker: 'Dictar',
+        title: 'Habla, sin desbloquear.',
+        text: 'El widget del micrófono abre Tasks ya escuchando, desde la pantalla de bloqueo o el botón de acción. Tócalo.',
+      },
       swipe: { kicker: 'Gestos', title: 'Un gesto y listo.', text: 'A la derecha, hecha. A la izquierda, fuera. Pruébalo.' },
+      day: {
+        kicker: 'Horario',
+        title: 'Suéltala a su hora.',
+        text: 'Mantén pulsada una tarea sin hora y súbela por el horario: cae a la hora que marques, de cuarto en cuarto.',
+      },
       month: { kicker: 'Agenda', title: 'De la semana al mes.', text: 'Tira de los días hacia abajo y salta a cualquier fecha.' },
+      basket: {
+        kicker: 'La cesta',
+        title: 'La compra, aparte.',
+        text: '«Pan, leche y 2 kg de arroz» son tres filas. Tócalas en la tienda y repite lo de siempre de un toque.',
+      },
       routine: {
         kicker: 'Rutinas',
         title: 'Lo de cada día.',
@@ -73,8 +96,8 @@ const COPY = {
       },
       places: {
         kicker: 'Lugares',
-        title: 'Al llegar y al salir.',
-        text: '«Llamar a Carlota al salir de casa» suena al cruzar el círculo, aunque la app esté cerrada. Arrastra tu punto.',
+        title: 'Suena donde toca.',
+        text: '«Llamar a Miguel al moverme» suena a 100 m de donde estás; «al salir de casa», al cruzar el círculo. Arrastra tu punto.',
       },
       suggest: {
         kicker: 'Sugerencias',
@@ -91,6 +114,8 @@ const COPY = {
     welcomeLabel: 'Bienvenida a Tasks',
     news: ['Hay cosas nuevas.', 'Pruébalas con el dedo antes de seguir.'],
     tagline: ['Tareas, rutinas y lugares.', `Todo se queda en tu ${device ?? 'dispositivo'}, sin cuentas.`],
+    edition: 'Edición',
+    index: 'Lo que vas a probar',
     seeNew: 'Ver lo nuevo',
     start: 'Empezar',
     skip: 'Saltar',
@@ -108,8 +133,23 @@ const COPY = {
         title: 'Everything, before adding.',
         text: 'Tap Details or pull the bar up: day, time, reminders and whether it repeats.',
       },
+      dictate: {
+        kicker: 'Dictate',
+        title: 'Speak, no unlocking.',
+        text: 'The microphone widget opens Tasks already listening, from the Lock Screen or the Action button. Tap it.',
+      },
       swipe: { kicker: 'Gestures', title: 'One swipe and done.', text: 'Right, done. Left, gone. Try it.' },
+      day: {
+        kicker: 'Schedule',
+        title: 'Drop it at its time.',
+        text: 'Hold a task without a time and drag it up the schedule: it lands at the time you point to, in 15-minute steps.',
+      },
       month: { kicker: 'Agenda', title: 'From week to month.', text: 'Pull the days down and jump to any date.' },
+      basket: {
+        kicker: 'Basket',
+        title: 'Groceries, on the side.',
+        text: '“Bread, milk and 2 kg of rice” becomes three rows. Tap them at the store and add the usual with one tap.',
+      },
       routine: {
         kicker: 'Routines',
         title: 'The everyday things.',
@@ -119,8 +159,8 @@ const COPY = {
       },
       places: {
         kicker: 'Places',
-        title: 'Arriving and leaving.',
-        text: '“Call Carlota when I leave home” goes off as you cross the circle, even with the app closed. Drag your dot.',
+        title: 'Right where it matters.',
+        text: '“Call Miguel when I move” goes off 100 m from where you are; “when I leave home”, as you cross the circle. Drag your dot.',
       },
       suggest: {
         kicker: 'Suggestions',
@@ -137,6 +177,8 @@ const COPY = {
     welcomeLabel: 'Welcome to Tasks',
     news: ['There’s something new.', 'Try it with your finger before moving on.'],
     tagline: ['Tasks, routines and places.', `Everything stays on your ${device ?? 'device'}, no accounts.`],
+    edition: 'Edition',
+    index: 'What you will try',
     seeNew: 'See what’s new',
     start: 'Get started',
     skip: 'Skip',
@@ -149,7 +191,9 @@ const COPY = {
 } as const
 
 /** Las láminas se numeran según salen: tras una actualización, lo nuevo empieza en I. */
-const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
+const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+/** La versión de la app que se enseña en la portada de novedades (`Edición 1.8`): la PWA no tiene número. */
+const EDITION = isNative && typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : ''
 
 /** Lo que dura la salida (`.welcome.is-leaving` en welcome.css). */
 const EXIT_MS = 420
@@ -237,12 +281,26 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
           </svg>
           <div className="welcome__hello">
             <i className="welcome__rule" aria-hidden="true" />
+            {news && EDITION && (
+              <p className="welcome__edition">
+                {copy.edition} {EDITION}
+              </p>
+            )}
             <h1 className="welcome__name">Tasks</h1>
             <p className="welcome__tagline">
               {first}
               <br />
               {second}
             </p>
+            {/* El índice: lo que viene, con su número, como el sumario de un cuaderno */}
+            <ol className="welcome__index" aria-label={copy.index}>
+              {plates.map((item, index) => (
+                <li key={item.id} style={{ '--i': index } as CSSProperties}>
+                  <span className="welcome__index-num">{NUMERALS[index] ?? index + 1}</span>
+                  {copy.plates[item.id].kicker}
+                </li>
+              ))}
+            </ol>
           </div>
           <footer className="welcome__foot">
             <button type="button" className="welcome__next" onClick={() => go(1)}>

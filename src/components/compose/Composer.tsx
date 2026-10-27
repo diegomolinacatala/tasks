@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent, MutableRefObject } from 'react'
 import type { ComposeTarget } from '../../lib/compose'
 import { addLabel, composeExamples } from '../../lib/compose'
@@ -171,9 +171,14 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   // Lo dictado cae donde diga la barra, igual que lo tecleado.
   const voice = useVoice((text, interpreted) => onVoice(text, interpreted, targetItem))
   const ready = value.trim().length > 0
+  // Lo escrito se entiende con un poco de retraso (`useDeferredValue`): cada tecla pinta primero la letra
+  // y el analizador corre después, en un render que no bloquea el siguiente toque. En un móvil modesto,
+  // analizar la frase entera en cada tecla hacía esperar al teclado.
+  const typed = useDeferredValue(value)
+  const typedReady = typed.trim().length > 0
   // El idioma también cuenta: al cambiarlo con texto en la barra, se vuelve a entender.
-  const routine = useMemo(() => (ready && !details ? parseRoutine(value, Date.now()) : null), [value, ready, details, language]) // eslint-disable-line react-hooks/exhaustive-deps
-  const parsed = useMemo(() => (ready ? parseTask(value, Date.now(), places) : NOTHING), [value, ready, places, language]) // eslint-disable-line react-hooks/exhaustive-deps
+  const routine = useMemo(() => (typedReady && !details ? parseRoutine(typed, Date.now()) : null), [typed, typedReady, details, language]) // eslint-disable-line react-hooks/exhaustive-deps
+  const parsed = useMemo(() => (typedReady ? parseTask(typed, Date.now(), places) : NOTHING), [typed, typedReady, places, language]) // eslint-disable-line react-hooks/exhaustive-deps
   const label = routine?.label ?? parsed.label
   const detected = ready && !details && label !== null
   // Cómo avisa el lugar dicho: al llegar (la chincheta) o al salir.
@@ -333,10 +338,13 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   const expand = () => {
     haptic('selection')
     if (!details) {
-      const applied = detected && !literal
       const now = Date.now()
-      const repeat = applied ? parseRoutine(value, now) : null
-      const parsedNow = applied && !repeat ? parseTask(value, now, places) : null
+      // Se vuelve a entender la frase tal como está: lo de `parsed` puede ir una tecla por detrás.
+      const repeatNow = ready ? parseRoutine(value, now) : null
+      const taskNow = ready && !repeatNow ? parseTask(value, now, places) : null
+      const applied = (repeatNow?.label ?? taskNow?.label ?? null) !== null && !literal
+      const repeat = applied ? repeatNow : null
+      const parsedNow = applied && !repeat ? taskNow : null
       const fresh = detailsFrom(parsedNow, repeat, target, createId)
       setDetails(fresh.date && targetSection ? { ...fresh, sectionId: targetSection } : fresh)
       const title = repeat?.title ?? parsedNow?.title

@@ -13,7 +13,7 @@ const COPY = {
   es: {
     rows: [
       { title: 'Cena con Carlota', meta: 'Vie · 21:00' },
-      { title: 'Comprar flores', meta: 'Al pasar por la floristería' },
+      { title: 'Regalo de Victor', meta: 'Al pasar por la floristería' },
       { title: 'Tomar creatina', meta: 'Cada día · 10:00' },
     ],
     about: (title: string) => `Sobre «${title}»`,
@@ -24,7 +24,7 @@ const COPY = {
   en: {
     rows: [
       { title: 'Dinner with Carlota', meta: 'Fri · 9:00 PM' },
-      { title: 'Buy flowers', meta: 'When passing the florist' },
+      { title: 'Gift for Victor', meta: 'When passing the florist' },
       { title: 'Take creatine', meta: 'Every day · 10:00 AM' },
     ],
     about: (title: string) => `About “${title}”`,

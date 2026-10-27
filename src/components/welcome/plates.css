@@ -1,0 +1,614 @@
+/* ── Bienvenida, lo de la 1.8: el índice de la portada y las láminas del horario, la cesta y dictar ── */
+
+/* ── Portada: la edición y el índice de láminas ───────────────────────── */
+
+.welcome__edition {
+  margin: 0 0 8px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  animation: welcome-rise 700ms var(--ease-out) 1200ms both;
+}
+
+/* Lo que viene, como el sumario de un cuaderno: número en serif y nombre en versalitas, en una línea
+   que se parte donde haga falta. Cada entrada llega un poco después que la anterior */
+.welcome__index {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  max-width: 320px;
+  margin: 22px auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.welcome__index li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  animation: welcome-rise 600ms var(--ease-out) calc(1520ms + var(--i, 0) * 55ms) both;
+}
+
+.welcome__index-num {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gold);
+}
+
+.welcome__cover.is-quick .welcome__edition {
+  animation-delay: 270ms;
+}
+
+.welcome__cover.is-quick .welcome__index li {
+  animation-delay: calc(380ms + var(--i, 0) * 40ms);
+}
+
+.welcome__cover.is-back .welcome__edition,
+.welcome__cover.is-back .welcome__index li {
+  animation-duration: var(--dur-3);
+  animation-delay: 0ms;
+}
+
+/* En pantallas bajas el índice no cabe bajo la frase: se queda la frase */
+@media (max-height: 660px) {
+  .welcome__index {
+    display: none;
+  }
+}
+
+/* ── Las cabeceras de bloque de las escenas, como en la Agenda ─────────── */
+
+.scene__head {
+  flex: none;
+  margin: 0 0 2px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-block);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.scene__head--untimed {
+  margin-top: 10px;
+}
+
+/* ── Horario: tres cosas con hora y una sin hora que se sube hasta la suya ─────────── */
+
+.scene--day {
+  justify-content: center;
+  padding: 10px 14px 8px;
+  overflow: hidden;
+}
+
+/* Con la tarjeta abierta, el tiempo libre y la cabecera se recogen: la tarjeta es lo que hay que ver */
+.scene--day.is-choosing .tl--gap,
+.scene--day.is-choosing .scene__head {
+  display: none;
+}
+
+.scene__board {
+  position: relative;
+  flex: none;
+}
+
+/* El alto es fijo: cada fila conserva el suyo; sin el margen que `.scene__timeline` lleva en Calendario */
+.scene--day .scene__timeline {
+  margin: 0;
+}
+
+.scene--day .scene__timeline > .tl {
+  flex: none;
+}
+
+.scene--day .tl__body {
+  padding: 6px 0 7px;
+}
+
+.scene--day .tl__rail {
+  padding-bottom: 8px;
+}
+
+.scene--day .tl--gap {
+  min-height: 26px;
+}
+
+.scene--day .tl__free {
+  padding: 4px 0;
+}
+
+/* La fila que se arrastra: sin asa, se coge entera. Levantada, con sombra y por encima del horario.
+   `.swipe.scene__drag` para ganar a `.swipe` (que pide `pan-y`, recorta y contiene el pintado) */
+.swipe.scene__drag {
+  position: relative;
+  z-index: 4;
+  margin: 0 -6px;
+  border-radius: var(--r-md);
+  overflow: visible;
+  content-visibility: visible;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+  will-change: transform;
+}
+
+.scene__drag .row {
+  align-items: center;
+  padding: 12px 10px;
+}
+
+.scene__drag .swipe__surface {
+  position: relative;
+  border-radius: var(--r-md);
+}
+
+/* La sombra y el papel de la fila levantada van en un pseudoelemento que solo cambia de opacidad */
+.scene__drag .swipe__surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+.scene__drag.is-lifted {
+  cursor: grabbing;
+}
+
+.scene__drag.is-lifted .swipe__surface::before {
+  opacity: 1;
+}
+
+/* Mientras está sobre el horario, el título va en coñac y dice su hora, como lo que se lleva en la app */
+.scene__drag.is-timed .row__text {
+  color: var(--accent);
+}
+
+.scene__drag-time {
+  flex: none;
+  margin-right: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hasta que se toca, la fila se hunde y sube un poco, como al mantenerla pulsada: la superficie se
+   mueve y su sombra aparece, solo con transform y opacity */
+.scene--day.is-hinting .scene__drag .swipe__surface {
+  animation: scene-lift 3s var(--ease) 1200ms infinite;
+}
+
+.scene--day.is-hinting .scene__drag .swipe__surface::before {
+  animation: scene-lift-shadow 3s var(--ease) 1200ms infinite;
+}
+
+@keyframes scene-lift {
+  0%,
+  50%,
+  100% {
+    transform: none;
+  }
+  14% {
+    transform: scale(0.97);
+  }
+  28%,
+  36% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes scene-lift-shadow {
+  0%,
+  10%,
+  50%,
+  100% {
+    opacity: 0;
+  }
+  28%,
+  36% {
+    opacity: 1;
+  }
+}
+
+/* La tarea recién colocada entra en su sitio */
+.scene__placed {
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+/* La tarjeta, un poco más apretada que en la app para que quepa en la lámina */
+.scene--day .slot {
+  margin: 4px 0 8px;
+  padding: 8px 10px 10px;
+}
+
+.scene--day .slot__pills {
+  margin-top: 8px;
+}
+
+.scene--day .tape__window {
+  height: 50px;
+}
+
+/* ── La cesta: el icono con su cifra y el popover que cuelga de él ──────────────── */
+
+.scene--basket {
+  padding: 12px 14px 14px;
+}
+
+.scene__basket-icon {
+  position: relative;
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: 2px;
+  border-radius: var(--r-full);
+  color: var(--on-primary);
+  background: var(--primary);
+  box-shadow: var(--shadow-card);
+}
+
+.scene__basket-icon .app__basket-count {
+  box-shadow: 0 0 0 2px var(--bg-elev);
+}
+
+.scene__basket {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  padding-bottom: 8px;
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-lift), inset 0 1px 0 var(--edge-light);
+  overflow: hidden;
+  animation: scene-basket-in var(--dur-3) var(--ease-out) both;
+  transform-origin: calc(100% - 24px) 0;
+}
+
+@keyframes scene-basket-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
+}
+
+.scene__basket-beak {
+  position: absolute;
+  top: -5px;
+  right: 19px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px 0 0 0;
+  background: var(--bg-elev);
+  transform: rotate(45deg);
+}
+
+.scene__basket-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 14px 16px 4px;
+  color: var(--text);
+}
+
+.scene__basket-head svg {
+  color: var(--accent);
+}
+
+.scene__basket-title {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scene__basket-count {
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.scene__basket-add {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 8px 6px 16px;
+}
+
+.scene__basket-input {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 38px;
+  font-size: 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line-2);
+  overflow: hidden;
+}
+
+.scene__basket-input > span {
+  flex: none;
+  min-width: 100%;
+  white-space: pre;
+}
+
+.scene__basket-input.is-empty {
+  color: var(--text-3);
+}
+
+.scene__basket-plus {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+}
+
+.scene__basket-usual {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scene__basket-usual::-webkit-scrollbar {
+  display: none;
+}
+
+.scene__basket-chip {
+  flex: none;
+  min-height: 32px;
+  padding: 4px 11px 4px 9px;
+  border-style: dashed;
+  font-size: var(--fs-xs);
+}
+
+.scene__basket-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.scene__basket-row {
+  list-style: none;
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+.scene__basket-row + .scene__basket-row {
+  border-top: 1px solid var(--line);
+}
+
+.scene__basket-item {
+  width: 100%;
+  align-items: center;
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.scene__basket-qty {
+  flex: none;
+  margin-right: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene__basket-fold {
+  margin: 4px 16px 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.scene__basket-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 12px 0;
+  padding: 8px 12px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+/* ── Dictar: el widget de la pantalla de bloqueo y la barra escuchando ─────────────── */
+
+.scene--dictate {
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px;
+}
+
+.scene__lock {
+  flex: none;
+  padding: 10px 14px 12px;
+}
+
+.scene__lock-row {
+  justify-content: flex-start;
+}
+
+.scene__mic {
+  color: var(--lock-ink);
+}
+
+.scene__mic.is-live {
+  background: var(--lock-ink);
+  color: var(--lock-bottom);
+}
+
+/* Hasta que se toca, el micrófono late con un halo: un anillo que crece y se apaga (transform y opacity) */
+.scene__mic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 10px var(--lock-glass);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scene--dictate.is-hinting .scene__mic {
+  animation: scene-mic 2.4s var(--ease) 900ms infinite;
+}
+
+.scene--dictate.is-hinting .scene__mic::after {
+  animation: scene-mic-halo 2.4s var(--ease) 900ms infinite;
+}
+
+@keyframes scene-mic {
+  0%,
+  45%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes scene-mic-halo {
+  0%,
+  45%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.scene__mic-hint {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  opacity: 0.78;
+}
+
+.scene--dictate .scene__list {
+  flex: 1;
+}
+
+.scene__listening {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+}
+
+.scene__lock-clock {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.scene__voice {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.scene__voice i {
+  width: 3px;
+  height: 20px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  animation: scene-wave-bar 900ms var(--ease) infinite;
+}
+
+.scene__voice i:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.scene__voice i:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.scene__voice i:nth-child(4) {
+  animation-delay: 360ms;
+}
+
+.scene__voice i:nth-child(5) {
+  animation-delay: 480ms;
+}
+
+@keyframes scene-wave-bar {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.scene--dictate.is-listening .composer__mark,
+.scene__composer.is-listening .composer__mark {
+  color: var(--accent);
+}
+
+/* ── Lugares: el círculo de «aquí», que se consume al sonar ────────────────────── */
+
+.scene__zone--here {
+  border-color: var(--primary);
+  transition: opacity var(--dur-4) var(--ease);
+}
+
+.scene__zone--here::before {
+  background: var(--primary);
+}
+
+.scene__zone--here .scene__zone-name svg {
+  color: var(--primary);
+}
+
+.scene__zone--here.is-spent {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome__edition,
+  .welcome__index li,
+  .scene__basket,
+  .scene__placed,
+  .scene__basket-row,
+  .scene--day.is-hinting .scene__drag .swipe__surface,
+  .scene--day.is-hinting .scene__drag .swipe__surface::before,
+  .scene--dictate.is-hinting .scene__mic,
+  .scene--dictate.is-hinting .scene__mic::after,
+  .scene__voice i {
+    animation: none;
+  }
+}

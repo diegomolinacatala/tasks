@@ -14,15 +14,15 @@ import '../task/task.css'
 /** Una cita, un tramo con su duración y algo que se repite: lo que el compositor entiende solo. */
 const COPY = {
   es: {
-    phrases: ['Cena con Carlota mañana a las 9 de la noche', 'Dentista el viernes de 17:30 a 18:30', 'Tomar creatina cada día a las 10'],
+    phrases: ['Cena con Carlota mañana a las 9 de la noche', 'Pádel con Ibán el sábado de 11 a 12:30', 'Yoga con Aitana los martes a las 8'],
     example: (first: string, third: string) =>
-      `Por ejemplo, «${first}» se apunta para mañana a las 21:00, y «${third}» pasa a ser una rutina de cada día.`,
+      `Por ejemplo, «${first}» se apunta para mañana a las 21:00, y «${third}» pasa a ser una rutina de los martes.`,
     details: 'Detalles',
   },
   en: {
-    phrases: ['Dinner with Carlota tomorrow at 9pm', 'Dentist on Friday from 5:30 to 6:30pm', 'Take creatine every day at 10'],
+    phrases: ['Dinner with Carlota tomorrow at 9pm', 'Padel with Ibán on Saturday from 11 to 12:30', 'Yoga with Aitana on Tuesdays at 8am'],
     example: (first: string, third: string) =>
-      `For example, “${first}” is set for tomorrow at 9:00 PM, and “${third}” becomes a daily routine.`,
+      `For example, “${first}” is set for tomorrow at 9:00 PM, and “${third}” becomes a Tuesday routine.`,
     details: 'Details',
   },
 } as const

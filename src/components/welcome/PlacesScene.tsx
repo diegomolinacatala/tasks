@@ -2,13 +2,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { haptic } from '../../lib/platform/feedback'
 import { useCopy } from '../../state/LanguageProvider'
-import { IconBell, IconCheck, IconLeave, IconPin } from '../ui/Icons'
+import { IconBell, IconCheck, IconHere, IconLeave, IconPin } from '../ui/Icons'
 import { reducedMotion } from './motion'
 
 type Trigger = 'arrive' | 'leave'
 
+type ZoneId = 'home' | 'shop' | 'here'
+
 interface Zone {
-  id: 'home' | 'shop'
+  id: ZoneId
   /** Centro, en proporción del plano. */
   x: number
   y: number
@@ -18,10 +20,13 @@ interface Zone {
   on: Trigger
 }
 
+/** Tu punto empieza en «aquí», que no es un lugar guardado: es donde estás al pedir el aviso. */
 const ZONES: readonly Zone[] = [
-  { id: 'home', x: 0.27, y: 0.64, r: 46, on: 'leave' },
-  { id: 'shop', x: 0.75, y: 0.33, r: 40, on: 'arrive' },
+  { id: 'here', x: 0.5, y: 0.52, r: 30, on: 'leave' },
+  { id: 'home', x: 0.22, y: 0.7, r: 44, on: 'leave' },
+  { id: 'shop', x: 0.77, y: 0.3, r: 40, on: 'arrive' },
 ]
+const HERE = ZONES[0] as Zone
 
 /** Lo que dura el aviso a la vista antes de recogerse. */
 const BANNER_MS = 2800
@@ -30,28 +35,30 @@ const EDGE = 10
 
 const COPY = {
   es: {
-    names: { home: 'Casa', shop: 'Mercadona' },
+    names: { home: 'Casa', shop: 'Mercadona', here: 'Aquí · 100 m' },
     alerts: {
+      here: { title: 'Llamar a Miguel', when: 'Al alejarme 100 m' },
       home: { title: 'Llamar a Carlota', when: 'Al salir de Casa' },
       shop: { title: 'Comprar pan', when: 'Al llegar a Mercadona' },
     },
-    banner: { home: 'Al salir de Casa', shop: 'Mercadona' },
+    banner: { here: 'Te has alejado 100 m', home: 'Al salir de Casa', shop: 'Mercadona' },
     now: 'ahora',
     rang: 'Sonó',
     you: 'Tú',
-    label: 'Un plano con tu casa y el Mercadona. Arrastra tu punto fuera de casa o hasta el Mercadona.',
+    label: 'Un plano con tu punto, tu casa y el Mercadona. Arrastra tu punto: al alejarte 100 m, al pasar por casa y al llegar al Mercadona suena un aviso.',
   },
   en: {
-    names: { home: 'Home', shop: 'Supermarket' },
+    names: { home: 'Home', shop: 'Supermarket', here: 'Here · 100 m' },
     alerts: {
+      here: { title: 'Call Miguel', when: 'Once I’m 100 m away' },
       home: { title: 'Call Carlota', when: 'Leaving Home' },
       shop: { title: 'Buy bread', when: 'Arriving at Supermarket' },
     },
-    banner: { home: 'Leaving Home', shop: 'Supermarket' },
+    banner: { here: 'You’re 100 m away', home: 'Leaving Home', shop: 'Supermarket' },
     now: 'now',
     rang: 'Went off',
     you: 'You',
-    label: 'A map with your home and the supermarket. Drag your dot out of home or to the supermarket.',
+    label: 'A map with your dot, your home and the supermarket. Drag your dot: moving 100 m away, passing by home and arriving at the supermarket each set off an alert.',
   },
 } as const
 
@@ -66,19 +73,20 @@ const insideOf = (zone: Zone, size: Size, point: { x: number; y: number }) => {
   return Math.hypot(point.x - center.x, point.y - center.y) <= zone.r
 }
 
-/** El camino de muestra: de casa al Mercadona, rodeando un poco, en px del plano. */
+/** El camino de muestra: de aquí al Mercadona pasando por casa, en px del plano. */
 function demoPath(size: Size): string {
-  const [home, shop] = ZONES.map((zone) => centerOf(zone, size))
-  if (!home || !shop) return ''
-  const bend = { x: (home.x + shop.x) / 2 + size.w * 0.06, y: (home.y + shop.y) / 2 + size.h * 0.18 }
-  return `M ${home.x + 6} ${home.y - 4} Q ${bend.x} ${bend.y} ${shop.x} ${shop.y}`
+  const [here, home, shop] = ZONES.map((zone) => centerOf(zone, size))
+  if (!here || !home || !shop) return ''
+  const bend = { x: (home.x + shop.x) / 2 + size.w * 0.08, y: (home.y + shop.y) / 2 + size.h * 0.16 }
+  return `M ${here.x} ${here.y} Q ${here.x - size.w * 0.12} ${home.y - 10} ${home.x + 4} ${home.y + 2} Q ${bend.x} ${bend.y} ${shop.x} ${shop.y}`
 }
 
 /**
- * Los avisos por lugar, con el dedo: un plano con tu casa y el Mercadona, cada uno con su círculo, y tu
- * punto dentro de casa. Al sacarlo del círculo salta «Al salir de Casa · Llamar a Carlota»; al meterlo
- * en el del Mercadona, «Comprar pan». Como en el iPhone, vuelve a sonar cada vez que se cruza. Hasta el
- * primer toque, un punto de muestra hace el camino. Con movimiento reducido, se ve ya el aviso al salir.
+ * Los avisos por lugar, con el dedo: un plano con tu punto («aquí», con su círculo de 100 m), tu casa y
+ * el Mercadona, cada uno con su círculo. Al alejar el punto 100 m salta «Llamar a Miguel» (una vez: el
+ * aviso se consume, como en el iPhone); al sacarlo de casa, «Al salir de Casa · Llamar a Carlota»; al
+ * meterlo en el del Mercadona, «Comprar pan», y esos dos vuelven a sonar cada vez que se cruzan. Hasta el
+ * primer toque, un punto de muestra hace el camino. Con movimiento reducido, se ve ya el aviso de aquí.
  */
 export function PlacesScene() {
   const copy = useCopy(COPY)
@@ -86,10 +94,12 @@ export function PlacesScene() {
   const [size, setSize] = useState<Size | null>(null)
   const [you, setYou] = useState<{ x: number; y: number } | null>(null)
   const [touched, setTouched] = useState(false)
-  const [banner, setBanner] = useState<{ zone: Zone['id']; key: number } | null>(null)
-  const [rang, setRang] = useState<Record<Zone['id'], boolean>>({ home: false, shop: false })
+  const [banner, setBanner] = useState<{ zone: ZoneId; key: number } | null>(null)
+  const [rang, setRang] = useState<Record<ZoneId, boolean>>({ here: false, home: false, shop: false })
   const dragging = useRef(false)
-  const inside = useRef<Record<Zone['id'], boolean>>({ home: true, shop: false })
+  const inside = useRef<Record<ZoneId, boolean>>({ here: true, home: false, shop: false })
+  // El de aquí suena una vez: se guarda aparte del estado para decidirlo en el mismo movimiento.
+  const spent = useRef(false)
   const hide = useRef<number | undefined>(undefined)
   const still = useRef(reducedMotion())
 
@@ -99,13 +109,11 @@ export function PlacesScene() {
     const measure = () => {
       const next = { w: node.clientWidth, h: node.clientHeight }
       setSize(next)
-      // Al empezar, dentro de casa (o, sin movimiento, ya fuera: el aviso a la vista).
+      // Al empezar, aquí (o, sin movimiento, ya a 100 m: el aviso a la vista).
       setYou((current) => {
         if (current) return current
-        const home = ZONES[0]
-        if (!home) return current
-        const center = centerOf(home, next)
-        return still.current ? { x: center.x + home.r + 26, y: center.y - 18 } : { x: center.x + 8, y: center.y + 6 }
+        const center = centerOf(HERE, next)
+        return still.current ? { x: center.x + HERE.r + 30, y: center.y - 14 } : { x: center.x, y: center.y }
       })
     }
     measure()
@@ -116,14 +124,15 @@ export function PlacesScene() {
 
   useEffect(() => {
     if (!still.current) return
-    inside.current = { home: false, shop: false }
-    setRang({ home: true, shop: false })
-    setBanner({ zone: 'home', key: 0 })
+    inside.current = { here: false, home: false, shop: false }
+    spent.current = true
+    setRang({ here: true, home: false, shop: false })
+    setBanner({ zone: 'here', key: 0 })
   }, [])
 
   useEffect(() => () => window.clearTimeout(hide.current), [])
 
-  const ring = (zone: Zone['id']) => {
+  const ring = (zone: ZoneId) => {
     haptic('success')
     setRang((current) => ({ ...current, [zone]: true }))
     setBanner({ zone, key: Date.now() })
@@ -143,7 +152,15 @@ export function PlacesScene() {
       const now = insideOf(zone, size, point)
       const was = inside.current[zone.id]
       inside.current = { ...inside.current, [zone.id]: now }
-      // Como iOS: el de salir suena al cruzar hacia fuera; el de llegar, hacia dentro. Cada vez.
+      // Como iOS: el de salir suena al cruzar hacia fuera; el de llegar, hacia dentro. Cada vez, salvo
+      // el de aquí, que se consume al sonar.
+      if (zone.id === 'here') {
+        if (was && !now && !spent.current) {
+          spent.current = true
+          ring(zone.id)
+        }
+        continue
+      }
       if (zone.on === 'leave' && was && !now) ring(zone.id)
       if (zone.on === 'arrive' && !was && now) ring(zone.id)
     }
@@ -210,12 +227,12 @@ export function PlacesScene() {
             return (
               <div
                 key={zone.id}
-                className={`scene__zone scene__zone--${zone.on} ${banner?.zone === zone.id ? 'is-ringing' : ''}`}
+                className={`scene__zone scene__zone--${zone.on} ${zone.id === 'here' ? 'scene__zone--here' : ''} ${banner?.zone === zone.id ? 'is-ringing' : ''} ${zone.id === 'here' && rang.here ? 'is-spent' : ''}`}
                 style={{ left: center.x, top: center.y, width: zone.r * 2, height: zone.r * 2 } as CSSProperties}
                 aria-hidden="true"
               >
                 <span className="scene__zone-name">
-                  <IconPin size={11} strokeWidth={2.2} />
+                  {zone.id === 'here' ? <IconHere size={11} strokeWidth={2.2} /> : <IconPin size={11} strokeWidth={2.2} />}
                   {copy.names[zone.id]}
                 </span>
                 {/* Cada vez que suena, una onda: la key la reinicia. */}
@@ -255,7 +272,7 @@ export function PlacesScene() {
         {ZONES.map((zone) => (
           <li key={zone.id} className={`scene__alert ${rang[zone.id] ? 'is-rang' : ''}`}>
             <span className="scene__alert-icon" aria-hidden="true">
-              {zone.on === 'leave' ? <IconLeave size={15} /> : <IconPin size={15} />}
+              {zone.id === 'here' ? <IconHere size={15} /> : zone.on === 'leave' ? <IconLeave size={15} /> : <IconPin size={15} />}
             </span>
             <span className="scene__alert-main">
               <span className="scene__alert-title">{copy.alerts[zone.id].title}</span>

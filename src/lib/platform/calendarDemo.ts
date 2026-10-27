@@ -35,6 +35,7 @@ const TITLES = {
     birthday: 'Cumpleaños de Lucía',
     trip: 'Viaje a Lisboa',
     team: 'Reunión de equipo',
+    coffee: 'Café con Aitana',
     holiday: 'Fiesta Nacional de España',
   },
   en: {
@@ -46,6 +47,7 @@ const TITLES = {
     birthday: 'Lucía’s birthday',
     trip: 'Trip to Lisbon',
     team: 'Team meeting',
+    coffee: 'Coffee with Aitana',
     holiday: 'Columbus Day',
   },
 } as const
@@ -84,6 +86,8 @@ function eventsOn(day: string, today: string): CalendarEvent[] {
       return [
         allDay('birthday', 'demo-home', words.birthday),
         timed('team', 'demo-work', words.team, '11:00', '11:45', 'Meet'),
+        // Coincide con la comida: en la captura del horario se ven los dos en paralelo.
+        timed('coffee', 'demo-home', words.coffee, '14:45', '15:15'),
         timed('dentist', 'demo-home', words.dentist, '17:00', '17:45', 'Clínica Ruzafa'),
       ]
     if (offset === 1) return [timed('review', 'demo-work', words.review, '12:00', '13:00')]
