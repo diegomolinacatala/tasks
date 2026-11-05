@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { Dispatch, ReactNode } from 'react'
 import { captureLayout, changesLayout, playLayout } from '../lib/flip'
 import { createPersister, loadState } from '../lib/persistence'
+import { trackAction } from '../lib/stats/bus'
 import type { AppState } from '../types'
 import type { Action } from './actions'
 import { emptyState, reducer } from './reducer'
@@ -20,6 +21,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // borrar o pasar a hoy desliza la lista desde cualquier sitio que despache la acción.
   const dispatch = useCallback<Dispatch<Action>>((action) => {
     if (changesLayout(action.type)) captureLayout()
+    // Las estadísticas cuentan el tipo de cada acción (y la forma de lo que crea), nunca su contenido.
+    trackAction(action)
     rawDispatch(action)
   }, [])
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { acquireModal, releaseModal } from '../../lib/modal'
+import { track } from '../../lib/stats/bus'
 import { useCopy } from '../../state/LanguageProvider'
 import './sheet.css'
 
@@ -23,6 +24,11 @@ interface SheetProps {
   footer?: ReactNode
   /** Clase de más en la raíz (p. ej. para subirlo por encima de otra capa). */
   className?: string
+  /**
+   * Qué panel es, para las estadísticas (`data-screen` del mapa de calor y "paneles abiertos"). Un
+   * nombre fijo, nunca el título: algunos títulos son de quien usa la app (el nombre de un lugar).
+   */
+  screen?: string
 }
 
 /**
@@ -32,7 +38,7 @@ interface SheetProps {
  */
 const COPY = { es: { close: 'Cerrar' }, en: { close: 'Close' } } as const
 
-export function Sheet({ open, onClose, title, children, footer, className = '' }: SheetProps) {
+export function Sheet({ open, onClose, title, children, footer, className = '', screen }: SheetProps) {
   const copy = useCopy(COPY)
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
@@ -77,6 +83,7 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
     if (!open) return
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : null
     acquireModal()
+    if (screen) track(`sheet/${screen}`)
     const frame = requestAnimationFrame(() => {
       const node = panel.current
       if (node && !node.contains(document.activeElement)) node.focus({ preventScroll: true })
@@ -86,7 +93,7 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
       releaseModal()
       if (before?.isConnected) before.focus({ preventScroll: true })
     }
-  }, [open])
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted) return null
 
@@ -146,7 +153,7 @@ export function Sheet({ open, onClose, title, children, footer, className = '' }
   }
 
   return createPortal(
-    <div className={`sheet ${shown ? 'is-open' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`sheet ${shown ? 'is-open' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title} data-screen={screen}>
       {onClose ? (
         <button
           ref={(node) => {

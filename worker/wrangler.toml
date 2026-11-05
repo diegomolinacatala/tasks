@@ -42,6 +42,20 @@ name = "VOICE_LIMITER"
 namespace_id = "7304"
 simple = { limit = 10, period = 60 }
 
+# Estadísticas: un móvil manda un lote al pasar a segundo plano. Holgado para varios tras la misma IP
+# (las redes móviles comparten IP); lo que de verdad protege D1 es el presupuesto diario de escrituras.
+[[ratelimits]]
+name = "STATS_LIMITER"
+namespace_id = "7305"
+simple = { limit = 6, period = 60 }
+
+# El panel de uso (/uso): página, código y capturas de referencia. El Worker va primero para ponerle
+# su política de seguridad (index.ts); lo demás sigue siendo la API de siempre.
+[assets]
+directory = "./panel"
+binding = "ASSETS"
+run_worker_first = true
+
 # Dictado: Whisper en Workers AI (plan gratuito, sin claves).
 [ai]
 binding = "AI"

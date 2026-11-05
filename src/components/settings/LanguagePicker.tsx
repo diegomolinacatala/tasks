@@ -48,7 +48,7 @@ export function LanguagePicker({ value }: { value: LanguageSetting }) {
     <>
       <SettingsRow icon={<IconGlobe size={17} />} label={copy.title} value={current} onClick={() => setOpen(true)} />
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="language" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <div className="group__card" role="radiogroup" aria-label={copy.title}>
           {OPTIONS.map((option) => {

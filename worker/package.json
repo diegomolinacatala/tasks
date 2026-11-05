@@ -13,7 +13,8 @@
     "db:init": "wrangler d1 execute tasks-push --remote --file=schema.sql",
     "db:init:local": "wrangler d1 execute tasks-push --local --file=schema.sql",
     "db:init:query": "node scripts/apply-schema.mjs",
-    "feedback": "node scripts/feedback.mjs"
+    "feedback": "node scripts/feedback.mjs",
+    "stats:demo": "node scripts/stats-demo.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^2.0.0"

@@ -52,7 +52,7 @@ export function PlaceTasksSheet({ placeId, onOpenTask, onOpenBasket, onClose }: 
   const sorted = [...tasks].sort((a, b) => Number(a.done) - Number(b.done) || a.createdAt - b.createdAt)
 
   return (
-    <Sheet open={placeId !== null} onClose={onClose} title={place?.name ?? copy.place}>
+    <Sheet screen="place-tasks" open={placeId !== null} onClose={onClose} title={place?.name ?? copy.place}>
       {basket > 0 && onOpenBasket && (
         <button
           type="button"

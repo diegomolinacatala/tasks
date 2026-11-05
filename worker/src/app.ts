@@ -1,5 +1,18 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
 import { inboxPage } from './inbox'
+import {
+  MAX_STATS_BODY_BYTES,
+  STATS_DAILY_ROWS,
+  STATS_IP_DAILY_ROWS,
+  cohortsFrom,
+  parseRange,
+  parseScreen,
+  parseStats,
+  parseVersion,
+  previousRange,
+  utcDay,
+  weekRange,
+} from './stats'
 import { isQuotaExceeded } from './transcribe'
 import type { Deps, Device, InterpretContext, InterpretedTask } from './types'
 import {
@@ -188,6 +201,46 @@ async function ownerRoute(request: Request, deps: Deps, headers: Headers, id: st
   throw new HttpError(404, 'no encontrado')
 }
 
+/**
+ * Un lote de estadísticas: sin cuenta, sin dispositivo y sin guardar la IP (solo limita). Lo que no
+ * cabe en el presupuesto del día se descarta sin error: el móvil no debe insistir con lo mismo.
+ */
+async function addStats(request: Request, deps: Deps, ipHash: string) {
+  if (!(await deps.limits.stats.allow(ipHash))) throw tooMany()
+  const today = utcDay(deps.now())
+  const rows = unwrap(parseStats(await readJson(request, MAX_STATS_BODY_BYTES), today))
+  const budget = { day: today, max: STATS_DAILY_ROWS, ip: ipHash, ipMax: STATS_IP_DAILY_ROWS }
+  if (!(await deps.store.addStats(rows, budget))) {
+    console.error('estadísticas descartadas', 'presupuesto del día agotado')
+  }
+}
+
+/** El panel de uso (`/uso`) lee con la misma clave que el buzón. */
+async function statsRoute(request: Request, deps: Deps, headers: Headers, heat: boolean) {
+  await authorizeOwner(request, deps)
+  headers.set('cache-control', 'no-store')
+  const params = new URL(request.url).searchParams
+  const range = unwrap(parseRange(params))
+  const version = parseVersion(params.get('version'))
+  const weeks = weekRange(range)
+  if (heat) {
+    const screen = parseScreen(params.get('screen'))
+    if (!screen) throw new HttpError(400, 'pantalla inválida')
+    return json(200, { data: await deps.store.statsHeat({ ...weeks, version, screen }) }, headers)
+  }
+  const previous = previousRange(range)
+  const summary = await deps.store.statsSummary({
+    ...range,
+    previousFrom: previous.from,
+    previousTo: previous.to,
+    cohortsFrom: cohortsFrom(range),
+    weeksFrom: weeks.from,
+    weeksTo: weeks.to,
+    version,
+  })
+  return json(200, { data: summary }, headers)
+}
+
 /** La página del buzón: sin datos dentro (los pide con la clave), con todo su código atado a un nonce. */
 function inboxResponse(): Response {
   const nonce = randomToken()
@@ -275,6 +328,12 @@ async function route(request: Request, deps: Deps, headers: Headers): Promise<Re
   if (key === 'GET /v1/vapid') return json(200, { data: { publicKey: deps.config.vapidPublicKey } }, headers)
   if (key === 'POST /v1/devices') return json(201, { data: await registerDevice(request, deps, ipHash) }, headers)
   if (key === 'POST /v1/feedback') return json(201, { data: await addFeedback(request, deps, ipHash) }, headers)
+  if (key === 'POST /v1/stats') {
+    await addStats(request, deps, ipHash)
+    return empty(headers)
+  }
+  if (key === 'GET /v1/stats') return statsRoute(request, deps, headers, false)
+  if (key === 'GET /v1/stats/heat') return statsRoute(request, deps, headers, true)
   if (key === 'GET /buzon') return inboxResponse()
   const owner = FEEDBACK_PATH.exec(pathname)
   if (owner) return ownerRoute(request, deps, headers, owner[1] ?? null, Boolean(owner[2]))

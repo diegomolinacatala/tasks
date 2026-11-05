@@ -22,6 +22,7 @@ import { SwipeScene } from './SwipeScene'
 import { WriteScene } from './WriteScene'
 import './welcome.css'
 import './plates.css'
+import { track } from '../../lib/stats/bus'
 
 interface WelcomeProps {
   /** Qué láminas tocan y si la portada presenta la app o anuncia lo nuevo (`lib/welcome.ts`). */
@@ -237,6 +238,8 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
 
   const finish = () => {
     if (leaving) return
+    // Acabarla o saltarla (estadísticas: cuánto se ve de la bienvenida).
+    track(step === plates.length ? 'ui/welcome-done' : 'ui/welcome-skip')
     haptic('success')
     setLeaving(true)
     exit.current = window.setTimeout(() => callbacks.current.onDone(), EXIT_MS)
@@ -269,6 +272,7 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
       ref={root}
       tabIndex={-1}
       className={`welcome ${leaving ? 'is-leaving' : ''}`}
+      data-screen={plate ? `welcome:${plate.id}` : 'welcome'}
       role="dialog"
       aria-modal="true"
       aria-label={news ? copy.newsLabel : copy.welcomeLabel}

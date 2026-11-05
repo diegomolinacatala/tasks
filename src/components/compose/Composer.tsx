@@ -20,6 +20,7 @@ import { VoiceBar } from './VoiceBar'
 import { usePullUp } from './usePullUp'
 import { useVoice } from './useVoice'
 import './composer.css'
+import { track } from '../../lib/stats/bus'
 
 // Se enseña una sola vez por dispositivo: no merece estar en el paquete principal.
 const DictationConsent = lazy(() =>
@@ -283,6 +284,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     // Una rutina que no cabe (ya hay 50) se queda en la ficha: lo rellenado no se pierde.
     if (routineDraft && !onRoutine(routineDraft)) return
     if (!routineDraft) onSubmit(toTaskDraft(current, value))
+    track(routineDraft ? 'add/sheet-routine' : 'add/sheet')
     added()
     setExpanded(false)
   }
@@ -293,7 +295,10 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     if (details) return submitDetails(details)
     const fresh = parseRoutine(value, Date.now())
     if (fresh && !literal) {
-      if (onRoutine(fresh)) added()
+      if (onRoutine(fresh)) {
+        track('add/typed-routine')
+        added()
+      }
       return
     }
     // Se vuelve a analizar con la hora de ahora: "en 30 min" o "a las 9" cuentan desde que se
@@ -301,6 +306,9 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
     const parsedNow = parseTask(value, Date.now(), places)
     const { title, time, duration, reminders, newPlace } = parsedNow
     const date = parsedNow.date ?? target
+    // Cuánto entiende la barra: si había algo que entender y se aceptó (o se dejó tal cual).
+    track('add/typed')
+    if (parsedNow.label !== null) track(literal ? 'ui/pill-literal' : 'ui/pill')
     onSubmit(
       parsedNow.label !== null && !literal
         ? { title, date, time, duration, reminders, ...(newPlace ? { newPlace } : {}), ...inSection(date) }
@@ -321,6 +329,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
   /** La píldora tachada: lo escrito se guarda tal cual. La primera vez se dice. */
   const toggleLiteral = () => {
     setLiteral((current) => !current)
+    if (!literal) track('ui/pill-undo')
     if (literal) return
     try {
       if (localStorage.getItem(LITERAL_HINT_KEY)) return
@@ -337,6 +346,7 @@ export function Composer({ targets, today, onSubmit, onRoutine, onVoice, onCompo
    */
   const expand = () => {
     haptic('selection')
+    track('ui/details')
     if (!details) {
       const now = Date.now()
       // Se vuelve a entender la frase tal como está: lo de `parsed` puede ir una tecla por detrás.

@@ -4,6 +4,8 @@ import { pick } from '../../lib/i18n'
 import { INBOX_EVENT, applyInbox } from '../../lib/inbox'
 import { capitalize } from '../../lib/title'
 import { markApplied, readInbox } from '../../lib/platform/inbox'
+import { track } from '../../lib/stats/bus'
+import { inboxEvents } from '../../lib/stats/events'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePlaceEditor } from '../places/PlaceEditor'
 import { requestOpenTask } from '../task/rowActions'
@@ -47,6 +49,7 @@ export function NativeInbox() {
         const applied = applyInbox(stateRef.current, entries)
         markApplied(applied.entries)
         applied.actions.forEach(dispatch)
+        inboxEvents(applied.entries).forEach((name) => track(name))
         const text = pick(TEXT)
         // Un lugar nuevo dicho a Siri nace sin ubicar y su aviso no sonaría: con la app delante, se ofrece ubicarlo.
         const [place] = applied.entries.flatMap((entry) => entry.places)

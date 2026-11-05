@@ -23,6 +23,7 @@ form { display: flex; gap: 8px; margin-top: 24px; }
 input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 16px; }
 .when { font: 600 15px var(--serif); }
+.link { color: var(--accent); text-decoration: none; padding: 6px 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
 .chip { font-size: 12px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
 .message { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 17px; margin: 0 0 12px; }
@@ -172,11 +173,13 @@ async function load() {
   }
   main.replaceChildren()
   const head = el('header')
+  const usage = el('a', 'link', 'Uso')
+  usage.href = '/uso/'
   const refresh = el('button', '', 'Actualizar')
   refresh.addEventListener('click', () => void load())
   const out = el('button', '', 'Salir')
   out.addEventListener('click', () => { forget(); login() })
-  head.append(el('h1', '', 'Buzón'), refresh, out)
+  head.append(el('h1', '', 'Buzón'), usage, refresh, out)
   main.append(head, el('p', 'count', items.length === 1 ? '1 sugerencia' : items.length + ' sugerencias'))
   if (!items.length) main.append(el('p', 'empty', 'No hay sugerencias.'))
   for (const item of items) main.append(card(item))

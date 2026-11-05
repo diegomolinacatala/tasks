@@ -1,4 +1,18 @@
-import type { Device, DueItem, FeedbackSummary, ItemKey, NewDevice, NewFeedback, ScheduleItem, Store, Subscription } from './types'
+import type {
+  Device,
+  DueItem,
+  FeedbackSummary,
+  ItemKey,
+  NewDevice,
+  NewFeedback,
+  ScheduleItem,
+  StatsBudget,
+  StatsHeat,
+  StatsRows,
+  StatsSummary,
+  Store,
+  Subscription,
+} from './types'
 
 /** D1 admite como mucho 100 parámetros por consulta. */
 const MAX_PARAMS = 100
@@ -49,6 +63,86 @@ function keyConditions(
       .prepare(`${sqlPrefix} WHERE ${group.map(() => '(device_id = ? AND id = ?)').join(' OR ')}`)
       .bind(...leading, ...group.flatMap((key) => [key.deviceId, key.id])),
   )
+}
+
+/**
+ * Las filas van en un solo parámetro JSON que `json_each` desenrolla: una sentencia por tabla, sin el
+ * tope de 100 parámetros ni el de consultas por invocación. `WHERE true` evita la ambigüedad de
+ * SQLite entre el `ON CONFLICT` del upsert y un join.
+ */
+const UPSERT_COUNTS = `INSERT INTO stats_counts (day, platform, version, name, events, devices)
+  SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'),
+         json_extract(value, '$[3]'), json_extract(value, '$[4]'), json_extract(value, '$[5]')
+  FROM json_each(?1) WHERE true
+  ON CONFLICT (day, platform, version, name)
+  DO UPDATE SET events = events + excluded.events, devices = devices + excluded.devices`
+
+const UPSERT_CELLS = `INSERT INTO stats_cells (week, version, screen, cell, taps, rage, dead)
+  SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'),
+         json_extract(value, '$[3]'), json_extract(value, '$[4]'), json_extract(value, '$[5]'), json_extract(value, '$[6]')
+  FROM json_each(?1) WHERE true
+  ON CONFLICT (week, version, screen, cell)
+  DO UPDATE SET taps = taps + excluded.taps, rage = rage + excluded.rage, dead = dead + excluded.dead`
+
+const UPSERT_TARGETS = `INSERT INTO stats_targets (week, version, screen, target, taps, rage, dead, slow)
+  SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'), json_extract(value, '$[3]'),
+         json_extract(value, '$[4]'), json_extract(value, '$[5]'), json_extract(value, '$[6]'), json_extract(value, '$[7]')
+  FROM json_each(?1) WHERE true
+  ON CONFLICT (week, version, screen, target)
+  DO UPDATE SET taps = taps + excluded.taps, rage = rage + excluded.rage, dead = dead + excluded.dead, slow = slow + excluded.slow`
+
+/** Suma al presupuesto del día solo si cabe: `changes` dice si se aceptó. */
+const SPEND_BUDGET = `INSERT INTO stats_budget (day, rows) VALUES (?1, ?2)
+  ON CONFLICT (day) DO UPDATE SET rows = rows + excluded.rows WHERE rows + excluded.rows <= ?3`
+const SPEND_IP = `INSERT INTO stats_ip (day, ip, rows) VALUES (?1, ?2, ?3)
+  ON CONFLICT (day, ip) DO UPDATE SET rows = rows + excluded.rows WHERE rows + excluded.rows <= ?4`
+/** Si el lote no llega a escribirse, lo gastado vuelve: un lote fallido no agota el día. */
+const REFUND_BUDGET = `UPDATE stats_budget SET rows = MAX(0, rows - ?2) WHERE day = ?1`
+const REFUND_IP = `UPDATE stats_ip SET rows = MAX(0, rows - ?3) WHERE day = ?1 AND ip = ?2`
+/** Lo que pinta el panel, acotado: ni con nombres de sobra crece la respuesta sin fin. */
+const MAX_NAMES = 600
+
+const PREFIXES_NOW = `substr(name, 1, 2) IN ('e:', 'd:', 'x:')`
+const PREFIXES_BEFORE = `substr(name, 1, 2) IN ('e:', 'x:')`
+/** Con una versión elegida, también lo que no va por versión (idioma, tema, sesiones…). */
+const VERSION_FILTER = `(?3 IS NULL OR version IN (?3, ''))`
+
+const numberOf = (value: unknown) => (typeof value === 'number' ? value : Number(value ?? 0))
+
+async function addStatsRows(db: D1Database, rows: StatsRows, budget: StatsBudget) {
+  const total = rows.counts.length + rows.cells.length + rows.targets.length
+  if (!total) return true
+  const byIp = await db.prepare(SPEND_IP).bind(budget.day, budget.ip, total, budget.ipMax).run()
+  if (!byIp.meta.changes) return false
+  const spent = await db.prepare(SPEND_BUDGET).bind(budget.day, total, budget.max).run()
+  if (!spent.meta.changes) {
+    await db.prepare(REFUND_IP).bind(budget.day, budget.ip, total).run()
+    return false
+  }
+  const statements: D1PreparedStatement[] = []
+  if (rows.counts.length) {
+    const values = rows.counts.map((r) => [r.day, r.platform, r.version, r.name, r.events, r.devices])
+    statements.push(db.prepare(UPSERT_COUNTS).bind(JSON.stringify(values)))
+  }
+  if (rows.cells.length) {
+    const values = rows.cells.map((r) => [r.week, r.version, r.screen, r.cell, r.taps, r.rage, r.dead])
+    statements.push(db.prepare(UPSERT_CELLS).bind(JSON.stringify(values)))
+  }
+  if (rows.targets.length) {
+    const values = rows.targets.map((r) => [r.week, r.version, r.screen, r.target, r.taps, r.rage, r.dead, r.slow])
+    statements.push(db.prepare(UPSERT_TARGETS).bind(JSON.stringify(values)))
+  }
+  // batch = transacción: un lote entra entero o no entra.
+  try {
+    await db.batch(statements)
+  } catch (error) {
+    await db.batch([
+      db.prepare(REFUND_BUDGET).bind(budget.day, total),
+      db.prepare(REFUND_IP).bind(budget.day, budget.ip, total),
+    ])
+    throw error
+  }
+  return true
 }
 
 export function d1Store(db: D1Database): Store {
@@ -198,6 +292,100 @@ export function d1Store(db: D1Database): Store {
 
     async deleteFeedbackBefore(at) {
       await db.prepare('DELETE FROM feedback WHERE at < ?').bind(at).run()
+    },
+
+    addStats: (rows, budget) => addStatsRows(db, rows, budget),
+
+    async statsSummary(query): Promise<StatsSummary> {
+      const version = query.version
+      const [daily, names, previous, cohorts, screens] = await db.batch<Record<string, unknown>>([
+        db
+          .prepare(
+            `SELECT day, platform, version, name, events, devices FROM stats_counts
+             WHERE day BETWEEN ?1 AND ?2 AND name LIKE 'u:%'`,
+          )
+          .bind(query.from, query.to),
+        db
+          .prepare(
+            `SELECT name, SUM(events) AS events, SUM(devices) AS devices FROM stats_counts
+             WHERE day BETWEEN ?1 AND ?2 AND ${PREFIXES_NOW} AND ${VERSION_FILTER} GROUP BY name
+             ORDER BY devices DESC, events DESC LIMIT ${MAX_NAMES}`,
+          )
+          .bind(query.from, query.to, version),
+        db
+          .prepare(
+            `SELECT name, SUM(events) AS events, SUM(devices) AS devices FROM stats_counts
+             WHERE day BETWEEN ?1 AND ?2 AND ${PREFIXES_BEFORE} AND ${VERSION_FILTER} GROUP BY name
+             ORDER BY devices DESC, events DESC LIMIT ${MAX_NAMES}`,
+          )
+          .bind(query.previousFrom, query.previousTo, version),
+        db
+          .prepare(
+            `SELECT date(day, '-6 days', 'weekday 1') AS week, substr(name, 3) AS cohort, SUM(devices) AS devices
+             FROM stats_counts WHERE day BETWEEN ?1 AND ?2 AND name LIKE 'c:%' GROUP BY week, cohort`,
+          )
+          .bind(query.cohortsFrom, query.to),
+        db
+          .prepare(
+            `SELECT version, screen, SUM(taps) AS taps FROM stats_targets
+             WHERE week BETWEEN ?1 AND ?2 GROUP BY version, screen`,
+          )
+          .bind(query.weeksFrom, query.weeksTo),
+      ])
+      const rowsOf = (result: D1Result<Record<string, unknown>> | undefined) => result?.results ?? []
+      return {
+        daily: rowsOf(daily).map((r) => [
+          String(r.day),
+          String(r.platform),
+          String(r.version),
+          String(r.name),
+          numberOf(r.events),
+          numberOf(r.devices),
+        ]),
+        names: rowsOf(names).map((r) => [String(r.name), numberOf(r.events), numberOf(r.devices)]),
+        previous: rowsOf(previous).map((r) => [String(r.name), numberOf(r.events), numberOf(r.devices)]),
+        cohorts: rowsOf(cohorts).map((r) => [String(r.week), String(r.cohort), numberOf(r.devices)]),
+        screens: rowsOf(screens).map((r) => [String(r.version), String(r.screen), numberOf(r.taps)]),
+      }
+    },
+
+    async statsHeat(query): Promise<StatsHeat> {
+      const filter = `week BETWEEN ?1 AND ?2 AND (?3 IS NULL OR version = ?3) AND screen = ?4`
+      const [cells, targets] = await db.batch<Record<string, unknown>>([
+        db
+          .prepare(
+            `SELECT cell, SUM(taps) AS taps, SUM(rage) AS rage, SUM(dead) AS dead FROM stats_cells
+             WHERE ${filter} GROUP BY cell`,
+          )
+          .bind(query.from, query.to, query.version, query.screen),
+        db
+          .prepare(
+            `SELECT target, SUM(taps) AS taps, SUM(rage) AS rage, SUM(dead) AS dead, SUM(slow) AS slow
+             FROM stats_targets WHERE ${filter} GROUP BY target ORDER BY taps DESC LIMIT 80`,
+          )
+          .bind(query.from, query.to, query.version, query.screen),
+      ])
+      return {
+        cells: (cells?.results ?? []).map((r) => [numberOf(r.cell), numberOf(r.taps), numberOf(r.rage), numberOf(r.dead)]),
+        targets: (targets?.results ?? []).map((r) => [
+          String(r.target),
+          numberOf(r.taps),
+          numberOf(r.rage),
+          numberOf(r.dead),
+          numberOf(r.slow),
+        ]),
+      }
+    },
+
+    async deleteStatsBefore(day, today) {
+      await db.batch([
+        db.prepare('DELETE FROM stats_counts WHERE day < ?').bind(day),
+        db.prepare('DELETE FROM stats_cells WHERE week < ?').bind(day),
+        db.prepare('DELETE FROM stats_targets WHERE week < ?').bind(day),
+        db.prepare('DELETE FROM stats_budget WHERE day < ?').bind(day),
+        // Las huellas de IP de los topes no pasan del día.
+        db.prepare('DELETE FROM stats_ip WHERE day < ?').bind(today),
+      ])
     },
   }
 }

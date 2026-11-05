@@ -38,7 +38,7 @@ interface DictationConsentProps {
 export function DictationConsent({ open, onContinue, onClose }: DictationConsentProps) {
   const copy = useCopy(COPY)
   return (
-    <Sheet open={open} title={copy.title} onClose={isNative ? undefined : onClose}>
+    <Sheet screen="dictation-consent" open={open} title={copy.title} onClose={isNative ? undefined : onClose}>
       <p className="sheet__title">{copy.title}</p>
       <p className="consent__text">{dictationNotice()}</p>
       <p className="sheet__note">{copy.then}</p>

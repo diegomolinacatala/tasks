@@ -56,7 +56,7 @@ export function SectionSheet({ sectionId, onClose }: SectionSheetProps) {
   }
 
   return (
-    <Sheet open={Boolean(section)} onClose={close} title={copy.edit}>
+    <Sheet screen="section" open={Boolean(section)} onClose={close} title={copy.edit}>
       <p className="sheet__title">{copy.name}</p>
       <input
         className="sheet__input"

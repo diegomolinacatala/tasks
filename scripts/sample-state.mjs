@@ -185,9 +185,11 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
     collapsed: { overdue: false, backlog: false, routines: false },
     // La bienvenida, dada por vista (de cualquier versión futura): que no tape las capturas.
     // El calendario conectado: en las capturas sale el de muestra (`calendarDemo.ts`) junto a las tareas.
+    // Las estadísticas, apagadas: ni la ficha que pregunta tapa nada ni un guion manda nada al servidor.
     settings: {
       digest: { enabled: true, time: '08:30' },
       calendar: { enabled: true, hidden: [], export: null, done: [] },
+      stats: { level: 'off', cohort: null },
       dictation: false,
       theme,
       language,

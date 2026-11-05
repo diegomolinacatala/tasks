@@ -14,6 +14,7 @@ import { SwipeRow } from '../task/SwipeRow'
 import { IconArrive, IconBasket, IconCheck, IconChevronDown, IconChevronRight, IconPlus } from '../ui/Icons'
 import { useToast } from '../ui/Toast'
 import './basket.css'
+import { track } from '../../lib/stats/bus'
 
 /** Lo que dura el fundido de cierre (`--dur-2`): hasta entonces no se desmonta. */
 const EXIT_MS = 220
@@ -128,6 +129,7 @@ export function BasketPopover({ open, onClose }: BasketPopoverProps) {
     document.addEventListener('keydown', onKey)
     // Un popover deja el pie libre: el toast se queda abajo, donde siempre.
     acquireModal('popover')
+    track('sheet/basket')
     const frame = requestAnimationFrame(() => panel.current?.focus({ preventScroll: true }))
     return () => {
       cancelAnimationFrame(frame)
@@ -215,7 +217,7 @@ export function BasketPopover({ open, onClose }: BasketPopoverProps) {
   const showPlace = isNative && located.length > 0 && pending.length > 0
 
   return createPortal(
-    <div className={`basket ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={copy.title}>
+    <div className={`basket ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={copy.title} data-screen="basket">
       <button type="button" className="basket__scrim" aria-label={copy.close} onClick={onClose} />
       {/* El icono, en su sitio y encendido: tocarlo pliega la cesta; el pico la une a él. */}
       <button type="button" className="basket__anchor" aria-label={copy.close} aria-expanded="true" onClick={onClose}>

@@ -17,6 +17,7 @@ import type { Mark } from './FeedbackDraw'
 import { FeedbackDraw } from './FeedbackDraw'
 import { FeedbackSheet } from './FeedbackSheet'
 import './feedback.css'
+import { track } from '../../lib/stats/bus'
 
 /** Para quien lee el buzón (en español), sea cual sea el idioma de la app. */
 const SCREENS: Record<TabId, string> = { inbox: 'Bandeja', agenda: 'Agenda', places: 'Lugares', settings: 'Ajustes' }
@@ -60,6 +61,7 @@ export function FeedbackMode({ tab, api, onDone }: FeedbackModeProps) {
   const copy = useCopy(COPY)
   const toast = useToast()
   const [phase, setPhase] = useState<Phase>('browse')
+  useEffect(() => track('ui/feedback'), [])
   const [shot, setShot] = useState<string | null>(null)
   const [mark, setMark] = useState<Mark | null>(null)
   const [preview, setPreview] = useState<string | null>(null)

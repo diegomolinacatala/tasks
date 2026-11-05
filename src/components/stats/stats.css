@@ -1,0 +1,146 @@
+/* ── La ficha que pide compartir el detalle de las estadísticas ──────────────────────────────── */
+
+.stats-prompt {
+  padding-top: var(--sp-2);
+}
+
+/* Un teléfono pequeño con su mapa de calor: lo único que se ve de quien comparte es esto. */
+.stats-prompt__art {
+  position: relative;
+  display: block;
+  width: 54px;
+  height: 92px;
+  margin-bottom: var(--sp-4);
+  border: 2px solid var(--text);
+  border-radius: 14px;
+  background: var(--bg-elev);
+  box-shadow: 0 0 0 4px var(--bg-elev), 0 0 0 5px var(--gold);
+  overflow: hidden;
+  animation: stats-art var(--dur-4) var(--ease-pop) both;
+}
+
+.stats-prompt__art i {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 0%, color-mix(in srgb, var(--gold) 70%, transparent) 45%, transparent 72%);
+  opacity: 0.85;
+}
+
+.stats-prompt__art i:nth-child(1) { left: 6px; top: 58px; width: 40px; height: 40px; }
+.stats-prompt__art i:nth-child(2) { left: 24px; top: 14px; width: 26px; height: 26px; opacity: 0.6; }
+.stats-prompt__art i:nth-child(3) { left: 2px; top: 30px; width: 20px; height: 20px; opacity: 0.45; }
+
+@keyframes stats-art {
+  from {
+    opacity: 0;
+    transform: translateY(6px) rotate(-6deg);
+  }
+}
+
+.stats-prompt__kicker {
+  margin: 0;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.stats-prompt__title {
+  margin: 6px 0 var(--sp-2);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.stats-prompt__lead {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.stats-prompt__points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-prompt__points li {
+  position: relative;
+  padding: 6px 0 6px 18px;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* Un filete de oro en lugar de la viñeta, como en la ficha de versión nueva. */
+.stats-prompt__points li::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 9px;
+  height: 1.5px;
+  background: var(--gold);
+}
+
+.stats-prompt__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.stats-prompt__secondary,
+.stats-prompt__quiet {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-md);
+  cursor: pointer;
+}
+
+.stats-prompt__secondary {
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.stats-prompt__quiet {
+  color: var(--text-3);
+}
+
+.stats-prompt__secondary:active,
+.stats-prompt__quiet:active {
+  background: var(--bg-press);
+}
+
+/* ── Ajustes → Estadísticas ──────────────────────────────────────────────────────────────────── */
+
+.stats-option {
+  align-items: flex-start;
+}
+
+.stats-option__text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.stats-option__note {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-prompt__art {
+    animation: none;
+  }
+}

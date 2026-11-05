@@ -158,7 +158,7 @@ export function CalendarGuide({ open, connected, onConnect, onClose }: CalendarG
   ) : undefined
 
   return (
-    <Sheet open={open} onClose={onClose} title={copy.sheet} footer={footer}>
+    <Sheet screen="calendar-guide" open={open} onClose={onClose} title={copy.sheet} footer={footer}>
       <header className="calguide__head">
         <p className="calguide__kicker">
           <IconCalendar size={14} />

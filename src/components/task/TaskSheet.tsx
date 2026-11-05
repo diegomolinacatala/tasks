@@ -157,7 +157,7 @@ export function TaskSheet({ taskId, fromNotification = false, onClose, onMakeRou
   }
 
   return (
-    <Sheet open={open} onClose={close} title={copy.edit}>
+    <Sheet screen="task" open={open} onClose={close} title={copy.edit}>
       {/* Posponer una tarea ya hecha crearía un aviso que nunca suena. */}
       {fromNotification && !shown.done && <SnoozeBar task={shown} onDone={close} />}
 

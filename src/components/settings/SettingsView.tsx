@@ -12,6 +12,7 @@ import { LanguagePicker } from './LanguagePicker'
 import { NotificationsRow } from './NotificationsBlock'
 import { SettingsRow } from './SettingsRow'
 import './settings.css'
+import { StatsRow } from './StatsRow'
 
 const SITE = 'https://diegomolinacatala.github.io/tasks/'
 const APP_STORE = 'https://apps.apple.com/app/id6812776586'
@@ -125,6 +126,7 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
         <h2 className="group__title">{copy.data}</h2>
         <div className="group__card">
           <DataRow />
+          <StatsRow />
           <SettingsRow icon={<IconLock size={17} />} label={copy.privacy} href={`${SITE}${copy.privacyPage}`} />
         </div>
       </section>

@@ -4,6 +4,7 @@ import { addDays, fromIso } from '../../lib/date'
 import { WIDGET_EVENT, parseRoutineChanges, parseWidgetChanges } from '../../lib/nativeEvents'
 import { RESCHEDULE_EVENT } from '../../lib/nativeSchedule'
 import { TasksNative } from '../../lib/platform/native'
+import { track } from '../../lib/stats/bus'
 import { routineSettles, widgetSnapshot, widgetToggles } from '../../lib/widget'
 import { useLanguage } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
@@ -73,11 +74,13 @@ export function NativeWidget({ today }: NativeWidgetProps) {
   const pull = useCallback(async () => {
     try {
       const { changes, reschedule } = await TasksNative.widgetChanges()
-      widgetToggles(stateRef.current.tasks, parseWidgetChanges(changes)).forEach((id) => dispatch({ type: 'task/toggle', id }))
+      const toggles = widgetToggles(stateRef.current.tasks, parseWidgetChanges(changes))
+      toggles.forEach((id) => dispatch({ type: 'task/toggle', id }))
       // Rutinas tachadas en la pantalla de bloqueo o desde su aviso.
-      routineSettles(stateRef.current.routines, parseRoutineChanges(changes)).forEach(({ routineId, date, done }) =>
-        dispatch({ type: 'routine/set', id: routineId, date, done }),
-      )
+      const settles = routineSettles(stateRef.current.routines, parseRoutineChanges(changes))
+      settles.forEach(({ routineId, date, done }) => dispatch({ type: 'routine/set', id: routineId, date, done }))
+      if (toggles.length) track('widget/task', toggles.length)
+      if (settles.length) track('widget/routine', settles.length)
       if (reschedule) window.dispatchEvent(new Event(RESCHEDULE_EVENT))
     } catch {
       // Sin App Group (compilación sin firmar) no hay widget del que leer.

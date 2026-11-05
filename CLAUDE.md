@@ -419,6 +419,15 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     atrás, `aria-hidden` sobre controles).
   - Probado con el navegador del escritorio (claro y oscuro, 390 × 844): la portada, las cuatro láminas nuevas
     con el dedo (arrastrar, la cinta, Listo, comprar, el aviso de aquí). Ficha de la 1.8: `docs/app-store.md` §9.11.
+- **Estadísticas anónimas y panel de uso** (05/11/2026, commit en `capacitor` sin push; el Worker y la
+  política, sin desplegar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
+  qué regularidad, y un mapa de calor de los toques, «todo dentro de lo legal» y «sin mirar los datos de nadie en
+  particular». Ver "Estadísticas". Probado en local de punta a punta (la app manda al Worker local, el panel lo
+  pinta sobre la captura de la pantalla, ningún título viaja); 1.143 tests de la app y 182 del Worker. Revisado por dos
+  agentes (seguridad y código) y arreglado lo que encontraron: tope de escrituras por IP y día, familias de
+  eventos cerradas, el lote se da por enviado antes de mandarlo (nunca se cuenta dos veces a nadie), nada se
+  escribe tras apagarlas, la versión de antes de actualizar se guarda aparte, el lote cabe siempre en lo que
+  admite el servidor, un solo observador de toques y la cola del JS principal sin contenido.
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
@@ -457,6 +466,12 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
 **Pendiente, en este orden**
+
+0. **Estadísticas: desplegar y declarar**, antes de enviar la versión que las lleve: el Worker a `main` (el CI
+   aplica el esquema D1 nuevo y sube el panel, `[assets]`), la política nueva (`public/privacidad.html#estadisticas`,
+   se publica con `main`) y, en App Store Connect, los tipos de datos nuevos (`docs/app-store.md` §4). Después, el
+   panel: https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón (desde el buzón, «Uso»). Sin el
+   Worker nuevo, la app manda, recibe 404 y descarta el lote sin reintentar: no pasa nada.
 
 0. **Probar en el iPhone la TestFlight 52 y enviar la 1.8** (`docs/app-store.md` §9.11; al usuario, los pasos
    en el chat). Al abrir: la portada de novedades con el índice y las cuatro láminas nuevas (tocar el
@@ -593,6 +608,7 @@ npm run build:native  # typecheck + web para la app (dist-native/) + headless.js
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
 node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/); --en, las inglesas en docs/capturas/en/
+node scripts/heat-shots.mjs        # capturas de referencia del mapa de calor (worker/panel/uso/shots/), una por pantalla
 node scripts/perf.mjs 6 3         # fluidez con la CPU 6× más lenta, mediana de 3 pasadas (antes: build + preview en :4173)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
@@ -606,6 +622,7 @@ npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {
 npm run eval -- --local         # banco de frases dictadas contra el analizador local (gratis)
 npm run eval -- cena vuelo      # esos casos contra Workers AI real (EVAL_MODEL=@cf/... para otro modelo)
 npm run feedback                # baja el buzón de sugerencias a feedback/ (-- --archive las borra después)
+npm run stats:demo              # datos inventados SOLO en la D1 local; después `npm run dev` y http://localhost:8787/uso/
 npm run eval -- --all           # todos: ~10.500 neuronas, más que la cuota gratuita de un día: mejor en dos mitades, una tras las 00:00 UTC (ver Dictado)
 ```
 
@@ -628,7 +645,7 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 
 Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
 sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
-gzip (163,9 el 27/10/2026, con la barra que analiza en diferido y la tarjeta del horario en su trozo; 165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+gzip (164,7 el 05/11/2026, con la cola de las estadísticas: el recolector y la ficha van en su trozo; 163,9 el 27/10/2026, con la barra que analiza en diferido y la tarjeta del horario en su trozo; 165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
 143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
 01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
 30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
@@ -695,6 +712,7 @@ src/
 │   ├── transition.ts     # View Transitions API con degradación
 │   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
 │   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
+│   ├── stats/            # estadísticas anónimas: bus (JS principal), recolector (trozo), lote, ping, toques, tramos
 │   ├── feedback.ts       # sugerencias: el trazo, la zona rodeada, qué se cuenta de ella y el envío al buzón
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
@@ -715,6 +733,7 @@ src/
     ├── settings/         # SettingsView (la página de filas), SettingsRow, y cada fila con su panel: AppearanceRow,
     │                     # LanguagePicker, NotificationsRow, CalendarRow (+ CalendarPicker, CalendarExportSheet,
     │                     # CalendarGuide, Switch), DictationRow, DataRow (copias y datos)
+    ├── stats/            # StatsRunner (enciende o apaga el recolector) y StatsPrompt (la ficha que pide el detalle)
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
@@ -737,6 +756,10 @@ worker/                   # Cloudflare Worker de avisos (paquete npm independien
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
 ├── src/inbox.ts          # la página del buzón de sugerencias (/buzon)
+├── src/stats.ts          # estadísticas: el contrato del lote, su validación y las fechas del panel
+├── panel/uso/            # el panel de uso (/uso), estático: HTML, CSS, JS y capturas del mapa de calor (`shots/`)
+├── panel-tests/          # tests del modelo del panel (`model.js`)
+├── scripts/stats-demo.mjs # datos inventados en la D1 local para ver el panel
 ├── scripts/feedback.mjs  # baja el buzón a feedback/ (fuera de git), una ficha .md y su captura por sugerencia
 └── eval/                 # banco de frases dictadas con la respuesta esperada (`npm run eval`)
 ```
@@ -1261,6 +1284,65 @@ Para que quien usa la app (los amigos del usuario) diga qué cambiaría señalan
   para pegársela a Claude; `npm run feedback` (en `worker/`) las baja a `feedback/` con su captura.
 - **Privacidad**: es lo único que el servidor guarda con contenido; va en la política (`#sugerencias`),
   en `PrivacyInfo.xcprivacy` (atención al cliente) y en App Store Connect (`docs/app-store.md` §4).
+
+### Estadísticas
+
+Para saber cuánta gente usa la app, cómo y con qué regularidad, y dónde se toca (mapa de calor), sin ver a
+nadie en particular (lo pidió el usuario el 05/11/2026, «todo dentro de lo legal»). Nada de herramientas de
+terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los títulos de las tareas.
+
+- **Tres niveles** (`Settings.stats.level`, del dispositivo como el dictado: importar o borrarlo todo no lo
+  cambia; `lib/stats/settings.ts`): **Solo visitas** (`basic`, lo que hay sin elegir: medir audiencia, que la
+  AEPD admite sin consentimiento si es propio, anónimo y agregado y se informa, como en su guía de herramientas
+  de medición de audiencia de 2024), **Con detalle** (`full`, solo si se acepta: funciones y toques) y
+  **Ninguna** (`off`: no se manda nada y se borra lo pendiente). La ficha `StatsPrompt` lo pregunta una vez, a
+  partir del segundo día con la app y sin nada delante; cerrarla es "Solo visitas". Ajustes → Tus datos →
+  **Estadísticas** (`StatsRow`). Si el usuario prefiriera pedir permiso también para las visitas: `effectiveLevel`
+  devolvería `off` sin elegir, y cambiar la ficha y la política.
+- **Sin identificadores**, como el *usage ping* de Brave o DuckDuckGo: el móvil manda contadores y banderas
+  (`lib/stats/pending.ts`, `ledger.ts`). Un **ping al día** (`u:day`) con `weekly`/`monthly`/`first` (primero de
+  la semana, del mes, de siempre), la **cohorte** (el lunes del primer envío, guardado en `Settings.stats.cohort`
+  porque el fichero de estado aguanta más que localStorage), los días con la app de las últimas 4 semanas,
+  idioma, tema y tamaño de pantalla. Quien comparte el detalle cuenta aparte una vez al día (`full`). De cada
+  evento, cuántas veces y si es la primera vez hoy en ese dispositivo (`reach`): así el panel dice "en qué parte
+  de los días de uso pasa X" sin saber quién.
+- **Qué cuenta**: el tipo de cada acción del reducer y la forma de lo que crea (`task/add+time`, `+place`…;
+  `lib/stats/events.ts`), nunca su contenido (la cola del JS principal guarda solo los nombres); pestañas
+  (`view/…`) y paneles (`sheet/…`, la prop `screen` de `Sheet`); `track(...)` en la barra (escrita, ficha,
+  píldora aceptada o deshecha, Detalles), el dictado, la bienvenida, las sugerencias, la bandeja de Siri y el
+  widget; visitas (cuántas, cuánto, a qué hora), arranque en frío, errores (`lib/stats/errors.ts`: solo tipo y
+  fichero:línea, nunca el mensaje) y la latencia de cada toque.
+- **Mapa de calor** (`collector.ts`, `taps.ts`): un clic en captura sobre `window` (solo de verdad: no
+  programáticos, ni de teclado, ni tras deslizar o mantener). La pantalla es el `data-screen` más cercano (la raíz
+  de la app por pestaña o `composer`, cada `Sheet`, `basket`, `welcome:<lámina>`); la celda, una rejilla de 16 × 32
+  sobre la ventana; el objetivo, la primera clase CSS de bloque (nunca texto, `aria-label` ni ids). **Rabia**:
+  tres toques en 0,8 s a menos de 24 px. **Sin efecto**: nada cambia en el DOM (estados y estructura) ni hay
+  scroll en 0,5 s (un solo `MutationObserver`, solo mientras hay toques abiertos; un campo nunca cuenta como sin
+  efecto). En modo sugerencia no se cuenta nada.
+- **Envío** (`collector.ts`): lo contado se guarda en `localStorage` (`tasks:stats`) y se manda al pasar a
+  segundo plano (`fetch` con `keepalive`) si hay días cerrados o pasaron 15 min. El lote se da por enviado
+  **antes** de mandarlo: si iOS suspende la app a mitad, se pierde ese lote pero nunca se cuenta dos veces a
+  nadie. Un 4xx (salvo 429) lo descarta. Cabe siempre en lo que admite el servidor (`MAX_BATCH_ROWS`: los días y
+  los toques más repetidos). Lo de antes de actualizar va con su versión (`leftover`).
+- **Worker** (`worker/src/stats.ts`, `store.ts`): `POST /v1/stats` sin cuenta, valida (familias de eventos
+  cerradas: tipos de acción, `view/`, `sheet/`, `ui/`, `add/`, `inbox/`, `widget/`) y **suma al llegar** en tres
+  tablas de contadores (`stats_counts` por día, plataforma, versión y nombre; `stats_cells` y `stats_targets` por
+  semana, versión y pantalla), con un upsert por tabla vía `json_each`. Ni el lote ni la IP se guardan; lo que
+  describe al dispositivo (idioma, tema, cohorte, nuevos…) va sin plataforma ni versión, para no cruzar
+  dimensiones. **Presupuesto**: 30.000 filas al día para estadísticas (el resto del plan gratuito, para los
+  avisos) y 4.000 por IP (su huella, que se borra al día siguiente: `stats_ip`), más `STATS_LIMITER` (6 por
+  minuto). Lo que pasa de 400 días se borra (cron, una vez al día).
+- **Panel** (`/uso`, estático en `worker/panel/uso`, servido por el Worker con su CSP; la misma clave que el
+  buzón): cuánta gente (mes, semana, hoy, nuevos, días de uso), vuelven (cohortes), con qué frecuencia, qué se
+  usa, **dónde se toca** (el mapa sobre una captura de referencia de cada pantalla, `scripts/heat-shots.mjs`, con
+  rabia y sin efecto, y la lista de lo más tocado), pantallas, rendimiento y errores, y con qué (plataforma,
+  versión, idioma, tema, pantalla). Filtros de periodo y versión arriba. **Con menos de 3 dispositivos (`K`) no
+  se desglosa nada**: el umbral es del panel; las tablas guardan contadores exactos. Paleta validada con el
+  script de la skill de gráficos (contraste y daltonismo, claro y oscuro).
+- **Si cambia una pantalla**, rehacer sus capturas (`node scripts/heat-shots.mjs`). **Si se añade un evento**,
+  que su familia ya exista en `EVENT` del Worker (si no, se descarta) y ponerle nombre en `panel/uso/labels.js`.
+- En local: `.env.local` con `VITE_PUSH_API`, `npm run dev` en el Worker (o `panel-test` de `.claude/launch.json`,
+  con la clave de los tests) y `npm run stats:demo` para tener datos.
 
 ### Pasar a hoy
 
@@ -2016,7 +2098,7 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - Nada de `console.log` en el código final.
 - Los tests cubren `src/lib` y `src/state` (umbral 80%). El pegamento de React y de
   navegador (`push/client.ts`, `push/keystore.ts`, `voice/capture.ts`, `voice/speech.ts`,
-  `sw.ts`) se prueba en el dispositivo.
+  `stats/collector.ts`, `sw.ts`) se prueba en el dispositivo.
 - En `worker/` el acceso a datos va detrás de la interfaz `Store`: los tests usan
   `memoryStore()` y un `Sender` falso; `store.ts`, `push.ts` e `index.ts` son adaptadores.
 
@@ -2032,9 +2114,12 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
   la web lo aplica al cargar o al volver a primer plano.
 - **El Worker sirve a todas las versiones instaladas.** Se despliega al momento y la gente no
   actualiza a la vez: sus rutas y respuestas cambian solo de forma compatible hacia atrás.
-- **Backend solo para avisos, dictado y sugerencias**, sin acceso a lo guardado: nada de guardar
-  tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
+- **Backend solo para avisos, dictado, sugerencias y estadísticas anónimas**, sin acceso a lo guardado: nada de
+  guardar tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
   sugerencia es lo único que se guarda con contenido, porque quien la manda lo decide y lo ve antes.
+- **Estadísticas: solo contadores**, sin identificadores ni contenido; lo básico (audiencia) sin pedir permiso y
+  con aviso, el detalle (funciones, toques) solo si se acepta; nada de grabar sesiones ni de herramientas de
+  terceros. Nadie se ve en particular: el panel no desglosa con menos de 3 dispositivos.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
 - **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:

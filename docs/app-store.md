@@ -442,6 +442,14 @@ al cliente** (en *Contenido del usuario*) → **Guardar** → en su tarjeta, **C
 la app* → ¿vinculado a la identidad? **No** → ¿para rastrear? **No** → **Guardar** → arriba a la derecha,
 **Publicar**.
 
+**Estadísticas anónimas** (desde la 1.9 o la versión que las lleve; tú, una vez, antes de enviarla): App Store
+Connect → la app → **Privacidad de la app** → **Editar** junto a los tipos de datos → marca **Interacción con el
+producto** (en *Datos de uso*), **Datos de rendimiento** y **Otros datos de diagnóstico** (en *Diagnóstico*) →
+**Guardar** → en cada tarjeta, **Configurar**: *Analítica* → ¿vinculado a la identidad? **No** → ¿para rastrear?
+**No** → **Guardar** → arriba a la derecha, **Publicar**. Coincide con `PrivacyInfo.xcprivacy`. No hace falta
+el permiso de rastreo de Apple (ATT): no hay identificadores ni se cruza nada con otras empresas. La política
+(`public/privacidad.html#estadisticas`) tiene que estar publicada (en `main`) antes de enviar la versión.
+
 **Cifrado**: `ITSAppUsesNonExemptEncryption = false` en `Info.plist` (solo HTTPS y cifrado estándar del
 sistema), así que TestFlight no pregunta por la exportación.
 

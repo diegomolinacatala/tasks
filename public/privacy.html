@@ -59,13 +59,14 @@
   <body>
     <main>
       <h1>Privacy</h1>
-      <p class="date">Tasks · updated October 8, 2026 · <a href="privacidad.html" lang="es">en español</a></p>
+      <p class="date">Tasks · updated November 5, 2026 · <a href="privacidad.html" lang="es">en español</a></p>
 
       <p>
-        Tasks has no accounts, ads or analytics. <strong>We don’t collect personal data</strong> and we don’t sell
-        anything to anyone. The only content that leaves your device is what you dictate, and only if you allow
-        microphone access after reading where it goes (see <a href="#dictation">Dictation</a>), and the suggestions
-        you choose to send (see <a href="#suggestions">Suggestions</a>).
+        Tasks has no accounts or ads. <strong>We don’t collect personal data</strong> and we don’t sell anything to
+        anyone. The only content that leaves your device is what you dictate, and only if you allow microphone
+        access after reading where it goes (see <a href="#dictation">Dictation</a>), and the suggestions you choose
+        to send (see <a href="#suggestions">Suggestions</a>). The app also counts, anonymously, how much it’s used,
+        without knowing by whom (see <a href="#statistics">Statistics</a>).
       </p>
 
       <h2>Your tasks and places</h2>
@@ -112,7 +113,8 @@
       <p>
         To send reminders and limit abuse, the server stores per device: a random identifier, the hash of its access
         key, the notification address given by the browser (web only), an anonymized hash of the IP address and the
-        date of last use. A device that isn’t used for 180 days is deleted automatically.
+        date of last use. A device that isn’t used for 180 days is deleted automatically. Of the statistics, only
+        totals (see <a href="#statistics">Statistics</a>).
       </p>
 
       <h2 id="dictation">Dictation</h2>
@@ -147,6 +149,37 @@
       <p>
         Only the developer reads it, and deletes it once read; anything not deleted within a year is deleted
         automatically. To limit abuse, an anonymized fingerprint of the IP address is also stored.
+      </p>
+
+      <h2 id="statistics">Statistics</h2>
+      <p>
+        To know how many people use Tasks and make it better, the app sends our server anonymous counters. They carry
+        no identifier (no account, no device or advertising number) and never your content: not the text of your
+        tasks, your places, or what you write or dictate. The server adds them up as they arrive and only keeps
+        totals (for example, “40 devices opened the app today”): it doesn’t keep what was sent or your IP address. To
+        limit abuse, only an anonymized fingerprint of the IP is kept with how much it sent that day, and it’s
+        deleted the next day. Totals are deleted after 13 months. You can change or turn them off in Settings →
+        <em>Statistics</em>:
+      </p>
+      <ul>
+        <li>
+          <strong>Visits only</strong> (what you get if you don’t choose): that the app was opened that day (and
+          whether it’s the first time that week or month), on how many of the last four weeks’ days, how many times
+          and for how long, at what time, which screens are seen, how long it takes to open, errors (only their type
+          and where in the code they happen), the version, iPhone or web, language, theme and a rough screen size.
+          This is the app’s own anonymous, aggregated audience measurement, which the Spanish Data Protection Agency
+          allows without asking for consent when it’s disclosed, as here.
+        </li>
+        <li>
+          <strong>Detailed</strong> (only if you accept): also which features are used (for example, “a task with a
+          time was created”, never which one) and where the screen is tapped, on a grid and with the internal name
+          of the button, never its text.
+        </li>
+        <li><strong>None</strong>: nothing is sent and anything pending on the device is deleted.</li>
+      </ul>
+      <p>
+        What’s waiting to be sent stays only on your device until the app goes to the background. With fewer than
+        three devices, the developer sees no breakdown.
       </p>
 
       <h2>Microphone</h2>

@@ -1,6 +1,7 @@
 import { Activity, Suspense, lazy, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
+import { track, trackBoot } from './lib/stats/bus'
 import type { ComposeTarget } from './lib/compose'
 import { composeTargets } from './lib/compose'
 import { relativeLabel, shortTime } from './lib/date'
@@ -75,6 +76,9 @@ const UpdatePrompt = lazy(() => import('./components/update/UpdatePrompt').then(
 const CalendarExportSync = lazy(() =>
   import('./components/calendar/CalendarExportSync').then((module) => ({ default: module.CalendarExportSync })),
 )
+// Estadísticas anónimas: el recolector (solo si están encendidas) y la ficha que pide el detalle, una vez.
+const StatsRunner = lazy(() => import('./components/stats/StatsRunner').then((module) => ({ default: module.StatsRunner })))
+const StatsPrompt = lazy(() => import('./components/stats/StatsPrompt').then((module) => ({ default: module.StatsPrompt })))
 // La bienvenida sale la primera vez, tras una actualización que traiga láminas nuevas y desde Ajustes.
 // Si su trozo no llegara a cargarse (o tardara más de la cuenta), la app se abre igual (y no se da por vista).
 const WELCOME_LOAD_MS = 8000
@@ -212,10 +216,17 @@ export function App() {
 
   useEffect(() => applyTheme(state.settings.theme), [state.settings.theme])
 
+  // Qué pestañas se ven (estadísticas: pantallas, sin pedir el detalle).
+  useEffect(() => track(`view/${shownTab}`), [shownTab])
+
   useEffect(() => {
     // Ya hay estado pintado: se funde el arranque (#boot) y la app entra. Con bienvenida lo funde
     // ella cuando está pintada (`onReady`): así no llega a verse la app vacía por debajo.
-    if (!welcome) finishBoot()
+    if (!welcome) {
+      finishBoot()
+      // Con bienvenida, el arranque espera a su trozo: no dice cuánto tarda la app en abrir.
+      trackBoot(performance.now())
+    }
     if (isNative) void import('./lib/platform/shell').then(({ showApp }) => showApp())
     void loadSheets()
     // Con la app ya entrada, en un rato libre: la primera tecla en la barra no espera a compilar nada.
@@ -494,6 +505,7 @@ export function App() {
    */
   const addSpoken = (drafts: ParsedTask[]) => {
     if (!drafts.length) return
+    track('add/voice')
     const added = addTasks(drafts)
     const [first] = drafts
     const where = first?.date ? '' : ` · ${copy.inbox}`
@@ -636,6 +648,7 @@ export function App() {
       <div
         inert={welcome !== null}
         data-welcome={welcome !== null ? '' : undefined}
+        data-screen={writing && composing ? 'composer' : shownTab}
         className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
           writing ? 'has-composer' : ''
         } ${writing && composing ? 'is-composing' : ''} ${basketOpen ? 'has-basket' : ''}`}
@@ -743,6 +756,12 @@ export function App() {
         {(isNative || import.meta.env.DEV) && (
           <Suspense fallback={null}>
             <UpdatePrompt paused={welcome !== null || suggesting || composing || taskId !== null || routineId !== null || sectionId !== null || basketOpen} />
+          </Suspense>
+        )}
+        {API_URL && (
+          <Suspense fallback={null}>
+            <StatsRunner apiBase={API_URL} paused={suggesting} />
+            <StatsPrompt paused={welcome !== null || suggesting || composing || taskId !== null || routineId !== null || sectionId !== null || basketOpen} />
           </Suspense>
         )}
         {/* También con el ajuste quitado: así borra lo que había añadido. */}

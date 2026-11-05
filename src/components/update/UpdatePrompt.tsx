@@ -143,7 +143,7 @@ export function UpdatePrompt({ paused }: UpdatePromptProps) {
   )
 
   return (
-    <Sheet open={open && !paused} onClose={() => setOpen(false)} title={copy.sheet} footer={footer}>
+    <Sheet screen="update" open={open && !paused} onClose={() => setOpen(false)} title={copy.sheet} footer={footer}>
       <div className="update">
         <span className="update__seal" aria-hidden="true">
           {release.version}

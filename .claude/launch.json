@@ -18,6 +18,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "worker", "run", "dev", "--", "--port", "8787"],
       "port": 8787
+    },
+    {
+      "name": "panel-test",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "worker", "run", "dev", "--", "--port", "8788", "--var", "FEEDBACK_KEY:clave-del-buzon-de-pruebas-0123456789"],
+      "port": 8788
     }
   ]
 }

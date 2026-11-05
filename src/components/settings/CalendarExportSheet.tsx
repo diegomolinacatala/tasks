@@ -84,7 +84,7 @@ export function CalendarExportSheet({ open, onClose }: { open: boolean; onClose:
   )
 
   return (
-    <Sheet open={open} onClose={onClose} title={copy.title}>
+    <Sheet screen="calendar-export" open={open} onClose={onClose} title={copy.title}>
       <h2 className="calpick__title">{copy.title}</h2>
       <p className="calguide__lead">{copy.lead}</p>
       <div className="group__card calexport__main" role="radiogroup" aria-label={copy.title}>

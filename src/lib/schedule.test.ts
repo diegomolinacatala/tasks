@@ -31,7 +31,7 @@ const stateOf = (tasks: Task[], digest = { enabled: false, time: '08:30' }): App
   routines: [],
   shopping: { items: [], history: [], placeId: null },
   collapsed: { overdue: false, backlog: false, routines: false },
-  settings: { digest, calendar: { enabled: false, hidden: [], export: null, done: [] }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
+  settings: { digest, calendar: { enabled: false, hidden: [], export: null, done: [] }, stats: { level: null, cohort: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 })
 
 describe('notificationBody', () => {

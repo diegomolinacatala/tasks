@@ -31,7 +31,7 @@ export function DictationRow() {
   return (
     <>
       <SettingsRow icon={<IconMic size={17} />} label={copy.title} value={allowed ? copy.on : copy.off} onClick={() => setOpen(true)} />
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="dictation" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <div className="group__card">
           <div className="group__row group__row--static">

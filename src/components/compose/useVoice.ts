@@ -10,6 +10,7 @@ import { TARGET_RATE, bytesToBase64, encodeWav, resample } from '../../lib/voice
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { usePush } from '../push/PushProvider'
 import { useToast } from '../ui/Toast'
+import { track } from '../../lib/stats/bus'
 
 export type VoicePhase = 'idle' | 'listening' | 'processing'
 
@@ -141,6 +142,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
   const deliver = useCallback(
     (text: string | null, interpreted: unknown = null) => {
       if (text === null) return
+      track(text.trim() ? 'ui/voice-ok' : 'ui/voice-empty')
       if (text.trim()) onText(text, interpreted)
       else toast({ message: pick(TEXT).notUnderstood })
     },
@@ -164,6 +166,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   const fail = useCallback(
     (error: unknown) => {
+      track('ui/voice-fail')
       if (micDenied(error)) {
         rememberMicDenied(true)
         deniedToast()
@@ -257,6 +260,7 @@ export function useVoice(onText: (text: string, interpreted: unknown) => void) {
 
   const start = useCallback(() => {
     if (phase !== 'idle') return
+    track('ui/voice-start')
     if (push.canTranscribe) {
       if (allowed) return record()
       // Ya lo negó el sistema: la ficha del permiso no tiene nada que pedir.

@@ -11,6 +11,7 @@ import { MAX_REMINDERS, normalizeReminder } from './reminders'
 import { normalizeShopping } from './shopping'
 import { isLanguageSetting, pick } from './i18n'
 import { normalizeWelcome } from './welcome'
+import { normalizeStatsSettings } from './stats/settings'
 
 export interface BackupFile {
   app: 'tasks'
@@ -84,6 +85,8 @@ function normalizeSettings(raw: unknown): Settings {
     },
     // Las anteriores al calendario no lo traen: apagado, hasta que se conecte.
     calendar: normalizeCalendarSettings(settings.calendar),
+    // Las anteriores a las estadísticas no las traen: nadie ha elegido aún.
+    stats: normalizeStatsSettings(settings.stats),
     dictation: settings.dictation === true,
     // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
     theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,

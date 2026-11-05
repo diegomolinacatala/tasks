@@ -6,6 +6,8 @@ import { deviceLanguages, resolveLanguage, setLanguage } from './i18n'
 import { applyInbox } from './inbox'
 import { loadEnglish } from './parse'
 import { isNative } from './platform'
+import { track, trackAction } from './stats/bus'
+import { inboxEvents } from './stats/events'
 
 const KEY = 'tasks:state:v1'
 /** Cuándo se guardó cada copia: en el iPhone manda la más reciente, no el fichero por ser fichero. */
@@ -55,6 +57,9 @@ async function withInbox(state: AppState): Promise<AppState> {
     if (language === 'en') await loadEnglish()
     const applied = applyInbox(state, entries)
     markApplied(applied.entries)
+    // Con la app cerrada, esto no pasa por el reducer: se cuenta aquí.
+    applied.actions.forEach(trackAction)
+    inboxEvents(applied.entries).forEach((name) => track(name))
     return applied.state
   } catch {
     // Sin bandeja se carga igual: `NativeInbox` vuelve a mirarla al volver a primer plano.

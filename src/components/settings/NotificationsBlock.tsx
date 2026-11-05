@@ -97,7 +97,7 @@ export function NotificationsRow() {
         danger={danger}
         onClick={() => setOpen(true)}
       />
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="notifications" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <NotificationsPanel />
       </Sheet>

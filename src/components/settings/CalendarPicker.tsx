@@ -32,7 +32,7 @@ export function CalendarPicker({ open, onClose }: { open: boolean; onClose: () =
   const copy = useCopy(COPY)
 
   return (
-    <Sheet open={open} onClose={onClose} title={copy.title}>
+    <Sheet screen="calendar-picker" open={open} onClose={onClose} title={copy.title}>
       <h2 className="calpick__title">{copy.title}</h2>
       {calendarGroups(calendars.filter((calendar) => !calendar.own)).map((group) => (
         <div key={group.source} className="calpick__group">

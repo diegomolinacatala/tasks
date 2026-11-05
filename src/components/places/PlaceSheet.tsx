@@ -326,7 +326,7 @@ export function PlaceSheet({ request, onClose }: PlaceSheetProps) {
   ) : undefined
 
   return (
-    <Sheet open={request !== null} onClose={close} title={place ? copy.place : copy.newPlace} footer={footer}>
+    <Sheet screen="place" open={request !== null} onClose={close} title={place ? copy.place : copy.newPlace} footer={footer}>
       {full && <p className="sheet__note">{copy.full}</p>}
 
       {/* El nombre va primero en cuanto hay dónde ponerlo; uno nuevo empieza por dónde está. */}

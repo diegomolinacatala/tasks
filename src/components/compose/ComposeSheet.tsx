@@ -157,7 +157,7 @@ export function ComposeSheet({ open, title, details, today, onTitle, onChange, o
   )
 
   return (
-    <Sheet open={open} onClose={onClose} title={routine ? copy.newRoutine : copy.newTask} footer={footer}>
+    <Sheet screen="compose" open={open} onClose={onClose} title={routine ? copy.newRoutine : copy.newTask} footer={footer}>
       <header className="compose-head">
         <button type="button" className="compose-head__fold" aria-label={copy.fold} onClick={onClose}>
           <IconChevronDown size={22} />

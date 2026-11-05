@@ -156,7 +156,7 @@ export function DataRow() {
   return (
     <>
       <SettingsRow icon={<IconArchive size={17} />} label={copy.title} value={copy.count(state.tasks.length)} onClick={() => setOpen(true)} />
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="data" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <div className="group__stats">
           {[state.tasks.length, pending, state.routines.length, state.sections.length, state.places.length].map((count, index) => {

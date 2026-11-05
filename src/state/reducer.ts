@@ -11,15 +11,17 @@ import { MAX_REMINDERS, clampHereRadius, normalizeHerePoint, snoozed, withRemind
 import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { MAX_SHOPPING_ITEMS, cleanQty, cleanShoppingName, emptyShopping, findItem, remember } from '../lib/shopping'
 import { normalizeWelcome } from '../lib/welcome'
+import { defaultStatsSettings, isStatsLevel } from '../lib/stats/settings'
 import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, ShoppingItem, ShoppingState, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 17
+export const SCHEMA_VERSION = 18
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
   calendar: defaultCalendarSettings(),
+  stats: defaultStatsSettings(),
   dictation: false,
   theme: 'auto',
   language: 'auto',
@@ -485,6 +487,15 @@ export function reducer(state: AppState, action: Action): AppState {
       if (state.settings.dictation === action.allowed) return state
       return { ...state, settings: { ...state.settings, dictation: action.allowed } }
 
+    case 'settings/stats': {
+      const current = state.settings.stats
+      const level = action.level !== undefined && isStatsLevel(action.level) ? action.level : current.level
+      // La cohorte se fija una vez: es la semana en que este dispositivo empezó a contar.
+      const cohort = current.cohort ?? (action.cohort && /^\d{4}-\d{2}-\d{2}$/.test(action.cohort) ? action.cohort : null)
+      if (level === current.level && cohort === current.cohort) return state
+      return { ...state, settings: { ...state.settings, stats: { level, cohort } } }
+    }
+
     case 'settings/theme':
       if (!THEMES.includes(action.theme) || state.settings.theme === action.theme) return state
       return { ...state, settings: { ...state.settings, theme: action.theme } }
@@ -530,8 +541,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado, la apariencia, el idioma, el calendario y la bienvenida vista son de este
-    // dispositivo: una copia de otro no los cambia.
+    // El permiso del dictado, la apariencia, el idioma, el calendario, la bienvenida vista y las
+    // estadísticas son de este dispositivo: una copia de otro no los cambia.
     case 'state/import':
       return {
         ...action.state,
@@ -542,10 +553,12 @@ export function reducer(state: AppState, action: Action): AppState {
           language: state.settings.language,
           calendar: state.settings.calendar,
           welcome: state.settings.welcome,
+          stats: state.settings.stats,
         },
       }
 
-    // Borrarlo todo no cambia cómo se ve la app, su idioma, su calendario ni vuelve a enseñar la bienvenida.
+    // Borrarlo todo no cambia cómo se ve la app, su idioma, su calendario, lo que manda de estadísticas ni
+    // vuelve a enseñar la bienvenida.
     // Lo que sí se va son los eventos marcados como hechos: son lo que se hizo, como las tareas.
     case 'state/clear':
       return {
@@ -556,6 +569,7 @@ export function reducer(state: AppState, action: Action): AppState {
           language: state.settings.language,
           calendar: { ...state.settings.calendar, done: [] },
           welcome: state.settings.welcome,
+          stats: state.settings.stats,
         },
       }
 

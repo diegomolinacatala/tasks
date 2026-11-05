@@ -1,5 +1,5 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, HerePoint, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, ShoppingItem, Task, Theme } from '../types'
+import type { AppState, BlockId, HerePoint, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, ShoppingItem, StatsLevel, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -101,6 +101,8 @@ export type Action =
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }
+  /** Estadísticas anónimas: qué se manda (`level`) y la cohorte, que se fija con el primer envío. */
+  | { type: 'settings/stats'; level?: StatsLevel; cohort?: IsoDate }
   | { type: 'settings/theme'; theme: Theme }
   | { type: 'settings/language'; language: LanguageSetting }
   | { type: 'settings/dayStart'; time: IsoTime }

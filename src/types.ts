@@ -198,9 +198,24 @@ export interface CalendarSettings {
   done: string[]
 }
 
+/** Qué estadísticas anónimas manda este dispositivo: ver `lib/stats/settings.ts`. */
+export type StatsLevel = 'off' | 'basic' | 'full'
+
+export interface StatsSettings {
+  /** `null`: nadie ha elegido; cuenta como `basic` y la app pregunta una vez por el detalle. */
+  level: StatsLevel | null
+  /** Lunes de la semana del primer envío (la cohorte de retención); `null` hasta enviar algo. */
+  cohort: IsoDate | null
+}
+
 export interface Settings {
   digest: DigestSettings
   calendar: CalendarSettings
+  /**
+   * Estadísticas anónimas. Son de este dispositivo, como el dictado: importar una copia o borrarlo
+   * todo no las cambia.
+   */
+  stats: StatsSettings
   /**
    * Permiso para enviar lo dictado (el audio, o el texto de Siri) a la IA del servidor. Sin él, nada
    * de lo dicho sale del dispositivo: Siri usa el analizador local y el micrófono pregunta antes.

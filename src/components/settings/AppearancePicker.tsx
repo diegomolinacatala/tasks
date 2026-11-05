@@ -73,7 +73,7 @@ export function AppearanceRow({ value }: { value: Theme }) {
   return (
     <>
       <SettingsRow icon={<Icon size={17} />} label={copy.title} value={copy[value]} onClick={() => setOpen(true)} />
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="appearance" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
         <AppearancePicker value={value} />
       </Sheet>

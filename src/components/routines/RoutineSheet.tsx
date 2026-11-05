@@ -177,7 +177,7 @@ export function RoutineSheet({ routineId, today, onClose }: RoutineSheetProps) {
   ) : undefined
 
   return (
-    <Sheet open={routineId !== null} onClose={close} title={isNew ? copy.newRoutine : copy.routine} footer={footer}>
+    <Sheet screen="routine" open={routineId !== null} onClose={close} title={isNew ? copy.newRoutine : copy.routine} footer={footer}>
       {isNew && full && <p className="sheet__note">{copy.full}</p>}
       <div className="routine-name">
         <button

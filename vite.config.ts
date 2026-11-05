@@ -87,6 +87,7 @@ export default defineConfig(({ mode }) => ({
         'src/lib/push/keystore.ts',
         'src/lib/voice/capture.ts',
         'src/lib/voice/speech.ts',
+        'src/lib/stats/collector.ts',
         // Adaptadores de Capacitor: solo existen en el iPhone.
         'src/lib/platform/**',
       ],

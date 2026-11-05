@@ -137,7 +137,7 @@ export function CalendarRow() {
         danger={calendar.status === 'denied' || (calendar.status === 'granted' && trouble)}
         onClick={() => setOpen(true)}
       />
-      <Sheet open={open} onClose={() => setOpen(false)} title={copy.title}>
+      <Sheet screen="calendar" open={open} onClose={() => setOpen(false)} title={copy.title}>
         <SettingsSheetTitle>{copy.title}</SettingsSheetTitle>
 
         {calendar.status === 'unknown' && <div className="group__card group__card--placeholder" aria-hidden="true" />}
