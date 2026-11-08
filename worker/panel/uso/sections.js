@@ -66,7 +66,7 @@ function tile({ label, value, sub, delta, trend, hero = false }) {
 // ── I. Cuánta gente ───────────────────────────────────────────────────────────────────────────────
 
 export function audience(model) {
-  const node = section('I', 'Cuánta gente', 'Dispositivos que abren Tasks. Sin cuentas ni identificadores: cada uno cuenta una vez por día, semana y mes.')
+  const node = section('I', 'Cuánta gente', 'Dispositivos que abren Tasks y aceptaron las estadísticas. Sin cuentas ni identificadores: cada uno cuenta una vez por día, semana y mes.')
   const today = model.range.to
   const monthStart = `${today.slice(0, 7)}-01`
   const lastMonth = addDays(monthStart, -1)

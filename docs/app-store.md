@@ -449,6 +449,10 @@ producto** (en *Datos de uso*), **Datos de rendimiento** y **Otros datos de diag
 **No** → **Guardar** → arriba a la derecha, **Publicar**. Coincide con `PrivacyInfo.xcprivacy`. No hace falta
 el permiso de rastreo de Apple (ATT): no hay identificadores ni se cruza nada con otras empresas. La política
 (`public/privacidad.html#estadisticas`) tiene que estar publicada (en `main`) antes de enviar la versión.
+Nada se manda sin que la persona lo elija: Apple pide permiso incluso para datos de uso anónimos (norma
+5.1.1(ii)). Conviene decirlo en las notas para la revisión: *Anonymous statistics are off until the user opts in
+(a one-time sheet from the second day, or Settings → Statistics); nothing is sent before that.* No enviar la
+TestFlight 54: contaba las visitas sin preguntar.
 
 **Cifrado**: `ITSAppUsesNonExemptEncryption = false` en `Info.plist` (solo HTTPS y cifrado estándar del
 sistema), así que TestFlight no pregunta por la exportación.

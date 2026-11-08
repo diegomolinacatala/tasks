@@ -419,8 +419,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     atrás, `aria-hidden` sobre controles).
   - Probado con el navegador del escritorio (claro y oscuro, 390 × 844): la portada, las cuatro láminas nuevas
     con el dedo (arrastrar, la cinta, Listo, comprar, el aviso de aquí). Ficha de la 1.8: `docs/app-store.md` §9.11.
-- **Estadísticas anónimas y panel de uso** (05/11/2026, commit en `capacitor` sin push; el Worker y la
-  política, sin desplegar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
+- **Estadísticas anónimas y panel de uso** (05/11/2026, commit `e3f59be` en `capacitor`, **TestFlight 54**; el
+  Worker y la política, sin desplegar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
   qué regularidad, y un mapa de calor de los toques, «todo dentro de lo legal» y «sin mirar los datos de nadie en
   particular». Ver "Estadísticas". Probado en local de punta a punta (la app manda al Worker local, el panel lo
   pinta sobre la captura de la pantalla, ningún título viaja); 1.143 tests de la app y 182 del Worker. Revisado por dos
@@ -428,6 +428,16 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   eventos cerradas, el lote se da por enviado antes de mandarlo (nunca se cuenta dos veces a nadie), nada se
   escribe tras apagarlas, la versión de antes de actualizar se guarda aparte, el lote cabe siempre en lo que
   admite el servidor, un solo observador de toques y la cola del JS principal sin contenido.
+  - **Con permiso** (08/11/2026, en `capacitor`: la primera TestFlight que pide permiso es la que sigue a la 54):
+    nada se cuenta hasta elegirlo, ni siquiera las visitas. La 54
+    las contaba sin preguntar (la AEPD lo admite), pero Apple pide permiso incluso para datos de uso anónimos
+    (norma 5.1.1(ii)) y ya rechazó una vez la app por la 5.1.1: **la TestFlight 54 no se envía a revisión**. La
+    ficha pregunta lo mismo desde el segundo día, con las tres respuestas del mismo peso; cerrarla es «Ninguna».
+    Sin elegir no hay cohorte (`normalizeStatsSettings` borra la que pudo fijar la 54). Política del 08/11/2026.
+    La cola del JS principal se decide al cargar el estado (`StoreProvider`), sin esperar al trozo de las
+    estadísticas: sin elegir, se tira. Revisado por un agente (lo arreglado: eso, y que la ficha saliera de golpe
+    al cerrar la barra o un panel: ahora vuelve a esperar sus 6 s). Probado con Edge sin ventana: aceptadas, se
+    cuenta desde el arranque; sin elegir y con restos de la 54, no queda nada ni se envía nada.
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
@@ -471,7 +481,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    aplica el esquema D1 nuevo y sube el panel, `[assets]`), la política nueva (`public/privacidad.html#estadisticas`,
    se publica con `main`) y, en App Store Connect, los tipos de datos nuevos (`docs/app-store.md` §4). Después, el
    panel: https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón (desde el buzón, «Uso»). Sin el
-   Worker nuevo, la app manda, recibe 404 y descarta el lote sin reintentar: no pasa nada.
+   Worker nuevo, la app manda, recibe 404 y descarta el lote sin reintentar: no pasa nada. **No enviar a revisión
+   la TestFlight 54**: cuenta las visitas sin preguntar. Para la 1.8 sin estadísticas vale la 52; con ellas, una
+   posterior a la 54 (ya piden permiso), y en las notas para la revisión, que solo se mandan si se aceptan (`docs/app-store.md` §4).
 
 0. **Probar en el iPhone la TestFlight 52 y enviar la 1.8** (`docs/app-store.md` §9.11; al usuario, los pasos
    en el chat). Al abrir: la portada de novedades con el índice y las cuatro láminas nuevas (tocar el
@@ -1291,14 +1303,15 @@ Para saber cuánta gente usa la app, cómo y con qué regularidad, y dónde se t
 nadie en particular (lo pidió el usuario el 05/11/2026, «todo dentro de lo legal»). Nada de herramientas de
 terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los títulos de las tareas.
 
-- **Tres niveles** (`Settings.stats.level`, del dispositivo como el dictado: importar o borrarlo todo no lo
-  cambia; `lib/stats/settings.ts`): **Solo visitas** (`basic`, lo que hay sin elegir: medir audiencia, que la
-  AEPD admite sin consentimiento si es propio, anónimo y agregado y se informa, como en su guía de herramientas
-  de medición de audiencia de 2024), **Con detalle** (`full`, solo si se acepta: funciones y toques) y
-  **Ninguna** (`off`: no se manda nada y se borra lo pendiente). La ficha `StatsPrompt` lo pregunta una vez, a
-  partir del segundo día con la app y sin nada delante; cerrarla es "Solo visitas". Ajustes → Tus datos →
-  **Estadísticas** (`StatsRow`). Si el usuario prefiriera pedir permiso también para las visitas: `effectiveLevel`
-  devolvería `off` sin elegir, y cambiar la ficha y la política.
+- **Tres niveles, y nada sin elegirlo** (`Settings.stats.level`, del dispositivo como el dictado: importar o
+  borrarlo todo no lo cambia; `lib/stats/settings.ts`): **Solo visitas** (`basic`: medir audiencia), **Con
+  detalle** (`full`: además, funciones y toques) y **Ninguna** (`off`: no se manda nada y se borra lo pendiente),
+  que es lo que hay mientras no se elige (`level: null`, `effectiveLevel`). Apple pide permiso incluso para datos
+  de uso anónimos (norma 5.1.1(ii)): la AEPD admite medir la audiencia sin consentimiento, pero eso no vale para
+  la revisión (la TestFlight 54 contaba así las visitas; se cambió el 08/11/2026). La ficha `StatsPrompt` lo
+  pregunta una vez, a partir del segundo día con la app y sin nada delante, con las tres respuestas del mismo
+  peso (decir que no cuesta lo que decir que sí) y sin contar la respuesta; cerrarla es "Ninguna". Sin elegir
+  no hay cohorte. Ajustes → Tus datos → **Estadísticas** (`StatsRow`).
 - **Sin identificadores**, como el *usage ping* de Brave o DuckDuckGo: el móvil manda contadores y banderas
   (`lib/stats/pending.ts`, `ledger.ts`). Un **ping al día** (`u:day`) con `weekly`/`monthly`/`first` (primero de
   la semana, del mes, de siempre), la **cohorte** (el lunes del primer envío, guardado en `Settings.stats.cohort`
@@ -1333,7 +1346,7 @@ terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los t�
   avisos) y 4.000 por IP (su huella, que se borra al día siguiente: `stats_ip`), más `STATS_LIMITER` (6 por
   minuto). Lo que pasa de 400 días se borra (cron, una vez al día).
 - **Panel** (`/uso`, estático en `worker/panel/uso`, servido por el Worker con su CSP; la misma clave que el
-  buzón): cuánta gente (mes, semana, hoy, nuevos, días de uso), vuelven (cohortes), con qué frecuencia, qué se
+  buzón), con las cifras de quien acepta las estadísticas: cuánta gente (mes, semana, hoy, nuevos, días de uso), vuelven (cohortes), con qué frecuencia, qué se
   usa, **dónde se toca** (el mapa sobre una captura de referencia de cada pantalla, `scripts/heat-shots.mjs`, con
   rabia y sin efecto, y la lista de lo más tocado), pantallas, rendimiento y errores, y con qué (plataforma,
   versión, idioma, tema, pantalla). Filtros de periodo y versión arriba. **Con menos de 3 dispositivos (`K`) no
@@ -1342,7 +1355,8 @@ terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los t�
 - **Si cambia una pantalla**, rehacer sus capturas (`node scripts/heat-shots.mjs`). **Si se añade un evento**,
   que su familia ya exista en `EVENT` del Worker (si no, se descarta) y ponerle nombre en `panel/uso/labels.js`.
 - En local: `.env.local` con `VITE_PUSH_API`, `npm run dev` en el Worker (o `panel-test` de `.claude/launch.json`,
-  con la clave de los tests) y `npm run stats:demo` para tener datos.
+  con la clave de los tests) y `npm run stats:demo` para tener datos. La ficha sale a partir del segundo día:
+  para verla ya, sin haber elegido, `localStorage.setItem('tasks:stats-ask', '2026-01-01')` y recargar.
 
 ### Pasar a hoy
 
@@ -2117,9 +2131,9 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - **Backend solo para avisos, dictado, sugerencias y estadísticas anónimas**, sin acceso a lo guardado: nada de
   guardar tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
   sugerencia es lo único que se guarda con contenido, porque quien la manda lo decide y lo ve antes.
-- **Estadísticas: solo contadores**, sin identificadores ni contenido; lo básico (audiencia) sin pedir permiso y
-  con aviso, el detalle (funciones, toques) solo si se acepta; nada de grabar sesiones ni de herramientas de
-  terceros. Nadie se ve en particular: el panel no desglosa con menos de 3 dispositivos.
+- **Estadísticas: solo contadores**, sin identificadores ni contenido, y nada sin pedir permiso, ni siquiera las
+  visitas (Apple, norma 5.1.1(ii)); nada de grabar sesiones ni de herramientas de terceros. Nadie se ve en
+  particular: el panel no desglosa con menos de 3 dispositivos.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
 - **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:

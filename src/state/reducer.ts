@@ -11,7 +11,7 @@ import { MAX_REMINDERS, clampHereRadius, normalizeHerePoint, snoozed, withRemind
 import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
 import { MAX_SHOPPING_ITEMS, cleanQty, cleanShoppingName, emptyShopping, findItem, remember } from '../lib/shopping'
 import { normalizeWelcome } from '../lib/welcome'
-import { defaultStatsSettings, isStatsLevel } from '../lib/stats/settings'
+import { defaultStatsSettings, isCounting, isStatsLevel } from '../lib/stats/settings'
 import { isLanguageSetting } from '../lib/i18n'
 import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, ShoppingItem, ShoppingState, Task, Theme } from '../types'
 import type { Action } from './actions'
@@ -490,8 +490,9 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'settings/stats': {
       const current = state.settings.stats
       const level = action.level !== undefined && isStatsLevel(action.level) ? action.level : current.level
-      // La cohorte se fija una vez: es la semana en que este dispositivo empezó a contar.
-      const cohort = current.cohort ?? (action.cohort && /^\d{4}-\d{2}-\d{2}$/.test(action.cohort) ? action.cohort : null)
+      // La cohorte se fija una vez: es la semana en que este dispositivo empezó a contar (si cuenta).
+      const fresh = isCounting(level) && action.cohort && /^\d{4}-\d{2}-\d{2}$/.test(action.cohort) ? action.cohort : null
+      const cohort = current.cohort ?? fresh
       if (level === current.level && cohort === current.cohort) return state
       return { ...state, settings: { ...state.settings, stats: { level, cohort } } }
     }

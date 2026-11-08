@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { todayIso } from '../../lib/date'
 import { haptic } from '../../lib/platform/feedback'
-import { track } from '../../lib/stats/bus'
 import { shouldAskStats } from '../../lib/stats/settings'
 import type { StatsLevel } from '../../types'
 import { useCopy } from '../../state/LanguageProvider'
@@ -14,29 +13,29 @@ const COPY = {
     sheet: 'Estadísticas',
     kicker: 'Estadísticas anónimas',
     title: '¿Me ayudas a mejorar Tasks?',
-    lead: 'Tasks cuenta las visitas sin saber de quién son. Si quieres, comparte también qué funciones usas y dónde tocas la pantalla.',
+    lead: 'Si quieres, Tasks contará de forma anónima cuántas veces se abre y qué pantallas ves; con detalle, también qué funciones usas y dónde tocas la pantalla. Hasta que elijas, no cuenta nada.',
     points: [
       'Nunca lo que escribes, ni tus tareas ni tus lugares.',
       'Sin cuentas ni identificadores: solo contadores.',
       'Se cambia cuando quieras, en Ajustes.',
     ],
-    yes: 'Sí, compartir el detalle',
+    full: 'Sí, con detalle',
     basic: 'Solo las visitas',
-    none: 'No enviar nada',
+    none: 'No, gracias',
   },
   en: {
     sheet: 'Statistics',
     kicker: 'Anonymous statistics',
     title: 'Help me make Tasks better?',
-    lead: 'Tasks counts visits without knowing whose they are. If you like, also share which features you use and where you tap the screen.',
+    lead: 'If you like, Tasks will anonymously count how often it opens and which screens you see; with details, also which features you use and where you tap the screen. Until you choose, nothing is counted.',
     points: [
       'Never what you write, your tasks or your places.',
       'No accounts, no identifiers: just counters.',
       'Change it anytime in Settings.',
     ],
-    yes: 'Yes, share the details',
+    full: 'Yes, with details',
     basic: 'Visits only',
-    none: 'Send nothing',
+    none: 'No, thanks',
   },
 } as const
 
@@ -68,8 +67,9 @@ interface StatsPromptProps {
 }
 
 /**
- * Una vez por dispositivo, a partir del segundo día: pide compartir el detalle (funciones y toques). Sin
- * elegir se queda en "solo visitas" (medir audiencia, que se puede quitar en Ajustes); cerrarla también.
+ * Una vez por dispositivo, a partir del segundo día: pregunta si se cuentan estadísticas y cuáles. Hasta
+ * que se elige no se cuenta nada, ni siquiera la respuesta (Apple pide permiso incluso para datos de uso
+ * anónimos), y las tres respuestas pesan lo mismo: decir que no cuesta lo que decir que sí.
  */
 export function StatsPrompt({ paused }: StatsPromptProps) {
   const copy = useCopy(COPY)
@@ -78,49 +78,64 @@ export function StatsPrompt({ paused }: StatsPromptProps) {
   const [open, setOpen] = useState(false)
   const asking = shouldAskStats(stats)
 
-  const maybeOpen = useCallback(() => {
-    if (asking && !somethingOpen() && secondDay()) setOpen(true)
-  }, [asking])
-
+  // Mientras algo la tapa (`paused`) no se cuenta el tiempo: al quitarse, vuelve a esperar, para no salir
+  // de golpe justo al cerrar la barra o un panel. Si al cumplirse hay otro panel abierto, lo intenta después.
   useEffect(() => {
-    if (!asking) return
-    const timer = window.setTimeout(maybeOpen, ASK_DELAY_MS)
+    if (!asking || paused) return
+    let timer = 0
+    const attempt = () => {
+      if (!secondDay()) return
+      if (somethingOpen()) timer = window.setTimeout(attempt, ASK_DELAY_MS)
+      else setOpen(true)
+    }
+    timer = window.setTimeout(attempt, ASK_DELAY_MS)
     const onVisible = () => {
-      if (document.visibilityState === 'visible') window.setTimeout(maybeOpen, ASK_DELAY_MS)
+      if (document.visibilityState !== 'visible') return
+      window.clearTimeout(timer)
+      timer = window.setTimeout(attempt, ASK_DELAY_MS)
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       window.clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [asking, maybeOpen])
+  }, [asking, paused])
 
   if (!asking) return null
 
   const choose = (level: StatsLevel) => {
     haptic(level === 'full' ? 'success' : 'selection')
-    track(level === 'full' ? 'ui/stats-yes' : level === 'basic' ? 'ui/stats-basic' : 'ui/stats-none')
     dispatch({ type: 'settings/stats', level })
     setOpen(false)
   }
 
+  const choices: readonly (readonly [StatsLevel, string])[] = [
+    ['full', copy.full],
+    ['basic', copy.basic],
+    ['off', copy.none],
+  ]
   const footer = (
     <div className="stats-prompt__actions">
-      <button type="button" className="sheet__primary" onClick={() => choose('full')}>
-        {copy.yes}
-      </button>
-      <button type="button" className="stats-prompt__secondary" onClick={() => choose('basic')}>
-        {copy.basic}
-      </button>
-      <button type="button" className="stats-prompt__quiet" onClick={() => choose('off')}>
-        {copy.none}
-      </button>
+      {choices.map(([level, label]) => (
+        <button key={level} type="button" className="stats-prompt__choice" onClick={() => choose(level)}>
+          {label}
+        </button>
+      ))}
     </div>
   )
 
   return (
-    // Cerrarla sin elegir es quedarse como estaba: solo las visitas, y no vuelve a preguntar.
-    <Sheet screen="stats-consent" open={open && !paused} onClose={() => choose('basic')} title={copy.sheet} footer={footer}>
+    // Cerrarla sin elegir es "No, gracias": no se cuenta nada y no vuelve a preguntar.
+    <Sheet
+      screen="stats-consent"
+      open={open && !paused}
+      onClose={() => {
+        dispatch({ type: 'settings/stats', level: 'off' })
+        setOpen(false)
+      }}
+      title={copy.sheet}
+      footer={footer}
+    >
       <div className="stats-prompt">
         <span className="stats-prompt__art" aria-hidden="true">
           <i />

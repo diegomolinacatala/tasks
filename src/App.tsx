@@ -216,7 +216,7 @@ export function App() {
 
   useEffect(() => applyTheme(state.settings.theme), [state.settings.theme])
 
-  // Qué pestañas se ven (estadísticas: pantallas, sin pedir el detalle).
+  // Qué pestañas se ven (estadísticas: pantallas, ya con «Solo visitas»).
   useEffect(() => track(`view/${shownTab}`), [shownTab])
 
   useEffect(() => {

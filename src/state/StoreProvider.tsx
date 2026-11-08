@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { Dispatch, ReactNode } from 'react'
 import { captureLayout, changesLayout, playLayout } from '../lib/flip'
 import { createPersister, loadState } from '../lib/persistence'
-import { trackAction } from '../lib/stats/bus'
+import { setCollecting, trackAction } from '../lib/stats/bus'
+import { isCounting } from '../lib/stats/settings'
 import type { AppState } from '../types'
 import type { Action } from './actions'
 import { emptyState, reducer } from './reducer'
@@ -34,6 +35,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     void loadState().then((loaded) => {
       if (cancelled) return
+      // Las estadísticas se deciden aquí, sin esperar a su trozo: si este dispositivo no eligió contar, lo que
+      // esperaba en la cola se tira ya (y no llegaría al recolector si se aceptan más tarde en esta sesión).
+      setCollecting(isCounting(loaded.state.settings.stats.level))
       dispatch({ type: 'state/replace', state: loaded.state })
       setFirstRun(loaded.fresh)
       setHydrated(true)

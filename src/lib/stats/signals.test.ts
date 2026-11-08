@@ -6,7 +6,7 @@ import { bootBucket, hourBucket, latencyBucket, sessionBucket } from './buckets'
 import { errorSignature } from './errors'
 import { actionEvents, inboxEvents } from './events'
 import { emptyLedger, fullFor, parseLedger, sizeOf, usageFor } from './ledger'
-import { effectiveLevel, normalizeStatsSettings, shouldAskStats } from './settings'
+import { effectiveLevel, isCounting, normalizeStatsSettings, shouldAskStats } from './settings'
 import { GRID_COLS, cellOf, rageAfter, targetOf } from './taps'
 
 const context = { cohort: null, lang: 'es' as const, theme: 'auto' as const, size: 'm' as const }
@@ -128,14 +128,25 @@ describe('tramos, errores y ajustes', () => {
     expect(errorSignature(odd)).toBe('Error')
   })
 
-  test('sin elegir, se mide la audiencia y se pregunta una vez', () => {
+  test('sin elegir no se cuenta nada y se pregunta una vez', () => {
     const fresh = normalizeStatsSettings(undefined)
     expect(fresh).toEqual({ level: null, cohort: null })
-    expect(effectiveLevel(fresh)).toBe('basic')
+    expect(effectiveLevel(fresh)).toBe('off')
     expect(shouldAskStats(fresh)).toBe(true)
+    expect(effectiveLevel({ level: 'basic', cohort: null })).toBe('basic')
     expect(normalizeStatsSettings({ level: 'full', cohort: '2026-11-02' })).toEqual({ level: 'full', cohort: '2026-11-02' })
     expect(normalizeStatsSettings({ level: 'todo', cohort: 'ayer' })).toEqual({ level: null, cohort: null })
     expect(shouldAskStats({ level: 'off', cohort: null })).toBe(false)
+  })
+
+  test('sin elegir no hay cohorte; quien eligió conserva la suya aunque las apague', () => {
+    // Lo que dejó la TestFlight 54, que contaba sin preguntar.
+    expect(normalizeStatsSettings({ level: null, cohort: '2026-11-02' })).toEqual({ level: null, cohort: null })
+    expect(normalizeStatsSettings({ level: 'off', cohort: '2026-11-02' })).toEqual({ level: 'off', cohort: '2026-11-02' })
+    expect(isCounting('basic')).toBe(true)
+    expect(isCounting('full')).toBe(true)
+    expect(isCounting('off')).toBe(false)
+    expect(isCounting(null)).toBe(false)
   })
 })
 

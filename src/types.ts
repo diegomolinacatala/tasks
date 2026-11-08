@@ -202,9 +202,9 @@ export interface CalendarSettings {
 export type StatsLevel = 'off' | 'basic' | 'full'
 
 export interface StatsSettings {
-  /** `null`: nadie ha elegido; cuenta como `basic` y la app pregunta una vez por el detalle. */
+  /** `null`: nadie ha elegido; no se cuenta nada y la app lo pregunta una vez. */
   level: StatsLevel | null
-  /** Lunes de la semana del primer envío (la cohorte de retención); `null` hasta enviar algo. */
+  /** Lunes de la semana del primer envío (la cohorte de retención); `null` hasta enviar algo o sin elegir. */
   cohort: IsoDate | null
 }
 

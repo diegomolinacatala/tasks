@@ -2,9 +2,10 @@ import type { Action } from '../../state/actions'
 import { actionEvents } from './events'
 
 /**
- * La parte de las estadísticas que va en el JS principal: una cola corta. El recolector
+ * La parte de las estadísticas que va en el JS principal: una cola corta, solo en memoria. El recolector
  * (`collector.ts`) va en su propio trozo y se engancha al cargarse; hasta entonces, lo que pase se
- * guarda aquí. Con las estadísticas apagadas, nada se guarda.
+ * guarda aquí. Al cargar el estado (`StoreProvider`) se decide: si este dispositivo no eligió contar, la
+ * cola se tira y no guarda nada más hasta que se acepten (lo de antes de aceptar nunca se cuenta).
  */
 
 export type StatsSignal = { kind: 'event'; name: string; n: number } | { kind: 'boot'; ms: number }

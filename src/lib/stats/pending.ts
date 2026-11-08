@@ -183,7 +183,7 @@ export function mergePending(a: Pending, b: Pending): Pending {
   return { ...a, days, weeks }
 }
 
-/** Lo que se mide sin pedir el detalle: pantallas, paneles, visitas, arranque y errores. */
+/** Lo que se mide con «Solo visitas» (`basic`): pantallas, paneles, visitas, arranque y errores. */
 export const BASIC_PREFIXES = ['view/', 'sheet/'] as const
 const BASIC_EVENTS = new Set(['sessions', 'seconds'])
 const DETAIL_METRICS = new Set(['lat'])

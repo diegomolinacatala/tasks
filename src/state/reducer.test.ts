@@ -371,6 +371,25 @@ describe('settings/dictation', () => {
   })
 })
 
+describe('settings/stats', () => {
+  test('sin elegir no cuenta: la cohorte solo se fija si se cuenta, y una vez', () => {
+    expect(emptyState().settings.stats).toEqual({ level: null, cohort: null })
+    const unasked = reducer(emptyState(), { type: 'settings/stats', cohort: '2026-11-02' })
+    expect(unasked.settings.stats.cohort).toBeNull()
+    const declined = reducer(emptyState(), { type: 'settings/stats', level: 'off', cohort: '2026-11-02' })
+    expect(declined.settings.stats).toEqual({ level: 'off', cohort: null })
+    const basic = reducer(emptyState(), { type: 'settings/stats', level: 'basic' })
+    const counted = reducer(basic, { type: 'settings/stats', cohort: '2026-11-02' })
+    expect(counted.settings.stats).toEqual({ level: 'basic', cohort: '2026-11-02' })
+    expect(reducer(counted, { type: 'settings/stats', cohort: '2026-11-09' }).settings.stats.cohort).toBe('2026-11-02')
+    // Apagarlas no borra la cohorte: si vuelve a contar, sigue siendo la misma semana de empezar.
+    expect(reducer(counted, { type: 'settings/stats', level: 'off' }).settings.stats).toEqual({ level: 'off', cohort: '2026-11-02' })
+    // Aceptarlas y fijar la semana en una sola acción.
+    const both = reducer(emptyState(), { type: 'settings/stats', level: 'full', cohort: '2026-11-02' })
+    expect(both.settings.stats).toEqual({ level: 'full', cohort: '2026-11-02' })
+  })
+})
+
 describe('task/add con hora y recordatorios', () => {
   test('guarda la hora válida y asigna id a cada recordatorio', () => {
     const state = run(emptyState(), {
