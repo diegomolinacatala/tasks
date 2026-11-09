@@ -1250,7 +1250,7 @@ actualización posible, con la entrada personalizada y las capturas al día:
 
 **Antes (en el iPhone)**
 
-1. *TestFlight* → Tasks → **Actualizar** a la compilación nueva (la que sale de este commit; ver CLAUDE.md).
+1. *TestFlight* → Tasks → **Actualizar** a la **1.8 (57)** (la 56 es el mismo código, desde `capacitor`).
    Ajustes → **Ver la bienvenida**: la portada con tu cuaderno y, al final, *Tú decides* (si aún no has elegido
    estadísticas): tocar la lista y elegir. Lo de la 52 y la 51 que no se haya probado (§9.11).
 
@@ -1261,7 +1261,7 @@ actualización posible, con la entrada personalizada y las capturas al día:
 4. **Capturas de pantalla** → iPhone 6,9" → borrar las que haya → arrastrar las siete de `docs/capturas/` en orden
    (`01-escribir` … `07-tuyas`).
 5. **Texto promocional** (§9.11), **Descripción** y **Palabras clave** (§3) y **Novedades de esta versión** (abajo).
-6. **Compilación** → la nueva. Cifrado: *Ninguno de los algoritmos mencionados*.
+6. **Compilación** → **1.8 (57)**. Cifrado: *Ninguno de los algoritmos mencionados*.
 7. **Información para la revisión** → **Notas**: las de §5, enteras.
 8. **Publicación**: automática. **Guardar**.
 9. **English (U.S.)**: capturas de `docs/capturas/en/`, **Promotional Text** (§9.11), **Description** y

@@ -438,8 +438,10 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     estadísticas: sin elegir, se tira. Revisado por un agente (lo arreglado: eso, y que la ficha saliera de golpe
     al cerrar la barra o un panel: ahora vuelve a esperar sus 6 s). Probado con Edge sin ventana: aceptadas, se
     cuenta desde el arranque; sin elegir y con restos de la 54, no queda nada ni se envía nada.
-- **La 1.8, lista para enviar: entrada personal, «Tú decides» y siete capturas** (09/11/2026, en `capacitor`; sin
-  cambios de Swift; sin probar en el iPhone). El usuario pidió «la mejor actualización posible», con la entrada
+- **La 1.8, lista para enviar: entrada personal, «Tú decides» y siete capturas** (09/11/2026, commit `9cde05f`;
+  **TestFlight 56** desde `capacitor` y **57** desde `main`, el mismo código: se envía la **57**; sin cambios de Swift;
+  sin probar en el iPhone). **`capacitor` unida a `main` por cuarta vez** (merge `4b4914a`; las dos ramas en el mismo
+  commit): la web pública lleva ya la interfaz nueva y la política con las estadísticas está publicada. El usuario pidió «la mejor actualización posible», con la entrada
   personalizada y las capturas al día:
   - **Portada personal** (`lib/recap.ts`, `CoverLedger`): a quien ya usa la app, la de novedades le saluda según la
     hora («Buenas tardes.», la tarde hasta las 21:00; en inglés el *evening* desde las 18:00) y le enseña **su
@@ -499,12 +501,9 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Enviar la 1.8** con la compilación que sale de la entrega del 09/11/2026 (`docs/app-store.md` §9.12; al
-   usuario, los pasos en el chat). Antes:
-   - **Publicar la política nueva**: unir `capacitor` a `main` (también lleva la web pública a la interfaz nueva).
-     El **Worker ya está desplegado** (09/11/2026: `f5ba630` en `main`, solo la carpeta `worker/` de `capacitor`; el
-     panel funciona en https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón). `worker/eval/run.ts`
-     se quedó en `main` como estaba: al unir, quedarse con el de `capacitor`.
+0. **Enviar la 1.8 con la compilación 57** (`docs/app-store.md` §9.12; al usuario, los pasos en el chat). La
+   política ya está publicada y el Worker desplegado (el panel, en https://tasks-push.diegomolina.workers.dev/uso/
+   con la clave del buzón). Antes:
    - En App Store Connect, los tipos de datos de las estadísticas (`docs/app-store.md` §4).
    - **No enviar a revisión la TestFlight 54**: cuenta las visitas sin preguntar.
    - En el iPhone: Ajustes → *Ver la bienvenida* (el cuaderno y, si aún no se eligió, *Tú decides*), y lo de la 52:
