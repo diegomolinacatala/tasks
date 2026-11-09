@@ -1,0 +1,1406 @@
+/* ── Bienvenida: una portada y cuatro láminas, a toda pantalla sobre la app ───────────── */
+
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-t) 0 calc(var(--safe-b) + 14px);
+  background: var(--bg);
+  color: var(--text);
+  /* Recibe el foco al abrirse (la app de debajo queda inerte), pero no es un control */
+  outline: none;
+  transition: opacity 420ms var(--ease), transform 420ms var(--ease-in);
+}
+
+/* Al acabar se levanta como una hoja y deja ver la app, que ya estaba debajo */
+.welcome.is-leaving {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+}
+
+/* ── Portada ──────────────────────────────────────────────────────────── */
+
+.welcome__cover {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* La señal, donde la deja la pantalla de arranque (centro exacto, 92 px); después sube a su sitio */
+.welcome__mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  margin: -46px 0 0 -46px;
+  animation: welcome-mark 760ms var(--ease-sheet) 700ms both;
+}
+
+@keyframes welcome-mark {
+  to {
+    transform: translateY(-138px) scale(0.8);
+  }
+}
+
+.welcome__hello {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 70px);
+  padding: 0 32px;
+  text-align: center;
+}
+
+.welcome__rule {
+  display: block;
+  width: 44px;
+  height: 1.5px;
+  margin: 0 auto 20px;
+  border-radius: var(--r-full);
+  background: var(--gold);
+  animation: welcome-rule 620ms var(--ease-out) 1150ms both;
+}
+
+@keyframes welcome-rule {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.welcome__name {
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  animation: welcome-rise 700ms var(--ease-out) 1260ms both;
+}
+
+.welcome__tagline {
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-2);
+  animation: welcome-rise 700ms var(--ease-out) 1400ms both;
+}
+
+.welcome__cover .welcome__foot {
+  margin-top: auto;
+  animation: welcome-rise 700ms var(--ease-out) 1580ms both;
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Desde Ajustes no hay pantalla de arranque que relevar: la portada entra sin esperar */
+.welcome__cover.is-quick .welcome__mark {
+  animation-duration: 420ms;
+  animation-delay: 0ms;
+}
+
+.welcome__cover.is-quick .welcome__rule {
+  animation-delay: 180ms;
+}
+
+.welcome__cover.is-quick .welcome__name {
+  animation-delay: 240ms;
+}
+
+.welcome__cover.is-quick .welcome__tagline {
+  animation-delay: 300ms;
+}
+
+.welcome__cover.is-quick .welcome__foot {
+  animation-delay: 360ms;
+}
+
+/* Al volver a la portada desde la primera lámina no se repite la entrada */
+.welcome__cover.is-back .welcome__mark {
+  animation-duration: 1ms;
+  animation-delay: 0ms;
+}
+
+.welcome__cover.is-back .welcome__rule,
+.welcome__cover.is-back .welcome__name,
+.welcome__cover.is-back .welcome__tagline,
+.welcome__cover.is-back .welcome__foot {
+  animation-duration: var(--dur-3);
+  animation-delay: 0ms;
+}
+
+/* ── Barra: atrás, por dónde se va y saltar ───────────────────────────── */
+
+.welcome__bar {
+  flex: none;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 52px;
+  padding: 0 10px 0 8px;
+}
+
+.welcome__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.welcome__back:active {
+  background: var(--bg-press);
+  transform: scale(0.92);
+}
+
+/* Cuatro filetes: el de la lámina en la que estás se llena de oro */
+.welcome__progress {
+  display: flex;
+  gap: 6px;
+}
+
+.welcome__progress li {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--line-2);
+  overflow: hidden;
+}
+
+.welcome__progress li::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-4) var(--ease-out);
+}
+
+.welcome__progress li.is-done::after,
+.welcome__progress li.is-current::after {
+  transform: scaleX(1);
+}
+
+.welcome__skip {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease);
+}
+
+.welcome__skip:active {
+  color: var(--accent);
+}
+
+/* ── Lámina: la escena enmarcada y, debajo, qué es ───────────────────── */
+
+.welcome__plate {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 22px 0;
+  animation: welcome-plate var(--dur-4) var(--ease-out) both;
+}
+
+.welcome__plate.is-back {
+  animation-name: welcome-plate-back;
+}
+
+@keyframes welcome-plate {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes welcome-plate-back {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+/* El marco: papel sobre papel con un filete de oro, como una lámina en su paspartú */
+.welcome__stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 236px;
+  max-height: 404px;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--gold-dim), var(--shadow-card);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.welcome__copy {
+  flex: none;
+  padding: 24px 2px 6px;
+}
+
+.welcome__kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* El número de la lámina, en romanos y en serif, con su filete */
+.welcome__numeral {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.welcome__numeral::after {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.welcome__title {
+  font-size: clamp(30px, 8.8vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Dos líneas siempre: el botón no cambia de sitio de una lámina a otra */
+.welcome__text {
+  min-height: 2.9em;
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.welcome__foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 22px 0;
+}
+
+.welcome__next {
+  width: 100%;
+  min-height: 54px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.welcome__next:active {
+  transform: scale(0.98);
+}
+
+/* ── Escenas ──────────────────────────────────────────────────────────── */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+}
+
+.scene__rows {
+  flex: none;
+}
+
+/* I · Escribir: la lista arriba y la barra debajo, como en la app */
+
+.scene--write {
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 14px;
+}
+
+.scene__list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.scene__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: 11px 0;
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+.scene__row + .scene__row {
+  border-top: 1px solid var(--line);
+}
+
+.scene__row .row__check {
+  margin-top: 1px;
+}
+
+@keyframes scene-row {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.scene__row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scene__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene__composer {
+  flex: none;
+}
+
+.scene__typed {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.scene__typed > span {
+  flex: none;
+  min-width: 100%;
+  white-space: pre;
+}
+
+.scene__placeholder {
+  color: var(--text-3);
+}
+
+.scene__caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.15em;
+  margin-left: 1px;
+  vertical-align: -0.2em;
+  background: var(--accent);
+  animation: scene-caret 1.06s steps(1) infinite;
+}
+
+@keyframes scene-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Detalles: la barra con su frase y, al tocar Detalles (o tirar del asa), la ficha que sube desde ella.
+   Hasta que se toca, Detalles late y el asa se asoma hacia arriba */
+
+.scene--details {
+  justify-content: flex-end;
+  padding: 14px;
+}
+
+.scene__sheet {
+  position: absolute;
+  inset: 12px 0 0;
+  padding: 0 18px 18px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--bg-elev);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: var(--shadow-sheet), inset 0 1px 0 var(--edge-light);
+  transform: translateY(104%);
+  transition: transform var(--dur-2) var(--ease-in);
+}
+
+.scene__sheet.is-open {
+  transform: none;
+  transition: transform 440ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.scene__sheet .compose-head {
+  margin: 4px -10px 0;
+}
+
+.scene__sheet-title {
+  padding-bottom: 10px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.scene__sheet .sheet__title {
+  margin: var(--sp-4) 0 var(--sp-2);
+}
+
+.scene__sheet .chip {
+  min-height: 38px;
+  padding: 6px 13px;
+}
+
+.scene--details.is-hinting .composer__more {
+  animation: scene-more 2.6s var(--ease) 900ms infinite;
+}
+
+.scene--details.is-hinting .composer__grab span {
+  animation: scene-pull 2.6s var(--ease) 900ms infinite;
+}
+
+@keyframes scene-more {
+  0%,
+  45%,
+  100% {
+    transform: none;
+    box-shadow: 0 0 0 0 var(--accent-dim);
+  }
+  20% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 6px var(--accent-dim);
+  }
+}
+
+@keyframes scene-pull {
+  0%,
+  45%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(-4px) scaleX(1.25);
+  }
+}
+
+/* II · Gestos: dos filas de verdad que, hasta que se tocan, se asoman hacia su lado */
+
+/* VI · Sugerencias: una lista de mentira sobre la que se rodea, y la sugerencia que sale debajo */
+
+.scene--suggest {
+  gap: 12px;
+  padding: 14px;
+}
+
+.scene__screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.scene__list--plain {
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.scene__ink,
+.scene__demo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* La de muestra cubre solo la primera fila */
+.scene__demo {
+  height: 74px;
+}
+
+.scene__ink path,
+.scene__demo-trace {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.scene__demo-trace {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: scene-trace calc(var(--dur-3) * 8) var(--ease) var(--dur-4) infinite;
+}
+
+@keyframes scene-trace {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* La sugerencia: sube al rodear algo */
+.scene__note {
+  flex: none;
+  min-height: 96px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-3) var(--ease-out);
+}
+
+.scene__note.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.scene__note-about {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+}
+
+.scene__note-text {
+  margin: 6px 0 8px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.scene__note-send {
+  min-height: 40px;
+  padding: 4px 14px;
+}
+
+.scene__note-sent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 72px;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  color: var(--accent);
+}
+
+.scene--swipe,
+.scene--routine {
+  justify-content: center;
+}
+
+.scene--swipe .row {
+  align-items: center;
+  padding: 15px 4px;
+}
+
+/* El hueco de las dos filas se conserva: al borrar la segunda, la primera no se mueve */
+.scene--swipe .scene__rows {
+  min-height: 106px;
+}
+
+.scene__arrow {
+  flex: none;
+  margin-right: 4px;
+  color: var(--text-3);
+}
+
+.scene__back {
+  animation: scene-row var(--dur-4) var(--ease-out);
+}
+
+.swipe.is-hint-right > .swipe__behind,
+.swipe.is-hint-left > .swipe__behind {
+  visibility: visible;
+}
+
+.swipe.is-hint-right > .swipe__behind {
+  background: var(--accent-dim);
+}
+
+.swipe.is-hint-left > .swipe__behind {
+  background: var(--danger-dim);
+}
+
+.swipe.is-hint-right .swipe__act--right,
+.swipe.is-hint-left .swipe__act--left {
+  opacity: 1;
+  transform: scale(0.82);
+}
+
+.swipe.is-hint-right > .swipe__surface {
+  animation: scene-hint-right 2.8s var(--ease) 900ms infinite;
+}
+
+.swipe.is-hint-left > .swipe__surface {
+  animation: scene-hint-left 2.8s var(--ease) 2300ms infinite;
+}
+
+/* La tercera fila se hunde sola, como al mantenerla pulsada (`pressCue`), y vuelve */
+.swipe.is-hint-press > .swipe__surface {
+  animation: scene-hint-press 2.8s var(--ease) 3700ms infinite;
+}
+
+@keyframes scene-hint-press {
+  0%,
+  55%,
+  100% {
+    transform: none;
+    background: transparent;
+  }
+  18%,
+  38% {
+    transform: scale(0.97);
+    background: var(--bg-press);
+  }
+}
+
+@keyframes scene-hint-right {
+  0%,
+  42%,
+  100% {
+    transform: none;
+  }
+  14%,
+  28% {
+    transform: translateX(48px);
+  }
+}
+
+@keyframes scene-hint-left {
+  0%,
+  42%,
+  100% {
+    transform: none;
+  }
+  14%,
+  28% {
+    transform: translateX(-48px);
+  }
+}
+
+/* III · Agenda: la tira de verdad; en pantallas bajas las semanas se aprietan para que quepa el mes */
+
+.scene--month {
+  padding: 12px 18px 0;
+}
+
+.scene--month .agenda__month {
+  align-self: flex-start;
+}
+
+.scene--month .cal {
+  --cal-row: clamp(32px, 5.3dvh, 46px);
+}
+
+.scene--month .strip__num {
+  width: min(40px, var(--cal-row));
+  height: min(40px, var(--cal-row));
+}
+
+.scene--month.is-hinting .cal__handle span {
+  animation: scene-handle 1.8s var(--ease) 900ms infinite;
+}
+
+@keyframes scene-handle {
+  0%,
+  55%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(5px) scaleX(1.2);
+  }
+}
+
+.scene__below {
+  padding-top: 8px;
+}
+
+.scene__day {
+  margin: 6px 0 14px;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.scene__day span {
+  font-size: 0.6em;
+  font-style: italic;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+/* Filas sin texto: lo que habría ese día */
+.scene__ghost {
+  display: block;
+  width: 72%;
+  height: 11px;
+  margin-bottom: 20px;
+  border-radius: var(--r-xs);
+  background: var(--line);
+}
+
+.scene__ghost:nth-of-type(2) {
+  width: 48%;
+}
+
+.scene__ghost:nth-of-type(3) {
+  width: 60%;
+}
+
+/* IV · Rutinas: dos rutinas y, en el iPhone, el widget de la pantalla de bloqueo */
+
+.scene--routine {
+  gap: 18px;
+}
+
+.scene__routine {
+  list-style: none;
+}
+
+.scene__routine + .scene__routine {
+  border-top: 1px solid var(--line);
+}
+
+.scene__routine .routine__week {
+  padding-right: 2px;
+}
+
+/* Un trozo de pantalla de bloqueo: siempre de noche, como la pinta iOS */
+.lock {
+  flex: none;
+  padding: 12px 14px 14px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(170deg, var(--lock-top), var(--lock-bottom) 72%);
+  color: var(--lock-ink);
+}
+
+.lock__date {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  opacity: 0.78;
+}
+
+.lock__date::first-letter {
+  text-transform: uppercase;
+}
+
+.lock__widgets {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.lock__ring {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-full);
+  background: var(--lock-glass);
+  color: var(--lock-ink);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.lock__ring:active,
+.lock__card:active {
+  transform: scale(0.95);
+}
+
+.lock__ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lock__ring-track,
+.lock__ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.lock__ring-track {
+  stroke: var(--lock-glass);
+}
+
+.lock__ring-fill {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--ring, 0));
+  transition: stroke-dashoffset var(--dur-4) var(--ease-out);
+}
+
+/* En la pantalla de bloqueo iOS pinta los emojis en un solo tono */
+.lock__emoji {
+  position: relative;
+  font-size: 22px;
+  line-height: 1;
+  filter: grayscale(1) brightness(1.45);
+}
+
+.lock__card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  background: var(--lock-glass);
+  color: var(--lock-ink);
+  text-align: left;
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.lock__glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+}
+
+.lock__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.lock__lines b {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lock__lines b.is-done {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.lock__lines small {
+  font-size: var(--fs-xs);
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+/* VII · Calendario: un día de la Agenda con sus tareas y, entre ellas, los eventos del calendario, que
+   entran solos con el color de su calendario. Debajo, conectarlo ahí mismo */
+
+.scene--calendar {
+  justify-content: center;
+}
+
+.scene__timeline {
+  flex: none;
+  margin: 0 0 18px;
+}
+
+/* En la escena el alto es fijo: cada fila conserva el suyo (si no, una cápsula larga pisa la siguiente) */
+.scene__timeline > .tl {
+  flex: none;
+}
+
+.scene--calendar .tl__body {
+  padding: 9px 0 10px;
+}
+
+.scene__event {
+  animation: scene-event-in var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(450ms + var(--order, 1) * 420ms);
+}
+
+@keyframes scene-event-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.scene__connect {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--accent);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  animation: quick-in var(--dur-3) var(--ease-out) 1.4s both;
+  transition: transform var(--dur-1) var(--ease), background var(--dur-2) var(--ease);
+}
+
+.scene__connect:active {
+  transform: scale(0.97);
+}
+
+.scene__connect.is-done {
+  background: none;
+  box-shadow: none;
+}
+
+/* ── Lugares: tu punto, tu casa y el Mercadona; avisa al cruzar los círculos ──────────── */
+
+.scene--places {
+  gap: 10px;
+  padding: 12px;
+}
+
+.scene__plan {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 0 0 1px var(--line);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.scene__plan:active {
+  cursor: grabbing;
+}
+
+.scene__paper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.scene__land {
+  fill: var(--map-land);
+}
+
+.scene__water {
+  fill: var(--map-water);
+}
+
+.scene__roads path,
+.scene__streets path {
+  fill: none;
+  stroke: var(--map-road);
+  stroke-linecap: round;
+}
+
+.scene__roads path {
+  stroke-width: 9;
+}
+
+.scene__streets path {
+  stroke-width: 4;
+  opacity: 0.8;
+}
+
+/* El camino de muestra: se dibuja a trazos mientras el punto fantasma lo recorre */
+.scene__route {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.scene__route path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.02 0.03;
+  opacity: 0.55;
+}
+
+/* Cada sitio, con el círculo del aviso a escala: al salir, de trazo discontinuo, como lo que se cruza */
+.scene__zone {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+  pointer-events: none;
+}
+
+.scene__zone--leave {
+  background: none;
+  box-shadow: none;
+  border: 1.5px dashed var(--accent);
+}
+
+.scene__zone--leave::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--text);
+  opacity: 0.05;
+}
+
+/* El nombre, sobre el borde de arriba del círculo: el punto, dentro, no lo tapa */
+.scene__zone-name {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.scene__zone-name svg {
+  color: var(--accent);
+}
+
+/* Al sonar, una onda sale del círculo */
+.scene__wave {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--accent);
+  animation: scene-wave 900ms var(--ease-out) both;
+}
+
+@keyframes scene-wave {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+/* Tu punto: tinta con un halo que late, como el de Mapas */
+.scene__you {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.scene__you i {
+  position: absolute;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--bg-elev), var(--shadow-card);
+}
+
+.scene__you i::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: inherit;
+  background: var(--primary);
+  opacity: 0.18;
+  animation: scene-halo 1.8s var(--ease) infinite;
+}
+
+.scene__plan.is-touched .scene__you i::after {
+  animation: none;
+  opacity: 0.12;
+}
+
+.scene__you b {
+  position: absolute;
+  left: 12px;
+  top: -24px;
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes scene-halo {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.scene__ghost-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  opacity: 0;
+  offset-rotate: 0deg;
+  animation: scene-ghost 3.8s var(--ease) 0.8s infinite;
+  pointer-events: none;
+}
+
+@keyframes scene-ghost {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.45;
+  }
+  78% {
+    offset-distance: 100%;
+    opacity: 0.45;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+/* El aviso, como una notificación de iOS que baja desde arriba */
+.scene__banner {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 16px;
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sheet), inset 0 0 0 1px var(--line);
+  opacity: 0;
+  transform: translateY(-130%);
+  transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease);
+  pointer-events: none;
+}
+
+.scene__banner.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.scene__banner-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+  color: var(--text);
+}
+
+.scene__banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.scene__banner-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scene__banner-head span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+/* Las dos tareas de la escena, con su aviso: al sonar, lo dicen */
+.scene__alerts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.scene__alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.scene__alert + .scene__alert {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.scene__alert-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.scene__alert-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scene__alert-title {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.scene__alert-when {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.scene__alert-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.scene__alert.is-rang .scene__alert-icon {
+  background: var(--accent);
+  color: var(--on-primary);
+  animation: scene-rang var(--dur-3) var(--ease-pop);
+}
+
+@keyframes scene-rang {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__event,
+  .scene__connect {
+    animation: none;
+  }
+
+  /* La portada aparece entera de golpe, sin la coreografía a trompicones */
+  .welcome__mark,
+  .welcome__rule,
+  .welcome__name,
+  .welcome__tagline,
+  .welcome__cover .welcome__foot {
+    animation: none;
+  }
+
+  .welcome__mark {
+    transform: translateY(-138px) scale(0.8);
+  }
+
+  /* La vuelta de muestra de Sugerencias, ya dibujada y quieta */
+  .scene__demo-trace {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+  }
+
+  .swipe.is-hint-press > .swipe__surface {
+    animation: none;
+  }
+
+  /* Lugares: el punto quieto, sin onda ni fantasma */
+  .scene__you i::after,
+  .scene__wave,
+  .scene__alert.is-rang .scene__alert-icon {
+    animation: none;
+  }
+}

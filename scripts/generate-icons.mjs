@@ -5,7 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { LAUNCH_MARK_PT, faviconSvg, iconSvg, markSvg } from './brand.mjs'
+import { LAUNCH_MARK_PT, NIGHT_INK, faviconSvg, iconSvg, markSvg } from './brand.mjs'
 import { decodePng, encodePng, launch, renderHtml } from './edge.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -38,13 +38,19 @@ try {
   await write(join(ASSETS, 'AppIcon.appiconset', 'AppIcon-512@2x.png'), iconSvg(), 1024)
   await write(join(ASSETS, 'AppIcon.appiconset', 'AppIcon-dark.png'), iconSvg({ night: true }), 1024)
 
-  // Señal de la pantalla de carga, con fondo transparente, a 1x, 2x y 3x
+  // Señal de la pantalla de carga, con fondo transparente, a 1x, 2x y 3x; en marfil para el modo oscuro
   for (const scale of [1, 2, 3]) {
     const suffix = scale === 1 ? '' : `@${scale}x`
     await write(join(ASSETS, 'LaunchMark.imageset', `launch-mark${suffix}.png`), markSvg({ size: LAUNCH_MARK_PT }), LAUNCH_MARK_PT, {
       opaque: false,
       scale,
     })
+    await write(
+      join(ASSETS, 'LaunchMark.imageset', `launch-mark-dark${suffix}.png`),
+      markSvg({ size: LAUNCH_MARK_PT, color: NIGHT_INK }),
+      LAUNCH_MARK_PT,
+      { opaque: false, scale },
+    )
   }
 } finally {
   session.close()

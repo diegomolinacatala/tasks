@@ -1,5 +1,6 @@
-// Los widgets de la captura 7, copiados de `ios/App/TasksWidget/TasksWidgetViews.swift` (mismas
-// medidas y colores): mediano y pequeño, más el icono de la app.
+// Los widgets de las capturas, copiados de `ios/App/TasksWidget/TasksWidgetViews.swift` (mismas
+// medidas y colores): mediano y pequeño de Hoy, pequeño de la Bandeja, de Rutinas y de Dictar, y los de
+// la pantalla de bloqueo. `labels`: los textos del idioma de la captura (`WIDGET_LABELS`).
 
 import { INK } from './brand.mjs'
 
@@ -19,10 +20,20 @@ const circle = (size, { done = false, overdue = false } = {}) =>
     ? `<span style="flex:none;display:grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:${C.accent}"><svg width="${size * 0.5}" height="${size * 0.5}" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5" fill="none" stroke="#f7f2e8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
     : `<span style="flex:none;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${overdue ? 'rgba(158,59,46,.5)' : C.line2}"></span>`
 
-/** Filas de alto fijo, como `TaskList` en Swift. */
+/** Un evento del calendario del iPhone: una cinta con su color donde las tareas llevan el círculo (`EventRow`). */
+const ribbon = (size, color) =>
+  `<span style="flex:none;display:grid;place-items:center;width:${size}px"><span style="width:4px;height:${size}px;border-radius:2px;background:color-mix(in oklab, ${color} 60%, ${C.text3})"></span></span>`
+
+/** Filas de alto fijo, como `TaskList` en Swift. Con `event` (un color), un evento del calendario. */
 function rows(tasks, { circleSize, title, detailed }) {
   return tasks
     .map((task, index) => {
+      if (task.event)
+        return `<div style="flex:1;display:flex;align-items:center;gap:${detailed ? 10 : 8}px;${index ? `border-top:.5px solid ${C.line}` : ''}">
+        ${ribbon(circleSize, task.event)}
+        <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 ${title}px Inter;color:#5a544a">${task.title}</span>
+        ${detailed && task.detail ? `<span style="flex:none;font:400 ${title - 3}px Inter;color:${C.text3}">${task.detail}</span>` : ''}
+      </div>`
       const color = task.done ? C.text3 : task.overdue ? C.danger : C.text
       const size = title + (task.weight ?? 0) * 5
       const weight = (task.weight ?? 0) >= 0.5 ? 600 : 400
@@ -40,28 +51,117 @@ const card = (width, height, inner) =>
 
 const count = (value, size) =>
   `<div style="font:400 ${size}px/1 'Source Serif 4',serif;color:${C.text};letter-spacing:-.02em">${value}</div>`
-const day = `<div style="margin-top:4px;font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">HOY</div>`
-const moveButton = `<div style="display:inline-block;margin-top:8px;padding:0 9px;height:24px;line-height:24px;border-radius:12px;background:${C.accentDim};font:600 12px Inter;color:${C.accent}">A hoy</div>`
+/** Lo que dicen los widgets en cada idioma (`WidgetText.swift`). */
+export const WIDGET_LABELS = {
+  es: { today: 'HOY', moveToday: 'A hoy', routines: 'RUTINAS', inbox: 'BANDEJA' },
+  en: { today: 'TODAY', moveToday: 'To today', routines: 'ROUTINES', inbox: 'INBOX' },
+}
+
+const caps = (label) => `<div style="font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">${label}</div>`
+const day = (label) => `<div style="margin-top:4px;font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">${label}</div>`
+const moveButton = (label) =>
+  `<div style="display:inline-block;margin-top:8px;padding:0 9px;height:24px;line-height:24px;border-radius:12px;background:${C.accentDim};font:600 12px Inter;color:${C.accent}">${label}</div>`
 const addLink = `<div style="display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:${C.accentDim}"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="${C.accent}" stroke-width="2.6" stroke-linecap="round"/></svg></div>`
 
-export function mediumWidget(tasks, pending) {
+export function mediumWidget(tasks, pending, labels = WIDGET_LABELS.es) {
   return card(
     372,
     176,
     `<div style="display:flex;gap:16px;height:100%">
-      <div style="display:flex;flex-direction:column;min-width:52px">${addLink}<div style="flex:1"></div>${count(pending, 36)}${day}${moveButton}</div>
+      <div style="display:flex;flex-direction:column;min-width:52px">${addLink}<div style="flex:1"></div>${count(pending, 36)}${day(labels.today)}${moveButton(labels.moveToday)}</div>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">${rows(tasks.slice(0, 4), { circleSize: 20, title: 15, detailed: true })}</div>
     </div>`,
   )
 }
 
-export function smallWidget(tasks, pending) {
+/** Pequeño de Hoy o, con `label` de la Bandeja, el de la Bandeja (`InboxSmall`): la misma forma. */
+export function smallWidget(tasks, pending, label = WIDGET_LABELS.es.today) {
   return card(
     176,
     176,
     `<div style="display:flex;flex-direction:column;height:100%;gap:4px">
-      <div style="display:flex;align-items:baseline;gap:6px">${count(pending, 28)}<div style="font:600 11px Inter;letter-spacing:.13em;color:${C.accent}">HOY</div></div>
+      <div style="display:flex;align-items:baseline;gap:6px">${count(pending, 28)}${caps(label)}</div>
       <div style="flex:1;display:flex;flex-direction:column">${rows(tasks.slice(0, 3), { circleSize: 17, title: 13, detailed: false })}</div>
+    </div>`,
+  )
+}
+
+/** Widget pequeño de Dictar (`DictateWidget.swift`): el micrófono en un sello de coñac y «Toca y habla». */
+export function dictateWidget({ label, hint }) {
+  return card(
+    176,
+    176,
+    `<div style="display:flex;flex-direction:column;height:100%">
+      ${caps(label)}
+      <div style="flex:1;display:grid;place-items:center">
+        <div style="display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:${C.accent};box-shadow:0 10px 24px rgba(138,90,44,.35)">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f7f2e8" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+        </div>
+      </div>
+      <div style="text-align:center;font:500 13px Inter;color:${C.text3}">${hint}</div>
+    </div>`,
+  )
+}
+
+/** En la pantalla de bloqueo iOS pinta los emojis en un solo tono, como el resto del widget. */
+const lockEmoji = (emoji, size) =>
+  `<span style="position:relative;font-size:${size}px;line-height:1;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;filter:grayscale(1) brightness(1.5)">${emoji}</span>`
+
+/**
+ * La pantalla de bloqueo con los widgets de rutinas: un redondo con una rutina elegida y ya hecha
+ * (anillo lleno y la marca), otro con una pendiente (su emoji) y el rectangular con la siguiente que
+ * queda, también con su emoji. Blanco translúcido sobre el fondo, como los pinta iOS.
+ */
+export function lockScreenRoutines({ date, title, detail, emoji, pending }) {
+  const ring = (value, inner) => `
+    <div style="flex:none;position:relative;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center">
+      <svg width="64" height="64" viewBox="0 0 64 64" style="position:absolute;inset:0">
+        <circle cx="32" cy="32" r="25" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="5"/>
+        ${value > 0 ? `<circle cx="32" cy="32" r="25" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="${157 * value} 157" transform="rotate(-90 32 32)"/>` : ''}
+      </svg>
+      ${inner}
+    </div>`
+  const check = `<span style="position:relative;font:700 22px Inter;color:#fff">✓</span>`
+  return `
+    <div style="width:372px;padding:22px 20px 24px;border-radius:30px;background:linear-gradient(170deg,#2b3654,#141b2e 70%);box-shadow:0 30px 70px rgba(0,0,0,.4)">
+      <div style="text-align:center;font:500 15px Inter;color:rgba(255,255,255,.8)">${date}</div>
+      <div style="text-align:center;font:600 76px/1 Inter;letter-spacing:-.03em;color:#fff;margin-top:2px">9:41</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:18px">
+        ${ring(1, check)}
+        ${ring(0, lockEmoji(pending, 25))}
+        <div style="flex:1;min-width:0;display:flex;gap:9px;align-items:center;height:64px;padding:0 12px;border-radius:18px;background:rgba(255,255,255,.14)">
+          ${lockEmoji(emoji, 24)}
+          <span style="min-width:0">
+            <span style="display:block;font:600 15.5px Inter;color:#fff;white-space:nowrap">${title}</span>
+            <span style="display:block;font:400 12.5px Inter;color:rgba(255,255,255,.72);white-space:nowrap">${detail}</span>
+          </span>
+        </div>
+      </div>
+    </div>`
+}
+
+/** Widget pequeño de Rutinas (`RoutineSmall` en Swift): las de hoy con su círculo y su emoji. */
+export function routinesWidget(routines, label = WIDGET_LABELS.es.routines) {
+  const done = routines.filter((routine) => routine.done).length
+  const rowsHtml = routines
+    .slice(0, 4)
+    .map(
+      (routine) => `<div style="flex:1;display:flex;align-items:center;gap:8px">
+        ${circle(17, routine)}
+        <span style="flex:none;font-size:13px;line-height:1;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;filter:saturate(.55);opacity:${routine.done ? 0.5 : 1}">${routine.emoji}</span>
+        <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 13px Inter;color:${routine.done ? C.text3 : C.text};${routine.done ? `text-decoration:line-through;text-decoration-color:${C.text3}` : ''}">${routine.title}</span>
+      </div>`,
+    )
+    .join('')
+  return card(
+    176,
+    176,
+    `<div style="display:flex;flex-direction:column;height:100%;gap:6px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        ${caps(label)}
+        <div style="font:400 15px 'Source Serif 4',serif;color:${C.text3}">${done}/${routines.length}</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column">${rowsHtml}</div>
     </div>`,
   )
 }

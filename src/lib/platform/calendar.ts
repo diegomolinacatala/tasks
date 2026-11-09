@@ -1,0 +1,48 @@
+import type { CalendarEvent, CalendarInfo, CalendarStatus } from '../calendar'
+import type { ExportItem } from '../calendarExport'
+import { isNative } from './index'
+
+/**
+ * Hay calendario en el iPhone (EventKit, `CalendarBridge.swift`). En `npm run dev` y en las capturas,
+ * uno de muestra (`calendarDemo.ts`) para poder verlo y probarlo sin iPhone. En la PWA publicada, no.
+ */
+export const showsCalendar = isNative || import.meta.env.DEV || import.meta.env.MODE === 'shots'
+
+export interface CalendarSource {
+  status(): Promise<CalendarStatus>
+  /** Pide el permiso (la primera vez sale el aviso de iOS; después, devuelve lo que haya). */
+  request(): Promise<CalendarStatus>
+  calendars(): Promise<CalendarInfo[]>
+  /** Eventos entre dos instantes (epoch ms), sin los calendarios ocultos. */
+  events(from: number, to: number, hidden: readonly string[]): Promise<CalendarEvent[]>
+  /** La ficha del evento de Calendario de iOS, encima de la app. */
+  open(event: CalendarEvent): Promise<void>
+  /**
+   * Lleva un evento a otro instante (epoch ms) con lo que dura; en una serie, solo esa ocurrencia. La
+   * cuenta (Google, iCloud…) lo sincroniza después por su cuenta. Falla con `code: 'readonly'` si el
+   * calendario no se puede escribir.
+   */
+  move(event: CalendarEvent, start: number): Promise<void>
+  /** Avisa cuando algo cambia en el calendario. Devuelve cómo dejar de escuchar. */
+  onChange(listener: () => void): () => void
+  /** Crea (o reutiliza) el calendario «Tasks» para las tareas. Su id, o `null` si no se pudo. */
+  createOwn(title: string): Promise<string | null>
+  /**
+   * Deja en `calendarId` un evento por tarea de `items` (y quita los que sobran, también de otro
+   * calendario si se cambió). Con `calendarId` en `null`, los quita todos.
+   */
+  syncTasks(calendarId: string | null, items: readonly ExportItem[]): Promise<void>
+}
+
+let source: Promise<CalendarSource | null> | null = null
+
+/** El calendario de esta plataforma; `null` si no hay (la PWA publicada). */
+export function calendarSource(): Promise<CalendarSource | null> {
+  // Lo del iPhone va en su propio trozo: la PWA no lo necesita nunca.
+  source ??= isNative
+    ? import('./calendarNative').then((module) => module.nativeSource)
+    : import.meta.env.DEV || import.meta.env.MODE === 'shots'
+      ? import('./calendarDemo').then((module) => module.demoCalendar)
+      : Promise.resolve(null)
+  return source
+}

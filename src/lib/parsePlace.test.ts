@@ -7,9 +7,10 @@ import { parseSpoken, parseTask } from './parse'
 const TODAY = '2026-09-11'
 const NOW = toInstant(TODAY, '10:00')
 
-const place = (id: string, name: string): Place => ({
+const place = (id: string, name: string, aliases: string[] = []): Place => ({
   id,
   name,
+  aliases,
   location: { lat: 39.47, lng: -0.38, address: '' },
   radius: 150,
 })
@@ -48,6 +49,39 @@ describe('lugares guardados', () => {
     expect(parseTask('coger el paraguas cuando salga de casa', NOW, PLACES).reminders).toEqual([
       { kind: 'place', placeId: 'c', on: 'leave' },
     ])
+  })
+
+  test.each([
+    'cuando me vaya de casa llamar a Carlota',
+    'al irme de casa llamar a Carlota',
+    'al marcharme de casa llamar a Carlota',
+    'en cuanto me vaya de casa llamar a Carlota',
+    'llamar a Carlota cuando me marche de casa',
+  ])('«%s» también es al salir', (text) => {
+    expect(parseTask(text, NOW, PLACES)).toMatchObject({
+      title: 'llamar a Carlota',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'leave' }],
+      label: 'Al salir de Casa',
+    })
+  })
+
+  test('el ejemplo dictado al salir: «recuérdame que cuando me vaya de mi piso llame a Carlota»', () => {
+    const piso = [place('c', 'Casa', ['mi piso'])]
+    expect(parseSpoken('Recuérdame que cuando me vaya de mi piso llame a Carlota', NOW, piso)).toMatchObject({
+      title: 'Llamar a Carlota',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'leave' }],
+    })
+  })
+
+  test('«cuando vuelva a casa» es al llegar', () => {
+    expect(parseTask('cuando vuelva a casa poner la lavadora', NOW, PLACES)).toMatchObject({
+      title: 'poner la lavadora',
+      reminders: [{ kind: 'place', placeId: 'c', on: 'arrive' }],
+    })
+  })
+
+  test('irse «a» un sitio no es salir de él', () => {
+    expect(parseTask('cuando me vaya a Mercadona comprar pan', NOW, PLACES).reminders).toEqual([])
   })
 
   test.each([

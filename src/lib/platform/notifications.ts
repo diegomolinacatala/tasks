@@ -2,7 +2,8 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { NotificationEvent } from '../nativeEvents'
 import { parseNotificationEvent } from '../nativeEvents'
 import type { NativePlan } from '../nativeSchedule'
-import { ASK_CATEGORY, DIGEST_CATEGORY, OVERDUE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
+import { ASK_CATEGORY, DIGEST_CATEGORY, OVERDUE_CATEGORY, ROUTINE_CATEGORY, TASK_CATEGORY, isPlaceNotification } from '../nativeSchedule'
+import { language, pick } from '../i18n'
 import type { PermissionStatus } from './native'
 import { TasksNative } from './native'
 
@@ -22,34 +23,43 @@ export async function requestNotificationPermission(): Promise<PermissionStatus>
   return toStatus((await LocalNotifications.requestPermissions()).display)
 }
 
-let actionsRegistered = false
+/** Idioma con el que se registraron los botones: al cambiarlo, se registran otra vez. */
+let actionsRegistered: string | null = null
 
-const DONE = { id: 'done', title: 'Hecha', foreground: true }
-const SNOOZE = { id: 'snooze', title: '+10 min', foreground: true }
+const BUTTONS = {
+  es: { done: 'Hecha', yes: 'Sí, hecha', again: 'Todavía no', today: 'Pasar a hoy', allToday: 'Pasar atrasadas a hoy' },
+  en: { done: 'Done', yes: 'Yes, done', again: 'Not yet', today: 'Move to today', allToday: 'Move overdue to today' },
+} as const
 
 /**
- * Botones "Hecha", "+10 min" y, si hay algo atrasado, "Pasar a hoy": abren la app (`foreground`),
- * porque el estado vive en la web y con la app en segundo plano iOS no garantiza que el WebView
- * llegue a ejecutar nada. Los del aviso de cierre, "Sí, hecha" y "Todavía no", no la abren ni piden
- * desbloquear: los resuelve el lado nativo con `headless.js` (`NotificationResponder.swift`).
+ * "+10 min" y, si hay algo atrasado, "Pasar a hoy" abren la app (`foreground`), porque el estado vive
+ * en la web y con la app en segundo plano iOS no garantiza que el WebView llegue a ejecutar nada.
+ * "Hecha" (como "Sí, hecha" en el aviso de cierre, y como en una rutina) no la abre ni pide
+ * desbloquear: lo resuelve el lado nativo (`NotificationResponder.swift` → `QuickAdd.answer`), que lo
+ * apunta en la bandeja y la web lo aplica al volver.
  */
 async function registerTaskActions(): Promise<void> {
-  if (actionsRegistered) return
+  const lang = language()
+  if (actionsRegistered === lang) return
+  const words = pick(BUTTONS)
+  const done = { id: 'done', title: words.done }
+  const snooze = { id: 'snooze', title: '+10 min', foreground: true }
   await LocalNotifications.registerActionTypes({
     types: [
-      { id: TASK_CATEGORY, actions: [DONE, SNOOZE] },
-      { id: OVERDUE_CATEGORY, actions: [DONE, { id: 'today', title: 'Pasar a hoy', foreground: true }, SNOOZE] },
-      { id: DIGEST_CATEGORY, actions: [{ id: 'today', title: 'Pasar atrasadas a hoy', foreground: true }] },
+      { id: TASK_CATEGORY, actions: [done, snooze] },
+      { id: OVERDUE_CATEGORY, actions: [done, { id: 'today', title: words.today, foreground: true }, snooze] },
+      { id: DIGEST_CATEGORY, actions: [{ id: 'today', title: words.allToday, foreground: true }] },
       {
         id: ASK_CATEGORY,
         actions: [
-          { id: 'done', title: 'Sí, hecha' },
-          { id: 'again', title: 'Todavía no' },
+          { id: 'done', title: words.yes },
+          { id: 'again', title: words.again },
         ],
       },
+      { id: ROUTINE_CATEGORY, actions: [{ id: 'done', title: words.done }] },
     ],
   })
-  actionsRegistered = true
+  actionsRegistered = lang
 }
 
 /**
@@ -76,7 +86,7 @@ export async function applyPlan(plan: NativePlan): Promise<void> {
       sound: SYSTEM_SOUND,
       extra: notification.extra,
       actionTypeId: notification.category,
-      threadIdentifier: notification.extra.taskId ? 'tasks' : 'tasks-digest',
+      threadIdentifier: notification.extra.routineId ? 'tasks-routines' : notification.extra.taskId ? 'tasks' : 'tasks-digest',
     })),
   })
 }

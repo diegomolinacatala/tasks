@@ -17,6 +17,20 @@ export type ReminderDraft =
   | { kind: 'at'; at: number }
   | { kind: 'before'; minutes: number }
   | { kind: 'place'; placeId: string; on: PlaceTrigger }
+  /**
+   * `here`: al alejarse `radius` metros de donde se estaba al ponerlo ("al moverme recuérdame…"), solo en
+   * la app de iPhone. `from` es ese punto; `null` mientras no se sabe (el aviso no suena hasta saberlo).
+   * `since`: cuándo se pidió (epoch ms): el punto solo se fija en los minutos siguientes y el aviso caduca
+   * en un día (`lib/places.ts`).
+   */
+  | { kind: 'here'; radius: number; from: HerePoint | null; since: number }
+
+/** Dónde se estaba al poner un aviso "al alejarme"; `accuracy`, los metros de error del GPS, si se saben. */
+export interface HerePoint {
+  lat: number
+  lng: number
+  accuracy?: number
+}
 
 export type Reminder = ReminderDraft & { id: string }
 
@@ -25,6 +39,12 @@ export interface Task {
   title: string
   done: boolean
   date: IsoDate | null
+  /**
+   * Último día de su plazo ("esta semana", "hasta el viernes"), siempre después de `date`: mientras
+   * siga pendiente se ve en hoy y no queda atrasada hasta pasado ese día (`lib/period.ts`). `null` =
+   * sin plazo, solo su día.
+   */
+  until: IsoDate | null
   /** Solo tiene efecto si hay fecha. */
   time: IsoTime | null
   /**
@@ -50,12 +70,18 @@ export interface Task {
 export interface TaskDraft {
   title: string
   date: IsoDate | null
+  /** Final del plazo, si se dijo ("esta semana", "hasta el viernes"). */
+  until?: IsoDate | null
   time: IsoTime | null
   /** Minutos que dura, si se dijo ("durante una hora", "de 5 a 7"). */
   duration: number | null
   reminders: ReminderDraft[]
   /** Lugar dicho que aún no está guardado ("al pasar por Mercadona"): se crea al añadir la tarea. */
   newPlace?: { name: string; on: PlaceTrigger }
+  /** Del 1 al 10, si se eligió en la ficha del compositor; si no, la normal. */
+  importance?: number
+  /** Sección del día, si se eligió en la ficha del compositor; si no, ninguna. */
+  sectionId?: string | null
 }
 
 export interface Section {
@@ -76,14 +102,73 @@ export interface PlaceLocation {
 export interface Place {
   id: string
   name: string
+  /**
+   * Otras formas de llamarlo ("el piso", "casa de mis padres"): al escribir o dictar valen igual que el
+   * nombre. Ninguna repite el nombre de otro lugar ni otra de las suyas (`lib/places.ts`).
+   */
+  aliases: string[]
   /** `null` mientras no se ha elegido dónde está: sus avisos quedan inactivos. */
   location: PlaceLocation | null
   /** Metros. */
   radius: number
 }
 
-/** Bloques fijos de la pantalla principal que se pueden plegar. */
-export type BlockId = 'overdue' | 'backlog'
+/**
+ * Rutina: lo que se repite ciertos días de la semana ("tomar creatina", cada día a las 10:00). No es
+ * una tarea: no tiene fecha, cada día amanece sin hacer y se tacha para ese día. Lo hecho se guarda
+ * como un diario de días (`done`), del que salen la racha y los últimos días.
+ */
+export interface Routine {
+  id: string
+  title: string
+  /** Su seña: un emoji (`lib/emoji.ts`) que sale en la fila, el horario y el widget. `null` = sin él. */
+  emoji: string | null
+  /** Días de la semana en que toca, de 1 (lunes) a 7 (domingo). Nunca vacío. */
+  days: number[]
+  /** Hora opcional: con ella, un aviso cada día que toque mientras no esté hecha. */
+  time: IsoTime | null
+  /** Días en que se hizo, en orden y sin repetir; se guardan los más recientes (`lib/routines.ts`). */
+  done: IsoDate[]
+  order: number
+  createdAt: number
+}
+
+/** Una cosa de la cesta (`lib/shopping.ts`): lo que hay que comprar, aparte de las tareas. */
+export interface ShoppingItem {
+  id: string
+  name: string
+  /** `2 kg`, `×3`, `½ docena`; `null` sin cantidad. */
+  qty: string | null
+  /** Comprada: va abajo, tachada, hasta que se vacía la cesta. */
+  done: boolean
+  order: number
+  createdAt: number
+  doneAt: number | null
+}
+
+/** Lo que se ha comprado otras veces: de aquí salen las habituales. */
+export interface ShoppingMemory {
+  name: string
+  count: number
+  /** Última vez que se compró (epoch ms). */
+  at: number
+}
+
+export interface ShoppingState {
+  items: ShoppingItem[]
+  history: ShoppingMemory[]
+  /** Lugar guardado al que, al llegar, avisa con lo pendiente de la cesta; `null` = sin aviso. */
+  placeId: string | null
+}
+
+/** Bloques que se pueden plegar. */
+export type BlockId = 'overdue' | 'backlog' | 'routines'
+
+/** `auto` sigue al sistema. */
+export type Theme = 'light' | 'dark' | 'auto'
+
+/** Idioma de la interfaz; `auto` sigue a los idiomas del sistema (`lib/i18n.ts`). */
+export type LanguageSetting = 'es' | 'en' | 'auto'
 
 /** Aviso diario con lo que hay para ese día. */
 export interface DigestSettings {
@@ -91,13 +176,65 @@ export interface DigestSettings {
   time: IsoTime
 }
 
+/**
+ * El calendario del iPhone en la Agenda (`lib/calendar.ts`). Es de este dispositivo, como la apariencia:
+ * los ids de sus calendarios no valen en otro, así que importar una copia no lo cambia, y borrarlo todo
+ * solo quita los eventos hechos.
+ */
+export interface CalendarSettings {
+  /** Enseñar los eventos. Se enciende al conceder el permiso y se puede apagar sin quitarlo. */
+  enabled: boolean
+  /** Calendarios que no se enseñan (ids de EventKit). */
+  hidden: string[]
+  /**
+   * Calendario donde se añaden las tareas con hora (`lib/calendarExport.ts`): el «Tasks» que crea la app o
+   * el que se elija. `null` = no se añaden.
+   */
+  export: string | null
+  /**
+   * Eventos marcados como hechos en Tasks, por su clave (`id@inicio`): solo en este dispositivo; nunca se
+   * escribe en el calendario. Ver `withDoneEvent` en `lib/calendar.ts`.
+   */
+  done: string[]
+}
+
+/** Qué estadísticas anónimas manda este dispositivo: ver `lib/stats/settings.ts`. */
+export type StatsLevel = 'off' | 'basic' | 'full'
+
+export interface StatsSettings {
+  /** `null`: nadie ha elegido; no se cuenta nada y la app lo pregunta una vez. */
+  level: StatsLevel | null
+  /** Lunes de la semana del primer envío (la cohorte de retención); `null` hasta enviar algo o sin elegir. */
+  cohort: IsoDate | null
+}
+
 export interface Settings {
   digest: DigestSettings
+  calendar: CalendarSettings
+  /**
+   * Estadísticas anónimas. Son de este dispositivo, como el dictado: importar una copia o borrarlo
+   * todo no las cambia.
+   */
+  stats: StatsSettings
   /**
    * Permiso para enviar lo dictado (el audio, o el texto de Siri) a la IA del servidor. Sin él, nada
    * de lo dicho sale del dispositivo: Siri usa el analizador local y el micrófono pregunta antes.
    */
   dictation: boolean
+  /** Apariencia de este dispositivo. Como el dictado, importar una copia no la cambia. */
+  theme: Theme
+  /** Idioma de este dispositivo. Como la apariencia, importar una copia o borrarlo todo no lo cambia. */
+  language: LanguageSetting
+  /**
+   * A qué hora empieza el día de las rutinas (`HH:MM`, `00:00` por defecto): lo tachado antes cuenta para
+   * el día anterior. Ver `routineDay` en `lib/routines.ts`.
+   */
+  dayStart: IsoTime
+  /**
+   * Última versión de la bienvenida que se cerró en este dispositivo (`lib/welcome.ts`); 0 = ninguna.
+   * Si la app trae láminas posteriores, salen al abrirla. Importar una copia no la cambia.
+   */
+  welcome: number
 }
 
 export interface AppState {
@@ -105,8 +242,12 @@ export interface AppState {
   tasks: Task[]
   sections: Section[]
   places: Place[]
+  routines: Routine[]
+  /** La cesta: la lista de la compra (`lib/shopping.ts`). */
+  shopping: ShoppingState
   collapsed: Record<BlockId, boolean>
   settings: Settings
 }
 
-export type ViewId = 'home' | 'week'
+/** Pestañas de la barra inferior. */
+export type TabId = 'inbox' | 'agenda' | 'places' | 'settings'

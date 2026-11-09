@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest'
 import {
+  MONTH_WEEKS,
   addDays,
+  addMonths,
+  monthWeeks,
+  sameMonth,
+  startOfMonth,
   diffDays,
   formatTime,
   isValidTime,
@@ -40,6 +45,46 @@ describe('addDays', () => {
 
   test('acepta desplazamientos negativos', () => {
     expect(addDays('2026-01-01', -1)).toBe('2025-12-31')
+  })
+})
+
+describe('meses', () => {
+  test('startOfMonth y sameMonth', () => {
+    expect(startOfMonth('2026-09-30')).toBe('2026-09-01')
+    expect(sameMonth('2026-09-01', '2026-09-30')).toBe(true)
+    expect(sameMonth('2026-09-30', '2026-10-01')).toBe(false)
+    expect(sameMonth('2025-09-30', '2026-09-30')).toBe(false)
+  })
+
+  test('addMonths conserva el día y cruza el año', () => {
+    expect(addMonths('2026-09-15', 2)).toBe('2026-11-15')
+    expect(addMonths('2026-11-15', 2)).toBe('2027-01-15')
+    expect(addMonths('2026-01-15', -1)).toBe('2025-12-15')
+  })
+
+  test('addMonths se queda en el último día si el mes es más corto', () => {
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28')
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29')
+    expect(addMonths('2026-10-31', -1)).toBe('2026-09-30')
+  })
+
+  test('monthWeeks da seis lunes seguidos desde la semana del día 1', () => {
+    // Septiembre de 2026 empieza en martes: su primera semana arranca el lunes 31 de agosto.
+    expect(monthWeeks('2026-09-30')).toEqual(['2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05'])
+    expect(monthWeeks('2026-09-30')).toHaveLength(MONTH_WEEKS)
+  })
+
+  test('un mes que empieza en lunes no enseña la semana anterior', () => {
+    expect(monthWeeks('2026-06-18')[0]).toBe('2026-06-01')
+  })
+
+  test('el mes entero cabe siempre en sus seis semanas', () => {
+    for (const month of ['2026-02-10', '2026-03-10', '2026-08-10', '2027-05-10']) {
+      const weeks = monthWeeks(month)
+      const last = addDays(weeks[weeks.length - 1]!, 6)
+      expect(weeks[0]! <= startOfMonth(month)).toBe(true)
+      expect(last >= addDays(addMonths(startOfMonth(month), 1), -1)).toBe(true)
+    }
   })
 })
 

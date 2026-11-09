@@ -6,52 +6,180 @@
   background: var(--bg);
 }
 
-.app__scroll {
+/* Cada pestaña tiene su propio scroll: al volver a ella sigue donde estaba */
+.app__views {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+/* Bajo la barra de estado, papel: lo que sube al hacer scroll se desvanece antes de llegar al reloj
+   y a la Dynamic Island en vez de pasar por detrás */
+.app__views::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  height: calc(var(--safe-t) + 12px);
+  background: linear-gradient(var(--bg) calc(100% - 12px), transparent);
+  pointer-events: none;
+}
+
+/* El final de cada lista deja sitio a lo que flota encima: la barra de escribir (`--dock`) y el
+   teclado, que sube la barra inferior sobre la lista (`--kb`) */
+.app__scroll {
+  position: absolute;
+  inset: 0;
+  /* Las listas solo se mueven en vertical, aunque algo asome por un lado */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 18px;
+  padding: 0 18px calc(var(--dock, 0px) + var(--kb, 0px));
 }
 
-.app__settings,
-.app__sizing {
+.app.has-composer .app__scroll {
+  --dock: var(--composer-h);
+}
+
+/* Mientras se escribe, la lista queda tras un velo de papel: sigue ahí (se ve entrar lo que se añade)
+   pero no compite con la barra. Tocarlo suelta el teclado. */
+.app__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+.app.is-composing .app__veil {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--dur-3);
+}
+
+/* Al cambiar de pestaña, la nueva sube un poco al aparecer (al pasar de oculta a visible la animación
+   vuelve a empezar). No en el arranque: ahí ya entra la app entera (`.is-entering`) */
+.app.has-switched .app__scroll {
+  animation: tab-in var(--dur-3) var(--ease-out);
+}
+
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* La cesta, a la izquierda de la "A": el mismo botón, con la cifra de lo que queda por comprar */
+.app__basket {
   position: absolute;
   top: calc(var(--safe-t) + 14px);
+  right: 54px;
   z-index: 20;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.app__basket:active,
+.app__basket[aria-expanded='true'] {
+  color: var(--on-primary);
+  background: var(--primary);
+  transform: scale(0.92);
+}
+
+.app__basket[aria-expanded='true'] {
+  transform: none;
+}
+
+/* Abierta, el clon del popover ocupa su sitio exacto: el de verdad se esconde para no verse doble */
+.app.has-basket .app__basket {
+  visibility: hidden;
+}
+
+/* La cifra: una pastilla de coñac en la esquina del icono */
+.app__basket-count {
+  position: absolute;
+  top: 5px;
+  right: 3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--on-primary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.is-entering .app__basket {
+  animation: app-fade var(--dur-3) var(--ease) 260ms both;
+}
+
+/* Modo "Aa" (importancia), arriba a la derecha en la Bandeja y la Agenda */
+.app__sizing {
+  position: absolute;
+  top: calc(var(--safe-t) + 14px);
+  right: 10px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-full);
   color: var(--text-2);
   transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
-    transform var(--dur-1) var(--ease);
+    transform var(--dur-1) var(--ease), box-shadow var(--dur-2) var(--ease);
 }
 
-.app__settings {
-  right: 8px;
-}
-
-/* Modo "Aa" (importancia), a la izquierda de Ajustes */
-.app__sizing {
-  right: 50px;
-}
-
-.app__settings:active,
 .app__sizing:active {
   background: var(--bg-press);
   transform: scale(0.92);
 }
 
+/* La flecha doble sube y baja una vez al activarlo: se ve que se desliza */
+.app__sizing svg path:last-child {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .app.is-sizing .app__sizing {
   color: var(--on-primary);
   background: var(--primary);
+  box-shadow: var(--shadow-card);
+}
+
+.app.is-sizing .app__sizing svg path:last-child {
+  animation: sizing-nudge 900ms var(--ease) 1;
+}
+
+@keyframes sizing-nudge {
+  25% {
+    transform: translateY(-2.5px);
+  }
+  60% {
+    transform: translateY(2.5px);
+  }
 }
 
 /* El teclado virtual empuja la barra inferior para que siga visible */
 .app__bar {
+  position: relative;
+  z-index: 40;
   flex: none;
   padding-bottom: var(--safe-b);
   background: var(--bg);
@@ -62,50 +190,106 @@
   padding-bottom: 0;
 }
 
-/* La barra sube sobre el final de la lista: ese hueco se puede recorrer para ver lo último */
-.app.is-typing .app__scroll {
-  padding-bottom: var(--kb, 0px);
+/* La barra de escribir flota sobre el final de la lista, como el reproductor de Spotify sobre sus
+   pestañas: lo que pasa por debajo se desvanece en el papel antes de llegar a ella */
+.app__dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  padding: 20px 12px 8px;
+  background: linear-gradient(transparent, var(--bg) 26px);
+  pointer-events: none;
 }
 
-.nav {
-  display: flex;
+/* Barra de pestañas: cuatro columnas iguales y un filete de oro bajo la elegida */
+.tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   height: var(--nav-h);
   border-top: 1px solid var(--line);
 }
 
-.app.is-typing .nav {
+/* Con el teclado fuera, o en cuanto se toca la barra de escribir (sin esperar a que el teclado
+   termine de subir), las pestañas se apartan: su sitio lo ocupan los destinos de la barra */
+.app.is-typing .tabs,
+.app.is-composing .tabs {
   display: none;
 }
 
-.nav__tab {
-  flex: 1;
+.tabs__rule {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 25%;
+  height: 2px;
+  transform: translateX(calc(var(--tab-index, 0) * 100%));
+  transition: transform var(--dur-3) var(--ease-sheet);
+  pointer-events: none;
+}
+
+.tabs__rule::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 30px;
+  height: 2px;
+  margin-left: -15px;
+  border-radius: var(--r-full);
+  background: var(--gold);
+}
+
+.tabs__tab {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
+  min-width: 0;
   color: var(--text-3);
-  font-size: var(--fs-micro);
-  font-weight: 500;
-  letter-spacing: 0.03em;
   transition: color var(--dur-1) var(--ease);
 }
 
-.nav__tab svg {
+.tabs__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
   transition: transform var(--dur-2) var(--ease-pop), color var(--dur-1) var(--ease);
 }
 
-.nav__tab.is-active {
-  color: var(--text);
-  font-weight: 600;
+.tabs__label {
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
-.nav__tab.is-active svg {
+.tabs__tab.is-active {
+  color: var(--text);
+}
+
+.tabs__tab.is-active .tabs__icon {
   color: var(--accent);
 }
 
-.nav__tab:active svg {
-  transform: scale(0.88);
+.tabs__tab.is-active .tabs__label {
+  font-weight: 600;
+}
+
+.tabs__tab:active .tabs__icon {
+  transform: scale(0.86);
+}
+
+.tabs__dot {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--bg);
 }
 
 /* Entrada tras el arranque (lib/boot.ts): mientras #boot se funde, la cabecera, los bloques y la
@@ -114,7 +298,8 @@
   animation: app-enter var(--dur-4) var(--ease-out) 90ms both;
 }
 
-.is-entering .view > .block {
+.is-entering .view > .block,
+.is-entering .view .cal {
   animation: app-enter var(--dur-4) var(--ease-out) 170ms both;
 }
 
@@ -130,7 +315,6 @@
   animation: app-rise var(--dur-4) var(--ease-out) 200ms both;
 }
 
-.is-entering .app__settings,
 .is-entering .app__sizing {
   animation: app-fade var(--dur-3) var(--ease) 260ms both;
 }
@@ -155,7 +339,7 @@
   }
 }
 
-/* Esqueleto de lo que aún no ha llegado (la vista semana si se abre antes de cargarse) */
+/* Esqueleto de lo que aún no ha llegado (una pestaña que se abre antes de cargarse) */
 .skeleton {
   padding-top: calc(var(--safe-t) + 22px);
   animation: app-fade var(--dur-3) var(--ease) 120ms both;

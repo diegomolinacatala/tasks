@@ -1,10 +1,17 @@
-import type { AppState, Place, Reminder, Section, Settings, Task } from '../types'
-import { SCHEMA_VERSION, defaultSettings } from '../state/reducer'
+import type { AppState, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
+import { SCHEMA_VERSION, THEMES, defaultSettings } from '../state/reducer'
+import { MAX_ROUTINES, normalizeRoutine } from './routines'
+import { normalizeCalendarSettings } from './calendar'
 import { isValidTime } from './date'
 import { normalizeDuration } from './duration'
 import { normalizeImportance } from './importance'
-import { MAX_PLACES, normalizePlace, placeKey } from './places'
+import { cleanUntil } from './period'
+import { MAX_PLACES, cleanAliases, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
+import { normalizeShopping } from './shopping'
+import { isLanguageSetting, pick } from './i18n'
+import { normalizeWelcome } from './welcome'
+import { normalizeStatsSettings } from './stats/settings'
 
 export interface BackupFile {
   app: 'tasks'
@@ -43,6 +50,8 @@ function normalizeTask(raw: unknown): Task | null {
     title,
     done: raw.done === true,
     date,
+    // Las copias anteriores a los plazos no lo traen: solo su día.
+    until: cleanUntil(date, raw.until),
     time: isValidTime(raw.time) ? raw.time : null,
     // Las copias anteriores a la duración no la traen: quedan sin aviso de cierre.
     duration: normalizeDuration(raw.duration),
@@ -74,14 +83,40 @@ function normalizeSettings(raw: unknown): Settings {
       enabled: digest.enabled === true,
       time: isValidTime(digest.time) ? digest.time : defaults.digest.time,
     },
+    // Las anteriores al calendario no lo traen: apagado, hasta que se conecte.
+    calendar: normalizeCalendarSettings(settings.calendar),
+    // Las anteriores a las estadísticas no las traen: nadie ha elegido aún.
+    stats: normalizeStatsSettings(settings.stats),
     dictation: settings.dictation === true,
+    // Las copias anteriores al modo oscuro no lo traen: siguen al sistema.
+    theme: THEMES.includes(settings.theme as Theme) ? (settings.theme as Theme) : defaults.theme,
+    // Lo guardado antes del inglés se usaba en español: sigue en español. Una instalación nueva no
+    // pasa por aquí (empieza con el del sistema).
+    language: isLanguageSetting(settings.language) ? settings.language : 'es',
+    // Las copias anteriores a la bienvenida no la han visto: al actualizar, sale.
+    welcome: normalizeWelcome(settings.welcome),
+    // Las anteriores a la hora de inicio del día: a medianoche, como hasta ahora.
+    dayStart: isValidTime(settings.dayStart) ? settings.dayStart : defaults.dayStart,
   }
 }
 
-/** Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). */
-function normalizePlaces(raw: unknown): Place[] {
+/** Sin ids repetidos. Las copias anteriores a las rutinas no las traen. */
+function normalizeRoutines(raw: unknown): Routine[] {
   if (!Array.isArray(raw)) return []
   return raw
+    .map(normalizeRoutine)
+    .filter((routine): routine is Routine => routine !== null)
+    .reduce<Routine[]>((acc, routine) => (acc.some((other) => other.id === routine.id) ? acc : [...acc, routine]), [])
+    .slice(0, MAX_ROUTINES)
+}
+
+/**
+ * Sin ids ni nombres repetidos: el nombre es lo que casa con lo dictado ("al llegar a Mercadona"). Un
+ * otro nombre que choque con el nombre de otro lugar, o con otro nombre de uno anterior, se descarta.
+ */
+function normalizePlaces(raw: unknown): Place[] {
+  if (!Array.isArray(raw)) return []
+  const unique = raw
     .map(normalizePlace)
     .filter((place): place is Place => place !== null)
     .reduce<Place[]>(
@@ -90,6 +125,10 @@ function normalizePlaces(raw: unknown): Place[] {
       [],
     )
     .slice(0, MAX_PLACES)
+  return unique.reduce<Place[]>((acc, place, index) => {
+    const later = unique.slice(index + 1).map((other) => ({ ...other, aliases: [] }))
+    return [...acc, { ...place, aliases: cleanAliases(place.aliases, place.name, [...acc, ...later]) }]
+  }, [])
 }
 
 /** Acepta tanto el fichero de backup como un AppState suelto. */
@@ -119,7 +158,10 @@ export function normalizeState(raw: unknown): AppState | null {
     tasks,
     sections,
     places,
-    collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true },
+    routines: normalizeRoutines(candidate.routines),
+    // Las copias anteriores a la cesta no la traen: vacía.
+    shopping: normalizeShopping(candidate.shopping, knownPlaces),
+    collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true, routines: collapsed.routines === true },
     settings: normalizeSettings(candidate.settings),
   }
 }
@@ -139,10 +181,10 @@ export function parseBackup(text: string): AppState {
   try {
     raw = JSON.parse(text)
   } catch {
-    throw new Error('El fichero no es JSON válido.')
+    throw new Error(pick({ es: 'El fichero no es JSON válido.', en: 'The file is not valid JSON.' }))
   }
   const state = normalizeState(raw)
-  if (!state) throw new Error('El fichero no tiene el formato de una copia de Tasks.')
+  if (!state) throw new Error(pick({ es: 'El fichero no tiene el formato de una copia de Tasks.', en: 'The file is not a Tasks backup.' }))
   return state
 }
 

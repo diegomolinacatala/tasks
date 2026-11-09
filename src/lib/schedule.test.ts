@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import type { AppState, Task } from '../types'
+import type { AppState, Routine, Task } from '../types'
 import { toInstant } from './date'
-import { DIGEST_DAYS, badgeCount, checkInEntries, digestEntries, notificationBody, upcomingSchedule } from './schedule'
+import { DIGEST_DAYS, ROUTINE_DAYS, badgeCount, checkInEntries, digestEntries, notificationBody, routineEntries, upcomingSchedule } from './schedule'
 
 const TODAY = '2026-09-11'
 const NOW = toInstant(TODAY, '10:00')
@@ -11,6 +11,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -27,8 +28,10 @@ const stateOf = (tasks: Task[], digest = { enabled: false, time: '08:30' }): App
   tasks,
   sections: [{ id: 's1', name: 'Trabajo', order: 0, collapsed: false }],
   places: [],
-  collapsed: { overdue: false, backlog: false },
-  settings: { digest, dictation: false },
+  routines: [],
+  shopping: { items: [], history: [], placeId: null },
+  collapsed: { overdue: false, backlog: false, routines: false },
+  settings: { digest, calendar: { enabled: false, hidden: [], export: null, done: [] }, stats: { level: null, cohort: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 })
 
 describe('notificationBody', () => {
@@ -52,7 +55,7 @@ describe('notificationBody', () => {
     expect(notificationBody(task({ id: 'a' }), NOW, [])).toBe('Para hoy')
     expect(notificationBody(task({ id: 'a', date: '2026-09-12' }), NOW, [])).toBe('Para mañana')
     expect(notificationBody(task({ id: 'a', date: '2026-09-05' }), NOW, [])).toMatch(/^Pendiente desde el 5 /)
-    expect(notificationBody(task({ id: 'a', date: null }), NOW, [])).toBe('Sin fecha')
+    expect(notificationBody(task({ id: 'a', date: null }), NOW, [])).toBe('De la bandeja')
   })
 
   test('añade la sección', () => {
@@ -196,5 +199,107 @@ describe('checkInEntries: preguntar al acabar', () => {
   test('entra en la agenda que se sube, en su sitio por hora', () => {
     const state = stateOf([meeting({ reminders: [{ id: 'r1', kind: 'before', minutes: 0 }] })])
     expect(upcomingSchedule(state, NOW).map((entry) => entry.id)).toEqual(['r1', 'ask-r'])
+  })
+})
+
+describe('routineEntries: avisos de las rutinas', () => {
+  const routine = (partial: Partial<Routine> & { id: string }): Routine => ({
+    title: partial.id,
+    emoji: null,
+    days: [1, 2, 3, 4, 5, 6, 7],
+    time: '11:00',
+    done: [],
+    order: 0,
+    createdAt: 0,
+    ...partial,
+  })
+  const withRoutines = (...routines: Routine[]): AppState => ({ ...stateOf([]), routines })
+
+  test('uno a su hora cada día que toca, desde ahora', () => {
+    const entries = routineEntries(withRoutines(routine({ id: 'creatina', title: 'Creatina', time: '11:00' })), NOW)
+    expect(entries).toHaveLength(ROUTINE_DAYS)
+    expect(entries[0]).toEqual({
+      id: 'routine-creatina-20260911',
+      taskId: null,
+      at: toInstant(TODAY, '11:00'),
+      title: 'Creatina',
+      body: 'Cada día',
+      overdue: false,
+      routine: { id: 'creatina', date: TODAY },
+    })
+  })
+
+  test('el aviso lleva el emoji y la racha que se juega, no la hora que ya es', () => {
+    const entries = routineEntries(withRoutines(routine({ id: 'r', emoji: '💊', done: ['2026-09-09', '2026-09-10'] })), NOW)
+    expect(entries[0]?.body).toBe('💊 · Cada día · racha de 2')
+  })
+
+  test('lo ya hecho ese día o su hora pasada no avisa', () => {
+    const entries = routineEntries(withRoutines(routine({ id: 'r', time: '09:00' }), routine({ id: 'hecha', done: [TODAY] })), NOW)
+    expect(entries.some((entry) => entry.routine?.date === TODAY)).toBe(false)
+  })
+
+  test('solo los días que toca; sin hora, ningún aviso', () => {
+    // 2026-09-11 es viernes: los lunes caen el 14.
+    const entries = routineEntries(withRoutines(routine({ id: 'lunes', days: [1] }), routine({ id: 'sin-hora', time: null })), NOW)
+    expect(entries.map((entry) => entry.routine?.date)).toEqual(['2026-09-14'])
+  })
+
+  test('entran en la agenda completa, sin tocar el número del icono', () => {
+    const [entry] = upcomingSchedule(withRoutines(routine({ id: 'r' })), NOW)
+    expect(entry).toMatchObject({ routine: { id: 'r' }, badge: 0 })
+  })
+
+  test('con el día empezando a las 4, el aviso de la 1:00 es de la víspera y suena de madrugada', () => {
+    const base = withRoutines(routine({ id: 'tarde', time: '01:00', done: [TODAY] }))
+    const state: AppState = { ...base, settings: { ...base.settings, dayStart: '04:00' } }
+    const [first] = routineEntries(state, NOW)
+    // Hoy (11) ya está hecha: el siguiente es el del 12, que suena la madrugada del 13.
+    expect(first).toMatchObject({ id: 'routine-tarde-20260912', routine: { date: '2026-09-12' } })
+    expect(first!.at).toBe(toInstant('2026-09-13', '01:00'))
+  })
+})
+
+describe('tareas con plazo', () => {
+  // Del lunes 7 al domingo 13; hoy es viernes 11.
+  const period = (partial: Partial<Task> = {}) => task({ id: 'p', date: '2026-09-07', until: '2026-09-13', ...partial })
+
+  test('el aviso a la hora suena cada día que queda, con su id por día', () => {
+    const entries = upcomingSchedule(stateOf([period({ time: '18:00', reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })]), NOW)
+    expect(entries.map((entry) => [entry.id, entry.at])).toEqual([
+      ['r-20260911', toInstant('2026-09-11', '18:00')],
+      ['r-20260912', toInstant('2026-09-12', '18:00')],
+      ['r-20260913', toInstant('2026-09-13', '18:00')],
+    ])
+    expect(entries.every((entry) => !entry.overdue && entry.taskId === 'p')).toBe(true)
+    expect(entries[0]?.body).toBe('Ahora · 18:00')
+  })
+
+  test('hecha, no suena', () => {
+    const done = period({ time: '18:00', done: true, reminders: [{ id: 'r', kind: 'before', minutes: 0 }] })
+    expect(upcomingSchedule(stateOf([done]), NOW)).toEqual([])
+  })
+
+  test('sin hora, el aviso dice hasta cuándo vale', () => {
+    expect(notificationBody(period(), NOW, [])).toBe('Hasta el domingo')
+    expect(notificationBody(period(), toInstant('2026-09-13', '9:00'), [])).toBe('Último día')
+    expect(notificationBody(period(), toInstant('2026-09-14', '9:00'), [])).toBe('Pendiente desde ayer')
+  })
+
+  test('el resumen la cuenta como de cada día del plazo, y atrasada solo después', () => {
+    const entries = digestEntries(stateOf([period()], { enabled: true, time: '08:30' }), toInstant(TODAY, '07:00'))
+    const byDay = new Map(entries.map((entry) => [entry.id, entry.title]))
+    expect(byDay.get('digest-20260911')).toBe('1 tarea para hoy')
+    expect(byDay.get('digest-20260913')).toBe('1 tarea para hoy')
+    expect(byDay.get('digest-20260914')).toBe('Nada nuevo para hoy · 1 atrasada')
+  })
+
+  test('el aviso de cierre es el del día en que está', () => {
+    const [ask] = checkInEntries(stateOf([period({ time: '17:00', duration: 60 })]), NOW)
+    expect(ask?.at).toBe(toInstant(TODAY, '18:00'))
+  })
+
+  test('cuenta para el número del icono como lo de hoy', () => {
+    expect(badgeCount([period(), period({ id: 'futura', date: '2026-09-14', until: '2026-09-18' })], NOW)).toBe(1)
   })
 })

@@ -9,6 +9,7 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>es</string>
+		<string>en</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Tasks</string>
@@ -44,6 +45,10 @@
 	<string>public.app-category.productivity</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Para enseñar tus eventos en la Agenda y, si lo eliges en Ajustes, añadir tus tareas con hora a un calendario. Todo queda en tu iPhone: nada se sube a ningún servidor.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Para enseñar tus eventos en la Agenda y, si lo eliges en Ajustes, añadir tus tareas con hora a un calendario. Todo queda en tu iPhone: nada se sube a ningún servidor.</string>
 	<!-- La app nunca pide "siempre" (los avisos por lugar los vigila iOS con "mientras se usa"),
 	     pero Apple exige la clave si alguna librería menciona esa API (ITMS-90683). -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -83,9 +88,17 @@
 		</dict>
 		<dict>
 			<key>UIApplicationShortcutItemType</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).dictate</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Dictar tarea</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>mic.fill</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
 			<string>$(PRODUCT_BUNDLE_IDENTIFIER).week</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Semana</string>
+			<string>Agenda</string>
 			<key>UIApplicationShortcutItemIconSymbolName</key>
 			<string>calendar</string>
 		</dict>
@@ -101,13 +114,11 @@
 	<key>UIRequiresFullScreen</key>
 	<true/>
 	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDarkContent</string>
+	<string>UIStatusBarStyleDefault</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Light</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>

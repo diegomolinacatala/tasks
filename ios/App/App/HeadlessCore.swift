@@ -14,7 +14,7 @@ final class HeadlessCore {
     }
 
     /** Contrato con `src/headless.ts`: si no coincide, el paquete es de otra versión de la app. */
-    private static let version: Int32 = 4
+    private static let version: Int32 = 5
 
     /** El manejador de excepciones de JavaScriptCore no puede lanzar: deja aquí el mensaje. */
     private final class Exceptions {
@@ -58,13 +58,17 @@ final class HeadlessCore {
         return URL(string: text)
     }
 
-    /** Si se dio permiso en la app para mandar lo dictado al servidor. Sin fichero de estado, no. */
+    /**
+     * Si se dio permiso en la app para mandar lo dictado al servidor y la app habla español (la IA del
+     * servidor solo entiende español). Sin fichero de estado, no.
+     */
     func sharesDictation(state: Any?) -> Bool {
         guard
             let state, !(state is NSNull),
             JSONSerialization.isValidJSONObject(state),
             let json = try? JSONSerialization.data(withJSONObject: state),
-            let answer = try? call("consent", String(decoding: json, as: UTF8.self))
+            let languages = try? JSONSerialization.data(withJSONObject: Locale.preferredLanguages),
+            let answer = try? call("consent", String(decoding: json, as: UTF8.self), String(decoding: languages, as: UTF8.self))
         else { return false }
         return answer == "true"
     }
@@ -93,7 +97,10 @@ final class HeadlessCore {
         try object("answer", input)
     }
 
+    /** Con los idiomas de iOS: deciden si en la app se dejó el idioma en automático. */
     private func object(_ name: String, _ input: [String: Any]) throws -> [String: Any] {
+        var input = input
+        input["languages"] = Locale.preferredLanguages
         let json = try JSONSerialization.data(withJSONObject: input)
         let output = try call(name, String(decoding: json, as: UTF8.self))
         guard let result = try JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any] else {
@@ -102,9 +109,9 @@ final class HeadlessCore {
         return result
     }
 
-    private func call(_ name: String, _ argument: Any) throws -> String {
+    private func call(_ name: String, _ arguments: Any...) throws -> String {
         exceptions.last = nil
-        let result = core.invokeMethod(name, withArguments: [argument])
+        let result = core.invokeMethod(name, withArguments: arguments)
         if let message = exceptions.last { throw Failure(message: message) }
         guard let result, result.isString, let text = result.toString() else {
             throw Failure(message: "\(name) no devolvió texto.")

@@ -24,6 +24,7 @@ const task = (partial: Partial<Task> = {}): Task => ({
   title: 'Reunión con Jorge',
   done: false,
   date: TODAY,
+  until: null,
   time: '17:30',
   duration: 60,
   reminders: [],
@@ -69,7 +70,7 @@ describe('etiquetas', () => {
   test('la duración se lee en horas y minutos', () => {
     expect(durationLabel(15)).toBe('15 min')
     expect(durationLabel(60)).toBe('1 h')
-    expect(durationLabel(90)).toBe('1 h 30')
+    expect(durationLabel(90)).toBe('1 h 30 min')
     expect(durationLabel(120)).toBe('2 h')
   })
 
@@ -95,6 +96,13 @@ describe('durationFromEnd', () => {
 
   test('una hora de acabar que no es mayor se entiende del día siguiente', () => {
     expect(durationFromEnd('23:00', '00:30')).toBe(90)
+  })
+})
+
+describe('extendedDuration con plazo', () => {
+  test('cuenta desde su hora del día en que está, no del primero', () => {
+    const period = task({ date: '2026-10-05', until: '2026-10-09', time: '17:00', duration: 60 })
+    expect(extendedDuration(period, toInstant('2026-10-07', '18:05'))).toBe(80)
   })
 })
 

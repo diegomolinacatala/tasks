@@ -2,7 +2,17 @@ import { defineConfig } from 'vitest/config'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
 import { checkPath } from './scripts/brand.mjs'
+
+/** La versión que se publica (`MARKETING_VERSION` del proyecto de Xcode): la portada de novedades la dice. */
+const APP_VERSION = (() => {
+  try {
+    return /MARKETING_VERSION = ([\d.]+);/.exec(readFileSync('ios/App/App.xcodeproj/project.pbxproj', 'utf8'))?.[1] ?? ''
+  } catch {
+    return ''
+  }
+})()
 
 // El repo se publica en https://<user>.github.io/tasks/ -> base obligatoria.
 const BASE = '/tasks/'
@@ -17,6 +27,8 @@ const bootMark = (): Plugin => ({
 // así que va con rutas relativas y sin service worker (WKWebView no lo usa).
 export default defineConfig(({ mode }) => ({
   base: mode === 'native' ? './' : BASE,
+  // La PWA no tiene número de versión: Ajustes enseña el día en que se construyó.
+  define: { __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)), __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [
     react(),
     bootMark(),
@@ -70,10 +82,12 @@ export default defineConfig(({ mode }) => ({
         'src/lib/transition.ts',
         'src/lib/flip.ts',
         'src/lib/boot.ts',
+        'src/lib/theme.ts',
         'src/lib/push/client.ts',
         'src/lib/push/keystore.ts',
         'src/lib/voice/capture.ts',
         'src/lib/voice/speech.ts',
+        'src/lib/stats/collector.ts',
         // Adaptadores de Capacitor: solo existen en el iPhone.
         'src/lib/platform/**',
       ],

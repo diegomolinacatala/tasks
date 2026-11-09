@@ -52,8 +52,11 @@ export async function launch({ port = 9333 } = {}) {
   await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }))
   let next = 0
   const pending = new Map()
+  const session = { onEvent: null }
   ws.addEventListener('message', (event) => {
     const message = JSON.parse(event.data)
+    // Eventos del navegador (sin id): las trazas de rendimiento llegan así.
+    if (message.id === undefined) return session.onEvent?.(message)
     const done = pending.get(message.id)
     if (!done) return
     pending.delete(message.id)
@@ -74,6 +77,13 @@ export async function launch({ port = 9333 } = {}) {
   }
 
   const close = () => {
+    // `kill` solo acaba con el proceso lanzado: en Windows el navegador de verdad seguiría vivo en el
+    // mismo puerto, con sus datos, y la siguiente ejecución hablaría con él. Se le pide que cierre.
+    try {
+      ws.send(JSON.stringify({ id: next + 1, method: 'Browser.close' }))
+    } catch {
+      // Si el socket ya no está, queda el `kill`.
+    }
     ws.close()
     child.kill()
     // Edge tarda un poco en soltar el perfil.
@@ -82,7 +92,7 @@ export async function launch({ port = 9333 } = {}) {
 
   await send('Page.enable')
   await send('Runtime.enable')
-  return { send, evaluate, close }
+  return Object.assign(session, { send, evaluate, close })
 }
 
 /**

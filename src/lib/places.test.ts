@@ -5,10 +5,12 @@ import {
   MAX_PLACE_ALERTS,
   MAX_RADIUS,
   MIN_RADIUS,
+  RADIUS_STOPS,
   distanceMeters,
   findPlace,
   formatDistance,
   normalizePlace,
+  placeTriggerOf,
   placeAlerts,
   placeKey,
   placeReminderLabel,
@@ -18,6 +20,7 @@ const TODAY = '2026-09-11'
 
 const place = (partial: Partial<Place> & { id: string }): Place => ({
   name: partial.id,
+  aliases: [],
   location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1, Valencia' },
   radius: DEFAULT_RADIUS,
   ...partial,
@@ -34,6 +37,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: null,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -67,6 +71,16 @@ describe('findPlace', () => {
   })
 })
 
+describe('placeTriggerOf', () => {
+  const at = (on: 'arrive' | 'leave', placeId = 'c') => ({ id: on + placeId, kind: 'place' as const, placeId, on })
+  test('al llegar manda si hay de los dos; al salir, solo si todos lo son', () => {
+    expect(placeTriggerOf({ reminders: [at('leave')] })).toBe('leave')
+    expect(placeTriggerOf({ reminders: [at('leave'), at('arrive', 'm')] })).toBe('arrive')
+    expect(placeTriggerOf({ reminders: [at('leave'), at('arrive', 'm')] }, 'c')).toBe('leave')
+    expect(placeTriggerOf({ reminders: [] })).toBeNull()
+  })
+})
+
 describe('placeReminderLabel', () => {
   const places = [place({ id: 'm', name: 'Mercadona' })]
 
@@ -83,7 +97,7 @@ describe('placeReminderLabel', () => {
 describe('normalizePlace', () => {
   test('acepta un lugar completo', () => {
     const raw = { id: 'm', name: ' Mercadona ', location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 }
-    expect(normalizePlace(raw)).toEqual({ id: 'm', name: 'Mercadona', location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 })
+    expect(normalizePlace(raw)).toEqual({ id: 'm', name: 'Mercadona', aliases: [], location: { lat: 39.5, lng: -0.4, address: 'Calle' }, radius: 300 })
   })
 
   test('sin ubicación válida queda pendiente de elegir dónde está', () => {
@@ -95,6 +109,18 @@ describe('normalizePlace', () => {
     expect(normalizePlace({ id: 'a', name: 'A', radius: 5 })?.radius).toBe(MIN_RADIUS)
     expect(normalizePlace({ id: 'a', name: 'A', radius: 99_999 })?.radius).toBe(MAX_RADIUS)
     expect(normalizePlace({ id: 'a', name: 'A' })?.radius).toBe(DEFAULT_RADIUS)
+  })
+
+  test('admite radios pequeños, desde 20 m', () => {
+    expect(MIN_RADIUS).toBe(20)
+    expect(normalizePlace({ id: 'a', name: 'A', radius: 20 })?.radius).toBe(20)
+  })
+
+  test('el deslizador va del radio mínimo al máximo, de menor a mayor y con el de por defecto', () => {
+    expect(RADIUS_STOPS[0]).toBe(MIN_RADIUS)
+    expect(RADIUS_STOPS[RADIUS_STOPS.length - 1]).toBe(MAX_RADIUS)
+    expect(RADIUS_STOPS.every((stop, index) => index === 0 || stop > (RADIUS_STOPS[index - 1] ?? 0))).toBe(true)
+    expect(RADIUS_STOPS).toContain(DEFAULT_RADIUS)
   })
 
   test('descarta lo que no tiene id o nombre', () => {
@@ -116,6 +142,7 @@ describe('distanceMeters / formatDistance', () => {
     expect(formatDistance(42)).toBe('40 m')
     expect(formatDistance(950)).toBe('950 m')
     expect(formatDistance(1234)).toBe('1,2 km')
+    expect(formatDistance(1000)).toBe('1 km')
     expect(formatDistance(25_400)).toBe('25 km')
   })
 })

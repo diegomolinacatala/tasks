@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useToday } from '../../hooks/useToday'
 import { timeOfInstant, todayIso } from '../../lib/date'
+import { pick } from '../../lib/i18n'
 import type { DeviceCredentials, PushApi } from '../../lib/push/api'
 import { PushApiError, createPushApi } from '../../lib/push/api'
 import { clearDevice, loadDevice, saveDevice } from '../../lib/push/keystore'
@@ -41,7 +42,7 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => (API_URL ? createPushApi(API_URL) : null), [])
   const [status, setStatus] = useState<PushStatus>('off')
   const [busy, setBusy] = useState(false)
-  const { failed: syncFailed } = useNativeSchedule(state, today, status === 'on')
+  const { failed: syncFailed, retry } = useNativeSchedule(state, today, status === 'on')
 
   useEffect(() => {
     // El permiso se puede cambiar en Ajustes de iOS con la app en segundo plano.
@@ -65,14 +66,16 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
       const { requestNotificationPermission } = await import('../../lib/platform/notifications')
       setStatus(statusOf(await requestNotificationPermission()))
     } catch {
-      toast({ message: 'No se pudieron activar los avisos.' })
+      toast({ message: pick({ es: 'No se pudieron activar los avisos.', en: 'Reminders couldn’t be turned on.' }) })
     } finally {
       setBusy(false)
     }
   }, [toast])
 
   // La primera vez que hay algo que avisar se pide el permiso: en la app nativa iOS lo admite sin gesto.
-  const hasReminders = state.tasks.some((task) => !task.done && task.reminders.length > 0)
+  // Una rutina con hora también avisa ("tomar creatina a las 10").
+  const hasReminders =
+    state.tasks.some((task) => !task.done && task.reminders.length > 0) || state.routines.some((routine) => routine.time !== null)
   useEffect(() => {
     if (status !== 'off' || !hasReminders) return
     try {
@@ -91,7 +94,7 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
 
   const transcribe = useCallback(
     async (audio: string, signal?: AbortSignal) => {
-      if (!api) throw new Error('El dictado no está disponible en esta versión.')
+      if (!api) throw new Error(pick({ es: 'El dictado no está disponible en esta versión.', en: 'Dictation isn’t available in this version.' }))
       const now = Date.now()
       const context = { today: todayIso(new Date(now)), now: timeOfInstant(now) }
       const device = await voiceDevice(api, false)
@@ -108,8 +111,9 @@ export function NativePushProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ status, busy, syncFailed, enable, disable, canTranscribe: api !== null, transcribe }),
-    [status, busy, syncFailed, enable, disable, api, transcribe],
+    // En el iPhone el dictado no depende de ningún alta previa: está listo desde el arranque.
+    () => ({ status, restoring: false, busy, syncFailed, retry, enable, disable, canTranscribe: api !== null, transcribe }),
+    [status, busy, syncFailed, retry, enable, disable, api, transcribe],
   )
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>

@@ -1,19 +1,31 @@
-import type { AppState, IsoDate, Place, PlaceLocation, PlaceTrigger, ReminderDraft, Task } from '../types'
+import type { AppState, IsoDate, Place, PlaceLocation, PlaceTrigger, ReminderDraft, ShoppingState, Task } from '../types'
+import { language, pick } from './i18n'
+import { compareNames } from './order'
 import { fold } from './normalize'
+import { sortedItems } from './shopping'
 
 export const DEFAULT_RADIUS = 150
-/** Por debajo de 100 m iOS no detecta la entrada con fiabilidad. */
-export const MIN_RADIUS = 100
+/** Lo pidió el usuario (un portal, una tienda pequeña). Por debajo de unos 100 m iOS avisa con menos precisión. */
+export const MIN_RADIUS = 20
 export const MAX_RADIUS = 1000
-export const RADIUS_OPTIONS = [100, 150, 300, 500] as const
+/** Los radios que ofrece el deslizador, repartidos por igual: finos en lo pequeño, gruesos en lo grande. */
+export const RADIUS_STOPS = [
+  20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000,
+] as const
 export const MAX_PLACES = 50
 /** iOS vigila como mucho 20 regiones por app. */
 export const MAX_PLACE_ALERTS = 20
 export const MAX_PLACE_NAME = 60
+/** Otros nombres por lugar: los que de verdad se usan para un sitio son pocos. */
+export const MAX_ALIASES = 8
 const MAX_ADDRESS = 200
+/** Por debajo, un nombre se parece a demasiados ("casa", "caja"): solo vale tal cual. */
+const FUZZY_MIN = 5
+/** Desde aquí se toleran dos letras cambiadas en lugar de una. */
+const FUZZY_LONG = 9
 const BODY_PREVIEW = 3
 
-const ARTICLE = /^(?:el|la|los|las|mi|mis) /
+const ARTICLE = /^(?:el|la|los|las|mi|mis|the|my) /
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
@@ -22,17 +34,114 @@ export const placeKey = (name: string) => fold(name).replace(/\s+/g, ' ').trim()
 
 export const cleanPlaceName = (name: string) => name.replace(/\s+/g, ' ').trim().slice(0, MAX_PLACE_NAME)
 
+/** El nombre y los otros nombres de un lugar. */
+export const placeNames = (place: Pick<Place, 'name' | 'aliases'>): string[] => [place.name, ...place.aliases]
+
+const keysOf = (place: Pick<Place, 'name' | 'aliases'>): string[] => placeNames(place).map(placeKey).filter(Boolean)
+
+/** Todas las formas de nombrar los lugares guardados, comparables y de la más larga a la más corta. */
+export const placeKeys = (places: readonly Place[]): string[] =>
+  [...new Set(places.flatMap(keysOf))].sort((a, b) => b.length - a.length)
+
+/** El lugar que se llama así, por su nombre o por uno de sus otros nombres. */
 export function findPlace(places: readonly Place[], name: string): Place | null {
   const key = placeKey(name)
   if (!key) return null
-  return places.find((place) => placeKey(place.name) === key) ?? null
+  return places.find((place) => keysOf(place).includes(key)) ?? null
 }
 
-/** `Al llegar a Mercadona`, `Al salir de Casa`. */
-export const placeTriggerLabel = (name: string, on: PlaceTrigger) => (on === 'arrive' ? `Al llegar a ${name}` : `Al salir de ${name}`)
+/** Otro lugar (que no sea `except`) ya se llama así, de nombre o de otro nombre. */
+export function nameTaken(places: readonly Place[], name: string, except?: string): boolean {
+  const key = placeKey(name)
+  return Boolean(key) && places.some((place) => place.id !== except && keysOf(place).includes(key))
+}
+
+/**
+ * Otros nombres saneados: sin vacíos, sin repetir, sin el propio nombre y sin los de `others` (dos
+ * lugares que se llamen igual harían ambiguo "al llegar a casa").
+ */
+export function cleanAliases(aliases: readonly unknown[], name: string, others: readonly Place[]): string[] {
+  const seen = new Set([placeKey(name)])
+  return aliases
+    .flatMap((raw) => {
+      if (typeof raw !== 'string') return []
+      const alias = cleanPlaceName(raw)
+      const key = placeKey(alias)
+      if (!key || seen.has(key) || nameTaken(others, alias)) return []
+      seen.add(key)
+      return [alias]
+    })
+    .slice(0, MAX_ALIASES)
+}
+
+/** Letras que hay que cambiar, quitar o poner para pasar de uno a otro (dos vecinas cambiadas cuentan una). */
+function editDistance(a: string, b: string): number {
+  let previous: number[] = []
+  let current = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i]
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      let value = Math.min((current[j] ?? 0) + 1, (next[j - 1] ?? 0) + 1, (current[j - 1] ?? 0) + cost)
+      const swapped = i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]
+      if (swapped) value = Math.min(value, (previous[j - 2] ?? 0) + 1)
+      next.push(value)
+    }
+    previous = current
+    current = next
+  }
+  return current[b.length] ?? 0
+}
+
+/**
+ * El lugar al que se refiere algo escrito o dictado: el que se llama así y, si no hay ninguno, el que se
+ * le parece mucho (una letra cambiada; dos en los nombres largos). Lo dictado llega a veces con otra
+ * grafía ("Carrefur", "Mercadonna"). Si dos se parecen igual, ninguno: mejor un lugar nuevo que el que no es.
+ */
+export function matchPlace(places: readonly Place[], name: string): Place | null {
+  const exact = findPlace(places, name)
+  if (exact) return exact
+  const key = placeKey(name)
+  if (key.length < FUZZY_MIN) return null
+  const allowed = key.length >= FUZZY_LONG ? 2 : 1
+  // Los números no se parecen: "Parking 1" no es "Parking 2".
+  const digits = key.replace(/\D/g, '')
+  const close = places.flatMap((place) => {
+    const distances = keysOf(place)
+      .filter((other) => other.length >= FUZZY_MIN && Math.abs(other.length - key.length) <= allowed)
+      .filter((other) => other.replace(/\D/g, '') === digits)
+      .map((other) => editDistance(key, other))
+    const nearest = Math.min(...distances)
+    return nearest <= allowed ? [{ place, distance: nearest }] : []
+  })
+  const best = Math.min(...close.map((item) => item.distance))
+  const winners = close.filter((item) => item.distance === best)
+  return winners.length === 1 ? (winners[0]?.place ?? null) : null
+}
+
+/** `Al llegar a Mercadona`, `Al salir de Casa` · `Arriving at Walmart`, `Leaving Home`. */
+export function placeTriggerLabel(name: string, on: PlaceTrigger): string {
+  if (language() === 'en') return on === 'arrive' ? `Arriving at ${name}` : `Leaving ${name}`
+  return on === 'arrive' ? `Al llegar a ${name}` : `Al salir de ${name}`
+}
+
+/**
+ * Cómo avisa una tarea por lugar, para su icono en las filas: `arrive` si alguno de sus avisos es al
+ * llegar, `leave` si todos son al salir, `null` si no tiene.
+ */
+export function placeTriggerOf(task: Pick<Task, 'reminders'>, placeId?: string): PlaceTrigger | null {
+  const triggers = task.reminders.flatMap((reminder): PlaceTrigger[] => {
+    // "Al alejarme" es salir de donde se estaba.
+    if (reminder.kind === 'here') return placeId === undefined ? ['leave'] : []
+    return reminder.kind === 'place' && (placeId === undefined || reminder.placeId === placeId) ? [reminder.on] : []
+  })
+  if (!triggers.length) return null
+  return triggers.includes('arrive') ? 'arrive' : 'leave'
+}
 
 export function placeReminderLabel(reminder: Extract<ReminderDraft, { kind: 'place' }>, places: readonly Place[]): string {
-  return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? 'un lugar', reminder.on)
+  const fallback = language() === 'en' ? 'a place' : 'un lugar'
+  return placeTriggerLabel(places.find((place) => place.id === reminder.placeId)?.name ?? fallback, reminder.on)
 }
 
 const EARTH_RADIUS_M = 6_371_000
@@ -46,11 +155,12 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h))
 }
 
-/** `40 m`, `950 m`, `1,2 km`, `25 km`. */
+/** `40 m`, `950 m`, `1 km`, `1,2 km` (`1.2 km` en inglés), `25 km`. */
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`
   const km = meters / 1000
-  return km < 10 ? `${km.toFixed(1).replace('.', ',')} km` : `${Math.round(km)} km`
+  const decimal = language() === 'en' ? '.' : ','
+  return km < 10 ? `${km.toFixed(1).replace(/\.0$/, '').replace('.', decimal)} km` : `${Math.round(km)} km`
 }
 
 export const clampRadius = (radius: number) => Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, Math.round(radius)))
@@ -69,11 +179,13 @@ export function normalizePlace(raw: unknown): Place | null {
   const name = cleanPlaceName(raw.name)
   if (!name) return null
   const radius = typeof raw.radius === 'number' && Number.isFinite(raw.radius) ? clampRadius(raw.radius) : DEFAULT_RADIUS
-  return { id: raw.id, name, location: normalizeLocation(raw.location), radius }
+  // Los de antes de los otros nombres no los traen. Que no choquen con otros lugares lo mira quien los junta.
+  const aliases = cleanAliases(Array.isArray(raw.aliases) ? raw.aliases : [], name, [])
+  return { id: raw.id, name, aliases, location: normalizeLocation(raw.location), radius }
 }
 
 export interface PlaceAlert {
-  /** `<lugar>:<arrive|leave>`: estable entre sincronizaciones. */
+  /** `<lugar>:<arrive|leave>`, `here:<aviso>` o `shopping:<lugar>`: estable entre sincronizaciones. */
   key: string
   placeId: string
   on: PlaceTrigger
@@ -83,7 +195,19 @@ export interface PlaceAlert {
   title: string
   body: string
   taskIds: string[]
+  /** La cesta al llegar a la tienda: tocarlo la abre (no hay tareas). */
+  shopping?: true
 }
+
+/**
+ * El cuerpo del aviso de la cesta no lleva la lista: cambiaría con cada cosa que se tacha en la tienda y
+ * iOS volvería a registrar la región estando dentro (`sameAlert` compara el cuerpo), que puede hacer
+ * sonar el aviso otra vez. La lista se ve al tocarlo, que abre la cesta.
+ */
+const ALERT_TEXT = {
+  es: { movedAway: (radius: number) => `Te has alejado ${radius} m`, basket: 'Lo que queda de la cesta', withBasket: 'y la cesta' },
+  en: { movedAway: (radius: number) => `You’re ${radius} m away`, basket: 'What’s left in your basket', withBasket: 'and the basket' },
+} as const
 
 /** Un aviso de lugar cuenta si la tarea sigue pendiente y su día ya ha llegado (o no tiene). */
 const isArmed = (task: Task, today: IsoDate) => !task.done && (task.date === null || task.date <= today)
@@ -96,12 +220,89 @@ function bodyOf(tasks: readonly Task[]): string {
   return [...titles.slice(0, BODY_PREVIEW), rest > 0 ? `+${rest}` : ''].filter(Boolean).join(' · ')
 }
 
+/** Regiones de "al alejarme" a la vez como mucho: cada una es una tarea, y hay 20 para todo. */
+export const MAX_HERE_ALERTS = 5
+/** Un "al alejarme" de hace más de un día ya no dice nada de dónde estás: deja de vigilarse. */
+export const HERE_TTL_MS = 24 * 60 * 60_000
+
+/** Sigue valiendo: aún no ha pasado un día desde que se pidió. */
+export const hereAlive = (since: number, now: number): boolean => now - since <= HERE_TTL_MS
+
+type Ranked = PlaceAlert & { rank: number }
+
 /**
- * Qué regiones debe vigilar el iPhone: una por lugar y sentido, con todas sus tareas en el
- * cuerpo. Si hay más que el máximo de iOS, gana lo que es para hoy o está atrasado y después
- * los lugares con más tareas.
+ * Las regiones de "al alejarme": una por aviso ubicado y vivo (menos de un día, `hereAlive`), con su
+ * tarea, da igual para qué día sea (alejarse es ahora). La región crece con el error del GPS al fijar el
+ * punto: si no, iOS podría dar el punto por fuera del círculo desde el principio. Los más recientes
+ * primero, cinco como mucho.
  */
-export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: IsoDate): PlaceAlert[] {
+function hereAlerts(tasks: readonly Task[], now: number | null): Ranked[] {
+  const text = pick(ALERT_TEXT)
+  return tasks
+    .filter((task) => !task.done)
+    .flatMap((task) =>
+      task.reminders.flatMap((reminder) => {
+        if (reminder.kind !== 'here' || !reminder.from || (now !== null && !hereAlive(reminder.since, now))) return []
+        const id = `here:${reminder.id}`
+        const radius = Math.min(MAX_RADIUS, Math.max(reminder.radius, Math.ceil(reminder.from.accuracy ?? 0)))
+        const alert: Ranked = {
+          key: id,
+          placeId: id,
+          on: 'leave',
+          lat: reminder.from.lat,
+          lng: reminder.from.lng,
+          radius,
+          title: task.title,
+          body: text.movedAway(reminder.radius),
+          taskIds: [task.id],
+          rank: 0,
+        }
+        return [{ alert, since: reminder.since }]
+      }),
+    )
+    .sort((a, b) => b.since - a.since)
+    .slice(0, MAX_HERE_ALERTS)
+    .map(({ alert }) => alert)
+}
+
+/**
+ * La cesta al llegar a la tienda elegida, si hay algo pendiente. Si ese lugar ya avisa al llegar por
+ * sus tareas, la cesta va en el mismo aviso (una región, un aviso): se añade al cuerpo y se marca. La
+ * clave es la misma con tareas o sin ellas (`<lugar>:arrive`): el id no cambia al fundirse.
+ */
+function withShopping(alerts: Ranked[], shopping: ShoppingState | undefined, located: ReadonlyMap<string, Place>): Ranked[] {
+  const place = shopping?.placeId ? located.get(shopping.placeId) : undefined
+  if (!shopping || !place?.location || !sortedItems(shopping.items).pending.length) return alerts
+  const text = pick(ALERT_TEXT)
+  const key = `${place.id}:arrive`
+  const existing = alerts.find((alert) => alert.key === key)
+  if (existing) return alerts.map((alert) => (alert === existing ? { ...alert, body: `${alert.body} · ${text.withBasket}`, shopping: true, rank: 1 } : alert))
+  return [
+    ...alerts,
+    {
+      key,
+      placeId: place.id,
+      on: 'arrive',
+      lat: place.location.lat,
+      lng: place.location.lng,
+      radius: place.radius,
+      title: place.name,
+      body: text.basket,
+      taskIds: [],
+      shopping: true,
+      rank: 1,
+    },
+  ]
+}
+
+/**
+ * Qué regiones debe vigilar el iPhone: una por lugar y sentido, con todas sus tareas en el cuerpo;
+ * una por aviso "al alejarme" ubicado; y la cesta al llegar a su tienda. Si hay más que el máximo de
+ * iOS, por este orden: lo de "al alejarme" (es ahora), lo que es para hoy o está atrasado y la cesta,
+ * y después los demás lugares, los de más tareas primero. `now` decide qué "al alejarme" sigue vivo;
+ * sin él, todos.
+ */
+export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'> & Partial<Pick<AppState, 'shopping'>>, today: IsoDate, now: number | null = null): PlaceAlert[] {
   const located = new Map(state.places.flatMap((place) => (place.location ? [[place.id, place] as const] : [])))
 
   const groups = state.tasks
@@ -113,7 +314,7 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
     )
     .reduce((acc, { key, task }) => acc.set(key, [...(acc.get(key) ?? []), task]), new Map<string, Task[]>())
 
-  const alerts = [...groups].flatMap(([key, tasks]): (PlaceAlert & { due: boolean })[] => {
+  const alerts = [...groups].flatMap(([key, tasks]): Ranked[] => {
     const [placeId = '', on] = key.split(':')
     const place = located.get(placeId)
     if (!place?.location || (on !== 'arrive' && on !== 'leave')) return []
@@ -126,16 +327,17 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'>, today: Is
         lat: place.location.lat,
         lng: place.location.lng,
         radius: place.radius,
-        title: on === 'arrive' ? place.name : `Al salir de ${place.name}`,
+        title: on === 'arrive' ? place.name : placeTriggerLabel(place.name, 'leave'),
         body: bodyOf(sorted),
         taskIds: sorted.map((task) => task.id),
-        due: hasDayDue(sorted, today),
+        rank: hasDayDue(sorted, today) ? 1 : 2,
       },
     ]
   })
 
-  return alerts
-    .sort((a, b) => Number(b.due) - Number(a.due) || b.taskIds.length - a.taskIds.length || a.title.localeCompare(b.title))
+  // Lo de "al alejarme" ya viene en su orden (lo más reciente primero): el sort es estable y no lo toca.
+  return [...hereAlerts(state.tasks, now), ...withShopping(alerts, state.shopping, located)]
+    .sort((a, b) => a.rank - b.rank || (a.rank === 0 ? 0 : b.taskIds.length - a.taskIds.length || compareNames(a.title, b.title)))
     .slice(0, MAX_PLACE_ALERTS)
-    .map(({ due: _due, ...alert }) => alert)
+    .map(({ rank: _rank, ...alert }) => alert)
 }

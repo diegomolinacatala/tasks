@@ -10,8 +10,12 @@ export type PushStatus = 'unconfigured' | 'unsupported' | 'needs-install' | 'den
 /** Lo mismo en la PWA (Web Push) y en la app nativa (notificaciones locales). */
 export interface PushContextValue {
   status: PushStatus
+  /** Aún mirando si el dispositivo ya estaba dado de alta: hasta entonces `off` no dice nada. */
+  restoring: boolean
   busy: boolean
   syncFailed: boolean
+  /** Vuelve a programar (o subir) los avisos tras un fallo. */
+  retry: () => void
   enable: () => Promise<void>
   /** PWA: da de baja el dispositivo. App nativa: abre los ajustes de iOS, que es quien manda. */
   disable: () => Promise<void>

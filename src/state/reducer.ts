@@ -1,23 +1,44 @@
+import { defaultCalendarSettings, normalizeCalendarSettings, withDoneEvent } from '../lib/calendar'
 import { isValidTime } from '../lib/date'
 import { extendedDuration, normalizeDuration } from '../lib/duration'
+import { cleanEmoji } from '../lib/emoji'
 import { createId } from '../lib/id'
 import { DEFAULT_IMPORTANCE, clampImportance } from '../lib/importance'
 import { applyOrder, applyPlacements, moveTask, nextOrder, rescheduled, scopeKey } from '../lib/order'
-import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanPlaceName, placeKey } from '../lib/places'
-import { snoozed, withReminder } from '../lib/reminders'
-import type { AppState, IsoDate, Place, Section, Settings, Task } from '../types'
+import { cleanUntil } from '../lib/period'
+import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanAliases, cleanPlaceName, nameTaken } from '../lib/places'
+import { MAX_REMINDERS, clampHereRadius, normalizeHerePoint, snoozed, withReminder } from '../lib/reminders'
+import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
+import { MAX_SHOPPING_ITEMS, cleanQty, cleanShoppingName, emptyShopping, findItem, remember } from '../lib/shopping'
+import { normalizeWelcome } from '../lib/welcome'
+import { defaultStatsSettings, isCounting, isStatsLevel } from '../lib/stats/settings'
+import { isLanguageSetting } from '../lib/i18n'
+import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, ShoppingItem, ShoppingState, Task, Theme } from '../types'
 import type { Action } from './actions'
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 18
 
-export const defaultSettings = (): Settings => ({ digest: { enabled: false, time: '08:30' }, dictation: false })
+export const defaultSettings = (): Settings => ({
+  digest: { enabled: false, time: '08:30' },
+  calendar: defaultCalendarSettings(),
+  stats: defaultStatsSettings(),
+  dictation: false,
+  theme: 'auto',
+  language: 'auto',
+  welcome: 0,
+  dayStart: DAY_START,
+})
+
+export const THEMES: readonly Theme[] = ['light', 'dark', 'auto']
 
 export const emptyState = (): AppState => ({
   schemaVersion: SCHEMA_VERSION,
   tasks: [],
   sections: [],
   places: [],
-  collapsed: { overdue: false, backlog: false },
+  routines: [],
+  shopping: emptyShopping(),
+  collapsed: { overdue: false, backlog: false, routines: false },
   settings: defaultSettings(),
 })
 
@@ -40,24 +61,47 @@ function updateTask(state: AppState, id: string, update: (task: Task) => Task): 
 /** Una tarea sin fecha no tiene sección: las secciones agrupan dentro del día. */
 const sectionFor = (date: IsoDate | null, sectionId: string | null) => (date ? sectionId : null)
 
+/** Como `updateTask`, para rutinas. */
+function updateRoutine(state: AppState, id: string, update: (routine: Routine) => Routine): AppState {
+  let changed = false
+  const routines = state.routines.map((routine) => {
+    if (routine.id !== id) return routine
+    const next = update(routine)
+    changed = changed || next !== routine
+    return next
+  })
+  return changed ? { ...state, routines } : state
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+const withShopping = (state: AppState, patch: Partial<ShoppingState>): AppState => ({ ...state, shopping: { ...state.shopping, ...patch } })
+
+const nextShoppingOrder = (items: readonly ShoppingItem[]) => items.reduce((max, item) => Math.max(max, item.order + 1), 0)
+
+const sameDays = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((day, index) => day === b[index])
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'task/add': {
       const title = clean(action.title)
       // Un id repetido sería la misma tarea aplicada dos veces (la bandeja de Siri se puede releer).
       if (!title || (action.id !== undefined && state.tasks.some((task) => task.id === action.id))) return state
-      const sectionId = sectionFor(action.date, action.sectionId)
+      // Una sección que ya no existe (borrada mientras se escribía) deja la tarea en la raíz del día.
+      const known = state.sections.some((section) => section.id === action.sectionId)
+      const sectionId = sectionFor(action.date, known ? action.sectionId : null)
       const base: Task = {
         id: action.id ?? createId(),
         title,
         done: false,
         date: action.date,
+        until: cleanUntil(action.date, action.until),
         time: isValidTime(action.time) ? action.time : null,
         duration: normalizeDuration(action.duration),
         reminders: [],
         sectionId,
         order: nextOrder(state.tasks, scopeKey(action.date, sectionId)),
-        importance: DEFAULT_IMPORTANCE,
+        importance: action.importance === undefined ? DEFAULT_IMPORTANCE : clampImportance(action.importance),
         createdAt: Date.now(),
         completedAt: null,
       }
@@ -67,12 +111,40 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'task/setTime': {
       if (action.time !== null && !isValidTime(action.time)) return state
-      return updateTask(state, action.id, (task) => (task.time === action.time ? task : { ...task, time: action.time }))
+      // Sin hora no hay desde cuándo contar: la duración se va con ella (como en la ficha del compositor).
+      return updateTask(state, action.id, (task) =>
+        task.time === action.time ? task : { ...task, time: action.time, duration: action.time === null ? null : task.duration },
+      )
+    }
+
+    case 'task/until': {
+      if (action.until !== null && !ISO_DATE.test(action.until)) return state
+      return updateTask(state, action.id, (task) => {
+        const until = cleanUntil(task.date, action.until)
+        return task.until === until ? task : { ...task, until }
+      })
     }
 
     case 'task/setDuration': {
       const duration = action.duration === null ? null : normalizeDuration(action.duration)
       return updateTask(state, action.id, (task) => (task.duration === duration ? task : { ...task, duration }))
+    }
+
+    case 'task/schedule': {
+      if (!ISO_DATE.test(action.date) || !isValidTime(action.time)) return state
+      const current = state.tasks.find((task) => task.id === action.id)
+      if (!current) return state
+      // A otro día va con su sección, como al pasarla a hoy; en el mismo conserva su sitio.
+      const target = { date: action.date, sectionId: current.sectionId, until: cleanUntil(action.date, current.until) }
+      const moved = current.date === action.date ? state.tasks : moveTask(state.tasks, action.id, target)
+      const duration = action.duration === null ? null : normalizeDuration(action.duration)
+      const tasks = moved.map((task) => {
+        if (task.id !== action.id) return task
+        const timed = { ...task, time: action.time, duration }
+        const hasRelative = task.reminders.some((reminder) => reminder.kind === 'before')
+        return hasRelative || !action.reminderId ? timed : withReminder(timed, { kind: 'before', minutes: 0 }, action.reminderId)
+      })
+      return { ...state, tasks }
     }
 
     case 'task/extend':
@@ -90,6 +162,22 @@ export function reducer(state: AppState, action: Action): AppState {
           ? { ...task, reminders: task.reminders.filter((reminder) => reminder.id !== action.reminderId) }
           : task,
       )
+
+    case 'reminder/here':
+      return updateTask(state, action.taskId, (task) => {
+        let changed = false
+        const reminders = task.reminders.map((reminder) => {
+          if (reminder.id !== action.reminderId || reminder.kind !== 'here') return reminder
+          const radius = action.radius === undefined || !Number.isFinite(action.radius) ? reminder.radius : clampHereRadius(action.radius)
+          const from = action.from === undefined ? reminder.from : normalizeHerePoint(action.from)
+          if (radius === reminder.radius && from === reminder.from) return reminder
+          changed = true
+          // Un punto nuevo es "aquí" ahora: el día de vida cuenta desde este momento.
+          const since = from && from !== reminder.from && action.now !== undefined ? action.now : reminder.since
+          return { ...reminder, radius, from, since }
+        })
+        return changed ? { ...task, reminders } : task
+      })
 
     case 'task/snooze':
       return updateTask(state, action.id, (task) => snoozed(task, action.at, action.now, createId()))
@@ -136,10 +224,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'task/move': {
       const current = state.tasks.find((task) => task.id === action.id)
       if (!current) return state
-      const target = { date: action.date, sectionId: sectionFor(action.date, action.sectionId) }
-      // Tocar el día o la sección que ya tiene no debe mandarla al final de su lista.
+      const target = { date: action.date, sectionId: sectionFor(action.date, action.sectionId), until: action.until }
+      // Tocar el día o la sección que ya tiene no debe mandarla al final de su lista (deshacer puede
+      // devolverle solo el plazo).
       const samePlace = current.date === target.date && current.sectionId === target.sectionId
-      if (samePlace && action.index === undefined) return state
+      if (samePlace && action.index === undefined) {
+        const until = action.until === undefined ? current.until : cleanUntil(current.date, action.until)
+        return until === current.until ? state : updateTask(state, action.id, (task) => ({ ...task, until }))
+      }
       return { ...state, tasks: moveTask(state.tasks, action.id, target, action.index) }
     }
 
@@ -158,7 +250,8 @@ export function reducer(state: AppState, action: Action): AppState {
           task.date === next.date && task.sectionId === next.sectionId && task.order === next.order
         if (unchanged) return task
         changed = true
-        return { ...task, ...next }
+        // Lo que un plazo había traído se queda en el día donde se suelta, con el mismo final.
+        return { ...task, ...next, until: cleanUntil(next.date, task.until) }
       })
       // Soltar una tarea donde estaba no debe guardar ni sincronizar nada.
       return changed ? { ...state, tasks } : state
@@ -221,11 +314,12 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'place/add': {
       const name = cleanPlaceName(action.name)
-      const taken = state.places.some((place) => place.id === action.id || placeKey(place.name) === placeKey(name))
+      const taken = state.places.some((place) => place.id === action.id) || nameTaken(state.places, name)
       if (!name || taken || state.places.length >= MAX_PLACES) return state
       const place: Place = {
         id: action.id,
         name,
+        aliases: cleanAliases(action.aliases ?? [], name, state.places),
         location: action.location ?? null,
         radius: action.radius === undefined ? DEFAULT_RADIUS : clampRadius(action.radius),
       }
@@ -237,10 +331,12 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!current) return state
       const wanted = action.name === undefined ? '' : cleanPlaceName(action.name)
       // Dos lugares con el mismo nombre harían ambiguo "al llegar a Mercadona".
-      const clashes = state.places.some((place) => place.id !== current.id && placeKey(place.name) === placeKey(wanted))
+      const name = wanted && !nameTaken(state.places, wanted, current.id) ? wanted : current.name
+      const others = state.places.filter((place) => place.id !== current.id)
       const next: Place = {
         ...current,
-        name: wanted && !clashes ? wanted : current.name,
+        name,
+        aliases: cleanAliases(action.aliases ?? current.aliases, name, others),
         location: action.location === undefined ? current.location : action.location,
         radius: action.radius === undefined ? current.radius : clampRadius(action.radius),
       }
@@ -253,7 +349,124 @@ export function reducer(state: AppState, action: Action): AppState {
         const reminders = task.reminders.filter((reminder) => reminder.kind !== 'place' || reminder.placeId !== action.id)
         return reminders.length === task.reminders.length ? task : { ...task, reminders }
       })
-      return { ...state, tasks, places: state.places.filter((place) => place.id !== action.id) }
+      // La cesta avisaba al llegar aquí: ya no.
+      const shopping = state.shopping.placeId === action.id ? { ...state.shopping, placeId: null } : state.shopping
+      return { ...state, tasks, shopping, places: state.places.filter((place) => place.id !== action.id) }
+    }
+
+    case 'place/restore': {
+      const { place } = action
+      if (state.places.some((item) => item.id === place.id) || nameTaken(state.places, place.name) || state.places.length >= MAX_PLACES) return state
+      const byTask = new Map<string, Reminder[]>()
+      for (const { taskId, reminder } of action.reminders) byTask.set(taskId, [...(byTask.get(taskId) ?? []), reminder])
+      const tasks = state.tasks.map((task) => {
+        const back = byTask.get(task.id)?.filter((reminder) => !task.reminders.some((item) => item.id === reminder.id))
+        return back?.length ? { ...task, reminders: [...task.reminders, ...back].slice(0, MAX_REMINDERS) } : task
+      })
+      const shopping = action.shopping && state.shopping.placeId === null ? { ...state.shopping, placeId: place.id } : state.shopping
+      return { ...state, tasks, shopping, places: [...state.places, place] }
+    }
+
+    case 'routine/add': {
+      const title = clean(action.title)
+      if (!title || state.routines.length >= MAX_ROUTINES) return state
+      if (action.id !== undefined && state.routines.some((routine) => routine.id === action.id)) return state
+      const routine: Routine = {
+        id: action.id ?? createId(),
+        title,
+        emoji: cleanEmoji(action.emoji),
+        days: cleanDays(action.days),
+        time: isValidTime(action.time) ? action.time : null,
+        done: [],
+        order: state.routines.reduce((max, item) => Math.max(max, item.order + 1), 0),
+        createdAt: Date.now(),
+      }
+      return { ...state, routines: [...state.routines, routine] }
+    }
+
+    case 'routine/update':
+      return updateRoutine(state, action.id, (routine) => {
+        const title = action.title === undefined ? routine.title : clean(action.title) || routine.title
+        const days = action.days === undefined ? routine.days : cleanDays(action.days)
+        const time = action.time === undefined ? routine.time : isValidTime(action.time) ? action.time : null
+        const emoji = action.emoji === undefined ? routine.emoji : cleanEmoji(action.emoji)
+        const same = title === routine.title && sameDays(days, routine.days) && time === routine.time && emoji === routine.emoji
+        return same ? routine : { ...routine, title, days, time, emoji }
+      })
+
+    case 'routine/toggle':
+      if (!ISO_DATE.test(action.date)) return state
+      return updateRoutine(state, action.id, (routine) => ({
+        ...routine,
+        done: withDay(routine.done, action.date, !routine.done.includes(action.date)),
+      }))
+
+    case 'routine/set':
+      if (!ISO_DATE.test(action.date)) return state
+      return updateRoutine(state, action.id, (routine) => {
+        const done = withDay(routine.done, action.date, action.done)
+        return done === routine.done ? routine : { ...routine, done }
+      })
+
+    case 'routine/remove':
+      return state.routines.some((routine) => routine.id === action.id)
+        ? { ...state, routines: state.routines.filter((routine) => routine.id !== action.id) }
+        : state
+
+    case 'routine/restore':
+      return state.routines.some((routine) => routine.id === action.routine.id)
+        ? state
+        : { ...state, routines: [...state.routines, action.routine] }
+
+    case 'shopping/add': {
+      const name = cleanShoppingName(action.name)
+      if (!name) return state
+      const { shopping } = state
+      if (action.id !== undefined && shopping.items.some((item) => item.id === action.id)) return state
+      const qty = cleanQty(action.qty)
+      const existing = findItem(shopping.items, name)
+      if (existing) {
+        // Ya pendiente: como mucho cambia la cantidad. Comprada: vuelve a pendiente, al final.
+        const back: ShoppingItem = existing.done
+          ? { ...existing, done: false, doneAt: null, qty: qty ?? existing.qty, order: nextShoppingOrder(shopping.items) }
+          : qty && qty !== existing.qty
+            ? { ...existing, qty }
+            : existing
+        return back === existing ? state : withShopping(state, { items: shopping.items.map((item) => (item === existing ? back : item)) })
+      }
+      if (shopping.items.filter((item) => !item.done).length >= MAX_SHOPPING_ITEMS) return state
+      const item: ShoppingItem = { id: action.id ?? createId(), name, qty, done: false, order: nextShoppingOrder(shopping.items), createdAt: action.now, doneAt: null }
+      return withShopping(state, { items: [...shopping.items, item] })
+    }
+
+    case 'shopping/toggle': {
+      const { shopping } = state
+      const current = shopping.items.find((item) => item.id === action.id)
+      if (!current) return state
+      const toggled: ShoppingItem = current.done ? { ...current, done: false, doneAt: null } : { ...current, done: true, doneAt: action.now }
+      const items = shopping.items.map((item) => (item === current ? toggled : item))
+      // Comprar es lo que se recuerda; devolverla a pendiente no borra nada.
+      return withShopping(state, { items, ...(toggled.done ? { history: remember(shopping.history, current.name, action.now) } : {}) })
+    }
+
+    case 'shopping/remove':
+      return state.shopping.items.some((item) => item.id === action.id)
+        ? withShopping(state, { items: state.shopping.items.filter((item) => item.id !== action.id) })
+        : state
+
+    case 'shopping/restore':
+      return state.shopping.items.some((item) => item.id === action.item.id)
+        ? state
+        : withShopping(state, { items: [...state.shopping.items, action.item] })
+
+    case 'shopping/clearDone':
+      return state.shopping.items.some((item) => item.done)
+        ? withShopping(state, { items: state.shopping.items.filter((item) => !item.done) })
+        : state
+
+    case 'shopping/place': {
+      const placeId = action.placeId !== null && state.places.some((place) => place.id === action.placeId) ? action.placeId : null
+      return placeId === state.shopping.placeId ? state : withShopping(state, { placeId })
     }
 
     case 'block/toggle':
@@ -274,15 +487,92 @@ export function reducer(state: AppState, action: Action): AppState {
       if (state.settings.dictation === action.allowed) return state
       return { ...state, settings: { ...state.settings, dictation: action.allowed } }
 
+    case 'settings/stats': {
+      const current = state.settings.stats
+      const level = action.level !== undefined && isStatsLevel(action.level) ? action.level : current.level
+      // La cohorte se fija una vez: es la semana en que este dispositivo empezó a contar (si cuenta).
+      const fresh = isCounting(level) && action.cohort && /^\d{4}-\d{2}-\d{2}$/.test(action.cohort) ? action.cohort : null
+      const cohort = current.cohort ?? fresh
+      if (level === current.level && cohort === current.cohort) return state
+      return { ...state, settings: { ...state.settings, stats: { level, cohort } } }
+    }
+
+    case 'settings/theme':
+      if (!THEMES.includes(action.theme) || state.settings.theme === action.theme) return state
+      return { ...state, settings: { ...state.settings, theme: action.theme } }
+
+    case 'settings/language':
+      if (!isLanguageSetting(action.language) || state.settings.language === action.language) return state
+      return { ...state, settings: { ...state.settings, language: action.language } }
+
+    case 'settings/dayStart':
+      if (!isValidTime(action.time) || state.settings.dayStart === action.time) return state
+      return { ...state, settings: { ...state.settings, dayStart: action.time } }
+
+    case 'settings/calendar': {
+      const current = state.settings.calendar
+      // Los eventos hechos no se tocan aquí (`event/set`): se conservan tal cual, con su mismo array.
+      const calendar = {
+        ...normalizeCalendarSettings({
+          enabled: action.enabled ?? current.enabled,
+          hidden: action.hidden ?? current.hidden,
+          export: action.export === undefined ? current.export : action.export,
+        }),
+        done: current.done,
+      }
+      const sameHidden = calendar.hidden.length === current.hidden.length && calendar.hidden.every((id, index) => id === current.hidden[index])
+      if (calendar.enabled === current.enabled && sameHidden && calendar.export === current.export) return state
+      return { ...state, settings: { ...state.settings, calendar } }
+    }
+
+    case 'event/set': {
+      const current = state.settings.calendar
+      const done = withDoneEvent(current.done, action.key, action.done)
+      if (done === current.done) return state
+      return { ...state, settings: { ...state.settings, calendar: { ...current, done } } }
+    }
+
+    // Lo visto no se olvida: una versión anterior (o rota) no cambia nada.
+    case 'settings/welcome': {
+      const welcome = normalizeWelcome(action.version)
+      if (welcome <= state.settings.welcome) return state
+      return { ...state, settings: { ...state.settings, welcome } }
+    }
+
     case 'state/replace':
       return action.state
 
-    // El permiso del dictado se da en este dispositivo: una copia de otro no lo trae ni lo quita.
+    // El permiso del dictado, la apariencia, el idioma, el calendario, la bienvenida vista y las
+    // estadísticas son de este dispositivo: una copia de otro no los cambia.
     case 'state/import':
-      return { ...action.state, settings: { ...action.state.settings, dictation: state.settings.dictation } }
+      return {
+        ...action.state,
+        settings: {
+          ...action.state.settings,
+          dictation: state.settings.dictation,
+          theme: state.settings.theme,
+          language: state.settings.language,
+          calendar: state.settings.calendar,
+          welcome: state.settings.welcome,
+          stats: state.settings.stats,
+        },
+      }
 
+    // Borrarlo todo no cambia cómo se ve la app, su idioma, su calendario, lo que manda de estadísticas ni
+    // vuelve a enseñar la bienvenida.
+    // Lo que sí se va son los eventos marcados como hechos: son lo que se hizo, como las tareas.
     case 'state/clear':
-      return emptyState()
+      return {
+        ...emptyState(),
+        settings: {
+          ...defaultSettings(),
+          theme: state.settings.theme,
+          language: state.settings.language,
+          calendar: { ...state.settings.calendar, done: [] },
+          welcome: state.settings.welcome,
+          stats: state.settings.stats,
+        },
+      }
 
     default:
       return state

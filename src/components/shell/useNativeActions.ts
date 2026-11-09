@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { parseNativeAction } from '../../lib/nativeEvents'
+import { WIDGET_EVENT, parseNativeAction } from '../../lib/nativeEvents'
 import { isNative } from '../../lib/platform'
 
 interface NativeActionHandlers {
   /** Siri: "Añade una tarea en Tasks". */
   onAdd: (text: string) => void
-  /** Acceso rápido "Nueva tarea". */
-  onCompose: () => void
+  /** Acceso rápido "Nueva tarea"; `inbox`, el + del widget de la Bandeja. */
+  onCompose: (inbox: boolean) => void
+  /** El widget o el control del micrófono: la app se abre ya escuchando. */
+  onDictate: () => void
   /** Acceso rápido "Semana" y "Mi semana en Tasks". */
   onWeek: () => void
   /** Widget: tocarlo fuera de una tarea. */
@@ -16,6 +18,10 @@ interface NativeActionHandlers {
   onOpenTask: (taskId: string) => void
   /** Siri o un atajo han apuntado algo sin abrir la app mientras esta seguía viva. */
   onInbox: () => void
+  /** Widget de rutinas: tocarlo fuera del círculo. */
+  onRoutines: () => void
+  /** Widget de la Bandeja: tocarlo fuera de una tarea. */
+  onBacklog: () => void
 }
 
 /** Acciones que llegan de fuera de la web en la app de iPhone. */
@@ -35,11 +41,15 @@ export function useNativeActions(handlers: NativeActionHandlers) {
         TasksNative.addListener('action', (raw) => {
           const action = parseNativeAction(raw)
           if (action?.type === 'add') current.current.onAdd(action.text)
-          if (action?.type === 'compose') current.current.onCompose()
+          if (action?.type === 'compose') current.current.onCompose(action.inbox === true)
+          if (action?.type === 'dictate') current.current.onDictate()
           if (action?.type === 'week') current.current.onWeek()
           if (action?.type === 'today') current.current.onToday()
           if (action?.type === 'open') current.current.onOpenTask(action.taskId)
           if (action?.type === 'inbox') current.current.onInbox()
+          if (action?.type === 'routines') current.current.onRoutines()
+          if (action?.type === 'backlog') current.current.onBacklog()
+          if (action?.type === 'widget') window.dispatchEvent(new Event(WIDGET_EVENT))
         }),
       )
       .then((registered) => {

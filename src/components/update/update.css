@@ -1,0 +1,109 @@
+/* ── Aviso de versión nueva ──────────────────────────────────────────── */
+
+.update {
+  position: relative;
+  padding-top: var(--sp-2);
+}
+
+/* El número de la versión en un sello, como el lacre de una carta */
+.update__seal {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--sp-4);
+  border-radius: var(--r-full);
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--bg-elev), 0 0 0 5px var(--gold);
+  color: var(--on-primary);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-variant-numeric: lining-nums;
+  animation: update-seal var(--dur-4) var(--ease-pop) both;
+}
+
+@keyframes update-seal {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+}
+
+.update__kicker {
+  margin: 0;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.update__title {
+  margin: 6px 0 var(--sp-2);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.update__lead {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.update__notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.update__notes li {
+  position: relative;
+  padding: 7px 0 7px 18px;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* Un filete de oro en lugar de la viñeta */
+.update__notes li::before {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: 0;
+  width: 9px;
+  height: 1.5px;
+  background: var(--gold);
+}
+
+.update__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.update__go {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.update__later {
+  min-height: 44px;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.update__later:active {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update__seal {
+    animation: none;
+  }
+}

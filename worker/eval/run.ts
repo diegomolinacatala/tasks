@@ -39,7 +39,7 @@ function instants(task: ParsedTask): string[] {
   return task.reminders
     .flatMap((reminder) => {
       if (reminder.kind === 'at') return [stamp(reminder.at)]
-      if (reminder.kind === 'place' || !task.date || !task.time) return []
+      if (reminder.kind === 'place' || reminder.kind === 'here' || !task.date || !task.time) return []
       return [stamp(toInstant(task.date, task.time) - reminder.minutes * MINUTE)]
     })
     .sort()

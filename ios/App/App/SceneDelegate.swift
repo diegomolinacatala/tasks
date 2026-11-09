@@ -8,6 +8,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
+        // La apariencia elegida en la app (claro, oscuro o la del sistema) desde el primer momento:
+        // así la pantalla de carga que se queda encima hasta que pinta la web ya sale en su tema.
+        window?.overrideUserInterfaceStyle = TasksNativePlugin.interfaceStyle(
+            UserDefaults.standard.string(forKey: TasksNativePlugin.appearanceKey)
+        )
         window?.rootViewController = TasksViewController()
         window?.makeKeyAndVisible()
 
@@ -42,7 +47,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func handle(_ shortcut: UIApplicationShortcutItem) -> Bool {
         guard let kind = shortcut.type.split(separator: ".").last else { return false }
         switch kind {
-        case "compose", "week":
+        case "compose", "week", "dictate":
             NativeActions.shared.post(["type": String(kind)])
             return true
         default:
@@ -50,7 +55,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
-    /// Enlaces del widget: abrir hoy, una tarea o la barra de escribir.
+    /// Enlaces del widget: abrir hoy, una tarea, la barra de escribir o el dictado (el micrófono).
     private func handle(_ url: URL) {
         if let action = WidgetLink.action(for: url) {
             NativeActions.shared.post(action)

@@ -2,7 +2,8 @@ import type { Action } from '../state/actions'
 import { reducer } from '../state/reducer'
 import type { AppState, IsoDate, IsoTime, Place, ReminderDraft, Task, TaskDraft } from '../types'
 import { parseSpoken } from './parse'
-import { findPlace, placeKey } from './places'
+import { matchPlace, placeKey } from './places'
+import { capitalize } from './title'
 
 /**
  * Bandeja de lo que se hace fuera de la web (Siri, Atajos, el botón "A hoy" del widget, los botones
@@ -28,10 +29,16 @@ export interface InboxTask {
   id: string
   title: string
   date: IsoDate | null
+  /** Final del plazo ("esta semana"); ausente en lo apuntado antes de los plazos. */
+  until?: IsoDate | null
   time: IsoTime | null
   /** Minutos que dura; ausente en lo apuntado antes de que existiera la duración. */
   duration?: number | null
   reminders: ReminderDraft[]
+  /** Solo lo creado con la ficha del compositor (nunca desde Siri): del 1 al 10. */
+  importance?: number
+  /** Ídem: sección del día. */
+  sectionId?: string | null
 }
 
 export interface InboxEntry {
@@ -79,7 +86,7 @@ export function entryFromDrafts(drafts: readonly TaskDraft[], places: readonly P
     let reminders = draft.reminders
     if (draft.newPlace) {
       const key = placeKey(draft.newPlace.name)
-      const saved = findPlace(places, draft.newPlace.name)
+      const saved = matchPlace(places, draft.newPlace.name)
       let placeId = saved?.id ?? created.get(key)?.id
       if (!placeId) {
         placeId = newId()
@@ -87,7 +94,17 @@ export function entryFromDrafts(drafts: readonly TaskDraft[], places: readonly P
       }
       reminders = [...reminders, { kind: 'place', placeId, on: draft.newPlace.on }]
     }
-    return { id: newId(), title: draft.title, date: draft.date, time: draft.time, duration: draft.duration, reminders }
+    return {
+      id: newId(),
+      title: draft.title,
+      date: draft.date,
+      ...(draft.until ? { until: draft.until } : {}),
+      time: draft.time,
+      duration: draft.duration,
+      reminders,
+      ...(draft.importance !== undefined ? { importance: draft.importance } : {}),
+      ...(draft.sectionId ? { sectionId: draft.sectionId } : {}),
+    }
   })
 
   return { id: newId(), createdAt: now, places: [...created.values()], tasks }
@@ -152,7 +169,7 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
     // Id del lugar en la entrada → id con el que existe en el estado.
     const placeIds = new Map<string, string>()
     for (const place of entry.places) {
-      const existing = current.places.find((item) => item.id === place.id) ?? findPlace(current.places, place.name)
+      const existing = current.places.find((item) => item.id === place.id) ?? matchPlace(current.places, place.name)
       if (!existing) apply({ type: 'place/add', id: place.id, name: place.name })
       placeIds.set(place.id, existing?.id ?? place.id)
     }
@@ -168,12 +185,15 @@ export function applyInbox(state: AppState, entries: readonly InboxEntry[]): Inb
       apply({
         type: 'task/add',
         id: task.id,
-        title: task.title,
+        // Mayúscula inicial al crear: lo escrito en minúsculas sale como título.
+        title: capitalize(task.title),
         date: task.date,
+        until: task.until ?? null,
         time: task.time,
         duration: task.duration,
         reminders,
-        sectionId: null,
+        sectionId: task.sectionId ?? null,
+        ...(task.importance !== undefined ? { importance: task.importance } : {}),
       })
     }
 

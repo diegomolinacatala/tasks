@@ -1,17 +1,24 @@
-import { Suspense, lazy, useState } from 'react'
-import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react'
+import { Suspense, lazy, memo, useState } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
+import { useCopy } from '../../state/LanguageProvider'
 import type { Task } from '../../types'
 import { useSizing } from '../importance/sizing'
-import { IconCheck, IconGrip, IconTrash } from '../ui/Icons'
+import { SwipeRow, claimSwipeHint } from './SwipeRow'
 import { TaskRow } from './TaskRow'
-import { SWIPE_TRIGGER_PX, useSwipe } from './useSwipe'
+import { useRowActions } from './rowActions'
+import { splitListeners } from '../dnd/dnd'
 import './task.css'
 
 // El modo "Aa" se usa poco: su mando se carga la primera vez que se activa.
 const ImportanceKnob = lazy(() =>
   import('../importance/ImportanceKnob').then((module) => ({ default: module.ImportanceKnob })),
 )
+
+const COPY = {
+  es: { move: (title: string) => `Mover «${title}»` },
+  en: { move: (title: string) => `Move “${title}”` },
+} as const
 
 interface TaskShellProps {
   task: Task
@@ -22,18 +29,17 @@ interface TaskShellProps {
   style?: CSSProperties
   attributes: DraggableAttributes
   listeners: DraggableSyntheticListeners
-  onToggle: () => void
-  onOpen: () => void
-  onDelete: () => void
-  onImportance: (importance: number) => void
 }
 
 /**
- * Fila con gestos. El arrastre vive solo en el asa (`task__grip`): así el resto de la
- * fila queda libre para el scroll vertical y para deslizar en horizontal. En el modo "Aa" el asa
- * deja su sitio al mando de importancia (lo hecho no lo lleva: vuelve al tamaño normal).
+ * Fila con gestos: deslizar en horizontal la completa o la borra, y mantenerla pulsada la coge para
+ * arrastrarla (`useDragSensors`). Con el teclado se coge con su botón "Mover", que no se ve. En el modo
+ * "Aa" no se arrastra: sale el mando de importancia (lo hecho no lo lleva: vuelve al tamaño normal).
+ *
+ * Memorizada: las acciones llegan por contexto y no cambian, así que tachar una tarea solo vuelve a
+ * pintar esa fila y no la lista entera.
  */
-export function TaskShell({
+export const TaskShell = memo(function TaskShell({
   task,
   meta,
   overdue,
@@ -42,80 +48,53 @@ export function TaskShell({
   style,
   attributes,
   listeners,
-  onToggle,
-  onOpen,
-  onDelete,
-  onImportance,
 }: TaskShellProps) {
   const sizing = useSizing()
+  const actions = useRowActions()
+  const copy = useCopy(COPY)
   const [sizingTo, setSizingTo] = useState<number | null>(null)
-  const swipe = useSwipe({ onLeft: onDelete, onRight: onToggle, disabled: isDragging })
-  const progress = Math.min(1, Math.abs(swipe.offset) / SWIPE_TRIGGER_PX)
-
-  const onGripDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    // El asa no debe iniciar también el deslizamiento de la fila.
-    event.stopPropagation()
-    listeners?.onPointerDown?.(event)
-  }
+  // La primera fila pendiente de la instalación asoma una vez lo que hay detrás.
+  const [peek] = useState(() => !task.done && claimSwipeHint())
+  const { hold, keyboard } = splitListeners(listeners)
 
   return (
-    <li ref={setNodeRef} className={`task ${isDragging ? 'is-dragging' : ''}`} style={style} data-flip={task.id}>
-      <div
-        className={`task__affordance ${swipe.offset > 0 ? 'is-done' : ''} ${swipe.offset < 0 ? 'is-delete' : ''}`}
-        aria-hidden="true"
-      >
-        <span className="task__act task__act--done" style={{ opacity: swipe.offset > 0 ? progress : 0 }}>
-          <IconCheck size={18} />
-        </span>
-        <span className="task__act task__act--delete" style={{ opacity: swipe.offset < 0 ? progress : 0 }}>
-          <IconTrash size={18} />
-        </span>
-      </div>
-
-      <div
-        className="task__surface"
-        style={{
-          // Capa propia solo mientras se mueve: una por fila en reposo gasta memoria de GPU y
-          // hace que el scroll de listas largas vaya a tirones en iPhone.
-          transform: swipe.offset ? `translate3d(${swipe.offset}px,0,0)` : undefined,
-          willChange: swipe.settling ? undefined : 'transform',
-          transition: swipe.settling ? 'transform var(--dur-2) var(--ease)' : 'none',
-        }}
-        onPointerDown={swipe.handlers.onPointerDown}
-        onPointerMove={swipe.handlers.onPointerMove}
-        onPointerUp={swipe.handlers.onPointerUp}
-        onPointerCancel={swipe.handlers.onPointerCancel}
-      >
-        <TaskRow
-          task={task}
-          meta={meta}
-          overdue={overdue}
-          importance={sizingTo ?? undefined}
-          onToggle={onToggle}
-          onOpen={onOpen}
-        />
-        {sizing ? (
-          task.done ? (
-            <span className="task__slot" aria-hidden="true" />
-          ) : (
-            <Suspense fallback={<span className="task__slot" aria-hidden="true" />}>
-              <ImportanceKnob value={task.importance} title={task.title} onPreview={setSizingTo} onChange={onImportance} />
-            </Suspense>
-          )
+    <SwipeRow
+      className={`task ${isDragging ? 'is-dragging' : ''}`}
+      style={style}
+      flip={task.id}
+      nodeRef={setNodeRef}
+      disabled={isDragging}
+      hold={sizing ? undefined : hold}
+      dragId={task.id}
+      done={task.done}
+      peek={peek}
+      onRight={() => actions.toggle(task.id)}
+      onLeft={() => actions.remove(task.id)}
+    >
+      <TaskRow
+        task={task}
+        meta={meta}
+        overdue={overdue}
+        importance={sizingTo ?? undefined}
+        onToggle={() => actions.toggle(task.id)}
+        onOpen={() => actions.open(task.id)}
+      />
+      {sizing ? (
+        task.done ? (
+          <span className="task__slot" aria-hidden="true" />
         ) : (
-          <button
-            type="button"
-            className="task__grip"
-            aria-label={`Mover «${task.title}»`}
-            onContextMenu={(event) => event.preventDefault()}
-            {...attributes}
-            {...listeners}
-            onPointerDown={onGripDown}
-          >
-            <IconGrip size={16} />
-          </button>
-        )}
-      </div>
-    </li>
+          <Suspense fallback={<span className="task__slot" aria-hidden="true" />}>
+            <ImportanceKnob
+              value={task.importance}
+              title={task.title}
+              onPreview={setSizingTo}
+              onChange={(importance) => actions.setImportance(task.id, importance)}
+            />
+          </Suspense>
+        )
+      ) : (
+        <button type="button" className="sr-only" aria-label={copy.move(task.title)} {...attributes} {...keyboard} />
+      )}
+    </SwipeRow>
   )
-}
+})

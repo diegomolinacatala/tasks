@@ -2,23 +2,28 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { Dispatch, ReactNode } from 'react'
 import { captureLayout, changesLayout, playLayout } from '../lib/flip'
 import { createPersister, loadState } from '../lib/persistence'
+import { setCollecting, trackAction } from '../lib/stats/bus'
+import { isCounting } from '../lib/stats/settings'
 import type { AppState } from '../types'
 import type { Action } from './actions'
 import { emptyState, reducer } from './reducer'
-import { seedState } from './seed'
 
 const StateContext = createContext<AppState | null>(null)
 const DispatchContext = createContext<Dispatch<Action> | null>(null)
+const FirstRunContext = createContext(false)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, null, emptyState)
   const [hydrated, setHydrated] = useState(false)
+  const [firstRun, setFirstRun] = useState(false)
   const persister = useRef(createPersister()).current
 
   // Lo que mueve filas se anota antes y se anima después de pintar (lib/flip.ts): así completar,
   // borrar o pasar a hoy desliza la lista desde cualquier sitio que despache la acción.
   const dispatch = useCallback<Dispatch<Action>>((action) => {
     if (changesLayout(action.type)) captureLayout()
+    // Las estadísticas cuentan el tipo de cada acción (y la forma de lo que crea), nunca su contenido.
+    trackAction(action)
     rawDispatch(action)
   }, [])
 
@@ -28,9 +33,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    void loadState().then((stored) => {
+    void loadState().then((loaded) => {
       if (cancelled) return
-      dispatch({ type: 'state/replace', state: stored ?? seedState() })
+      // Las estadísticas se deciden aquí, sin esperar a su trozo: si este dispositivo no eligió contar, lo que
+      // esperaba en la cola se tira ya (y no llegaría al recolector si se aceptan más tarde en esta sesión).
+      setCollecting(isCounting(loaded.state.settings.stats.level))
+      dispatch({ type: 'state/replace', state: loaded.state })
+      setFirstRun(loaded.fresh)
       setHydrated(true)
     })
     return () => {
@@ -60,10 +69,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StateContext.Provider value={value}>
-      <DispatchContext.Provider value={dispatch}>{children}</DispatchContext.Provider>
+      <DispatchContext.Provider value={dispatch}>
+        <FirstRunContext.Provider value={firstRun}>{children}</FirstRunContext.Provider>
+      </DispatchContext.Provider>
     </StateContext.Provider>
   )
 }
+
+/** No había nada guardado al arrancar: instalación nueva, toca la bienvenida. */
+export const useFirstRun = (): boolean => useContext(FirstRunContext)
 
 export function useAppState(): AppState {
   const state = useContext(StateContext)

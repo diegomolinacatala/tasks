@@ -1,7 +1,14 @@
-import type { AppState, IsoDate, IsoTime, Task } from '../types'
-import type { WidgetChange } from './nativeEvents'
-import { addDays, isoOfInstant } from './date'
-import { byOrder } from './order'
+import { backlogTasks } from '../state/selectors'
+import type { AppState, IsoDate, IsoTime, Routine, Task } from '../types'
+import type { CalendarEvent, WidgetEvent } from './calendar'
+import { widgetEvents } from './calendar'
+import type { RoutineChange, WidgetChange } from './nativeEvents'
+import { addDays, fromIso, isoOfInstant } from './date'
+import type { Language } from './i18n'
+import { language } from './i18n'
+import { byOrder, compareText } from './order'
+import { hasPeriod, shownDay } from './period'
+import { byRoutineOrder, dayShift, routineDay } from './routines'
 
 /**
  * Foto de las tareas que lee el widget de la pantalla de inicio (solo iPhone). Lleva lo
@@ -11,30 +18,106 @@ import { byOrder } from './order'
 export const WIDGET_DAYS = 7
 /** El widget enseña una decena como mucho; el tope solo evita escribir fotos enormes. */
 export const WIDGET_MAX_TASKS = 200
+/** Lo de la Bandeja: el widget grande enseña ocho; con esto sobra para lo que se tache desde él. */
+export const WIDGET_MAX_INBOX = 40
 const WIDGET_VERSION = 1
 
 export interface WidgetTask {
   id: string
   title: string
   date: IsoDate
+  /**
+   * Último día del plazo, si lo tiene y sigue pendiente: el widget la enseña cada día de él y solo
+   * después la da por atrasada. Falta en las tareas sin plazo (y en las fotos de antes de los plazos).
+   */
+  until?: IsoDate
   time: IsoTime | null
   done: boolean
   /** 1 a 10: el widget agranda el título y, donde solo caben dos, enseña las más importantes. */
   importance: number
 }
 
+/**
+ * Rutina para el widget de la pantalla de bloqueo, que la tacha de un toque. El widget decide qué
+ * toca cada día (`days`) y si está hecha (`done`): a medianoche amanece pendiente sin abrir la app.
+ */
+export interface WidgetRoutine {
+  id: string
+  title: string
+  /** Lo que enseña el widget en lugar de las iniciales. Falta en las fotos anteriores al emoji. */
+  emoji: string | null
+  time: IsoTime | null
+  /** 1 = lunes … 7 = domingo. */
+  days: number[]
+  /** Días hechos desde hace una semana. */
+  done: IsoDate[]
+}
+
+/** Tarea de la Bandeja (sin fecha) para su widget: en el orden de la app, lo pendiente primero. */
+export interface WidgetInboxTask {
+  id: string
+  title: string
+  done: boolean
+  importance: number
+}
+
 export interface WidgetSnapshot {
   version: typeof WIDGET_VERSION
   tasks: WidgetTask[]
+  /** Falta en las fotos de antes de las rutinas: el widget lo trata como ninguna. */
+  routines: WidgetRoutine[]
+  /** Falta en las fotos de antes del widget de la Bandeja: sin ella, el widget pide abrir la app. */
+  inbox: WidgetInboxTask[]
+  /** Idioma de la app (ya resuelto): el de los textos de los widgets. Sin él, el del iPhone. */
+  language: Language
+  /**
+   * Minutos que el día de las rutinas va detrás del calendario (`dayShift`): el widget de rutinas cambia
+   * de día a esa hora. Sin él (fotos anteriores), a medianoche.
+   */
+  dayShift: number
+  /**
+   * El calendario del iPhone, si la app lo enseña: el widget de hoy lee los eventos de EventKit sin
+   * ocultos. Sin él (apagado, o fotos anteriores), el widget no enseña calendario. Va aunque no haya
+   * eventos a mano: la foto que escribe `headless.js` (Siri, los botones de los avisos) no los tiene, y
+   * sin esto el widget dejaría de enseñar el calendario hasta abrir la app. `done`: los eventos marcados
+   * como hechos en la app (claves `id@inicio`), que el widget no enseña; todos, porque uno que empezó ayer
+   * puede seguir hoy (y ya tienen tope); sin ninguno no va.
+   */
+  calendar?: { hidden: string[]; done?: string[] }
+  /** Los eventos de la semana, por si el widget no pudiera leerlos él mismo (solo los escribe la app). */
+  events?: WidgetEvent[]
+}
+
+/** Días de diario que lleva la foto: el widget solo mira hoy, y la semana da para sus puntos. */
+const WIDGET_ROUTINE_DAYS = 7
+
+function widgetRoutines(routines: readonly Routine[], today: IsoDate): WidgetRoutine[] {
+  const since = addDays(today, -WIDGET_ROUTINE_DAYS)
+  return [...routines]
+    .sort(byRoutineOrder)
+    .map(({ id, title, emoji, time, days, done }) => ({ id, title, emoji, time, days, done: done.filter((day) => day >= since) }))
 }
 
 type Dated = Task & { date: IsoDate }
+
+/**
+ * La tarea con el día en que se ve: con plazo, lo pendiente va con el día en que empieza (el widget lo
+ * lleva cada día hasta el último) y lo hecho, con el día en que se hizo.
+ */
+function placed(task: Task, today: IsoDate): Task {
+  if (!hasPeriod(task)) return task
+  return task.done ? { ...task, date: shownDay(task, today), until: null } : task
+}
 
 /** Lo que se ve: pendiente con fecha hasta el último día de la foto; lo hecho, solo de hoy en adelante. */
 const visible = (task: Task, today: IsoDate, last: IsoDate): task is Dated =>
   task.date !== null && task.date <= last && (!task.done || task.date >= today)
 
-export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
+/**
+ * `events`: los del calendario del iPhone de hoy en adelante, si la app los tiene (`null` si no: sin
+ * permiso, o fuera de la app, en `headless.js`).
+ */
+export function widgetSnapshot(state: AppState, now: number, events: readonly CalendarEvent[] | null = null): WidgetSnapshot {
   const today = isoOfInstant(now)
   const last = addDays(today, WIDGET_DAYS)
   const sectionRank = new Map([...state.sections].sort((a, b) => a.order - b.order).map((section, index) => [section.id, index]))
@@ -43,19 +126,44 @@ export function widgetSnapshot(state: AppState, now: number): WidgetSnapshot {
   // Por día; dentro del día, raíz y secciones como en la pantalla principal. Lo atrasado ignora
   // la sección, igual que el bloque Atrasadas.
   const compare = (a: Dated, b: Dated) =>
-    a.date.localeCompare(b.date) || (a.date < today ? 0 : rank(a) - rank(b)) || byOrder(a, b)
+    compareText(a.date, b.date) || (a.date < today ? 0 : rank(a) - rank(b)) || byOrder(a, b)
 
   const tasks = state.tasks
+    .map((task) => placed(task, today))
     .filter((task) => visible(task, today, last))
     .sort(compare)
     .slice(0, WIDGET_MAX_TASKS)
-    .map(({ id, title, date, time, done, importance }) => ({ id, title, date, time, done, importance }))
+    .map(({ id, title, date, until, time, done, importance }) => ({ id, title, date, ...(until ? { until } : {}), time, done, importance }))
 
-  return { version: WIDGET_VERSION, tasks }
+  const inbox = backlogTasks(state)
+    .slice(0, WIDGET_MAX_INBOX)
+    .map(({ id, title, done, importance }) => ({ id, title, done, importance }))
+
+  const { dayStart, calendar } = state.settings
+  const week = events && widgetEvents(events, fromIso(today).getTime(), fromIso(addDays(last, 1)).getTime())
+  const { done } = calendar
+  return {
+    version: WIDGET_VERSION,
+    tasks,
+    routines: widgetRoutines(state.routines, routineDay(now, dayStart)),
+    inbox,
+    language: language(),
+    dayShift: dayShift(dayStart),
+    ...(calendar.enabled ? { calendar: { hidden: calendar.hidden, ...(done.length ? { done } : {}) }, ...(week ? { events: week } : {}) } : {}),
+  }
 }
 
 /** Ids a alternar para que la app refleje lo marcado en el widget. Si una tarea se repite, manda lo último. */
 export function widgetToggles(tasks: readonly Task[], changes: readonly WidgetChange[]): string[] {
   const wanted = new Map(changes.map(({ taskId, done }) => [taskId, done]))
   return tasks.filter((task) => wanted.has(task.id) && wanted.get(task.id) !== task.done).map((task) => task.id)
+}
+
+/** Lo que hay que dejar como dice el widget: solo rutinas que existen y días que cambian. */
+export function routineSettles(routines: readonly Routine[], changes: readonly RoutineChange[]): RoutineChange[] {
+  const byId = new Map(routines.map((routine) => [routine.id, routine]))
+  return changes.filter((change) => {
+    const routine = byId.get(change.routineId)
+    return routine !== undefined && routine.done.includes(change.date) !== change.done
+  })
 }

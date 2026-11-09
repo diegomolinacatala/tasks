@@ -54,6 +54,13 @@
   display: flex;
   align-items: stretch;
   gap: 2px;
+  /* Como la regla: el dedo es de la escala desde que se apoya, aunque se desvíe en vertical */
+  touch-action: none;
+}
+
+/* Lo hecho vuelve al tamaño normal: la escala se queda, atenuada */
+.scale.is-done {
+  opacity: 0.5;
 }
 
 .scale__step {

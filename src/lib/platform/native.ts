@@ -1,6 +1,8 @@
 import { registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
+import type { ExportItem } from '../calendarExport'
 import type { PlaceNotification } from '../nativeSchedule'
+import type { MapPickRequest } from './mapPicker'
 
 export type PermissionStatus = 'granted' | 'denied' | 'prompt'
 
@@ -9,6 +11,18 @@ export interface FoundPlace {
   address: string
   lat: number
   lng: number
+}
+
+export interface MapSnapshotRequest {
+  /** Puntos que tiene que enseñar; sin `center`, el mapa los encuadra todos. */
+  points: { lat: number; lng: number }[]
+  center?: { lat: number; lng: number }
+  /** Metros de norte a sur con `center`. */
+  span?: number
+  /** Puntos de pantalla (CSS px). */
+  width: number
+  height: number
+  dark: boolean
 }
 
 /** Plugin propio de la app (ios/App/App/TasksNativePlugin.swift). Solo existe en el iPhone. */
@@ -31,8 +45,42 @@ interface TasksNativePlugin {
   inbox(): Promise<{ entries: unknown }>
   /** Borra de la bandeja lo que ya está en el fichero de estado. */
   ackInbox(options: { ids: string[] }): Promise<void>
+  /** Apariencia de la ventana: `auto` sigue a iOS; `light` y `dark` la fijan (selectores, teclado, menús). */
+  setAppearance(options: { style: 'light' | 'dark' | 'auto' }): Promise<void>
+  /**
+   * Foto de Apple Maps (estilo apagado, sin comercios) centrada en `center` con `span` metros de alto,
+   * o encuadrando `points`. Devuelve la imagen y dónde cae cada punto, de 0 a 1.
+   */
+  mapSnapshot(options: MapSnapshotRequest): Promise<{ image: string; points: { x: number; y: number }[] }>
+  /**
+   * Mapa de Apple a pantalla completa para elegir un punto (`MapPicker.swift`). Llega sin validar: ver
+   * `pickOnMap` en `mapPicker.ts`.
+   */
+  pickLocation(options: MapPickRequest): Promise<unknown>
+  /** Foto de lo que enseña la app ahora mismo (el WebView), en JPEG `data:`. Para las sugerencias. */
+  screenshot(): Promise<{ image: string }>
+  /** Permiso del calendario (EventKit): `granted`, `prompt` o `denied`. Llega sin validar. */
+  calendarStatus(): Promise<{ status: unknown }>
+  /** Pide el permiso del calendario (acceso completo: solo se lee). */
+  requestCalendarAccess(): Promise<{ status: unknown }>
+  /** Los calendarios del iPhone, de todas sus cuentas. Llega sin validar: ver `parseCalendars`. */
+  calendars(): Promise<{ calendars: unknown }>
+  /** Eventos entre dos instantes (epoch ms), sin los calendarios ocultos. Ver `parseCalendarEvents`. */
+  calendarEvents(options: { from: number; to: number; hidden: string[] }): Promise<{ events: unknown }>
+  /** Abre un evento con la ficha de Calendario de iOS (se puede editar ahí). */
+  showEvent(options: { id: string; start: number }): Promise<void>
+  /** Lleva la ocurrencia que empieza en `start` a `to` (epoch ms), con lo que dura. Rechaza con `code: 'readonly'` o `'missing'`. */
+  moveEvent(options: { id: string; start: number; to: number }): Promise<void>
+  /** Crea (o reutiliza) el calendario «Tasks» para las tareas, en iCloud si lo hay. Llega sin validar. */
+  createTasksCalendar(options: { title: string }): Promise<{ id: unknown }>
+  /** Las tareas con hora, como eventos de `calendarId` (`CalendarExport.swift`); `null` las quita todas. */
+  syncTaskEvents(options: { calendarId: string | null; events: ExportItem[] }): Promise<{ created: number; updated: number; removed: number }>
+  /** La versión publicada en la App Store (búsqueda de iTunes) y la instalada. Llega sin validar. */
+  storeVersion(options: { country: string; lang: string }): Promise<unknown>
   /** Siri, accesos rápidos del icono y enlaces del widget. Llega sin validar: ver `parseNativeAction`. */
   addListener(event: 'action', listener: (action: unknown) => void): Promise<PluginListenerHandle>
+  /** El calendario cambió (un evento nuevo, una cuenta añadida en Ajustes, algo editado en la ficha). */
+  addListener(event: 'calendarChanged', listener: () => void): Promise<PluginListenerHandle>
 }
 
 export const TasksNative = registerPlugin<TasksNativePlugin>('TasksNative')

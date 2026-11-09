@@ -1,6 +1,7 @@
 import type { AppState, IsoDate, ReminderDraft } from '../types'
 import { isValidTime, toIso } from './date'
 import { normalizeDuration } from './duration'
+import { cleanUntil } from './period'
 import type { InboxAsk, InboxEntry, InboxMove, InboxPlace, InboxTask } from './inbox'
 import { MAX_INBOX_ENTRIES, entryInState } from './inbox'
 import { MAX_PLACE_NAME } from './places'
@@ -77,11 +78,14 @@ function parseTask(raw: unknown): InboxTask[] {
   const title = raw.title.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE)
   if (!title) return []
   const reminders = Array.isArray(raw.reminders) ? raw.reminders.flatMap(parseReminder).slice(0, MAX_REMINDERS) : []
+  const date = isRealDate(raw.date) ? raw.date : null
+  const until = isRealDate(raw.until) ? cleanUntil(date, raw.until) : null
   return [
     {
       id: raw.id,
       title,
-      date: isRealDate(raw.date) ? raw.date : null,
+      date,
+      ...(until ? { until } : {}),
       time: isValidTime(raw.time) ? raw.time : null,
       duration: normalizeDuration(raw.duration),
       reminders,

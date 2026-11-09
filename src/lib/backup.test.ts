@@ -11,6 +11,7 @@ const state: AppState = {
       title: 'Comprar pan',
       done: false,
       date: '2026-09-11',
+      until: null,
       time: null,
       duration: null,
       reminders: [],
@@ -22,9 +23,11 @@ const state: AppState = {
     },
   ],
   sections: [{ id: 's1', name: 'Casa', order: 0, collapsed: false }],
-  places: [{ id: 'p1', name: 'Mercadona', location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
-  collapsed: { overdue: false, backlog: true },
-  settings: { digest: { enabled: false, time: '08:30' }, dictation: false },
+  places: [{ id: 'p1', name: 'Mercadona', aliases: [], location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
+  routines: [{ id: 'r1', title: 'Creatina', emoji: '💊', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
+  shopping: { items: [{ id: 'c1', name: 'Pan', qty: '×2', done: false, order: 0, createdAt: 1, doneAt: null }], history: [{ name: 'Leche', count: 3, at: 2 }], placeId: 'p1' },
+  collapsed: { overdue: false, backlog: true, routines: false },
+  settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null, done: [] }, stats: { level: null, cohort: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }
 
 describe('serializeBackup / parseBackup', () => {
@@ -81,7 +84,7 @@ describe('normalizeState', () => {
 
   test('rellena los bloques plegados que falten en copias antiguas', () => {
     const result = normalizeState({ tasks: [], sections: [] })
-    expect(result!.collapsed).toEqual({ overdue: false, backlog: false })
+    expect(result!.collapsed).toEqual({ overdue: false, backlog: false, routines: false })
   })
 
   test('la importancia se sanea: sin ella (copias anteriores) es normal y nunca sale de 1 a 10', () => {
@@ -107,6 +110,18 @@ describe('normalizeState', () => {
     expect(settings(true).dictation).toBe(true)
     expect(settings('true').dictation).toBe(false)
     expect(settings(true).digest).toEqual({ enabled: false, time: '08:30' })
+  })
+
+  test('la hora en que empieza el día se conserva; las copias anteriores, a medianoche', () => {
+    expect(normalizeState({ schemaVersion: 12, tasks: [], sections: [] })!.settings.dayStart).toBe('00:00')
+    expect(normalizeState({ tasks: [], sections: [], settings: { dayStart: '04:00' } })!.settings.dayStart).toBe('04:00')
+    expect(normalizeState({ tasks: [], sections: [], settings: { dayStart: '4' } })!.settings.dayStart).toBe('00:00')
+  })
+
+  test('la bienvenida vista se conserva; las copias anteriores no la han visto', () => {
+    expect(normalizeState({ schemaVersion: 10, tasks: [], sections: [] })!.settings.welcome).toBe(0)
+    expect(normalizeState({ tasks: [], sections: [], settings: { welcome: 1 } })!.settings.welcome).toBe(1)
+    expect(normalizeState({ tasks: [], sections: [], settings: { welcome: 'sí' } })!.settings.welcome).toBe(0)
   })
 
   test('devuelve null si faltan las colecciones', () => {
@@ -195,5 +210,17 @@ describe('duración', () => {
     expect(normalizeState(raw(45))!.tasks[0]!.duration).toBe(45)
     expect(normalizeState(raw(99_999))!.tasks[0]!.duration).toBe(720)
     expect(normalizeState(raw('60'))!.tasks[0]!.duration).toBeNull()
+  })
+})
+
+describe('eventos hechos del calendario', () => {
+  test('una copia anterior no los trae: ninguno', () => {
+    const state = normalizeState({ tasks: [], sections: [], settings: { calendar: { enabled: true, hidden: ['festivos'], export: null } } })
+    expect(state!.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null, done: [] })
+  })
+
+  test('se conservan saneados', () => {
+    const state = normalizeState({ tasks: [], sections: [], settings: { calendar: { enabled: true, hidden: [], export: null, done: ['cena@2000', 'cena@2000', 7, 'roto'] } } })
+    expect(state!.settings.calendar.done).toEqual(['cena@2000'])
   })
 })

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import type { ScheduleEntry } from '../schedule'
 import { PushApiError, createPushApi } from './api'
 import { createContentKey, decryptJson, encryptJson, fromBase64Url, toBase64Url } from './crypto'
-import { FALLBACK_CONTENT, contentOf, isOpenTaskMessage, parseContent, parsePushData } from './message'
+import { contentOf, fallbackContent, isOpenTaskMessage, parseContent, parsePushData } from './message'
 import { detectSupport, encryptSchedule, sameKey, scheduleFingerprint } from './sync'
 
 const entry = (partial: Partial<ScheduleEntry> = {}): ScheduleEntry => ({
@@ -66,7 +66,7 @@ describe('message', () => {
   })
 
   test('contentOf recorta títulos largos', () => {
-    const content = contentOf({ ...FALLBACK_CONTENT, title: 'a'.repeat(500), body: 'b'.repeat(500) })
+    const content = contentOf({ ...fallbackContent(false), title: 'a'.repeat(500), body: 'b'.repeat(500) })
     expect(content.title).toHaveLength(120)
     expect(content.title.endsWith('…')).toBe(true)
     expect(content.body).toHaveLength(160)

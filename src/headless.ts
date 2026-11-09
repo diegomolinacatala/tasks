@@ -6,14 +6,21 @@
 import { addFromText, answerAsk, moveOverdue, sharesDictation, voiceContext } from './lib/headless'
 import { createId } from './lib/id'
 
-/** Contrato con el lado nativo: sube si cambia la forma de lo que entra o sale. */
-export const version = 4
+/**
+ * Contrato con el lado nativo: sube si cambia la forma de lo que entra o sale. 5: el idioma (las
+ * entradas llevan `languages` y `consent` los recibe aparte).
+ */
+export const version = 5
 
 /** Servidor del dictado de esta compilación; vacío si no lo tiene. */
 export const api = import.meta.env.VITE_PUSH_API ?? ''
 
-/** Fichero de estado → `"true"` si se dio permiso para mandar lo dictado al servidor. */
-export const consent = (state: string): string => String(sharesDictation(JSON.parse(state)))
+/**
+ * Fichero de estado (e idiomas de iOS, en JSON) → `"true"` si se dio permiso para mandar lo dictado
+ * al servidor y la app habla español (la IA del servidor no entiende otro idioma).
+ */
+export const consent = (state: string, languages?: string): string =>
+  String(sharesDictation(JSON.parse(state), languages ? JSON.parse(languages) : []))
 
 /** `{ today, now }` para la IA del servidor. */
 export const context = (now: number): string => JSON.stringify(voiceContext(now))

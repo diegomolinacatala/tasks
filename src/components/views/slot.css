@@ -1,0 +1,281 @@
+/* ── Soltar en el horario ─────────────────────────────────────────────── */
+
+/* La zona donde soltar. Mientras se arrastra crece por arriba (sobre la cabecera "Horario") y por abajo
+   (el margen hasta el bloque siguiente) sin mover nada: antes de lo primero y después de lo último también
+   hay horas que elegir */
+.timeline-zone {
+  --zone-top: 44px;
+  /* El margen hasta el bloque siguiente y su cabecera ("Sin hora"), que no es un sitio donde soltar */
+  --zone-bottom: 56px;
+  position: relative;
+}
+
+.timeline-zone.is-dragging {
+  margin: calc(-1 * var(--zone-top)) 0 calc(-1 * var(--zone-bottom));
+  padding: var(--zone-top) 0 var(--zone-bottom);
+}
+
+/* A qué hora caería lo que se arrastra: un trazo de coñac a la altura del dedo, encima de lo que haya
+   (no aparta nada), que salta de cuarto en cuarto de hora */
+.tl--slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 28px;
+  align-items: center;
+  pointer-events: none;
+  transform: translateY(calc(var(--y, 0px) - 14px));
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+/* La hora, sobre papel: tapa la de la fila que haya debajo */
+.tl--slot .tl__time {
+  padding-top: 0;
+  color: var(--accent);
+  font-weight: 700;
+  background: var(--bg);
+  box-shadow: 0 0 0 4px var(--bg);
+  border-radius: var(--r-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl--slot {
+    transition: none;
+  }
+}
+
+.tl--slot .tl__rail,
+.tl--hint .tl__rail {
+  align-items: center;
+  padding: 0;
+}
+
+.tl__slot-dot {
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--r-full);
+  border: 2px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.tl__slot-line {
+  grid-column: 3 / -1;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+/* Un horario vacío mientras se arrastra: dónde soltar */
+.tl--hint {
+  min-height: 44px;
+  align-items: center;
+}
+
+.tl--hint .tl__slot-dot {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+/* Con la marca encima, la nota se aparta */
+.tl--hint.is-armed .tl__hint,
+.tl--hint.is-armed .tl__slot-dot {
+  opacity: 0;
+}
+
+.tl__hint {
+  grid-column: 3 / -1;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+/* La tarjeta de hora y duración, en el sitio que ocupará la tarea */
+.tl--card .tl__time {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tl__node--card {
+  border-style: dashed;
+  border-color: var(--accent-line);
+}
+
+.slot {
+  grid-column: 3 / -1;
+  margin: 4px 0 10px;
+  padding: 10px 12px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--line);
+  animation: slot-in var(--dur-3) var(--ease-out);
+}
+
+@keyframes slot-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.slot__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border-radius: var(--r-full);
+  color: var(--text-3);
+}
+
+.slot__close:active {
+  background: var(--bg-press);
+}
+
+.slot__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* La hora, grande y en serif: la elige la cinta de debajo, y tocarla abre la rueda para afinar */
+.slot__clock {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 2px;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text);
+  text-decoration: underline dotted var(--accent-line);
+  text-underline-offset: 5px;
+  cursor: pointer;
+}
+
+.slot__fixed {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: opacity var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.slot__ok:active {
+  opacity: 0.85;
+  transform: scale(0.96);
+}
+
+/* Cuánto dura: píldoras, todas a la vista (en dos filas si hace falta) */
+.slot__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.slot__pill {
+  flex: none;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+
+.slot__pill:active {
+  background: var(--bg-press);
+}
+
+.slot__pill.is-on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.tl-overlay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.tl-overlay__bar {
+  flex: none;
+  width: 4px;
+  height: 28px;
+  border-radius: var(--r-full);
+  background: var(--cal-ink);
+}
+
+.tl-overlay__title {
+  display: block;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+}
+
+.tl-overlay__meta {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sobre el horario, la hora a la que caería, en coñac: la marca de la línea queda bajo el dedo */
+.task-overlay.is-timed .row__meta,
+.task-overlay.is-timed .tl-overlay__meta {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot {
+    animation: none;
+  }
+}

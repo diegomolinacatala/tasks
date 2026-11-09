@@ -1,22 +1,38 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { todayIso } from '../lib/date'
-import type { IsoDate } from '../types'
+import { routineDay } from '../lib/routines'
+import type { IsoDate, IsoTime } from '../types'
 
 const CHECK_MS = 60_000
 
-/** La app puede quedarse abierta toda la noche: el día tiene que avanzar solo. */
-export function useToday(): IsoDate {
-  const [day, setDay] = useState(todayIso)
+/** Un día que se recalcula cada minuto y al volver a la app: puede quedarse abierta toda la noche. */
+function useDayOf(compute: () => IsoDate, key: string): IsoDate {
+  const [day, setDay] = useState(compute)
 
   useEffect(() => {
-    const check = () => setDay((current) => (todayIso() === current ? current : todayIso()))
+    const check = () => setDay((current) => (compute() === current ? current : compute()))
+    check()
     const timer = setInterval(check, CHECK_MS)
     document.addEventListener('visibilitychange', check)
     return () => {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', check)
     }
-  }, [])
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return day
 }
+
+/** Hoy en el calendario: el día avanza solo a medianoche. */
+export const useToday = (): IsoDate => useDayOf(todayIso, 'today')
+
+/** Hoy para las rutinas: cambia a la hora en que empieza su día (`Settings.dayStart`). */
+export const useRoutineDay = (dayStart: IsoTime): IsoDate => useDayOf(() => routineDay(Date.now(), dayStart), dayStart)
+
+/**
+ * Hoy, para las filas memorizadas: lo da `App` y a medianoche se repintan solas ("Hasta el jueves" pasa a
+ * "Último día", lo pendiente de ayer se pone en rojo) sin esperar a que se toque algo.
+ */
+export const TodayContext = createContext<IsoDate>(todayIso())
+
+export const useCurrentDay = (): IsoDate => useContext(TodayContext)

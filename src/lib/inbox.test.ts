@@ -6,7 +6,7 @@ import type { InboxEntry } from './inbox'
 
 const NOW = new Date(2026, 8, 18, 10, 0).getTime()
 
-const place = (id: string, name: string): Place => ({ id, name, location: null, radius: 150 })
+const place = (id: string, name: string): Place => ({ id, name, aliases: [], location: null, radius: 150 })
 
 const draft = (partial: Partial<TaskDraft> = {}): TaskDraft => ({
   title: 'Comprar pan',
@@ -57,6 +57,20 @@ describe('entryFromDrafts', () => {
       [{ kind: 'place', placeId: 'id-1', on: 'arrive' }],
       [{ kind: 'place', placeId: 'id-1', on: 'arrive' }],
     ])
+  })
+
+  test('lo elegido en la ficha del compositor (importancia y sección) llega a la tarea', () => {
+    const result = entryFromDrafts([draft({ date: '2026-09-19', importance: 7, sectionId: 's1' })], [], sequence(), NOW)
+    expect(result.tasks[0]).toMatchObject({ importance: 7, sectionId: 's1' })
+    const state = { ...emptyState(), sections: [{ id: 's1', name: 'Trabajo', order: 0, collapsed: false }] }
+    const [task] = applyInbox(state, [result]).state.tasks
+    expect(task).toMatchObject({ importance: 7, sectionId: 's1', date: '2026-09-19' })
+  })
+
+  test('sin ficha, ni importancia ni sección en la entrada', () => {
+    const [task] = entryFromDrafts([draft()], [], sequence(), NOW).tasks
+    expect(task).not.toHaveProperty('importance')
+    expect(task).not.toHaveProperty('sectionId')
   })
 
   test('si el lugar ya está guardado, usa el suyo', () => {

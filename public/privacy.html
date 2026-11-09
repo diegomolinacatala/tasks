@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>Privacy · Tasks</title>
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --text: #1b2540;
+        --text-2: #5a544a;
+        --accent: #8a5a2c;
+        --line: rgba(78, 58, 34, 0.14);
+      }
+      body {
+        margin: 0;
+        padding: max(32px, env(safe-area-inset-top)) 20px 48px;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+        font-weight: 500;
+        font-size: 30px;
+        line-height: 1.15;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-2);
+        margin: 36px 0 8px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      p,
+      li {
+        color: var(--text);
+      }
+      .date {
+        color: var(--text-2);
+        margin: 0 0 24px;
+      }
+      a {
+        color: var(--accent);
+      }
+      strong {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy</h1>
+      <p class="date">Tasks · updated November 9, 2026 · <a href="privacidad.html" lang="es">en español</a></p>
+
+      <p>
+        Tasks has no accounts or ads. <strong>We don’t collect personal data</strong> and we don’t sell anything to
+        anyone. The only content that leaves your device is what you dictate, and only if you allow microphone
+        access after reading where it goes (see <a href="#dictation">Dictation</a>), and the suggestions you choose
+        to send (see <a href="#suggestions">Suggestions</a>). If you accept, the app also counts, anonymously, how much
+        it’s used, without knowing by whom (see <a href="#statistics">Statistics</a>).
+      </p>
+
+      <h2>Your tasks and places</h2>
+      <p>
+        Tasks, sections, reminders and places are stored only on your device. On iPhone they are part of the
+        device’s own backup (iCloud or your computer), which Apple manages, not us. You can export or delete them
+        from Settings.
+      </p>
+
+      <h2 id="calendar">Calendar</h2>
+      <p>
+        If you connect it in Settings → Calendar, the app asks for access to the iPhone’s calendars to show your
+        events in the Agenda and the widget. And only if you choose so in Settings → Calendar → <em>Add my
+        tasks</em>, it adds your timed tasks as events to the calendar you pick (the “Tasks” one the app creates or
+        one of yours; if it’s shared, whoever shares it will see them) and removes them when you check them off.
+        <strong>It all happens on the iPhone itself</strong>: events aren’t stored in the app or its backups and are
+        never sent to our server or anyone else (except what shows in the screenshot of a suggestion you choose to
+        send). You can turn it off in Settings → Calendar or remove the permission in iPhone Settings.
+      </p>
+
+      <h2>Location</h2>
+      <p>
+        The app asks for your location <strong>only while you use it</strong>, and only for two things: saving where a
+        place is and finding places near you. Reminders when you arrive at or leave a place are watched by iOS on
+        the iPhone itself. Your location is never sent to our server.
+      </p>
+      <p>
+        Place searches (“Walmart”) use Apple Maps, subject to
+        <a href="https://www.apple.com/legal/privacy/">Apple’s privacy policy</a>.
+      </p>
+
+      <h2>Reminders</h2>
+      <p>
+        In the iPhone app, reminders are local notifications: they are scheduled on the device and never go through
+        a server.
+      </p>
+      <p>
+        In the web version, so that a reminder arrives with the app closed, our server receives the time of each
+        reminder and its content <strong>encrypted on your device</strong> with a key the server doesn’t have. The
+        server never sees the text of your tasks.
+      </p>
+
+      <h2>What the server stores</h2>
+      <p>
+        To send reminders and limit abuse, the server stores per device: a random identifier, the hash of its access
+        key, the notification address given by the browser (web only), an anonymized hash of the IP address and the
+        date of last use. A device that isn’t used for 180 days is deleted automatically. Of the statistics, only
+        totals (see <a href="#statistics">Statistics</a>).
+      </p>
+
+      <h2 id="dictation">Dictation</h2>
+      <p>
+        The first time you tap the microphone, the app explains what is sent and where, and then the iPhone asks for
+        microphone access. If you don’t allow it, nothing is sent: the microphone doesn’t record, and what you add
+        with Siri is understood by the iPhone itself.
+      </p>
+      <p>
+        With permission, the audio and your device’s date and time are sent to our server to be transcribed with
+        AI models from <strong>Cloudflare Workers AI</strong> (Whisper). When the app is in Spanish, the sentence is
+        also interpreted there (Nemotron); in English it is interpreted on your device. If you add a task with Siri
+        or Shortcuts, the iPhone has already transcribed it and only the text is sent (in Spanish only). Audio and
+        text are processed on the spot and <strong>are not stored or logged</strong>. Your list of places is not
+        sent: the name you say is matched with your places on the device.
+      </p>
+      <p>
+        Cloudflare, which hosts the server, processes this data only to provide the service to us: according to its
+        terms, it doesn’t store it or use it to train models or for anything else
+        (<a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/">Workers AI data usage</a>).
+      </p>
+      <p>You can withdraw permission at any time in Settings → Dictation → <em>Don’t send my voice</em>.</p>
+
+      <h2 id="suggestions">Suggestions</h2>
+      <p>
+        From Settings → <em>Suggest an improvement</em> you can circle any part of the app and write what you’d
+        change. It reaches our server only when you tap <em>Send</em>: your message, a screenshot of what was on the
+        screen with what you circled (you can remove it before sending; without it, the text of your tasks isn’t
+        sent), which screen you were on and technical details to understand it (app version, language, theme and
+        device model). It doesn’t carry your name or anything that identifies you, except what you write.
+      </p>
+      <p>
+        Only the developer reads it, and deletes it once read; anything not deleted within a year is deleted
+        automatically. To limit abuse, an anonymized fingerprint of the IP address is also stored.
+      </p>
+
+      <h2 id="statistics">Statistics</h2>
+      <p>
+        Only if you accept, to know how many people use Tasks and make it better, the app sends our server anonymous
+        counters. They carry no identifier (no account, no device or advertising number) and never your content: not
+        the text of your tasks, your places, or what you write or dictate. The server adds them up as they arrive and
+        only keeps totals (for example, “40 devices opened the app today”): it doesn’t keep what was sent or your IP
+        address. To limit abuse, only an anonymized fingerprint of the IP is kept with how much it sent that day, and
+        it’s deleted the next day. Totals are deleted after 13 months.
+      </p>
+      <p>
+        The app asks at the end of the welcome (or, if you skip it earlier, another day) and, until you choose, sends
+        nothing; closing the question without choosing means “No.” You can change it anytime in
+        Settings → <em>Statistics</em>:
+      </p>
+      <ul>
+        <li>
+          <strong>Visits only</strong>: that the app was opened that day (and whether it’s the first time that week
+          or month), on how many of the last four weeks’ days, how many times and for how long, at what time, which
+          screens are seen, how long it takes to open, errors (only their type and where in the code they happen),
+          the version, iPhone or web, language, theme and a rough screen size.
+        </li>
+        <li>
+          <strong>Detailed</strong>: also which features are used (for example, “a task with a time was created”,
+          never which one) and where the screen is tapped, on a grid and with the internal name of the button, never
+          its text.
+        </li>
+        <li>
+          <strong>None</strong> (what you have until you choose): nothing is sent and anything pending on the device
+          is deleted.
+        </li>
+      </ul>
+      <p>
+        What’s waiting to be sent stays only on your device until the app goes to the background. With fewer than
+        three devices, the developer sees no breakdown.
+      </p>
+
+      <h2>Microphone</h2>
+      <p>The microphone is only used while you dictate, when you turn it on.</p>
+
+      <h2>Children</h2>
+      <p>The app is not directed at children under 13 and doesn’t collect data from anyone.</p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions or requests about your data:
+        <a href="mailto:diegomolinacatala+tasks@gmail.com?subject=Tasks">diegomolinacatala+tasks@gmail.com</a>. More
+        help on the <a href="support.html">support page</a>.
+      </p>
+    </main>
+  </body>
+</html>

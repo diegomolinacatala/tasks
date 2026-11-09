@@ -1,19 +1,60 @@
-/* La barra de escribir: una tarjeta de papel posada sobre la lista */
+/* La barra de escribir. En reposo, una píldora de papel posada sobre la lista; al tocarla pasa a ser
+   una tarjeta con los destinos debajo, en el sitio que dejan las pestañas. */
 .composer {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--line);
+  pointer-events: auto;
+  transition: box-shadow var(--dur-2) var(--ease), transform var(--dur-3) var(--ease-out), opacity var(--dur-2) var(--ease);
+}
+
+.composer.is-active {
+  box-shadow: var(--shadow-lift), inset 0 0 0 1px var(--accent-line);
+}
+
+/* Desplegada en la ficha: la barra sube y se desvanece mientras la ficha ocupa su sitio, como el mini
+   reproductor de Spotify al abrirse. Al plegarla, vuelve a bajar a donde estaba */
+.composer.is-expanded {
+  opacity: 0;
+  transform: translate3d(0, -14px, 0) scale(0.98);
+  pointer-events: none;
+}
+
+/* El asa: tirar de ella hacia arriba (o tocarla) despliega la ficha. Franja alta de toque, raya fina;
+   pisa el borde de arriba de la línea, que está vacío (el texto va centrado) */
+.composer__grab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  height: 22px;
+  margin-bottom: -12px;
+  padding-top: 6px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.composer__grab span {
+  width: 30px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--line-2);
+  transition: width var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+
+.composer__grab:active span {
+  width: 40px;
+  background: var(--accent-line);
+}
+
+.composer__line {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   height: calc(var(--composer-h) - 16px);
-  margin: 8px 12px;
-  padding: 0 8px 0 13px;
-  border-radius: var(--r-md);
-  background: var(--bg-elev);
-  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--line);
-  transition: box-shadow var(--dur-2) var(--ease);
-}
-
-.composer:focus-within {
-  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--accent-line);
+  padding: 0 6px 0 13px;
 }
 
 .composer__mark {
@@ -25,19 +66,12 @@
   border-radius: var(--r-full);
   color: var(--text-3);
   border: 1.5px dashed var(--line-2);
-  transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease),
-    border-color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
 }
 
-.composer__mark.is-ready {
-  color: var(--on-primary);
-  background: var(--primary);
-  border-color: var(--primary);
-  border-style: solid;
-}
-
-.composer__mark:active {
-  transform: scale(0.88);
+.composer.is-active .composer__mark {
+  color: var(--accent);
+  border-color: var(--accent-line);
 }
 
 .composer__input {
@@ -49,24 +83,189 @@
 
 .composer__input::placeholder {
   color: var(--text-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-/* Atajo de un toque ("Hoy"): la acción principal, en azul marino */
-.composer__quick {
+/* Una frase de ejemplo que no quepa en un iPhone estrecho se corta con puntos suspensivos. Solo con la
+   barra vacía: lo tecleado se ve como siempre. */
+.composer__input:placeholder-shown {
+  text-overflow: ellipsis;
+}
+
+/* Enviar: el botón redondo de la acción principal, que aparece en cuanto hay algo escrito */
+.composer__send {
   flex: none;
-  padding: 8px 14px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-full);
   background: var(--primary);
   color: var(--on-primary);
+  animation: send-in var(--dur-2) var(--ease-pop);
+  transition: transform var(--dur-1) var(--ease);
+}
+
+.composer__send:active {
+  transform: scale(0.88);
+}
+
+@keyframes send-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* El pie de la tarjeta: las píldoras, que se deslizan a los lados, y Detalles, que se queda quieto */
+.composer__foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 10px 0;
+  animation: tray-in var(--dur-3) var(--ease-out);
+}
+
+/* La bandeja de píldoras: qué se ha entendido y adónde va. Se desliza a los lados si no caben y se
+   desvanece al llegar a Detalles */
+.composer__tray {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 0 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+
+/* Detalles: la puerta a la ficha. Con algo decidido, en coñac */
+.composer__more {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 13px 0 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.composer__more:active {
+  background: var(--bg-press);
+  transform: scale(0.95);
+}
+
+.composer__more.has-details {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+}
+
+/* Quitar lo decidido en la ficha: vuelve a mandar lo que dice la frase */
+.composer__clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-2);
   animation: quick-in var(--dur-2) var(--ease-out);
   transition: transform var(--dur-1) var(--ease);
 }
 
-.composer__quick:active {
+.composer__clear:active {
+  transform: scale(0.9);
+}
+
+/* Lo decidido en la ficha, resumido: tocar cualquiera la vuelve a desplegar */
+.composer__target.is-detail {
+  gap: 5px;
+  color: var(--text);
+  animation: quick-in var(--dur-2) var(--ease-out);
+}
+
+.composer__target.is-detail.is-active {
+  color: var(--on-primary);
+}
+
+.composer__tray::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Un destino ("Hoy", "Mañana", "Sin fecha"): el elegido, en azul marino macizo */
+.composer__target {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 15px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.composer__target.is-active {
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+
+.composer__target:active {
   transform: scale(0.95);
+}
+
+/* Una sección (el + de su cabecera): en versalitas espaciadas, como su nombre en la lista */
+.composer__target.is-section {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: quick-in var(--dur-2) var(--ease-out);
+}
+
+/* Lo que se ha entendido del texto: tocar alterna entre aplicarlo o no */
+.composer__parsed {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid var(--accent-line);
+  animation: quick-in var(--dur-2) var(--ease-out);
+  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 
 @keyframes quick-in {
@@ -80,25 +279,9 @@
   }
 }
 
-/* Lo que se ha entendido del texto: tocar alterna entre aplicarlo o no */
-.composer__parsed {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 55%;
-  padding: 7px 12px;
-  border-radius: var(--r-full);
-  background: var(--accent-dim);
-  color: var(--accent);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border: 1px solid var(--accent-line);
-  animation: quick-in var(--dur-2) var(--ease-out);
-  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+/* Una rutina: el mismo coñac con un filete de oro, lo que vuelve cada día */
+.composer__parsed.is-routine {
+  border-color: var(--gold);
 }
 
 .composer__parsed.is-off {
@@ -132,7 +315,10 @@
 
 /* Dictado en curso: la barra entera pasa a ser el indicador */
 .composer--voice {
+  flex-direction: row;
+  align-items: center;
   gap: var(--sp-2);
+  height: calc(var(--composer-h) - 16px);
   padding: 0 6px;
   animation: voice-in var(--dur-2) var(--ease-out);
 }
@@ -248,4 +434,9 @@
     opacity: 1;
     transform: scaleY(0.7);
   }
+}
+
+/* Con la ficha abierta, lo que el texto dice de nuevo se ofrece aplicar */
+.composer__parsed--suggest {
+  border-style: dashed;
 }

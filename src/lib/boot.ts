@@ -2,6 +2,12 @@
 const BOOT_EXIT_MS = 760
 
 /**
+ * El trazo de la señal (caja de 100 × 100), tal como lo deja `scripts/brand.mjs` en el #boot de
+ * `index.html`. Se lee al cargar, antes de que #boot se retire: la bienvenida dibuja la misma señal.
+ */
+export const MARK_PATH: string = typeof document === 'undefined' ? '' : (document.querySelector('#boot path')?.getAttribute('d') ?? '')
+
+/**
  * La app ya está pintada debajo de #boot: la pantalla de arranque se funde y la app entra por
  * debajo. Solo la primera vez; las siguientes no hace nada.
  */

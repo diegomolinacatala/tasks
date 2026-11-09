@@ -17,9 +17,10 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       // Muestra LaunchScreen.storyboard hasta que la web pinta su copia exacta (#boot en
-      // index.html), que la quita: el relevo no se ve y la web anima la entrada.
+      // index.html), que la quita: el relevo no se ve y la web anima la entrada. Sin
+      // `backgroundColor`: el plugin lo pondría encima del de la pantalla de carga, que cambia
+      // con el modo oscuro (`LaunchBackground` en Assets.xcassets).
       launchAutoHide: false,
-      backgroundColor: '#f4efe6',
       showSpinner: false,
     },
     LocalNotifications: {

@@ -35,6 +35,21 @@ describe('task/add', () => {
     expect(before.tasks).toHaveLength(0)
   })
 
+  test('con importancia, la acota; sin ella, la normal', () => {
+    const state = run(
+      emptyState(),
+      { type: 'task/add', title: 'a', date: TODAY, sectionId: null, importance: 7 },
+      { type: 'task/add', title: 'b', date: TODAY, sectionId: null, importance: 40 },
+      { type: 'task/add', title: 'c', date: TODAY, sectionId: null },
+    )
+    expect(state.tasks.map((task) => task.importance)).toEqual([7, 10, 1])
+  })
+
+  test('una sección que no existe se queda en ninguna', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'a', date: TODAY, sectionId: 'fantasma' })
+    expect(state.tasks[0]!.sectionId).toBeNull()
+  })
+
   test('un id que ya existe no crea otra tarea: aplicar la bandeja dos veces no duplica', () => {
     const once = run(emptyState(), { type: 'task/add', id: 'siri', title: 'Comprar pan', date: null, sectionId: null })
     expect(reducer(once, { type: 'task/add', id: 'siri', title: 'Otra', date: TODAY, sectionId: null })).toBe(once)
@@ -125,7 +140,7 @@ describe('board/commit entre bloques', () => {
 describe('block/toggle', () => {
   test('pliega y despliega cada bloque por separado', () => {
     const plegado = reducer(emptyState(), { type: 'block/toggle', block: 'backlog' })
-    expect(plegado.collapsed).toEqual({ overdue: false, backlog: true })
+    expect(plegado.collapsed).toEqual({ overdue: false, backlog: true, routines: false })
     expect(reducer(plegado, { type: 'block/toggle', block: 'backlog' }).collapsed.backlog).toBe(false)
   })
 })
@@ -356,6 +371,25 @@ describe('settings/dictation', () => {
   })
 })
 
+describe('settings/stats', () => {
+  test('sin elegir no cuenta: la cohorte solo se fija si se cuenta, y una vez', () => {
+    expect(emptyState().settings.stats).toEqual({ level: null, cohort: null })
+    const unasked = reducer(emptyState(), { type: 'settings/stats', cohort: '2026-11-02' })
+    expect(unasked.settings.stats.cohort).toBeNull()
+    const declined = reducer(emptyState(), { type: 'settings/stats', level: 'off', cohort: '2026-11-02' })
+    expect(declined.settings.stats).toEqual({ level: 'off', cohort: null })
+    const basic = reducer(emptyState(), { type: 'settings/stats', level: 'basic' })
+    const counted = reducer(basic, { type: 'settings/stats', cohort: '2026-11-02' })
+    expect(counted.settings.stats).toEqual({ level: 'basic', cohort: '2026-11-02' })
+    expect(reducer(counted, { type: 'settings/stats', cohort: '2026-11-09' }).settings.stats.cohort).toBe('2026-11-02')
+    // Apagarlas no borra la cohorte: si vuelve a contar, sigue siendo la misma semana de empezar.
+    expect(reducer(counted, { type: 'settings/stats', level: 'off' }).settings.stats).toEqual({ level: 'off', cohort: '2026-11-02' })
+    // Aceptarlas y fijar la semana en una sola acción.
+    const both = reducer(emptyState(), { type: 'settings/stats', level: 'full', cohort: '2026-11-02' })
+    expect(both.settings.stats).toEqual({ level: 'full', cohort: '2026-11-02' })
+  })
+})
+
 describe('task/add con hora y recordatorios', () => {
   test('guarda la hora válida y asigna id a cada recordatorio', () => {
     const state = run(emptyState(), {
@@ -392,11 +426,95 @@ describe('task/setTime', () => {
     expect(reducer(timed, { type: 'task/setTime', id, time: null }).tasks[0]!.time).toBeNull()
   })
 
+  test('quitar la hora quita también la duración', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    const timed = reducer(reducer(state, { type: 'task/setTime', id, time: '09:30' }), { type: 'task/setDuration', id, duration: 60 })
+    expect(timed.tasks[0]!.duration).toBe(60)
+    const untimed = reducer(timed, { type: 'task/setTime', id, time: null })
+    expect(untimed.tasks[0]!.duration).toBeNull()
+  })
+
   test('ignora horas inválidas y cambios nulos sin crear estado nuevo', () => {
     const state = withTasks('uno')
     const id = state.tasks[0]!.id
     expect(reducer(state, { type: 'task/setTime', id, time: '9:30' })).toBe(state)
     expect(reducer(state, { type: 'task/setTime', id, time: null })).toBe(state)
+  })
+})
+
+describe('task/schedule', () => {
+  const YESTERDAY = '2026-09-10'
+
+  test('pone día, hora y duración, y avisa a la hora si no tenía avisos relativos', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: null, sectionId: null })
+    const id = state.tasks[0]!.id
+    const next = reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: 60, reminderId: 'r-hora' })
+    expect(next.tasks[0]).toMatchObject({ date: TODAY, time: '10:00', duration: 60, reminders: [{ id: 'r-hora', kind: 'before', minutes: 0 }] })
+    expect(state.tasks[0]!.date).toBeNull()
+  })
+
+  test('con un aviso relativo ya puesto no añade otro; sin reminderId tampoco', () => {
+    const base = run(emptyState(), { type: 'task/add', title: 'uno', date: TODAY, sectionId: null, reminders: [{ kind: 'before', minutes: 15 }] })
+    const id = base.tasks[0]!.id
+    const scheduled = reducer(base, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: null, reminderId: 'r-hora' })
+    expect(scheduled.tasks[0]!.reminders.map((reminder) => reminder.id)).toEqual(base.tasks[0]!.reminders.map((reminder) => reminder.id))
+    const plain = run(emptyState(), { type: 'task/add', title: 'dos', date: TODAY, sectionId: null })
+    expect(reducer(plain, { type: 'task/schedule', id: plain.tasks[0]!.id, date: TODAY, time: '10:00', duration: null }).tasks[0]!.reminders).toEqual([])
+  })
+
+  test('de otro día pasa a este con su sección; en el mismo conserva su sitio', () => {
+    const withSection = run(emptyState(), { type: 'section/add', name: 'Trabajo', id: 'trabajo' })
+    const state = run(
+      withSection,
+      { type: 'task/add', title: 'vieja', date: YESTERDAY, sectionId: 'trabajo' },
+      { type: 'task/add', title: 'a', date: TODAY, sectionId: null },
+      { type: 'task/add', title: 'b', date: TODAY, sectionId: null },
+    )
+    const old = state.tasks.find((task) => task.title === 'vieja')!
+    const moved = reducer(state, { type: 'task/schedule', id: old.id, date: TODAY, time: '09:00', duration: 30 })
+    expect(moved.tasks.find((task) => task.title === 'vieja')).toMatchObject({ date: TODAY, sectionId: 'trabajo', time: '09:00', duration: 30 })
+    const first = state.tasks.find((task) => task.title === 'a')!
+    const same = reducer(state, { type: 'task/schedule', id: first.id, date: TODAY, time: '09:00', duration: null })
+    expect(titles(same)).toEqual(['a', 'b'])
+  })
+
+  test('con plazo: a un día dentro de él lo conserva; fuera, se queda solo en ese día', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'semana', date: '2026-09-07', sectionId: null, until: '2026-09-13' })
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: null }).tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13', time: '10:00' })
+    expect(reducer(state, { type: 'task/schedule', id, date: '2026-09-20', time: '10:00', duration: null }).tasks[0]).toMatchObject({ date: '2026-09-20', until: null })
+  })
+
+  test('una que ya tenía hora y duración las cambia por las nuevas', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: TODAY, sectionId: null, time: '09:00', duration: 30 })
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '16:45', duration: 60 }).tasks[0]).toMatchObject({ time: '16:45', duration: 60 })
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '16:45', duration: null }).tasks[0]).toMatchObject({ time: '16:45', duration: null })
+  })
+
+  test('acota la duración y descarta lo inválido', () => {
+    const state = withTasks('uno')
+    const id = state.tasks[0]!.id
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '10:00', duration: 2 }).tasks[0]!.duration).toBe(5)
+    expect(reducer(state, { type: 'task/schedule', id, date: 'hoy', time: '10:00', duration: null })).toBe(state)
+    expect(reducer(state, { type: 'task/schedule', id, date: TODAY, time: '25:00', duration: null })).toBe(state)
+    expect(reducer(state, { type: 'task/schedule', id: 'nadie', date: TODAY, time: '10:00', duration: null })).toBe(state)
+  })
+
+  test('deshacer: volver a su sitio, quitar la hora y el aviso que trajo', () => {
+    const state = run(emptyState(), { type: 'task/add', title: 'uno', date: null, sectionId: null }, { type: 'task/add', title: 'dos', date: null, sectionId: null })
+    const task = state.tasks[0]!
+    const before = placementsOf(state.tasks, [task.id])
+    const scheduled = reducer(state, { type: 'task/schedule', id: task.id, date: TODAY, time: '10:00', duration: 60, reminderId: 'r-hora' })
+    const undone = run(
+      scheduled,
+      { type: 'tasks/place', placements: before },
+      { type: 'task/setTime', id: task.id, time: task.time },
+      { type: 'reminder/remove', taskId: task.id, reminderId: 'r-hora' },
+    )
+    expect(undone.tasks.find((item) => item.id === task.id)).toMatchObject({ date: null, time: null, duration: null, reminders: [] })
+    expect(inScope(undone.tasks, 'backlog').map((item) => item.title)).toEqual(['uno', 'dos'])
   })
 })
 
@@ -441,11 +559,26 @@ describe('recordatorios', () => {
 })
 
 describe('lugares', () => {
+  test('place/restore devuelve el lugar y los avisos que se llevó borrarlo', () => {
+    const base = run(withTasks('uno'), { type: 'place/add', id: 'p1', name: 'Mercadona' })
+    const id = base.tasks[0]!.id
+    const withReminder = reducer(base, { type: 'reminder/add', taskId: id, reminder: { kind: 'place', placeId: 'p1', on: 'arrive' } })
+    const reminder = withReminder.tasks[0]!.reminders[0]!
+    const removed = reducer(withReminder, { type: 'place/remove', id: 'p1' })
+    expect(removed.tasks[0]!.reminders).toHaveLength(0)
+    const place = withReminder.places[0]!
+    const restored = reducer(removed, { type: 'place/restore', place, reminders: [{ taskId: id, reminder }] })
+    expect(restored.places).toEqual([place])
+    expect(restored.tasks[0]!.reminders).toEqual([reminder])
+    // Ya está: repetirlo no duplica nada.
+    expect(reducer(restored, { type: 'place/restore', place, reminders: [{ taskId: id, reminder }] })).toBe(restored)
+  })
+
   const location = { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }
 
   test('añadir guarda el nombre limpio, sin ubicación y con el radio por defecto', () => {
     const state = run(emptyState(), { type: 'place/add', id: 'p1', name: '  Mercadona  ' })
-    expect(state.places).toEqual([{ id: 'p1', name: 'Mercadona', location: null, radius: 150 }])
+    expect(state.places).toEqual([{ id: 'p1', name: 'Mercadona', aliases: [], location: null, radius: 150 }])
   })
 
   test('no añade nombres vacíos ni repetidos', () => {
@@ -456,9 +589,9 @@ describe('lugares', () => {
 
   test('actualizar cambia ubicación, radio y nombre sin mutar', () => {
     const state = run(emptyState(), { type: 'place/add', id: 'p1', name: 'Mercadona' })
-    const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 50 })
+    const next = reducer(state, { type: 'place/update', id: 'p1', name: 'Mercadona Colón', location, radius: 5 })
     expect(state.places[0]!.location).toBeNull()
-    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', location, radius: 100 })
+    expect(next.places[0]).toEqual({ id: 'p1', name: 'Mercadona Colón', aliases: [], location, radius: 20 })
     expect(reducer(next, { type: 'place/update', id: 'nadie', radius: 300 })).toBe(next)
   })
 
@@ -530,5 +663,273 @@ describe('duración', () => {
   test('alargar una tarea sin duración no hace nada', () => {
     const state = withMeeting()
     expect(run(state, { type: 'task/extend', id: only(state).id, now: Date.now() })).toBe(state)
+  })
+})
+
+describe('rutinas', () => {
+  const withRoutine = () =>
+    run(emptyState(), { type: 'routine/add', id: 'r', title: '  Tomar   creatina ', days: [7, 1, 1, 9], time: '10:00' })
+  const routineOf = (state: AppState) => state.routines[0]!
+
+  test('routine/add sanea título, días y hora', () => {
+    expect(routineOf(withRoutine())).toMatchObject({ id: 'r', title: 'Tomar creatina', days: [1, 7], time: '10:00', done: [] })
+  })
+
+  test('sin título o con id repetido no añade nada', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/add', title: '   ', days: [1], time: null })).toBe(state)
+    expect(run(state, { type: 'routine/add', id: 'r', title: 'Otra', days: [1], time: null })).toBe(state)
+  })
+
+  test('una hora que no es hora se queda sin hora', () => {
+    const state = run(emptyState(), { type: 'routine/add', title: 'Leer', days: [], time: '26:00' })
+    expect(routineOf(state)).toMatchObject({ time: null, days: [1, 2, 3, 4, 5, 6, 7] })
+  })
+
+  test('routine/toggle tacha y destacha ese día', () => {
+    const done = run(withRoutine(), { type: 'routine/toggle', id: 'r', date: TODAY })
+    expect(routineOf(done).done).toEqual([TODAY])
+    expect(routineOf(run(done, { type: 'routine/toggle', id: 'r', date: TODAY })).done).toEqual([])
+  })
+
+  test('routine/set es idempotente', () => {
+    const done = run(withRoutine(), { type: 'routine/set', id: 'r', date: TODAY, done: true })
+    expect(run(done, { type: 'routine/set', id: 'r', date: TODAY, done: true })).toBe(done)
+    expect(routineOf(run(done, { type: 'routine/set', id: 'r', date: TODAY, done: false })).done).toEqual([])
+  })
+
+  test('un día mal formado no toca nada', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/toggle', id: 'r', date: 'hoy' })).toBe(state)
+  })
+
+  test('routine/update cambia lo que llega y deja lo demás', () => {
+    const state = run(withRoutine(), { type: 'routine/update', id: 'r', days: [1, 2, 3, 4, 5], time: null })
+    expect(routineOf(state)).toMatchObject({ title: 'Tomar creatina', days: [1, 2, 3, 4, 5], time: null })
+  })
+
+  test('routine/update sin cambios devuelve el mismo estado', () => {
+    const state = withRoutine()
+    expect(run(state, { type: 'routine/update', id: 'r', title: 'Tomar creatina', days: [7, 1] })).toBe(state)
+  })
+
+  test('nace sin emoji salvo que se le dé uno, y solo uno', () => {
+    expect(routineOf(withRoutine()).emoji).toBeNull()
+    const state = run(emptyState(), { type: 'routine/add', title: 'Leer', days: [1], time: null, emoji: '📖 y más 📚' })
+    expect(routineOf(state).emoji).toBe('📖')
+  })
+
+  test('routine/update pone, cambia y quita el emoji sin tocar lo demás', () => {
+    const set = run(withRoutine(), { type: 'routine/update', id: 'r', emoji: '💊' })
+    expect(routineOf(set)).toMatchObject({ emoji: '💊', title: 'Tomar creatina', days: [1, 7], time: '10:00' })
+    expect(run(set, { type: 'routine/update', id: 'r', emoji: '💊' })).toBe(set)
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', days: [1] })).emoji).toBe('💊')
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', emoji: null })).emoji).toBeNull()
+    expect(routineOf(run(set, { type: 'routine/update', id: 'r', emoji: 'no' })).emoji).toBeNull()
+  })
+
+  test('borrar y deshacer', () => {
+    const state = withRoutine()
+    const routine = routineOf(state)
+    const removed = run(state, { type: 'routine/remove', id: 'r' })
+    expect(removed.routines).toEqual([])
+    expect(run(removed, { type: 'routine/restore', routine }).routines).toEqual([routine])
+  })
+
+  test('no pasa del tope', () => {
+    const many = Array.from({ length: 60 }, (_, index): Action => ({ type: 'routine/add', title: `r${index}`, days: [1], time: null }))
+    expect(run(emptyState(), ...many).routines).toHaveLength(50)
+  })
+})
+
+describe('apariencia', () => {
+  test('settings/dayStart guarda una hora válida y nada más', () => {
+    expect(emptyState().settings.dayStart).toBe('00:00')
+    const state = run(emptyState(), { type: 'settings/dayStart', time: '04:30' })
+    expect(state.settings.dayStart).toBe('04:30')
+    expect(run(state, { type: 'settings/dayStart', time: '25:00' })).toBe(state)
+    expect(run(state, { type: 'settings/dayStart', time: '04:30' })).toBe(state)
+  })
+
+  test('settings/theme guarda la elegida', () => {
+    expect(run(emptyState(), { type: 'settings/theme', theme: 'dark' }).settings.theme).toBe('dark')
+  })
+
+  test('la misma apariencia no cambia el estado', () => {
+    const state = emptyState()
+    expect(run(state, { type: 'settings/theme', theme: state.settings.theme })).toBe(state)
+  })
+
+  test('importar una copia no cambia la apariencia de este dispositivo', () => {
+    const dark = run(emptyState(), { type: 'settings/theme', theme: 'dark' })
+    const other = { ...emptyState(), settings: { ...emptyState().settings, theme: 'light' as const } }
+    expect(run(dark, { type: 'state/import', state: other }).settings.theme).toBe('dark')
+  })
+
+  test('borrarlo todo tampoco', () => {
+    const dark = run(emptyState(), { type: 'settings/theme', theme: 'dark' }, { type: 'task/add', title: 'x', date: null, sectionId: null })
+    const cleared = run(dark, { type: 'state/clear' })
+    expect(cleared.tasks).toEqual([])
+    expect(cleared.settings.theme).toBe('dark')
+  })
+})
+
+describe('bienvenida vista', () => {
+  test('una instalación nueva no la ha visto', () => {
+    expect(emptyState().settings.welcome).toBe(0)
+  })
+
+  test('settings/welcome guarda la versión vista y nunca vuelve atrás', () => {
+    const seen = run(emptyState(), { type: 'settings/welcome', version: 2 })
+    expect(seen.settings.welcome).toBe(2)
+    expect(run(seen, { type: 'settings/welcome', version: 1 })).toBe(seen)
+    expect(run(seen, { type: 'settings/welcome', version: 2 })).toBe(seen)
+    expect(run(seen, { type: 'settings/welcome', version: 3 }).settings.welcome).toBe(3)
+  })
+
+  test('una versión que no es válida no cambia nada', () => {
+    const state = emptyState()
+    expect(run(state, { type: 'settings/welcome', version: -4 })).toBe(state)
+    expect(run(state, { type: 'settings/welcome', version: 1.5 })).toBe(state)
+  })
+
+  test('es de este dispositivo: ni importar una copia ni borrarlo todo la cambian', () => {
+    const seen = run(emptyState(), { type: 'settings/welcome', version: 2 })
+    expect(run(seen, { type: 'state/import', state: emptyState() }).settings.welcome).toBe(2)
+    expect(run(seen, { type: 'state/clear' }).settings.welcome).toBe(2)
+    const elsewhere = run(emptyState(), { type: 'settings/welcome', version: 5 })
+    expect(run(emptyState(), { type: 'state/import', state: elsewhere }).settings.welcome).toBe(0)
+  })
+})
+
+describe('plazos', () => {
+  const added = run(emptyState(), { type: 'task/add', id: 'p', title: 'Llamar al banco', date: TODAY, until: '2026-09-13', sectionId: null })
+  const until = (state: AppState) => state.tasks[0]!.until
+
+  test('se guarda al añadir solo si acaba después del día', () => {
+    expect(until(added)).toBe('2026-09-13')
+    expect(until(run(emptyState(), { type: 'task/add', title: 'x', date: TODAY, until: TODAY, sectionId: null }))).toBeNull()
+    expect(until(run(emptyState(), { type: 'task/add', title: 'x', date: null, until: '2026-09-13', sectionId: null }))).toBeNull()
+  })
+
+  test('se pone y se quita; repetirlo no cambia nada', () => {
+    const cleared = reducer(added, { type: 'task/until', id: 'p', until: null })
+    expect(until(cleared)).toBeNull()
+    expect(until(reducer(cleared, { type: 'task/until', id: 'p', until: '2026-09-20' }))).toBe('2026-09-20')
+    expect(reducer(added, { type: 'task/until', id: 'p', until: '2026-09-13' })).toBe(added)
+    expect(reducer(added, { type: 'task/until', id: 'p', until: 'viernes' })).toBe(added)
+  })
+
+  test('moverla dentro del plazo lo conserva; más allá, pasa a ser solo de ese día', () => {
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: '2026-09-12', sectionId: null }))).toBe('2026-09-13')
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: '2026-09-14', sectionId: null }))).toBeNull()
+    expect(until(reducer(added, { type: 'task/move', id: 'p', date: null, sectionId: null }))).toBeNull()
+  })
+
+  test('deshacer devuelve también el plazo', () => {
+    const moved = reducer(added, { type: 'task/move', id: 'p', date: '2026-09-20', sectionId: null })
+    const back = reducer(moved, { type: 'task/move', id: 'p', date: TODAY, sectionId: null, until: '2026-09-13' })
+    expect(back.tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13' })
+  })
+
+  test('pasar a hoy lo que se quedó sin hacer después del plazo lo deja solo para hoy', () => {
+    const late = run(emptyState(), { type: 'task/add', id: 'p', title: 'x', date: '2026-09-01', until: '2026-09-04', sectionId: null })
+    const moved = reducer(late, { type: 'tasks/reschedule', ids: ['p'], date: TODAY })
+    expect(moved.tasks[0]).toMatchObject({ date: TODAY, until: null })
+    const undone = reducer(moved, { type: 'tasks/place', placements: placementsOf(late.tasks, ['p']) })
+    expect(undone.tasks[0]).toMatchObject({ date: '2026-09-01', until: '2026-09-04' })
+  })
+
+  test('soltarla en el día que se ve la deja en él con el mismo final', () => {
+    const carried = run(emptyState(), { type: 'task/add', id: 'p', title: 'x', date: '2026-09-07', until: '2026-09-13', sectionId: null })
+    const dropped = reducer(carried, { type: 'board/commit', columns: [{ date: TODAY, sectionId: null, ids: ['p'] }] })
+    expect(dropped.tasks[0]).toMatchObject({ date: TODAY, until: '2026-09-13' })
+  })
+})
+
+describe('el calendario del iPhone', () => {
+  const on = (state: AppState) => reducer(state, { type: 'settings/calendar', enabled: true })
+
+  test('se enciende y se apaga sin tocar los ocultos', () => {
+    const hidden = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['festivos'] })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: null, done: [] })
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false }).settings.calendar).toEqual({ enabled: false, hidden: ['festivos'], export: null, done: [] })
+  })
+
+  test('el calendario donde van las tareas se elige y se quita sin tocar lo demás', () => {
+    const chosen = reducer(on(emptyState()), { type: 'settings/calendar', export: 'trabajo' })
+    expect(chosen.settings.calendar).toEqual({ enabled: true, hidden: [], export: 'trabajo', done: [] })
+    expect(reducer(chosen, { type: 'settings/calendar', export: null }).settings.calendar.export).toBeNull()
+    expect(reducer(chosen, { type: 'settings/calendar', export: 'trabajo' })).toBe(chosen)
+  })
+
+  test('lo que no cambia nada devuelve el mismo estado', () => {
+    const state = on(emptyState())
+    expect(reducer(state, { type: 'settings/calendar', enabled: true })).toBe(state)
+    expect(reducer(state, { type: 'settings/calendar', hidden: [] })).toBe(state)
+  })
+
+  test('es de este dispositivo: importar una copia o borrarlo todo no lo cambia', () => {
+    const state = reducer(on(emptyState()), { type: 'settings/calendar', hidden: ['trabajo'] })
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: ['otro'], export: 'x', done: [] } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null, done: [] })
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: ['trabajo'], export: null, done: [] })
+  })
+})
+
+describe('event/set', () => {
+  const meeting = `reunion@${toInstant(TODAY, '17:00')}`
+  const call = `llamada@${toInstant(TODAY, '09:00')}`
+  const mark = (state: AppState, key: string, done = true): AppState => reducer(state, { type: 'event/set', key, done })
+  const marked = () => mark(reducer(emptyState(), { type: 'settings/calendar', enabled: true, export: 'tasks' }), meeting)
+
+  test('marca y desmarca un evento como hecho', () => {
+    const state = marked()
+    expect(state.settings.calendar.done).toEqual([meeting])
+    expect(mark(state, meeting, false).settings.calendar.done).toEqual([])
+  })
+
+  test('lo que ya está así devuelve el mismo estado', () => {
+    const state = marked()
+    expect(mark(state, meeting)).toBe(state)
+    const empty = emptyState()
+    expect(mark(empty, call, false)).toBe(empty)
+  })
+
+  test('una clave sin inicio no se marca', () => {
+    const state = emptyState()
+    expect(mark(state, 'sin-inicio')).toBe(state)
+  })
+
+  test('no muta el estado anterior', () => {
+    const before = marked()
+    const snapshot = structuredClone(before)
+    mark(before, call)
+    mark(before, meeting, false)
+    expect(before).toEqual(snapshot)
+  })
+
+  test('cambiar el resto del calendario conserva lo hecho', () => {
+    const state = marked()
+    const hidden = reducer(state, { type: 'settings/calendar', hidden: ['festivos'] })
+    expect(hidden.settings.calendar).toEqual({ enabled: true, hidden: ['festivos'], export: 'tasks', done: [meeting] })
+    expect(hidden.settings.calendar.done).toBe(state.settings.calendar.done)
+    expect(reducer(hidden, { type: 'settings/calendar', enabled: false, export: null }).settings.calendar.done).toEqual([meeting])
+  })
+
+  test('importar una copia lo conserva; borrarlo todo lo quita y deja el resto del calendario', () => {
+    const state = marked()
+    const elsewhere = { ...emptyState(), settings: { ...emptyState().settings, calendar: { enabled: false, hidden: [], export: null, done: [call] } } }
+    expect(reducer(state, { type: 'state/import', state: elsewhere }).settings.calendar.done).toEqual([meeting])
+    expect(reducer(state, { type: 'state/clear' }).settings.calendar).toEqual({ enabled: true, hidden: [], export: 'tasks', done: [] })
+  })
+})
+
+describe('el + de una sección', () => {
+  test('la tarea cae en esa sección del día', () => {
+    const withSection = reducer(emptyState(), { type: 'section/add', name: 'Compra' })
+    const id = withSection.sections[0]!.id
+    const added = reducer(withSection, { type: 'task/add', title: 'Leche', date: '2026-10-08', sectionId: id })
+    expect(added.tasks[0]).toMatchObject({ title: 'Leche', date: '2026-10-08', sectionId: id })
   })
 })

@@ -59,12 +59,14 @@
   <body>
     <main>
       <h1>Privacidad</h1>
-      <p class="date">Tasks · actualizada el 24 de septiembre de 2026</p>
+      <p class="date">Tasks · actualizada el 9 de noviembre de 2026 · <a href="privacy.html" lang="en">in English</a></p>
 
       <p>
-        Tasks no tiene cuentas, publicidad ni analítica. <strong>No recopilamos datos personales</strong> y no
-        vendemos nada a nadie. Lo único que sale de tu dispositivo con tu contenido es lo que dictas, y solo si das
-        acceso al micrófono tras leer adónde va: ver <a href="#dictado">Dictado</a>.
+        Tasks no tiene cuentas ni publicidad. <strong>No recopilamos datos personales</strong> y no vendemos nada
+        a nadie. Lo único que sale de tu dispositivo con tu contenido es lo que dictas, y solo si das acceso al
+        micrófono tras leer adónde va (ver <a href="#dictado">Dictado</a>), y las sugerencias que tú decidas enviar
+        (ver <a href="#sugerencias">Sugerencias</a>). Además, si lo aceptas, la app cuenta de forma anónima cuánto se
+        usa, sin saber de quién (ver <a href="#estadisticas">Estadísticas</a>).
       </p>
 
       <h2>Tus tareas y lugares</h2>
@@ -72,6 +74,17 @@
         Las tareas, secciones, recordatorios y lugares se guardan solo en tu dispositivo. En el iPhone forman
         parte de la copia de seguridad del propio dispositivo (iCloud o el ordenador), que gestiona Apple y no
         nosotros. Puedes exportarlas o borrarlas desde Ajustes.
+      </p>
+
+      <h2 id="calendario">Calendario</h2>
+      <p>
+        Si lo conectas en Ajustes → Calendario, la app pide acceso a los calendarios del iPhone para enseñar tus
+        eventos en la Agenda y en el widget. Y solo si lo eliges en Ajustes → Calendario → <em>Añadir mis
+        tareas</em>, añade tus tareas con hora como eventos en el calendario que elijas (el «Tasks» que crea la app
+        u otro tuyo; si es uno compartido, quien lo comparta las verá) y los quita al tacharlas.
+        <strong>Todo ocurre en el propio iPhone</strong>: los eventos no se guardan en la app ni en sus copias y
+        nunca se envían a nuestro servidor ni a nadie (salvo lo que se vea en la captura de una sugerencia que tú
+        decidas enviar). Puedes apagarlo en Ajustes → Calendario o quitar el permiso en los Ajustes del iPhone.
       </p>
 
       <h2>Ubicación</h2>
@@ -100,7 +113,8 @@
       <p>
         Para enviar avisos y limitar abusos, el servidor guarda por dispositivo: un identificador aleatorio, la huella
         (hash) de su clave de acceso, la dirección de notificaciones que da el navegador (solo en la web), una huella
-        anonimizada de la IP y la fecha de último uso. Un dispositivo que no se usa en 180 días se borra solo.
+        anonimizada de la IP y la fecha de último uso. Un dispositivo que no se usa en 180 días se borra solo. De las
+        estadísticas, solo totales (ver <a href="#estadisticas">Estadísticas</a>).
       </p>
 
       <h2 id="dictado">Dictado</h2>
@@ -112,8 +126,9 @@
       <p>
         Con el permiso, el audio y la fecha y hora de tu dispositivo se envían a nuestro servidor para
         transcribirlo e interpretarlo con modelos de IA de <strong>Cloudflare Workers AI</strong> (Whisper para
-        transcribir y Nemotron para entender la frase). Si la apuntas con Siri o con Atajos, el iPhone ya la ha
-        transcrito y solo se envía el texto, con la fecha y hora. El audio y el texto se procesan al momento y
+        transcribir y Nemotron para entender la frase; con la app en inglés, la frase la entiende el propio
+        dispositivo). Si la apuntas con Siri o con Atajos, el iPhone ya la ha transcrito y solo se envía el texto,
+        con la fecha y hora (solo en español). El audio y el texto se procesan al momento y
         <strong>no se guardan ni se registran</strong>. La lista de tus lugares no se envía: el nombre que dices se
         empareja con tus lugares en el propio dispositivo.
       </p>
@@ -123,6 +138,55 @@
         (<a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/">uso de datos de Workers AI</a>).
       </p>
       <p>Puedes retirar el permiso cuando quieras en Ajustes → Dictado → <em>No enviar la voz</em>.</p>
+
+      <h2 id="sugerencias">Sugerencias</h2>
+      <p>
+        Desde Ajustes → <em>Sugerir una mejora</em> puedes rodear una parte de la app y escribir qué cambiarías. Solo
+        si pulsas <em>Enviar</em> llega a nuestro servidor: tu mensaje, una captura de lo que se veía en la pantalla
+        con lo que rodeaste (puedes quitarla antes de enviar; sin ella no van los textos de tus tareas), en qué
+        pantalla estabas y datos técnicos para entenderla (versión de la app, idioma, tema y modelo de dispositivo).
+        No lleva tu nombre ni nada que te identifique, salvo lo que tú escribas.
+      </p>
+      <p>
+        Solo la lee el desarrollador, que la borra en cuanto la ha leído; lo que no se haya borrado en un año se
+        borra solo. Para limitar abusos se guarda también una huella anonimizada de la IP.
+      </p>
+
+      <h2 id="estadisticas">Estadísticas</h2>
+      <p>
+        Solo si lo aceptas, para saber cuánta gente usa Tasks y mejorarla, la app manda a nuestro servidor contadores
+        anónimos. No llevan ningún identificador (ni cuenta, ni número de dispositivo, ni de publicidad) y nunca tu
+        contenido: ni el texto de tus tareas, ni tus lugares, ni lo que escribes o dictas. El servidor los suma al
+        llegar y solo guarda totales (por ejemplo, «hoy abrieron la app 40 dispositivos»): no guarda los envíos ni tu
+        IP. Para limitar abusos, de la IP solo se guarda una huella anonimizada con cuánto ha enviado ese día, y se
+        borra al día siguiente. Los totales se borran a los 13 meses.
+      </p>
+      <p>
+        La app lo pregunta al final de la bienvenida (o, si la saltas antes, otro día) y, mientras no eliges, no manda
+        nada; cerrar la pregunta sin elegir es «No». Se cambia cuando quieras en Ajustes →
+        <em>Estadísticas</em>:
+      </p>
+      <ul>
+        <li>
+          <strong>Solo visitas</strong>: que la app se abrió ese día (y si es la primera vez de la semana o del
+          mes), cuántos días de las últimas cuatro semanas, cuántas veces y cuánto rato, a qué hora, qué pantallas
+          se ven, cuánto tarda en abrir, los errores (solo su tipo y el sitio del código donde saltan), la versión,
+          si es iPhone o web, el idioma, el tema y el tamaño de pantalla, en grueso.
+        </li>
+        <li>
+          <strong>Con detalle</strong>: además, qué funciones se usan (por ejemplo, «se creó una tarea con hora»,
+          nunca cuál) y dónde se toca la pantalla, en una rejilla y con el nombre interno del botón tocado, nunca con
+          su texto.
+        </li>
+        <li>
+          <strong>Ninguna</strong> (lo que hay mientras no eliges): no se manda nada y se borra lo que hubiera
+          pendiente en el dispositivo.
+        </li>
+      </ul>
+      <p>
+        Lo pendiente de mandar se guarda solo en tu dispositivo hasta que la app pasa a segundo plano. Con menos de
+        tres dispositivos, el desarrollador no ve ningún desglose.
+      </p>
 
       <h2>Micrófono</h2>
       <p>El micrófono solo se usa mientras dictas, cuando tú lo activas.</p>

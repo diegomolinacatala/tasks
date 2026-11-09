@@ -9,9 +9,13 @@ import WidgetKit
  * dejar los avisos, el número del icono y el widget con la misma lógica que la web.
  */
 enum QuickAdd {
-    /** Lo que Siri o el atajo enseñan si algo falla. */
+    /** Lo que Siri o el atajo enseñan si algo falla, en el idioma de la app (`WidgetText`). */
     struct Failure: Error, CustomLocalizedStringResourceConvertible {
         let localizedStringResource: LocalizedStringResource
+
+        init(_ message: String) {
+            localizedStringResource = "\(message)"
+        }
     }
 
     /** Lo que se espera a la IA del servidor antes de tirar del analizador del propio iPhone. */
@@ -33,13 +37,13 @@ enum QuickAdd {
         do {
             return try await interpretAndSave(text, now: now)
         } catch is InboxStore.Full {
-            throw Failure(localizedStringResource: "Hay demasiadas tareas sin ordenar. Abre Tasks para seguir apuntando.")
+            throw Failure(WidgetText.current.tooManyTasks)
         } catch {
             // `headless.js` no pudo con ello: no se pierde lo dicho, la web lo interpretará al abrirse.
             do {
                 return try keepText(text, now: now)
             } catch {
-                throw Failure(localizedStringResource: "No se ha podido apuntar. Prueba otra vez.")
+                throw Failure(WidgetText.current.addFailed)
             }
         }
     }
@@ -95,10 +99,10 @@ enum QuickAdd {
             notifyWeb()
             return message
         } catch is InboxStore.Full {
-            throw Failure(localizedStringResource: "Hay demasiados cambios sin ordenar. Abre Tasks para seguir.")
+            throw Failure(WidgetText.current.tooManyChanges)
         } catch {
             // Sin `headless.js` no se sabe qué está atrasado: mejor no tocar nada.
-            throw Failure(localizedStringResource: "No se ha podido pasar a hoy. Hazlo desde Tasks.")
+            throw Failure(WidgetText.current.moveFailed)
         }
     }
 
@@ -107,7 +111,7 @@ enum QuickAdd {
 
     /** "Sí, hecha" (`done`) o "Todavía no" (`again`) desde el aviso de cierre, sin abrir la app. */
     static func answer(_ reply: String, to request: UNNotificationRequest) async {
-        guard let taskId = (request.content.userInfo["cap_extra"] as? [String: Any])?["taskId"] as? String else { return }
+        guard let taskId = Self.taskId(of: request) else { return }
         _ = try? await queue.run { await QuickAdd.answerNow(reply, taskId: taskId, request: request) }
     }
 
@@ -182,14 +186,14 @@ enum QuickAdd {
         }
         if let widget = result["widget"], !(widget is NSNull), let data = try? JSONSerialization.data(withJSONObject: widget) {
             try? WidgetStore.saveSnapshot(String(decoding: data, as: UTF8.self))
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetStore.kind)
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 
     /** Solo el texto: la web lo interpreta al aplicarlo, con la hora a la que se dijo. */
     private static func keepText(_ text: String, now: Int64) throws -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "No te he entendido." }
+        guard !trimmed.isEmpty else { return WidgetText.current.notUnderstood }
         let entry: [String: Any] = [
             "id": UUID().uuidString,
             "createdAt": NSNumber(value: now),
@@ -199,7 +203,7 @@ enum QuickAdd {
         ]
         try InboxStore.append(entry)
         notifyWeb()
-        return "Apuntada: \(trimmed)."
+        return WidgetText.current.added(trimmed)
     }
 
     /** `tasks-state.json`, que la web guarda en Library. `nil` si aún no existe o no se puede leer. */
@@ -260,5 +264,18 @@ private actor SerialQueue {
 enum OverdueMover {
     static func moveToToday() async throws -> String {
         try await QuickAdd.moveOverdue()
+    }
+}
+
+extension QuickAdd {
+    /**
+     * La tarea de un aviso: `taskId` en los avisos por hora; en los de lugar con una sola tarea (que
+     * también llevan la categoría `task`), `taskIds` con un solo id. Con varias no hay a quién responder.
+     */
+    static func taskId(of request: UNNotificationRequest) -> String? {
+        guard let extra = request.content.userInfo["cap_extra"] as? [String: Any] else { return nil }
+        if let taskId = extra["taskId"] as? String, !taskId.isEmpty { return taskId }
+        guard let joined = extra["taskIds"] as? String, !joined.isEmpty, !joined.contains(",") else { return nil }
+        return joined
     }
 }

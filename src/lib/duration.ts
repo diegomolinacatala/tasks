@@ -1,5 +1,7 @@
 import type { IsoTime, Task } from '../types'
-import { formatTime, shortTime } from './date'
+import { formatTime, isoOfInstant, shortTime } from './date'
+import { language } from './i18n'
+import { asOf } from './period'
 import { taskInstant } from './reminders'
 
 /**
@@ -16,8 +18,6 @@ export const MIN_DURATION = 5
 export const MAX_DURATION = 12 * HOUR_MIN
 /** Lo que se retrasa la pregunta al responder "Todavía no". */
 export const AGAIN_MINUTES = 15
-/** Atajos del panel; la duración exacta se pone eligiendo a qué hora acaba. */
-export const DURATION_PRESETS = [15, 30, HOUR_MIN, 2 * HOUR_MIN] as const
 
 export function clampDuration(minutes: number): number {
   return Math.min(Math.max(Math.round(minutes), MIN_DURATION), MAX_DURATION)
@@ -40,7 +40,8 @@ export function taskEnd(task: Task): number | null {
 
 const DAY_MIN = 24 * HOUR_MIN
 
-const minutesOf = (value: IsoTime) => {
+/** Minutos desde medianoche: `17:30` → 1050. */
+export const minutesOf = (value: IsoTime): number => {
   const [hours = 0, mins = 0] = value.split(':').map(Number)
   return hours * HOUR_MIN + mins
 }
@@ -51,17 +52,26 @@ export function endClock(time: IsoTime, duration: number): IsoTime {
   return formatTime(Math.floor(total / HOUR_MIN), total % HOUR_MIN)
 }
 
-/** `30 min`, `1 h`, `1 h 30`, `2 h`. */
+/** `30 min`, `1 h`, `1 h 30 min`, `2 h` · `30 min`, `1 hr`, `1 hr 30 min`, `2 hr` (como el Reloj de Apple). */
 export function durationLabel(minutes: number): string {
   if (minutes < HOUR_MIN) return `${minutes} min`
   const hours = Math.floor(minutes / HOUR_MIN)
   const rest = minutes % HOUR_MIN
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest}`
+  if (language() === 'en') return rest === 0 ? `${hours} hr` : `${hours} hr ${rest} min`
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
 }
 
-/** `17:30–18:30`, o solo la hora si no dura nada. */
+/**
+ * `17:30–18:30`, o solo la hora si no dura nada. En inglés, `5:30–6:30 PM`: la marca de la tarde
+ * va una vez si las dos horas la comparten (`11:30 AM–1:00 PM` si no).
+ */
 export function spanLabel(time: IsoTime, duration: number | null): string {
-  return duration === null ? shortTime(time) : `${shortTime(time)}–${shortTime(endClock(time, duration))}`
+  if (duration === null) return shortTime(time)
+  const start = shortTime(time)
+  const end = shortTime(endClock(time, duration))
+  if (language() !== 'en') return `${start}–${end}`
+  const startMark = start.slice(-2)
+  return startMark === end.slice(-2) ? `${start.slice(0, -3)}–${end}` : `${start}–${end}`
 }
 
 /** `17:30–18:30`. `null` si la tarea no tiene día y hora. */
@@ -78,10 +88,11 @@ export function durationFromEnd(time: IsoTime, end: IsoTime): number {
 /**
  * "Todavía no": la tarea se alarga hasta `minutes` después de ahora, así que la pregunta vuelve
  * dentro de ese rato. Se cuenta desde ahora y no desde el final previsto para que responder tarde
- * (el aviso lleva un rato en la pantalla) no deje la siguiente pregunta en el pasado.
+ * (el aviso lleva un rato en la pantalla) no deje la siguiente pregunta en el pasado. Con plazo, el
+ * rato empieza a su hora del día en que está, no del primero.
  */
 export function extendedDuration(task: Task, now: number, minutes = AGAIN_MINUTES): number | null {
-  const start = taskInstant(task)
+  const start = taskInstant(asOf(task, isoOfInstant(now)))
   if (start === null || task.duration === null) return null
   const elapsed = Math.round((now - start) / MINUTE)
   const next = clampDuration(Math.max(task.duration, elapsed) + minutes)

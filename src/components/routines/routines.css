@@ -1,0 +1,472 @@
+/* ── Rutinas en la Bandeja ─────────────────────────────────────────────── */
+
+.routines__progress {
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  font-style: italic;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+  transition: color var(--dur-2) var(--ease);
+}
+
+.routines__progress.is-complete {
+  color: var(--accent);
+}
+
+.routines__empty {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.routines__empty svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.routines__empty:active {
+  background: var(--bg-press);
+  transform: scale(0.99);
+}
+
+/* Cuándo se renuevan: una nota al pie, con la hora como único sitio que se toca */
+.routines__renew {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: var(--sp-1) 0 0;
+  padding-left: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.routines__renew svg {
+  flex: none;
+  opacity: 0.8;
+}
+
+.routines__time {
+  position: relative;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline dotted var(--line-2);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease);
+}
+
+/* Área de toque de 44 px sin agrandar la nota */
+.routines__time::after {
+  content: '';
+  position: absolute;
+  inset: -14px -10px;
+}
+
+.routines__time:active {
+  color: var(--accent);
+}
+
+.routine__row {
+  align-items: center;
+}
+
+.routine__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  text-align: left;
+}
+
+.routine__meta {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Su emoji, delante del nombre y a su altura */
+.routine__emoji {
+  margin-right: 7px;
+  font-size: 0.95em;
+  transition: opacity var(--dur-2) var(--ease);
+}
+
+.routine.is-done .routine__emoji {
+  opacity: 0.55;
+}
+
+/* Hoy no toca: se ve, pero en segundo plano (el título con tinta terciaria, que sigue siendo legible) */
+.routine.is-off .row__title {
+  color: var(--text-3);
+}
+
+.routine.is-off .row__check {
+  opacity: 0.5;
+}
+
+/* Los últimos siete días: lleno, hecho; hueco, sin hacer; raya, no tocaba. Hoy, con aro */
+.routine__week {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 12px;
+}
+
+.routine__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-full);
+  box-shadow: inset 0 0 0 1.25px var(--line-2);
+  transition: background var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+/* No tocaba: un punto hueco más pequeño (una raya de 1,5 px no se veía) */
+.routine__dot.is-free {
+  width: 5px;
+  height: 5px;
+  margin: 0 2px;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.routine__dot.is-done {
+  box-shadow: none;
+  background: var(--accent);
+}
+
+.routine__dot.is-today {
+  transform: scale(1.25);
+  box-shadow: inset 0 0 0 1.25px var(--accent-line);
+}
+
+.routine__dot.is-today.is-done {
+  box-shadow: none;
+}
+
+.routine__dot.is-today.is-free {
+  transform: none;
+}
+
+/* ── Panel de la rutina ───────────────────────────────────────────────── */
+
+/* El sello con su emoji, a la izquierda del nombre: tocarlo abre la lámina para elegir otro */
+.routine-name {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.routine-name .sheet__input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.routine-seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-2) var(--ease), background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.routine-seal.is-set {
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+
+.routine-seal.is-open {
+  box-shadow: inset 0 0 0 1.5px var(--gold);
+}
+
+.routine-seal:active {
+  background: var(--bg-press);
+  transform: scale(0.94);
+}
+
+.routine-seal__emoji {
+  font-size: 24px;
+  animation: seal-in var(--dur-3) var(--ease-pop);
+}
+
+@keyframes seal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* La lámina: ocho por fila, a 44 px de toque */
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: var(--sp-3);
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev-2);
+  animation: picker-in var(--dur-2) var(--ease-out);
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.emoji-picker__cell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 42px;
+  border-radius: var(--r-sm);
+  font-size: 21px;
+  color: var(--text-3);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease-pop);
+}
+
+.emoji-picker__cell:active {
+  transform: scale(0.86);
+}
+
+.emoji-picker__cell.is-active {
+  background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1.5px var(--gold), var(--shadow-card);
+}
+
+.emoji-picker__none.is-active {
+  color: var(--text);
+}
+
+/* Cualquier otro, con el teclado de emojis: ocupa lo que queda de la última fila */
+.emoji-picker__other {
+  grid-column: span 3;
+  align-self: center;
+  min-width: 0;
+  height: 40px;
+  margin: 0 4px;
+  padding: 0 10px;
+  border-radius: var(--r-full);
+  border: 1px dashed var(--line-2);
+  color: var(--text);
+  text-align: center;
+}
+
+.emoji-picker__other::placeholder {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+.emoji-picker__other:focus {
+  border-style: solid;
+  border-color: var(--accent-line);
+}
+
+.days-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.days-picker__day {
+  aspect-ratio: 1;
+  max-height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease-pop);
+}
+
+.days-picker__day.is-active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.days-picker__day:active {
+  transform: scale(0.9);
+}
+
+.days-picker + .sheet__chips {
+  margin-top: var(--sp-3);
+}
+
+/* Cifras de la rutina: racha, mejor racha y lo cumplido en el último mes */
+.routine-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.routine-stats__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 12px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-elev-2);
+}
+
+.routine-stats__value {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.routine-stats__label {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Las semanas con sus flechas: hacia atrás, para rehacer lo que no se tachó */
+.routine-log__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-3);
+}
+
+.routine-log__range {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.routine-log__arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.routine-log__arrow:active {
+  background: var(--bg-press);
+}
+
+.routine-log__arrow:disabled {
+  opacity: 0.25;
+}
+
+/* De lunes a domingo, como un cuaderno de asistencia: tocar un día lo marca; pasar el dedo de lado, varios */
+.routine-history {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: 2px;
+  margin-top: var(--sp-1);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.routine-history__head {
+  text-align: center;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--text-3);
+  padding-bottom: 2px;
+}
+
+/* Cada día es un botón de 44 px; lo que se ve es el círculo de dentro */
+.routine-history__cell {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.routine-history__cell span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-full);
+  box-shadow: inset 0 0 0 1.25px var(--line-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-2) var(--ease-pop);
+}
+
+.routine-history__cell:active span {
+  transform: scale(0.88);
+}
+
+/* No tocaba: sin aro, el número apagado (se puede marcar igual) */
+.routine-history__cell.is-free span {
+  box-shadow: none;
+  color: var(--text-3);
+}
+
+.routine-history__cell.is-done span {
+  box-shadow: none;
+  background: var(--accent);
+  color: var(--on-primary);
+  font-weight: 600;
+  animation: log-ink var(--dur-2) var(--ease-pop);
+}
+
+.routine-history__cell.is-future span {
+  opacity: 0.3;
+}
+
+/* Tocaba y no se hizo: el aro más marcado, que es lo que se viene a corregir */
+.routine-history__cell.is-missed span {
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+  color: var(--text);
+}
+
+/* Hoy, con aro de coñac; al abrir el panel da el mismo rebote que un día recién marcado: se ve que se toca */
+.routine-history__cell.is-today span {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  animation: log-ink var(--dur-3) var(--ease-pop) 350ms backwards;
+}
+
+.routine-history__cell.is-today.is-done span {
+  box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 3.5px var(--accent-line);
+  color: var(--on-primary);
+}
+
+@keyframes log-ink {
+  from {
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routine-history__cell.is-done span,
+  .routine-history__cell.is-today span {
+    animation: none;
+  }
+}

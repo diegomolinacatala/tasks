@@ -18,6 +18,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   title: partial.id,
   done: false,
   date: TODAY,
+  until: null,
   time: null,
   duration: null,
   reminders: [],
@@ -29,7 +30,7 @@ const task = (partial: Partial<Task> & { id: string }): Task => ({
   ...partial,
 })
 
-const saved = (tasks: Task[] = []): AppState => ({ ...emptyState(), tasks })
+const saved = (tasks: Task[] = []): AppState => ({ ...emptyState(), settings: { ...emptyState().settings, language: 'es' }, tasks })
 
 const input = (partial: Partial<HeadlessInput> = {}): HeadlessInput => ({
   now: NOW,
@@ -39,6 +40,7 @@ const input = (partial: Partial<HeadlessInput> = {}): HeadlessInput => ({
   state: JSON.parse(JSON.stringify(saved())),
   inbox: [],
   widgetChanges: [],
+  languages: ['es-ES'],
   ...partial,
 })
 
@@ -197,7 +199,7 @@ describe('answerAsk', () => {
   const meeting = task({ id: 'reunion', title: 'Reunión con Jorge', time: '09:00', duration: 60 })
   const stateOf = (tasks: Task[]) => JSON.parse(JSON.stringify(saved(tasks)))
   const answer = (reply: unknown, partial: Partial<AskInput> = {}) =>
-    answerAsk({ now: NOW, taskId: 'reunion', reply, state: stateOf([meeting]), inbox: [], widgetChanges: [], ...partial }, sequence())
+    answerAsk({ now: NOW, taskId: 'reunion', reply, state: stateOf([meeting]), inbox: [], widgetChanges: [], languages: ['es-ES'], ...partial }, sequence())
 
   test('"Sí, hecha": la apunta en la bandeja y el icono y el widget ya la tienen tachada', () => {
     const result = answer('done')
@@ -234,4 +236,23 @@ describe('answerAsk', () => {
     expect(answer('borrar')).toMatchObject(none)
     expect(answer('done', { state: null })).toMatchObject({ ...none, message: 'Abre Tasks para responder.' })
   })
+})
+
+test('una rutina tachada en el widget ya no vuelve a avisar hoy', () => {
+  const state: AppState = {
+    ...saved(),
+    routines: [{ id: 'r', title: 'Creatina', emoji: null, days: [1, 2, 3, 4, 5, 6, 7], time: '11:00', done: [], order: 0, createdAt: 0 }],
+  }
+  const result = moveOverdue(
+    {
+      now: NOW,
+      state: JSON.parse(JSON.stringify({ ...state, tasks: [task({ id: 'vieja', date: addDays(TODAY, -1) })] })),
+      inbox: [],
+      widgetChanges: [{ routineId: 'r', date: TODAY, done: true }],
+    },
+    sequence(),
+  )
+  const today = result.plan?.timed.filter((item) => item.extra.routineId === 'r' && item.extra.day === TODAY)
+  expect(today).toEqual([])
+  expect(result.plan?.timed.some((item) => item.extra.routineId === 'r')).toBe(true)
 })

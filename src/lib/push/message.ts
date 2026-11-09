@@ -12,12 +12,20 @@ export interface NotificationContent {
   overdue?: boolean
   /** Aviso de cierre: pregunta si la tarea ya está hecha (ver `ScheduleEntry.ask`). */
   ask?: boolean
+  /** Idioma de los botones; sin él (avisos de antes del inglés), español. */
+  lang?: 'en'
 }
 
 const MAX_TITLE = 120
 const MAX_BODY = 160
 
-export const FALLBACK_CONTENT: NotificationContent = { taskId: null, title: 'Recordatorio', body: '', badge: null }
+/** Lo que se enseña si no se puede descifrar: iOS retira el permiso si un push no muestra nada. */
+export const fallbackContent = (english: boolean): NotificationContent => ({
+  taskId: null,
+  title: english ? 'Reminder' : 'Recordatorio',
+  body: '',
+  badge: null,
+})
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
@@ -39,6 +47,7 @@ export function parseContent(raw: unknown): NotificationContent | null {
     ...(typeof value.at === 'number' && Number.isFinite(value.at) ? { at: value.at } : {}),
     ...(value.overdue === true ? { overdue: true } : {}),
     ...(value.ask === true ? { ask: true } : {}),
+    ...(value.lang === 'en' ? { lang: 'en' as const } : {}),
   }
 }
 

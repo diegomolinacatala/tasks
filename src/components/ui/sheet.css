@@ -8,6 +8,15 @@
   justify-content: flex-end;
 }
 
+/* Mientras baja ya no intercepta toques: la fila de debajo se abre a la primera */
+.sheet:not(.is-open) {
+  pointer-events: none;
+}
+
+.sheet__panel:focus {
+  outline: none;
+}
+
 /* Sin backdrop-filter: desenfocar la pantalla entera mientras se anima la opacidad da tirones en móvil */
 .sheet__scrim {
   position: absolute;
@@ -28,7 +37,7 @@
   position: relative;
   background: var(--bg-elev);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  box-shadow: var(--shadow-sheet), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-sheet), inset 0 1px 0 var(--edge-light);
   transform: translateY(101%);
   transition: transform var(--dur-2) var(--ease-in);
   max-height: min(88dvh, calc(100% - var(--safe-t)));
@@ -41,12 +50,21 @@
   transition: transform 440ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* El asa: una franja alta de toque aunque la raya sea fina */
 .sheet__grab {
-  padding: 10px 0 6px;
+  position: relative;
+  padding: 14px 0 14px;
   display: flex;
   justify-content: center;
   touch-action: none;
   cursor: grab;
+}
+
+/* Zona de toque de 44 px sin mover el contenido */
+.sheet__grab::after {
+  content: '';
+  position: absolute;
+  inset: -6px 25%;
 }
 
 .sheet__top {
@@ -60,10 +78,29 @@
   background: var(--line-2);
 }
 
+/* Solo se mueve en vertical: lo que asoma por un lado (el valor encima del dedo en el borde del
+   deslizador, el halo de la regla al estirarse) no debe dejar arrastrar el panel de lado */
 .sheet__body {
   padding: var(--sp-2) 20px calc(var(--sp-5) + var(--safe-b));
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* Con pie fijo, el hueco de la zona segura lo pone el pie */
+.sheet__body.has-foot {
+  padding-bottom: var(--sp-4);
+}
+
+/* Con el teclado fuera, el pie va pegado a él: la zona segura ya queda debajo del teclado */
+.sheet__foot {
+  flex: none;
+  padding: var(--sp-3) 20px calc(var(--sp-3) + max(0px, var(--safe-b) - var(--kb, 0px)));
+  border-top: 1px solid var(--line);
+}
+
+.sheet__foot .sheet__primary {
+  margin-top: 0;
 }
 
 .sheet__title {
@@ -201,9 +238,37 @@
   margin-right: -4px;
 }
 
-/* Un `before` sin fecha u hora, o un aviso que ya sonó */
+/* Una píldora cuyo cuerpo se toca (el aviso "al alejarme" abre sus radios): el botón ocupa la píldora
+   entera salvo la ×, que es su hermana, no su hija */
+.chip--here {
+  padding: 0 6px 0 0;
+}
+
+.chip__body {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 6px 8px 15px;
+  border-radius: var(--r-full);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.chip__body:active {
+  background: var(--bg-press);
+}
+
+/* Un `before` sin fecha u hora, o un aviso que ya sonó: inactivo pero legible (sin bajar el contraste) */
 .chip.is-muted {
-  opacity: 0.5;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px dashed var(--line-2);
+}
+
+.chip.is-muted svg:first-child {
+  color: var(--text-3);
 }
 
 .sheet__row:disabled,
@@ -215,9 +280,208 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  min-height: 36px;
-  margin-top: var(--sp-3);
+  min-height: 44px;
+  margin-top: var(--sp-2);
   font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--accent);
+}
+
+/* Acción principal al pie de un panel ("Añadir rutina") */
+.sheet__primary {
+  width: 100%;
+  min-height: 50px;
+  margin-top: var(--sp-5);
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  transition: transform var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease);
+}
+
+.sheet__primary:active {
+  transform: scale(0.98);
+}
+
+.sheet__primary:disabled {
+  opacity: 0.55;
+}
+
+/* El plazo de una tarea ("Hasta el viernes"): como un aviso añadido, con su × para quitarlo */
+.chip--until {
+  padding-right: 6px;
+}
+
+.chip__clear {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -2px -6px -4px;
+  border-radius: var(--r-full);
+}
+
+.chip__clear::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.chip__clear:active {
+  background: var(--bg-press);
+}
+
+/* El círculo de tachar, a la izquierda del título del panel: el mismo que el de la fila */
+.sheet__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.sheet__head .sheet__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet__check {
+  position: relative;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 5px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--line-2);
+  display: grid;
+  place-items: center;
+  color: var(--on-primary);
+  transition: border-color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+/* Zona de toque de 44 px sin agrandar el círculo */
+.sheet__check::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.sheet__check::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  background: var(--accent);
+  transform: scale(0);
+  transition: transform var(--dur-2) var(--ease-in);
+}
+
+.sheet__check svg {
+  position: relative;
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease);
+}
+
+.sheet__check:active {
+  transform: scale(0.88);
+}
+
+.sheet__check.is-done {
+  border-color: var(--accent);
+}
+
+.sheet__check.is-done::before {
+  transform: scale(1);
+  transition: transform var(--dur-3) var(--ease-pop);
+}
+
+.sheet__check.is-done svg {
+  opacity: 1;
+}
+
+/* Lo que casi nunca se toca (Sección, Importancia) va plegado en una fila con su valor; tocarla lo abre */
+.sheet__fold {
+  margin-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet__fold + .sheet__fold {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.sheet__fold-label {
+  flex: 1;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.sheet__fold-value {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* Junto a un aviso que no va a sonar, por qué ("· sin hora", "· pasado") */
+.chip__why {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+/* El nombre de una sección nueva, escrito en la propia píldora (16 px: iOS no hace zoom al enfocar) */
+.chip--input {
+  min-width: 128px;
+  font-size: 16px;
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+
+/* Avisos por lugar: primero cuándo (al llegar o al salir), en un interruptor de dos, y después dónde */
+.place-trigger {
+  margin-top: var(--sp-3);
+}
+
+.place-trigger__title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.place-trigger__switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--r-full);
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.place-trigger__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.place-trigger__option.is-active {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.place-trigger__option:active {
+  transform: scale(0.97);
 }

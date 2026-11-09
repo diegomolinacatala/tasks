@@ -1,7 +1,13 @@
-.task {
+/* Fila deslizable (SwipeRow). `useSwipe` escribe el desplazamiento en el `transform` de la
+   superficie y `--swipe` (de 0 a 1) en la fila, sin pasar por React. */
+/* Las filas fuera de la pantalla no se diseñan ni se pintan hasta que se acercan (iOS 18 en adelante):
+   una lista larga no pesa en un móvil modesto. Ya recortaban lo suyo (`overflow`): a la vista, igual. */
+.swipe {
   position: relative;
   list-style: none;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 49px;
   border-radius: var(--r-sm);
   touch-action: pan-y;
   -webkit-user-select: none;
@@ -9,73 +15,107 @@
   -webkit-touch-callout: none;
 }
 
+/* Lo que mide cada fila sin pintar, hasta que se pinta una vez (`auto` recuerda su alto real) */
+.swipe.tl-row {
+  contain-intrinsic-size: auto 65px;
+}
+
+.swipe.routine {
+  contain-intrinsic-size: auto 64px;
+}
+
+/* Mientras se arrastra se pintan todas: el arrastre mide dónde cae cada fila */
+.view.is-dragging .swipe {
+  content-visibility: visible;
+}
+
 /* Hueco que deja la tarea mientras viaja */
-.task.is-dragging {
+.swipe.is-dragging {
   background: var(--accent-dim);
   box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
-.task.is-dragging .task__surface {
+.swipe.is-dragging .swipe__surface {
   opacity: 0;
 }
 
-/* Lo que asoma al deslizar: coñac para hecha, ladrillo para borrar. `--swipe` va de 0 a 1 */
-.task__affordance {
+/* Lo que asoma al deslizar: coñac para hecha, ladrillo para borrar */
+.swipe__behind {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 20px;
   pointer-events: none;
+  visibility: hidden;
 }
 
-.task__affordance.is-done {
+.is-swipe-right > .swipe__behind,
+.is-swipe-left > .swipe__behind {
+  visibility: visible;
+}
+
+.is-swipe-right > .swipe__behind {
   background: var(--accent-dim);
 }
 
-.task__affordance.is-delete {
+.is-swipe-left > .swipe__behind {
   background: var(--danger-dim);
 }
 
-.task__act {
+.swipe__act {
   display: grid;
   place-items: center;
-  transition: opacity var(--dur-1) linear;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  opacity: var(--swipe, 0);
+  transform: scale(calc(0.55 + 0.45 * var(--swipe, 0)));
+  transition: transform var(--dur-2) var(--ease-pop), background var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
 }
 
-.task__act--done {
+.swipe__act--right {
   color: var(--accent);
 }
 
-.task__act--delete {
+.swipe__act--left {
+  margin-left: auto;
   color: var(--danger);
 }
 
-.task__surface {
+.is-swipe-right .swipe__act--left,
+.is-swipe-left .swipe__act--right {
+  opacity: 0;
+}
+
+/* Pasado el umbral: el icono se rellena y da un saltito. Soltar ya hace la acción. */
+.is-armed .swipe__act {
+  transform: scale(1.12);
+}
+
+.is-armed.is-swipe-right .swipe__act--right {
+  color: var(--on-primary);
+  background: var(--accent);
+}
+
+.is-armed.is-swipe-left .swipe__act--left {
+  color: var(--on-primary);
+  background: var(--danger);
+}
+
+.swipe__surface {
   position: relative;
   display: flex;
   align-items: stretch;
   background: var(--bg);
 }
 
-.column > .task + .task .task__surface {
+.column > .swipe + .swipe .swipe__surface {
   border-top: 1px solid var(--line);
 }
 
-.task__grip {
-  flex: none;
-  width: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--text-3);
-  opacity: 0.45;
-  border-radius: var(--r-xs);
-  /* El asa no hace scroll: en cuanto la tocas, manda el arrastre */
-  touch-action: none;
-  cursor: grab;
-  transition: opacity var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
-}
 
 /* Hueco del asa en las filas hechas durante el modo "Aa": las columnas no se descuadran */
 .task__slot {
@@ -83,11 +123,7 @@
   width: 40px;
 }
 
-.task__grip:active {
-  opacity: 1;
-  background: var(--bg-press);
-  cursor: grabbing;
-}
+
 
 .row {
   /* Importancia: `--imp` va de 0 (normal) a 1 (el doble). Más grande, más peso y más apretado */
@@ -172,15 +208,17 @@
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--sp-3);
+  gap: 2px var(--sp-3);
   text-align: left;
   padding: 0;
 }
 
+/* El título se queda con al menos algo más de la mitad: lo demás (hora, plazo, sección) baja de línea si no cabe */
 .row__title {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 60%;
   font-size: var(--title-size);
   font-weight: calc(400 + 250 * var(--imp, 0));
   letter-spacing: calc(-0.025em * var(--imp, 0));
@@ -225,7 +263,6 @@
 
 .is-overdue .row__meta {
   color: var(--danger);
-  opacity: 0.8;
 }
 
 /* Copia que sigue al dedo mientras se arrastra: una tarjeta de papel levantada */
@@ -236,4 +273,82 @@
   padding: 0 14px;
   cursor: grabbing;
   transform: scale(1.02) rotate(-0.6deg);
+}
+
+/* Hasta cuándo vale una tarea con plazo: un punto más visible que el resto, y en coñac el último día */
+.row__period {
+  color: var(--text-2);
+}
+
+.row__period.is-last {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Sin asa: el texto no llega al borde */
+.swipe.task .row {
+  padding-right: 8px;
+}
+
+/* Mantenida pulsada, la fila se hunde un poco antes de cogerse (`pressCue`) */
+.swipe.is-pressing .swipe__surface,
+.section.is-pressing .section__head {
+  transform: scale(0.97);
+  background: var(--bg-press);
+  transition: transform 300ms var(--ease-out), background 300ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe.is-pressing .swipe__surface,
+  .section.is-pressing .section__head {
+    transform: none;
+  }
+}
+
+/* Una vez por instalación, la primera tarea asoma lo que hay detrás (coñac y la marca) y vuelve: se
+   descubre que se desliza sin que nadie lo diga */
+.swipe.is-peek > .swipe__behind {
+  background: var(--accent-dim);
+  animation: swipe-peek-behind 1.7s var(--ease) 800ms 1 both;
+}
+
+.swipe.is-peek .swipe__act--right {
+  opacity: 1;
+  transform: scale(0.82);
+}
+
+.swipe.is-peek .swipe__act--left {
+  opacity: 0;
+}
+
+.swipe.is-peek > .swipe__surface {
+  animation: swipe-peek 1.7s var(--ease) 800ms 1 both;
+}
+
+@keyframes swipe-peek {
+  0%,
+  100% {
+    transform: none;
+  }
+  30%,
+  55% {
+    transform: translateX(30px);
+  }
+}
+
+@keyframes swipe-peek-behind {
+  0%,
+  99% {
+    visibility: visible;
+  }
+  100% {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe.is-peek > .swipe__surface,
+  .swipe.is-peek > .swipe__behind {
+    animation: none;
+  }
 }

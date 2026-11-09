@@ -12,7 +12,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (28/09/2026)
+## Estado actual (27/10/2026)
 
 **Hecho**
 
@@ -61,8 +61,8 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - TestFlight 16 (21/09/2026): la primera desde `main` con todo lo anterior. La 17 (`capacitor`) y la
   18 (`main`), el mismo commit, traen además el tramo con franja ("de 9 a 11 de la noche"). La 18
   es la que hay que instalar para probar y la que se envía a revisión.
-- **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: siete a 1320 × 2868, en orden de
-  subida, generadas con la app real y `scripts/app-store-shots.mjs`.
+- **Capturas de la App Store** (21/09/2026) en `docs/capturas/`: a 1320 × 2868, en orden de
+  subida, generadas con la app real y `scripts/app-store-shots.mjs` (seis desde el 27/10/2026).
 - **Enviada a revisión** (21/09/2026, 23:29): la 1.0 con la compilación 18 y publicación manual.
   Ficha, privacidad, precio (gratis, 175 países) y capturas de 6,9" puestas en App Store Connect.
 - **Rechazada** (22/09/2026) con *2.1 Information Needed*, lo habitual en una cuenta nueva: Apple
@@ -80,20 +80,520 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - **Aprobada y publicada** (27/09/2026, 17:29): la 1.0 (compilación 24) está en la App Store, gratis,
   también en la UE (el estado de comerciante está bien: sale en España, Francia y Alemania).
   `MARKETING_VERSION` subido a 1.1 el 28/09/2026, porque la 1.0 ya no admite compilaciones nuevas.
-- **Rediseño "old money"** (28/09/2026, sin commitear ni probar aún en el iPhone): papel marfil,
-  tinta azul marino, coñac y oro viejo; fechas y titulares en New York (serif del sistema); icono
-  nuevo; arranque en frío sin saltos (ver "Arranque"); filas que se deslizan al reordenarse; capturas
-  de la App Store nuevas. Probado en el navegador. Además, **arreglado** que al elegir una hora a mano
-  se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
+- **La 1.1 ya figura como aprobada** en App Store Connect (el CI del 30/09/2026 lo dijo al subir:
+  *train version '1.1' is closed*): `MARKETING_VERSION` subido a **1.2**. Comprobar en App Store
+  Connect qué hay publicado.
+- **Rediseño "old money"** (28/09/2026, commit `a49c254`): papel marfil, tinta azul marino, coñac y
+  oro viejo; fechas y titulares en New York (serif del sistema); icono nuevo; arranque en frío sin
+  saltos (ver "Arranque"); filas que se deslizan al reordenarse. Además, **arreglado** que al elegir
+  una hora a mano se guardara otra (`PickerChip`: la rueda de iOS lanza `input` en cada giro).
+- **Estructura nueva** (29/09/2026, en la rama `capacitor`, **TestFlight 28** con la versión 1.2; el
+  Swift compila en el CI; sin probar aún en el iPhone ni unida a `main`, así que la web pública sigue
+  con la interfaz anterior):
+  cuatro pestañas (**Bandeja**, **Agenda**, **Lugares**, **Ajustes**, ver "Pantallas"); la Agenda al
+  estilo de Structured (día arriba, tira de la semana deslizable, horario con cápsulas por duración,
+  tiempo libre y la marca de ahora); **rutinas** (lo que se repite, con racha y widget de la pantalla
+  de bloqueo que las tacha de un toque, ver "Rutinas"); **modo oscuro** (Ajustes → Apariencia: claro,
+  oscuro o automático, ver "Estilo visual"); Lugares con mapa de Apple Maps y deslizador de radio;
+  Ajustes como página; deslizar filas sin pasar por React (se "rallaba" en móviles modestos, ver
+  "Gestos de fila") y filas memorizadas. **Arreglado** también que el widget de la pantalla de inicio
+  forzaba la paleta de noche (texto marfil sobre marfil en modo claro), y que al hacer scroll el
+  contenido pasara por detrás del reloj (ahora un velo de papel bajo la barra de estado). Probado en
+  el navegador (PWA y `npm run dev`), en claro y en oscuro. **Capturas nuevas** en `docs/capturas/`:
+  ocho (agenda, rutinas con el widget de bloqueo, lugares, "¿has acabado?", escribir, importancia,
+  modo oscuro y widgets), con el reloj de la página fijado a las 11:20.
+- **Emoji, barra de escribir, mes y bienvenida** (30/09/2026, commit `14fe2f2` en `capacitor`,
+  **TestFlight 29**; el Swift compila en el CI; sin probar aún en el iPhone ni unida a `main`): las
+  rutinas llevan **emoji** (ver
+  "Rutinas"), que sale en la fila, el horario y los widgets en lugar de las iniciales; la **barra de
+  escribir** es una píldora flotante que al tocarla aparta las pestañas y enseña los destinos (ver
+  "Alta de tareas"); la tira de la semana **se despliega en el mes** (ver "Pantallas"); y la primera
+  vez se abre una **bienvenida** interactiva en lugar de las tareas de ejemplo (ver "Bienvenida").
+  Probado con Edge sin ventana y dedo simulado (claro, oscuro y 375 × 667); 620 tests. En el iPhone
+  queda por ver el teclado con la barra nueva y los widgets con emoji.
+- **Ficha de la 1.2 preparada** (30/09/2026): **nueve capturas** nuevas en `docs/capturas/` (entra
+  `4-mes`; las rutinas y los widgets salen con emoji), y en `docs/app-store.md` la descripción y las
+  palabras clave nuevas (§3), las notas para la revisión con la bienvenida y la barra nueva (§5) y
+  las novedades y los pasos de la 1.2 (§9.4). La compilación que se envía es la **1.2 (29)**.
+  `scripts/edge.mjs` ya cierra el navegador al acabar (`Browser.close`): antes quedaban Edge sin
+  ventana vivos y la siguiente ejecución hablaba con uno viejo (su service worker servía la web de
+  entonces); `app-store-shots.mjs` además limpia el origen antes de empezar.
+
+- **Publicada la 1.2** (30/09/2026) con la compilación 29. `MARKETING_VERSION` subido a **1.3**.
+- **Bienvenida también tras actualizar** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): a unos amigos
+  no les salió. La 1.2 (29) solo la enseña en una instalación nueva (`loadState().fresh`), así que quien
+  tenía la 1.1 y actualizó no la ve nunca. Ahora sale también al actualizar si trae láminas que ese
+  dispositivo no ha visto (ver "Bienvenida"). Ningún estado guardado hasta ahora sabe nada de ella, así
+  que con la 1.3 la ve entera todo el mundo, también quien ya la vio en la 1.2. `SCHEMA_VERSION` 11.
+- **Ficha del compositor** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): **Detalles** o tirar del asa de
+  la barra de escribir la despliega en una ficha con todo lo de una tarea (ver "Ficha del compositor"),
+  como el mini reproductor de Spotify se abre en el reproductor. Lámina nueva en la bienvenida
+  (*Detalles*, versión 2). Los campos del panel de la tarea se sacaron a piezas compartidas
+  (`task/fields.tsx`, `DurationPicker` y `ReminderPicker` controlados) sin cambiar su comportamiento.
+  Probado con Edge sin ventana y dedo simulado (claro, oscuro, 390 × 844 y 375 × 667: escribir,
+  desplegar, cambiar campos, plegar, añadir tarea y rutina, el asa, la ×, y el panel de una tarea); 665
+  tests.
+- **Regla de la duración** (01/10/2026, en `capacitor`, **TestFlight 30**, la 1.3): los atajos de duración (dos
+  filas de píldoras) pasan a ser una regla que se arrastra y se estira manteniendo el dedo al final (ver
+  "Duración y aviso de cierre"), en el panel de la tarea, la ficha y la lámina *Detalles*. Y los
+  ejemplos de la bienvenida nombran a Carlota. Probado con dedo simulado (arrastrar, estirar dos veces,
+  soltar, quitarla, tocar, la ×; claro y oscuro, 390 × 844 y 375 × 667); 676 tests.
+- **La 1.3 está aprobada** (compilación 30): el 03/10/2026 la subida respondió *train version '1.3' is
+  closed*. `MARKETING_VERSION` subido a **1.4**.
+- **Inglés, widget de la Bandeja y fluidez** (03/10/2026, en `capacitor`, **TestFlight 32**, la **1.4**; el Worker ya
+  desplegado desde `main`). Lo pidió el usuario en una sola petición:
+  - **Idioma** (Ajustes → *Idioma*: Automático, Español, English): toda la app, los avisos, los widgets,
+    lo que dice Siri, la bienvenida y un **analizador en inglés** ("call mom tomorrow at 5pm, remind me
+    15 minutes before", "every monday at 7am", "when I get to Walmart"). Ver "Idioma". `SCHEMA_VERSION`
+    12. Páginas `public/support.html` y `public/privacy.html` en inglés.
+  - **Widget Bandeja** (`InboxWidget.swift`): lo que no tiene fecha, con su círculo para tacharlo sin
+    abrir la app; pequeño, mediano, grande y rectangular de bloqueo. Ver "App de iPhone".
+  - **Fluidez en móviles modestos**: ver "Rendimiento". Medido con `scripts/perf.mjs` (CPU 6× más
+    lenta, 230 tareas): en reposo ya no repinta (antes, cada fotograma), desplegar el mes pasa de 542 a
+    ~130 ms de peor fotograma, volver a la Agenda de 216 a ~50 ms de respuesta, tachar de 64 a ~20.
+  - Probado con Edge sin ventana y dedo simulado (inglés y español, instalación nueva con el sistema en
+    inglés, la tira deslizando nada más desplegar el mes, arrastrar en la Agenda); 804 tests de la app y
+    150 del Worker. Revisado por un segundo agente. El Swift nuevo (widget, textos, `en.lproj`)
+    **compila en el CI** (el archivo salió bien; falló solo la subida, por la versión 1.3 cerrada).
+  - **Probada en el iPhone** por el usuario con la TestFlight 32: «va bien».
+- **Sugerencias** (03/10/2026, en `capacitor`, **TestFlight 33**, la 1.4; el buzón en el Worker de
+  `main`): Ajustes → *Sugerir una mejora* deja ir a cualquier sitio de la app, rodear algo con el dedo
+  sobre la pantalla congelada y escribir qué cambiarías. Llega con la captura y lo rodeado al **buzón**
+  (https://tasks-push.diegomolina.workers.dev/buzon, con la clave de `worker/.feedback-key`) y se baja
+  con `npm --prefix worker run feedback`. Ver "Sugerencias". Lo pidió el usuario para sus amigos.
+  Probado con Edge sin ventana y dedo simulado contra el Worker local (español y claro, inglés y
+  oscuro, rodear otra vez, cerrar y seguir, enviar, el buzón y la descarga); la captura del iPhone
+  (`TasksNative.screenshot`) solo se puede probar allí.
+  - **Probada en el iPhone** por el usuario con la TestFlight 33: la primera sugerencia llegó bien, con la
+    captura y el círculo en su sitio. Pero le costó entender que primero había que tocar la píldora y
+    luego rodear: ver la siguiente.
+- **Sugerencias más claras y hora de inicio del día de las rutinas** (03/10/2026, en `capacitor`,
+  **TestFlight 34**, la 1.4), las dos pedidas por el usuario tras probar la 33:
+  - La píldora de arriba pasa a ser una **tarjeta abajo** ("Ve a lo que quieras comentar", con un solo
+    botón grande, **Señalar**, que late un par de veces), y al dibujar una **mano de muestra** traza una
+    vuelta en el centro hasta el primer toque. Además, el tamaño de pantalla que se manda es el de
+    cuando se rodeó (antes salía encogido por el teclado). Ver "Sugerencias".
+  - Bajo las rutinas de la Bandeja, una nota discreta: *Se renuevan a las 00:00*; tocar la hora la
+    cambia (`Settings.dayStart`, `SCHEMA_VERSION` 13). Con "04:00", lo tachado a la 1 de la madrugada
+    cuenta para la víspera. Ver "Rutinas". Sin opción en Ajustes: lo pidió así, integrado.
+- **Lista para enviar la 1.4** (03/10/2026, en `capacitor`, **TestFlight 35**): el usuario probó la 34 y
+  pidió subir la actualización con capturas que vendan de verdad.
+  - **Bienvenida**: lámina nueva *Sugerencias* (`SuggestScene`, versión 3): una lista de mentira con
+    «Cena con Carlota» arriba, que una mano de muestra rodea hasta que se toca; al rodear una fila sale
+    la sugerencia lista para enviar. Quien venga de la 1.3 ve *Hay cosas nuevas* y solo esa lámina.
+  - **Capturas nuevas**, diez en español (`docs/capturas/`) y diez en inglés (`docs/capturas/en/`),
+    numeradas `01-…`/`10-…` para que se arrastren en orden. Ordenadas para vender: primero lo que la
+    hace distinta (escribir como se habla, con la cena con Carlota; avisos por lugar; el día de un
+    vistazo), después hábitos, widgets, el aviso de cierre, la ficha, el mes, la importancia y la
+    privacidad. Textos en `scripts/store-copy.mjs`; datos de ejemplo en los dos idiomas.
+  - **Ficha**: descripción reescrita en el mismo orden (§3 y §3.1 de `docs/app-store.md`), texto
+    promocional y novedades nuevos, y el paso a paso para enviarla en §9.6.
+- **La 1.4 está aprobada** (05/10/2026): `MARKETING_VERSION` subido a **1.5**.
+- **Plazos, otros nombres de lugar, elegir en el mapa e historial de rutinas editable** (05/10/2026, en
+  `capacitor`, **TestFlight 37**, la 1.5; el CI compiló `MapPicker.swift` y el widget sin errores). Lo
+  pidió el usuario en una sola petición; lo del mapa real también lo pidió un amigo por el buzón (04/10/2026).
+  - **Plazos** (`Task.until`, `lib/period.ts`, `SCHEMA_VERSION` 14): "esta semana", "hasta el viernes",
+    "del lunes al viernes" (con artículos; sin ellos es una rutina). La tarea va sola con hoy hasta
+    hacerla y solo queda atrasada pasado el último día. Ver "Plazos".
+  - **Otros nombres** de un lugar (`Place.aliases`: "el piso", "casa de mis padres") y lo dictado con
+    otra grafía ("Carrefur") casa con el guardado (`matchPlace`). Ver "Lugares".
+  - **Elegir en el mapa** (`MapPicker.swift`, `TasksNative.pickLocation`): Apple Maps a pantalla
+    completa, chincheta fija, tocar un punto o un comercio (da su nombre), círculo del radio. Desde el
+    panel del lugar y tocando el mapa de la pestaña (añade uno nuevo). Sin lugares y con permiso, la
+    pestaña enseña el barrio en lugar del dibujo.
+  - **Historial de rutinas editable** (`RoutineLog.tsx`): en *Constancia*, tocar un día lo marca o
+    desmarca, pasar el dedo de lado marca varios y las flechas van a semanas anteriores (un año). Para
+    rehacer una rutina borrada sin querer. Ver "Rutinas".
+  - Probado con Edge sin ventana y dedo simulado (claro y oscuro, 390 × 844): la fila con "Hasta el
+    jueves" y "Último día", el panel con "Hasta…", la barra con "La semana que viene", la ficha, pintar
+    una semana en la rutina (racha 7), las flechas, los otros nombres. 896 tests. Revisado por un segundo
+    agente (sin errores de compilación de Swift a la vista; arreglado lo que encontró: "Todavía no" en un
+    plazo, "el viernes de esta semana", "Piso 1" frente a "Piso 2", la dirección vieja al confirmar el
+    mapa). El mapa nativo solo se puede probar en el iPhone.
+- **Lo del buzón** (05/10/2026, en `capacitor`, la 1.5): tres sugerencias de amigos, todas hechas.
+  - *"…al aguantar encima de la tarea un tiempo se coja y la puedas arrastrar"* (un diestro reordenaba
+    sin querer al hacer scroll con el pulgar por el borde): **fuera el asa**, las tareas y las secciones se
+    cogen manteniéndolas pulsadas. Ver "Drag & drop". En la TestFlight 37.
+  - *"Debería estar por defecto también cada semana…"*: atajo **"Los martes"** (una vez por semana, el día
+    de la tarea o el de hoy) en el panel de la rutina y en la ficha, y "cada semana" al escribir. En la 37.
+  - *"…que no tuviera una lista que tiende a infinito en mis tareas tachadas"*: en la Bandeja, lo tachado
+    otros días se pliega en **"12 hechas"** (`foldDone`); lo de hoy sigue a la vista. Después de la 37.
+  - Probado con Edge sin ventana y dedo simulado: un deslizamiento rápido no coge la fila, mantenerla y
+    arrastrar la recoloca sin abrirla, el pliegue se abre. 899 tests.
+- **Ficha de la 1.5 preparada** (05/10/2026): **diez capturas** nuevas en `docs/capturas/` y `en/`, con
+  una nueva, `04-plazos` («Para esta semana, no para un día»), en lugar de la del mes; los datos de
+  ejemplo llevan dos tareas con plazo y otros nombres en Casa. En `docs/app-store.md`: descripción y
+  texto promocional nuevos (§3 y §3.1), notas para la revisión (§5, mantener pulsado, plazos, mapa; 3934
+  caracteres) y el paso a paso con las novedades en §9.7. Se envía la **1.5 (38)**.
+- **La 1.5 está aprobada** (08/10/2026: la subida respondió *train version '1.5' is closed*).
+  `MARKETING_VERSION` subido a **1.6**.
+- **El calendario del iPhone en la Agenda y el + de cada sección** (08/10/2026, en `capacitor`, la **1.6**;
+  el Swift compila en el CI; sin probar aún en el iPhone). Lo pidió el usuario "muy orgánico, que no abrume", con un tutorial claro para
+  añadir Google u Outlook al Calendario de iOS (casi nadie lo tiene) y plegado en Ajustes:
+  - **Calendario** (`lib/calendar.ts`, `CalendarBridge.swift`, `CalendarReader.swift`): EventKit, solo
+    lectura, en el propio iPhone. Los eventos salen en el **horario** con el color de su calendario
+    apagado y cuentan para el tiempo libre; los de todo el día, como cintas encima del día; un **punto** en
+    los días de la tira y del mes que tienen algo; tocar uno abre la ficha de Calendario de iOS. En
+    **Ajustes → Calendario**: conectar, encender o apagar, elegir calendarios y, plegado en una fila,
+    **Añadir Google u Outlook** (paso a paso con la ruta de Ajustes y un dibujo de lo que hay que tocar).
+    El **widget Hoy** enseña lo siguiente (uno en el mediano, dos en el grande, una línea en el de
+    bloqueo). Lámina nueva en la bienvenida (*Calendario*, versión 4, solo en el iPhone) con el botón
+    para conectarlo. Ver "Calendario del iPhone". `SCHEMA_VERSION` 15.
+  - **+ en cada sección** de la Agenda: abre la barra con esa sección como destino ("Añadir a Compra").
+  - Probado con Edge sin ventana y el calendario de muestra (`calendarDemo.ts`): conectar, el tutorial,
+    elegir calendarios, los eventos en el horario y de todo el día, los puntos del mes, el + de una
+    sección, la lámina en español e inglés, claro y oscuro. 934 tests. Revisado por un segundo agente (sin
+    errores de compilación a la vista; arreglado lo que encontró: la foto que escribe `headless.js` borraba
+    el calendario del widget, el widget no se enteraba de cambios hechos en otro dispositivo, y la PWA cargaba
+    la bienvenida solo para cerrarla). El Swift solo se puede compilar en
+    el CI y probar en el iPhone.
+- **Tareas al calendario, aviso de versión nueva y ficha de la 1.6** (10/10/2026, en `capacitor`, la 1.6),
+  pedido por el usuario (su padre quiere sus tareas en el calendario del trabajo, que ve su secretaria;
+  sus amigos no se enteraban de las actualizaciones):
+  - **Tus tareas con hora en el calendario que elijas** (Ajustes → Calendario → *Añadir mis tareas*): el
+    «Tasks» que crea la app (recomendado) o uno tuyo que se pueda escribir. Al tachar, borrar o quitar la
+    hora, el evento se borra. Ver "Calendario del iPhone".
+  - **Aviso de versión nueva** (`UpdatePrompt`): al abrir la app, si la App Store tiene una más nueva, una
+    ficha con sus novedades y **Actualizar**. Ver "Aviso de versión nueva".
+  - **Capturas nuevas** (la tercera, `03-calendario`; el widget de la sexta lleva un evento) y descripción,
+    texto promocional y notas para la revisión con el calendario (`docs/app-store.md` §3, §3.1, §5 y §9.8).
+  - Probado con Edge sin ventana y el calendario de muestra: elegir «Tasks», lo que se sincroniza (7
+    tareas; tachar una la quita; quitar el ajuste lo vacía), el aviso de versión y la fila de Ajustes. 949
+    tests. Lo nativo (EventKit escribiendo, la búsqueda de la App Store) solo se prueba en el iPhone.
+- **La 1.6 está aprobada** (13/10/2026: la subida respondió *train version '1.6' is closed*; el archivo
+  con el Swift de la auditoría compiló bien). `MARKETING_VERSION` subido a **1.7**: la auditoría está en la **TestFlight 43** (1.7).
+- **Tras probar la 43** (13/10/2026, en `capacitor`, **TestFlight 44**), lo que pidió el usuario:
+  - **La regla de la duración, como antes de la auditoría** (`DurationPicker`, `ruler.css`): con
+    `touch-action: pan-y` la soltaba en cuanto el dedo se movía un poco en vertical. Vuelve a coger el dedo
+    desde que se apoya (`touch-action: none`). El mando "Aa", también desde la 47.
+  - **La barra de escribir y su ficha, como antes de la auditoría**: tamaños de la barra (36 px, el asa
+    de 22), la × delante de las píldoras, los destinos ocultos mientras se aplica lo entendido, la píldora
+    tachada (sin "Tal cual"), Repetir e Importancia desplegados en la ficha y las píldoras de los paneles
+    a 38 px. Y un fallo de la auditoría: `:focus-visible` pintaba un marco de coñac en cualquier campo de
+    texto con el foco (en un campo siempre es "visible"); ahora los campos nunca llevan marco.
+  - **Radio desde 20 m** (`MIN_RADIUS`, `RADIUS_STOPS`): el deslizador va por pasos repartidos por igual,
+    de 10 en 10 m hasta 100 y más gruesos después; también en Swift (`PlaceAlerts.minRadius`, el mapa).
+    Por debajo de unos 100 m iOS avisa con menos precisión: lo pidió así.
+  - **Lugares, lo del buzón** (un amigo, 11/10/2026: el buscador montado en el borde del mapa "it's giving
+    bugueado"): el buscador va encima del mapa, entero; el mapa es más alto (270) y **tocarlo lo abre
+    entero** (adiós a la píldora "En el mapa"): ver "Lugares".
+- **Tras probar la 44** (13/10/2026, en `capacitor`, **TestFlight 45**): la regla iba bien, pero al
+  arrastrarla el panel se podía mover de lado; y el deslizador del radio hacía lo que hacía la regla (se
+  soltaba al desviarse el dedo en vertical y volvía al valor de antes).
+  - El **deslizador** (`Slider`) coge el dedo desde que se apoya, como la regla (`touch-action: none` y
+    captura del puntero al apoyar).
+  - Los paneles y las listas **solo se mueven en vertical** (`overflow-x: hidden` en `.sheet__body` y
+    `.app__scroll`): con `overflow-y: auto`, el eje x pasa a `auto`, y lo que asomaba por un lado al
+    arrastrar (el halo de la regla al final, el valor encima del dedo en el borde del deslizador) dejaba
+    arrastrar el panel de lado.
+  - **Probada en el iPhone** por el usuario: «ya funciona todo bien». **Ficha de la 1.7 preparada**: capturas
+    rehechas (`docs/capturas/` y `en/`, la que cambia de verdad es `02-lugares`) y novedades en los dos
+    idiomas (`docs/app-store.md` §9.9). Descripción, palabras clave, texto promocional, notas y
+    privacidad, sin cambios. Se envía la **1.7 (45)**.
+- **Avisos al salir, lámina *Lugares* y Ajustes nuevo** (14/10/2026, en `capacitor`, **TestFlight 46**, la 1.7;
+  el Swift no cambia). Pedido por el usuario antes de enviar la 1.7 ("que al salir de mi piso me avise de
+  llamar a Carlota", "Ajustes abruma, sin perder nada"):
+  - **Al salir**, que ya existía pero no se encontraba: el analizador entiende "cuando me vaya de", "al irme
+    de", "al marcharme de" (y "cuando vuelva a", al llegar; irse "a" un sitio no es salir), "recuérdame que
+    … llame a Carlota" deja "Llamar a Carlota" (`SPANISH_TITLE.infinitive`, una lista de verbos en
+    subjuntivo) y en inglés "head out of". Icono propio (`IconLeave`, salir del círculo; `IconPlace` elige)
+    en filas, horario, barra, ficha y tarjetas de Lugares; el selector de avisos pregunta primero *Al
+    llegar / Al salir* (`place-trigger`); el panel del lugar agrupa sus avisos en *Al llegar* y *Al salir*.
+    Ver "Lugares".
+  - **Lámina *Lugares*** (`PlacesScene`, versión 6, solo donde hay lugares): ver "Bienvenida".
+  - **Ajustes** en una pantalla de filas (`SettingsRow`), cada una con su valor y su panel. Ver "Pantallas".
+  - **Ficha**: capturas nuevas (la de Lugares con el aviso al salir), descripción, texto promocional,
+    notas y novedades (`docs/app-store.md` §3, §5 y §9.9). Se envía la **1.7 (46)**.
+  - Probado con Edge sin ventana y dedo simulado (la lámina en español e inglés, claro y oscuro; Ajustes y
+    sus paneles; Lugares y el panel de Casa); 972 tests.
+- **El mando de los tamaños, como antes** (15/10/2026, en `capacitor`, **TestFlight 47**): el usuario probó
+  la 46 («ahora funciona todo bien pero se ha jodido la mecánica de los tamaños»). La auditoría había
+  dejado el mando del modo "Aa" solo de lado (`touch-action: pan-y`, y arrastrar en vertical hacía
+  scroll) y en el 10 se quedaba en el 10. Vuelve a ser el de antes (`ImportanceKnob`,
+  `importanceFromDrag(start, dx, dy)`, `nextImportance`): coge el dedo desde que se apoya, hacia arriba o a
+  la derecha agranda, hacia abajo o a la izquierda encoge, y tocarlo sube uno (pasado el 10, al 1). La
+  escala del panel también coge el dedo desde que se apoya (`touch-action: none`, como la regla). Sin
+  capturas ni textos de la ficha nuevos: se envía la **1.7 (47)** con lo preparado para la 46.
+- **La 1.7 está aprobada** (19/10/2026: la subida de lo de abajo respondió *train version '1.7' is
+  closed*; el usuario la había enviado y Apple la aprobó sin que constara aquí). `MARKETING_VERSION`
+  subido a **1.8**.
+- **El micrófono en un widget, soltar en el horario y mover los eventos del calendario** (19/10/2026, en
+  `capacitor`, **TestFlight 49**, la **1.8**; el Swift nuevo compila en el CI (la primera subida, la 48,
+  falló solo por la 1.7 cerrada); sin probar en el iPhone). Lo pidió el usuario en una sola petición:
+  - **Widget y control Dictar** (`DictateWidget.swift`): un micrófono en la pantalla de inicio (pequeño) y en
+    la de bloqueo (redondo, rectangular, en línea) y, con iOS 18, un **control** para el centro de control,
+    los dos botones de abajo de la pantalla de bloqueo y el botón de acción. Tocarlo abre la app ya
+    escuchando (`<esquema>://dictate` → acción `dictate` → la barra llama a `voice.start()`). iOS no deja
+    grabar sin la app delante: con el iPhone bloqueado, Face ID por medio. También un acceso rápido del
+    icono y el atajo "Dicta en Tasks" (`DictateTaskIntent`). Ver "App de iPhone".
+  - **Soltar una tarea en el horario** (`lib/slot.ts`, `SlotCard`, `task/schedule`): mantener pulsada una
+    tarea de *Sin hora* (o de *Atrasadas*, o una con hora) y soltarla entre dos cosas del `Horario`; un
+    trazo de coñac dice en qué hueco cae y, al soltar, una tarjeta en ese mismo sitio propone la hora
+    (cuando acaba lo de delante) y la duración (ninguna, las de siempre o "hasta las 12:00"). Ver "Pantallas".
+  - **Mover los eventos del calendario del iPhone** (`CalendarBridge.moveEvent`, `calendar.move`): mantener
+    pulsado un evento del horario y soltarlo en un día de la tira o en otro hueco; lo escribe EventKit
+    (solo esa ocurrencia) y la cuenta (Google, Outlook, iCloud) lo sincroniza sola. Ver "Calendario del
+    iPhone". Decisión cerrada actualizada.
+  - Probado con Edge sin ventana y dedo simulado (claro y oscuro: el hueco, la tarjeta, "1 h", Listo,
+    deshacer; un evento a mañana y a otra hora, con deshacer); 1.002 tests. Revisado por un segundo
+    agente (arreglado lo que encontró: la duración que se perdía al mover una tarea con hora dentro del
+    horario, la ocurrencia exacta en una serie, los eventos de los que te invitan, el intent del control
+    en los dos objetivos, el hueco en un día sin horario al arrastrar una sección). El widget, el control y
+    EventKit escribiendo solo se prueban en el iPhone. El JS principal pasa a 157,1 kB gzip.
+- **Lo del buzón** (19/10/2026, en `capacitor`, la 1.8, **TestFlight 50**; sin probar en el iPhone). Cuatro
+  sugerencias de amigos del 14 al 17/10; el usuario pidió valorarlas frente a la 49 e incorporar lo que
+  encajara, sin preguntar:
+  - *"si arrastras al horario debería ponerse no?"*: ya estaba en la 49 (soltar en el horario). Nada.
+  - *"…poder conectar el Calendario de iOS me impide tachar esas tareas"* (alguien sin tareas propias, con
+    todo en el calendario): **los eventos del horario se tachan**, solo en Tasks (`Settings.calendar.done`,
+    `event/set`, `SCHEMA_VERSION` 16; la fila del evento pasa a ser un `SwipeRow`). Ver "Calendario del
+    iPhone". El widget de hoy (Swift, `WidgetStore.events`) se salta los tachados.
+  - *"…a la hora de crear una sección pudieras elegir tamaño y grosor ya que se camufla con las tareas"*:
+    sin selector (la app no tiene ajustes de estilo), pero las secciones dejan de camuflarse: versalitas
+    en tinta, cifra en serif cursiva, un filete de oro hasta sus botones y aire encima. Ver "Estilo visual".
+  - *"…no voy a empezar a hablarle al móvil en el gimnasio, ¿no puedo escribirlo y ya?"*: escribir ya
+    entendía lo mismo, pero no se sabía. Abierta y vacía, la barra enseña una **frase de ejemplo** que
+    cambia cada vez. Ver "Alta de tareas".
+  - **Soltar en el horario a la altura del dedo** (lo pidió el usuario el mismo día, para la misma
+    compilación): la hora sale de la altura, de cuarto en cuarto (`slotPoint`), con un trazo que salta y lo
+    que se lleva diciendo su hora nueva. Ver "Soltar en el horario".
+  - **Lo que coincide, en paralelo** (también suyo): dos carriles uno al lado del otro (`groupParallel`). Ver
+    "Lo que coincide". El tiempo libre crece un poco con lo que dura.
+  - Probado con Edge sin ventana y dedo simulado (español en claro, inglés en oscuro): tachar un evento
+    tocando la cápsula y deslizando, que a la izquierda no haga nada, que tocarlo no lo tache, que
+    sobreviva a recargar, mover un evento y una tarea a mañana (también desde un carril), las secciones, los
+    ejemplos que rotan, lo que coincide en dos carriles, bajar el dedo de 8 en 8 px (la hora avanza de
+    cuarto en cuarto, nunca hacia atrás), soltar y "Listo" a esa hora, por encima de lo primero (antes) y
+    una de *Sin hora* hasta el horario; 1.041 tests. Revisado por agentes por separado. JS principal 160,3 kB
+    gzip.
+
+- **La cesta, la cinta de horas y el aviso al alejarme** (20/10/2026, en `capacitor`, **TestFlight 51**, la
+  1.8; sin cambios de Swift; sin probar en el iPhone). Lo pidió el usuario en una sola petición, y sin capturas
+  ni ficha todavía (hará más cambios antes de enviar):
+  - **La cesta** (la lista de la compra): un icono de cesta a la izquierda de la "A", con la cifra de lo que
+    queda, que despliega un popover anclado al icono (no un panel a pantalla completa). Ver "La cesta".
+  - **El horario, de verdad funcional**: la tarjeta de soltar lleva una **cinta de horas** (el día entero
+    bajo una aguja, con lo ocupado sombreado) y, al arrastrar, mantener el dedo más allá de la última fila
+    (o de la primera) hace correr la hora de cuarto en cuarto: con un día que acaba a las 15:00 se llega a
+    las 21:00 sin soltar. Ver "Soltar en el horario".
+  - **"Al moverme recuérdame que llame a Raúl"**: un aviso nuevo, al alejarse de donde se está
+    (`kind: 'here'`, con radio). Ver "Al alejarme de aquí".
+  - Probado con Edge sin ventana y dedo simulado (la cesta: "huevos, 2 kg de arroz" son dos filas, una
+    habitual de un toque, comprar, el pliegue, el icono clonado que cierra; el borde del horario corriendo
+    de 18:15 a 20:30 en 1,4 s, la cinta en los dos sentidos y tocándola, Listo a las 23:45; la píldora del
+    aviso y sus radios); 1.117 tests. `SCHEMA_VERSION` 17. Diseño revisado antes de implementarlo por tres
+    agentes (uso, código, iOS): de ahí los radios desde 25 m, la región que crece con el error del GPS, la
+    caducidad del aviso y que el toast no suba con el popover. Y el código, revisado después por cinco
+    lentes (arreglado: "cuando me aleje de casa" y "move away from the office" ya no son "aquí", el "que"
+    tras "de aquí", el título "Mover el coche" de la IA, el "aquí" con varias tareas, "Kleenex 2" en la
+    cesta, la región de la cesta con cuerpo fijo y clave estable, `since` al fijar el punto, el borde que
+    seguía corriendo fuera del horario, la píldora de la ficha "· al añadir", lo comprado a la vista en
+    sesión). `scripts/perf.mjs 6 3` antes y después: sin cambios fuera del ruido (desplegar el mes 247 →
+    207 ms de peor fotograma, tachar 69 → 88, abrir tarea 186 → 225: varían igual entre pasadas).
+- **Bienvenida nueva, seis capturas nuevas y dos optimizaciones** (27/10/2026, en `capacitor`, **TestFlight 52**,
+  la 1.8; sin cambios de Swift; sin probar en el iPhone). Lo pidió el usuario para enviar la 1.8 «a otro nivel»:
+  - **Bienvenida** (versión 7, `PLATE_SINCE`): la portada lleva *Edición 1.8* (la `MARKETING_VERSION`, por
+    `__APP_VERSION__` de `vite.config.ts`) y un **índice** con las láminas que vienen; tres láminas nuevas,
+    *Dictar* (`DictateScene`, solo iPhone: el widget del micrófono en un trozo de pantalla de bloqueo, tocarlo
+    "escucha" y la frase se apunta sola), *Horario* (`DayScene`: «Llamar a Ibán» se sube por el horario con el
+    trazo de coñac y al soltar sale la tarjeta de verdad con `HourTape`) y *La cesta* (`BasketScene`: el campo
+    se escribe solo y `parseShoppingText` lo pasa a filas que se tachan); *Lugares* pasa a la 7 con el círculo
+    de «Aquí · 100 m» que suena una vez al salir. Orden: Escribir, Detalles, Dictar, Gestos, Horario, Agenda,
+    Rutinas, La cesta, Lugares, Sugerencias, Calendario. CSS nuevo en `welcome/plates.css` (`welcome.css` ya
+    pasaba de 800 líneas). Cuidado con las clases de escena: `scene__zone` y `scene__wave` son de Lugares.
+  - **Easter egg**: los nombres de su gente (Carlota, Sarita, Adriana, Ibán, David, Jorge, Victor, Xoxi,
+    Miguel, Aitana) en las láminas, los datos de ejemplo y las capturas. No quitarlos.
+  - **Capturas** (`docs/capturas/` y `en/`): **seis** nuevas, `01-escribir`, `02-horario`, `03-lugares`,
+    `04-rutinas`, `05-sin-abrir` y `06-tuyas`, con una plantilla distinta (doble filete de oro, el número en
+    romanos como marca de agua, titular a la izquierda, el iPhone girado y asomando por abajo; `store-frames.mjs`
+    con `slotCard`, `creed` y `dictateWidget` en `store-widgets.mjs`). El calendario de muestra lleva «Café con
+    Aitana» a las 14:45 para que la comida salga en paralelo.
+  - **Optimización**: la barra entiende lo escrito con `useDeferredValue` (cada tecla pinta antes de
+    analizar: escribir pasa de 968 a 264 ms de respuesta y de 679 a 304 de tareas largas con la CPU 6× más
+    lenta; ver "Rendimiento" por la cifra engañosa de "soltar la barra") y `SlotCard` (con `HourTape` y
+    `lib/tape`) va en su trozo, pedido al empezar a arrastrar. JS principal 163,9 kB gzip (165,4 antes). Lo
+    demás, igual dentro del ruido (desplegar el mes 158 → 158 ms de peor fotograma, tachar 33 → 33).
+  - Revisado por un segundo agente (arreglado lo que encontró: el temporizador de la cesta pisaba lo
+    tocado, cancelar el arrastre contaba como soltar, los latidos en reposo animaban sombras, el guion de
+    capturas borraba las de antes antes de tener las nuevas, desplegar la ficha leía lo entendido una tecla
+    atrás, `aria-hidden` sobre controles).
+  - Probado con el navegador del escritorio (claro y oscuro, 390 × 844): la portada, las cuatro láminas nuevas
+    con el dedo (arrastrar, la cinta, Listo, comprar, el aviso de aquí). Ficha de la 1.8: `docs/app-store.md` §9.11.
+- **Estadísticas anónimas y panel de uso** (05/11/2026, commit `e3f59be` en `capacitor`, **TestFlight 54**; el
+  Worker, desplegado desde `main` el 09/11/2026; la política, sin publicar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
+  qué regularidad, y un mapa de calor de los toques, «todo dentro de lo legal» y «sin mirar los datos de nadie en
+  particular». Ver "Estadísticas". Probado en local de punta a punta (la app manda al Worker local, el panel lo
+  pinta sobre la captura de la pantalla, ningún título viaja); 1.143 tests de la app y 182 del Worker. Revisado por dos
+  agentes (seguridad y código) y arreglado lo que encontraron: tope de escrituras por IP y día, familias de
+  eventos cerradas, el lote se da por enviado antes de mandarlo (nunca se cuenta dos veces a nadie), nada se
+  escribe tras apagarlas, la versión de antes de actualizar se guarda aparte, el lote cabe siempre en lo que
+  admite el servidor, un solo observador de toques y la cola del JS principal sin contenido.
+  - **Con permiso** (08/11/2026, en `capacitor`: la primera TestFlight que pide permiso es la que sigue a la 54):
+    nada se cuenta hasta elegirlo, ni siquiera las visitas. La 54
+    las contaba sin preguntar (la AEPD lo admite), pero Apple pide permiso incluso para datos de uso anónimos
+    (norma 5.1.1(ii)) y ya rechazó una vez la app por la 5.1.1: **la TestFlight 54 no se envía a revisión**. La
+    ficha pregunta lo mismo desde el segundo día, con las tres respuestas del mismo peso; cerrarla es «Ninguna».
+    Sin elegir no hay cohorte (`normalizeStatsSettings` borra la que pudo fijar la 54). Política del 08/11/2026.
+    La cola del JS principal se decide al cargar el estado (`StoreProvider`), sin esperar al trozo de las
+    estadísticas: sin elegir, se tira. Revisado por un agente (lo arreglado: eso, y que la ficha saliera de golpe
+    al cerrar la barra o un panel: ahora vuelve a esperar sus 6 s). Probado con Edge sin ventana: aceptadas, se
+    cuenta desde el arranque; sin elegir y con restos de la 54, no queda nada ni se envía nada.
+- **La 1.8, lista para enviar: entrada personal, «Tú decides» y siete capturas** (09/11/2026, en `capacitor`; sin
+  cambios de Swift; sin probar en el iPhone). El usuario pidió «la mejor actualización posible», con la entrada
+  personalizada y las capturas al día:
+  - **Portada personal** (`lib/recap.ts`, `CoverLedger`): a quien ya usa la app, la de novedades le saluda según la
+    hora («Buenas tardes.», la tarde hasta las 21:00; en inglés el *evening* desde las 18:00) y le enseña **su
+    cuaderno**: lo hecho, su racha viva más larga con el emoji de la rutina, y sus lugares (o sus rutinas, o los
+    días), desde cuándo. Sale de lo guardado en el dispositivo; nada viaja. Una instalación nueva no lo lleva.
+  - **«Tú decides»** (`StatsScene`): la última lámina de cualquier bienvenida mientras no se haya elegido
+    estadísticas (y haya servidor). Ver "Bienvenida". Así quien viene de la 1.7 lo elige al acabar lo nuevo, y la
+    ficha de "Estadísticas" queda para quien saltó antes de llegar.
+  - **Capturas**: siete en lugar de seis, con `04-cesta` («La compra, aparte»: la cesta abierta con «Avisar al
+    llegar a Mercadona» y la frase que se vuelve tres filas). En el resto solo cambia el número.
+  - **Ficha** (`docs/app-store.md` §3, §3.1, §4, §5 y §9.12): descripción con el horario, la cesta y «al moverme»,
+    y «sin rastreo» en lugar de «sin analítica» (ya no era verdad); palabras clave con «compra»/«grocery»; notas
+    para la revisión con las estadísticas con permiso (3895 caracteres); novedades nuevas. Política con «al final
+    de la bienvenida» (09/11/2026).
+  - Probado con Edge sin ventana y dedo simulado contra el servidor de desarrollo (español en claro a 390 × 844,
+    inglés en oscuro a 375 × 667, instalación nueva y quien viene de la 1.7): la portada, el cuaderno, tocar la
+    lista, elegir (se guarda con su cohorte) y Escape en la última lámina (se guarda «No»). 1.156 tests; JS principal
+    164,8 kB gzip. Revisado por un agente (sin fallos; aplicado lo menor: «Tú decides» sin «Saltar», porque saltar ahí
+    era decir que no sin decirlo; una fecha de creación imposible no cuenta para el cuaderno; aire en pantallas muy
+    bajas).
+- **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
+  `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
+  pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
+  (`docs/auditoria/informe.md`, 198 hallazgos, con anexos por pantalla) y después «arregla todo, lo
+  apruebo todo» (`docs/auditoria/progreso.md`, bloques A–L). Lo más visible:
+  - **Transversal**: toasts por encima de los paneles (y arriba cuando hay uno abierto), todo con
+    "Deshacer" (importar, borrar todo, borrar un lugar, quitar un aviso, posponer, crear una rutina),
+    foco y `inert` en los paneles, toques de 44 px, textos en las dos lenguas revisados, "Sin X" en
+    todos los vacíos, guardado que avisa si falla.
+  - **Barra y ficha**: no pierde el destino elegido, lo dictado cae donde se mira, la sección nueva se
+    crea al salir del campo (el aspecto de las dos volvió a ser el de antes en la 44).
+  - **Agenda y Bandeja**: Atrasadas plegable, "Pasar a hoy" con cifra, secciones vacías solo con cabecera,
+    el "+ Sección" como campo, vacíos sin rótulos huecos, la primera tarea de la instalación asoma lo que
+    hay detrás (una vez), hoy por contexto (las filas cambian a medianoche solas).
+  - **Panel de la tarea**: el círculo de tachar arriba, mismo orden que la ficha, Sección e Importancia
+    plegadas, avisos
+    con × propia y "por qué no sonará", plazo en una sola píldora, "A hoy" y "¿Has acabado?" en la barra
+    de arriba, toast de adónde se fue la tarea al cerrar.
+  - **Rutinas**: se crean desde el pie (cerrar cancela), tope de 50 a la vista, constancia que se nota
+    que se toca, aviso sin la hora repetida ("💊 · Cada día · racha de 12").
+  - **Lugares**: panel en orden (nuevo: dónde → nombre → pie "Añadir lugar"; existente: nombre, mapa,
+    "Cambiar ubicación ›", radio, avisos aquí con filas que abren la tarea, "Otros nombres ›", borrar con
+    cifra y deshacer: `place/restore`), nombre vacío que no pierde el resto, nombre repetido que no pisa,
+    distancias que se releen.
+  - **Ajustes**: interruptor para sí/no y fila con valor › para lo demás (Idioma en un panel), Ayuda
+    encima de Datos, calendario que dice "No encontrado" y la guía que ofrece conectar.
+  - **Avisos**: un aviso tocado siempre hace algo ("Esa tarea ya no está.", "Ya estaba hecha", "No
+    queda nada atrasado."), espera a la bienvenida, los enlaces de fuera cierran los paneles, Siri con la
+    app delante avisa, y **"Hecha" no abre la app** (`NotificationResponder` lo trata como "Sí, hecha":
+    por probar en el iPhone).
+  - **Bienvenida**: Gestos con "Mantén pulsada para moverla" (versión 5: la ven quienes actualizan),
+    portada rápida desde Ajustes, "Listo" al final, aguanta movimiento reducido y un trozo que no llega.
+  - **Sugerencias**: cerrar el panel no pierde lo rodeado, la tarjeta no tapa el final ni la barra.
+  - Probado con Edge sin ventana y dedo simulado (panel de la tarea, Lugares, Ajustes, bienvenida); 954
+    tests. Lo pendiente del informe: 125 (reordenar rutinas, aplazado), la parte del 47 que borra la
+    sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
 **Pendiente, en este orden**
 
-1. Probar el rediseño en el iPhone: abrir la app **cerrada del todo** (la pantalla de carga no debe
-   saltar ni parpadear al dar paso a la app), el icono (también el oscuro de iOS 18), el widget en
-   claro y en oscuro, y elegir horas con la rueda (inicio, "Hasta…", "Otra…" y el resumen diario).
-   iOS guarda en caché la pantalla de carga: si sale la antigua, reiniciar el iPhone. Después, subir
-   las capturas nuevas y enviar la 1.1 (`docs/app-store.md` §3 y §9).
-2. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
+0. **Enviar la 1.8** con la compilación que sale de la entrega del 09/11/2026 (`docs/app-store.md` §9.12; al
+   usuario, los pasos en el chat). Antes:
+   - **Publicar la política nueva**: unir `capacitor` a `main` (también lleva la web pública a la interfaz nueva).
+     El **Worker ya está desplegado** (09/11/2026: `f5ba630` en `main`, solo la carpeta `worker/` de `capacitor`; el
+     panel funciona en https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón). `worker/eval/run.ts`
+     se quedó en `main` como estaba: al unir, quedarse con el de `capacitor`.
+   - En App Store Connect, los tipos de datos de las estadísticas (`docs/app-store.md` §4).
+   - **No enviar a revisión la TestFlight 54**: cuenta las visitas sin preguntar.
+   - En el iPhone: Ajustes → *Ver la bienvenida* (el cuaderno y, si aún no se eligió, *Tú decides*), y lo de la 52:
+     la portada de novedades con el índice y las cuatro láminas nuevas (tocar el micrófono, subir la tarea por el
+     horario y mover la cinta, la cesta, el punto hasta «Te has alejado 100 m»). Después, lo de la 51 de abajo.
+0. **Probar en el iPhone lo de la TestFlight 51** (la 1.8). La cesta:
+   el icono con la cifra, abrir, escribir "pan, leche y 2 kg de arroz" (tres filas), una habitual, tocar una
+   para comprarla y deslizar otra a la izquierda (el toast con "Deshacer" sale abajo, no sobre el popover),
+   el pliegue "En la cesta" y "Vaciar", el teclado con el campo arriba (que el popover no se descoloque) y,
+   en el pie, "Avisar al llegar a…" → Mercadona: al llegar, un solo aviso ("Cesta: Pan · Leche") que abre la
+   cesta. El horario: mantener pulsada una tarea de *Sin hora*, llevarla por debajo de la última fila y
+   quedarse quieto (la hora corre, vibrando por cuarto), soltar, arrastrar la cinta hasta las 21:00 (vibra
+   en las horas en punto), tocar la cinta, "Hasta las…" y Listo; y que al soltar cerca del borde de abajo de
+   la pantalla el auto-scroll no dispare la hora. "Al moverme recuérdame que llame a Raúl", dictado y
+   escrito: la píldora "Al alejarme 100 m" (ubicando… → fija), cambiar el radio tocándola, alejarse unos
+   100 m y que suene, y que al tocar el aviso no vuelva a sonar al salir otra vez; desde Siri con la app
+   cerrada, al abrirla pasado un rato, el toast que ofrece fijarlo.
+
+0. **Probar en el iPhone la TestFlight 50 (la 1.8) y enviarla** (`docs/app-store.md` §9.10; los pasos al
+   usuario, en el chat): añadir el widget **Dictar** a la pantalla de bloqueo y tocarlo con el iPhone
+   bloqueado (Face ID → la app abre escuchando); en iOS 18, Ajustes → Fondo de pantalla → Personalizar →
+   el botón de abajo a la izquierda → **Dictar en Tasks**, y en el centro de control; el acceso rápido
+   del icono. En la Agenda: mantener pulsada una tarea de *Sin hora* y soltarla entre dos cosas del
+   horario (el trazo, la tarjeta, las píldoras, Listo, deshacer). Con el calendario conectado: mantener
+   pulsado un evento de Google y soltarlo en mañana (que cambie en la app Calendario y en Google) y en
+   otro hueco; uno de un calendario suscrito no se coge. Lo de la 1.7 que no se llegó a probar: la lámina
+   *Lugares* tras actualizar, Ajustes (cada fila y su panel), `llamar a Carlota cuando me vaya de casa`, el
+   selector *Al llegar / Al salir* y el «Hecha» del aviso con el iPhone bloqueado. Y lo del buzón (la 50):
+   tachar un evento de Google tocando su cápsula y deslizándolo (que no cambie en Calendario, que siga
+   tachado al reabrir, que el widget Hoy pase al siguiente), que tocar el evento siga abriendo su ficha y
+   mantenerlo pulsado lo siga moviendo; una sección (que se vea como cabecera, con el filete); tocar la
+   barra y ver la frase de ejemplo (la de "al salir de casa" solo sale en el iPhone). Y el horario:
+   mantener pulsada una tarea y bajarla despacio por el horario (que la hora salte de 15 en 15 y la tarjeta
+   que se lleva la diga), soltarla encima de otra cosa (que queden en paralelo), y tachar, abrir y mover
+   algo de un carril.
+
+0. **Probar en el iPhone la TestFlight 45**: arrastrar la regla de la duración y el radio de un lugar
+   (que no se suelten al desviar el dedo y que el panel no se mueva de lado). De la 44: la barra de
+   escribir y su ficha (como antes), un radio de 20 m, y la pestaña Lugares (el buscador encima del mapa; tocar el mapa,
+   moverse, tocar un lugar → *Abrir el lugar*, *Añadir un lugar* → la chincheta cae → *Añadir aquí*, la
+   flecha de vuelta, tocar un comercio). Y lo de la auditoría que no se probó en la 43: "Hecha" en el aviso
+   de una tarea sin abrir la app (y bloqueado); el panel de la tarea (el círculo, la × de un aviso);
+   borrar un lugar y deshacer; Ajustes (Idioma, resumen con interruptor); la lámina Gestos tras actualizar; una sugerencia
+   cerrando el panel a medias. Después, unir `capacitor` a `main`.
+
+0. **Probar la 1.6 en el iPhone** y enviarla (`docs/app-store.md` §9.8; al usuario, los pasos en el chat,
+   no en documentos). *Añadir mis tareas* → «Tasks»: que aparezca el calendario «Tasks» en la app
+   Calendario con las tareas con hora, que tachar una borre su evento y que no salgan dos veces en la
+   Agenda; elegir otro calendario (los eventos se mudan) y "No añadirlas" (se borran). El aviso de versión
+   solo se puede ver cuando la 1.6 esté publicada y salga la 1.7. El calendario: Ajustes → Calendario →
+   conectar (sale el permiso de iOS), que los eventos salgan en el horario y los de todo el día arriba,
+   tocar uno (se abre la ficha de Calendario y se puede editar; al cerrarla, la Agenda se pone al día),
+   ocultar un calendario, añadir una cuenta de Google siguiendo el paso a paso y volver (aviso de
+   calendarios nuevos), el widget Hoy mediano y grande con un evento próximo, y la lámina *Calendario*
+   tras actualizar. Y el + de una sección: que salga el teclado en el mismo toque. Si el widget no
+   enseñara eventos (EventKit en la extensión), la foto lleva una copia de la semana: mirar `WidgetStore.events`.
+1. (Ya aprobada la 1.5.) Lo que quedaba por mirar de ella en el iPhone: (plazos, otros nombres, mapa, historial editable, mantener pulsado para
+   arrastrar, atajo "Los martes" en rutinas, tachadas plegadas en la Bandeja). En el iPhone: mantener
+   pulsada una tarea (que vibre y se coja, que el scroll por el borde ya no la mueva); "Elegir en el mapa" en un lugar
+   (arrastrar, tocar un punto, tocar un comercio y que dé su nombre, "Mi ubicación", el círculo del
+   radio, claro y oscuro), tocar el mapa de la pestaña Lugares para añadir uno; una tarea "esta semana"
+   en el widget de hoy (que al día siguiente siga sin salir en rojo); una con plazo y hora, que avise
+   cada día; dictar "al llegar al piso…" con el otro nombre puesto.
+1. **Enviar la 1.4 (35)** siguiendo `docs/app-store.md` §9.6 (lo hace el usuario: capturas, descripción,
+   ficha en inglés, privacidad con *Atención al cliente*, notas, compilación 35). Antes, en la 35, la
+   lámina *Sugerencias* tras actualizar. Lo de abajo, si no se probó en la 34:
+   **Probar la TestFlight 34**: Ajustes → *Sugerir una mejora*, ir a otra pestaña, tocar **Señalar** en
+   la tarjeta de abajo (destello, pantalla congelada con marco de coñac y la mano de muestra), rodear algo, ver la miniatura
+   con el trazo en el panel, quitarla y volver a ponerla, enviar, y que llegue al buzón con la captura.
+   Abrir el buzón en el iPhone (Safari → la dirección de arriba → pegar la clave → Compartir → *Añadir a
+   pantalla de inicio*). Si va bien, enviar la 1.4 (`docs/app-store.md` §9.3 y §9.6: **privacidad con
+   *Atención al cliente***, notas nuevas de §5 y ficha en inglés de §3.1). Las rutinas: tocar la hora de
+   *Se renuevan a las 00:00* en la Bandeja, ponerla a las 4:00, y que el widget de rutinas siga
+   tachado pasada la medianoche hasta las 4:00. Mirar también lo de la 1.3, que ya está aprobada: en la barra de escribir: tocar
+   **Detalles** con el teclado fuera (se tiene que soltar y subir la ficha), tirar del asa, elegir hora
+   en la rueda dentro de la ficha, plegar y añadir desde la barra con el resumen, y una rutina desde
+   la ficha. La regla de la duración: que arrastrar no mueva el panel, que la vibración de cada paso no
+   canse y que mantener al final se note (halo de oro y vibración al estirarse). Después, unir
+   `capacitor` a `main` para que la web pública lleve la misma interfaz (`main` ya tiene el commit del
+   Worker, cogido aparte: la unión será un merge, no un fast-forward).
+2. Subir a TestFlight (push a `main`) y **comprobar que el CI compila el Swift nuevo** (widget de
+   rutinas, `ToggleRoutineIntent`, `setAppearance`, `mapSnapshot`, `NotificationResponder`). Probar en
+   el iPhone: las cuatro pestañas; deslizar filas y la tira de la semana; el modo oscuro (también la
+   pantalla de carga, la rueda de la hora y el teclado); una rutina con hora ("tomar creatina todos
+   los días a las 10") y su aviso con **Hecha** sin abrir la app; el widget **Rutinas** en la
+   pantalla de bloqueo (tocarlo la tacha; al día siguiente amanece sin tachar); el mapa de Lugares;
+   el widget de hoy en claro y en oscuro. iOS guarda en caché la pantalla de carga: si sale la
+   antigua, reiniciar el iPhone.
+3. Probar en el iPhone lo de `docs/app-store.md` §2 "Apuntar sin abrir la app" (el usuario crea el
    atajo *Dictar tarea* con los pasos de §2.1), "Pasar a hoy", "Importancia" y el aviso de cierre.
    Lo más delicado: el botón **A hoy** del widget corre en el proceso de la app
    (`LiveActivityIntent`); si no hiciera nada, ver "Pasar a hoy". Del aviso de cierre, mirar si
@@ -101,17 +601,19 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
    `task-ask` se registra al abrir la app: hay que abrirla una vez tras instalar) y, desde la
    compilación con `NotificationResponder`, que respondan **sin abrir la app**, también con el
    iPhone bloqueado. Si no hicieran nada, sospechar del delegado (que Capacitor lo recoloque).
-3. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
+4. Concretar qué falla en el iPhone («medio decente») y confirmar lo que queda del checklist de
    `docs/app-store.md` §2: aviso al llegar a un lugar, tocar avisos con la app cerrada y que las
    tareas sigan ahí tras forzar el cierre.
 
 Cualquier cambio de la app llega a la App Store con una versión nueva: `docs/app-store.md` §9. En
-cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.1 → 1.2…) antes del siguiente push que toque
+cuanto Apple apruebe una, subir `MARKETING_VERSION` (1.4 → 1.5…) antes del siguiente push que toque
 la app: App Store Connect rechaza compilaciones de una versión aprobada (también fallaría la
 ejecución programada).
 
-**Ideas aplazadas**: sincronización por iCloud (CloudKit) y refresco en segundo plano para
-reprogramar avisos.
+**Ideas aplazadas**: sincronización por iCloud (CloudKit), refresco en segundo plano para
+reprogramar avisos, rutinas desde Siri y el dictado con IA (hoy solo el analizador local reconoce
+"todos los días"), la IA del dictado entendiendo plazos (hoy los pone el analizador del móvil, ver
+"Plazos") y un mapa que se mueva dentro de la pestaña Lugares (hoy es una foto que abre el de verdad).
 
 ## Trabajar en este repo
 
@@ -138,7 +640,9 @@ npm run build      # typecheck + build de producción a dist/
 npm run build:native  # typecheck + web para la app (dist-native/) + headless.js + cap sync ios
 npm run build:headless  # solo dist-native/headless.js, comprobado sin navegador (scripts/check-headless.mjs)
 npm run icons      # regenera public/icons/*, los iconos de iOS (claro y oscuro) y la señal de carga (Edge sin ventana)
-node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (antes, npm run build)
+node scripts/app-store-shots.mjs  # capturas de la App Store en docs/capturas/ (compila con --mode shots en dist-shots/); --en, las inglesas en docs/capturas/en/
+node scripts/heat-shots.mjs        # capturas de referencia del mapa de calor (worker/panel/uso/shots/), una por pantalla
+node scripts/perf.mjs 6 3         # fluidez con la CPU 6× más lenta, mediana de 3 pasadas (antes: build + preview en :4173)
 
 node scripts/vapid-keys.mjs     # par de claves VAPID nuevo (la privada solo a wrangler secret)
 
@@ -150,6 +654,8 @@ npm run db:init:query           # crea las tablas en remoto si --file falla por 
 npx wrangler tail               # registros en vivo: PUT /v1/schedule, "avisos {...}", "push no enviado"
 npm run eval -- --local         # banco de frases dictadas contra el analizador local (gratis)
 npm run eval -- cena vuelo      # esos casos contra Workers AI real (EVAL_MODEL=@cf/... para otro modelo)
+npm run feedback                # baja el buzón de sugerencias a feedback/ (-- --archive las borra después)
+npm run stats:demo              # datos inventados SOLO en la D1 local; después `npm run dev` y http://localhost:8787/uso/
 npm run eval -- --all           # todos: ~10.500 neuronas, más que la cuota gratuita de un día: mejor en dos mitades, una tras las 00:00 UTC (ver Dictado)
 ```
 
@@ -170,58 +676,113 @@ Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs
 | Siri sin abrir la app | JavaScriptCore con `headless.js` | la misma lógica TypeScript fuera del WebView, sin reescribirla en Swift |
 | Tests | Vitest en entorno node | la lógica pura es lo que se testea |
 
-Sin router (una sola pantalla con dos vistas), sin librería de estado, sin framework CSS,
-sin fuentes externas (la serif es la del sistema). El bundle de la PWA debe seguir en ~120 kB gzip
-(120,2 el 28/09/2026, tras el rediseño): lo que solo existe en el iPhone (adaptadores de `lib/platform`, `NativePushProvider`,
-editor de lugares, `inboxFile.ts`) y lo que se abre poco (Ajustes, el mando del modo "Aa") se carga
-con `import()` o `lazy`. Los paneles de tarea y sección, y la vista semana, van en su propio trozo,
-pedido nada más pintar (`Suspense` en `App.tsx`, `loadWeekView` en su `useEffect`): no esperan al
-toque.
+Sin router (cuatro pestañas en una sola pantalla), sin librería de estado, sin framework CSS,
+sin fuentes externas (la serif es la del sistema). El JS principal de la PWA debe seguir en ~130 kB
+gzip (164,7 el 05/11/2026, con la cola de las estadísticas: el recolector y la ficha van en su trozo; 163,9 el 27/10/2026, con la barra que analiza en diferido y la tarjeta del horario en su trozo; 165,4 el 20/10/2026, con la cinta de horas, el borde que corre y el aviso al alejarme: la cesta va en su trozo, 2,9 kB, y su parseo solo lo carga ella; 160,3 el 19/10/2026, con lo del buzón, soltar a la altura del dedo y lo que coincide en paralelo; 157,1 antes, con soltar en el horario y mover eventos; 154,4 el 14/10/2026, con la auditoría y los avisos al salir; 147,9 el 08/10/2026, con el calendario: lo del iPhone va aparte en `calendarNative.ts`; 144,7 antes;
+143,9 el 05/10/2026, con los plazos; 141,8 el 03/10/2026, con los textos en inglés; el analizador en inglés y las sugerencias van aparte. 134,2 el
+01/10/2026 con `npm run build`, con la barra que se despliega en la ficha; 132,6 el
+30/09/2026, con el mes desplegable, los destinos de la barra y el emoji): lo que solo existe en el
+iPhone (adaptadores de `lib/platform`, `NativePushProvider`, `inboxFile.ts`) y lo que se abre poco
+(Lugares, Ajustes, el panel de la rutina, el mando del modo "Aa", la bienvenida, la ficha del
+compositor) se carga con `import()` o `lazy`. Los campos de tarea (`task/fields.tsx` y los pickers)
+van en un trozo que comparten el panel de la tarea y la ficha.
+La Bandeja y los paneles de tarea y sección van en su propio trozo, pedido nada más pintar la Agenda
+(`loadSheets` en `App.tsx`): no esperan al toque.
 
 ## Arquitectura
 
 ```
 src/
-├── types.ts              # Task, Reminder, Section, Place, AppState
+├── types.ts              # Task, Reminder, Section, Place, Routine, Theme, LanguageSetting, TabId, AppState
 ├── sw.ts                 # precache + push + notificationclick
 ├── headless.ts           # entrada de headless.js (JavaScriptCore): Siri sin abrir la app
 ├── lib/                  # lógica pura + adaptadores de navegador
-│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes
+│   ├── i18n.ts           # idioma vigente (es/en), automático según el sistema, `pick` de textos
+│   ├── date.ts           # ISO local YYYY-MM-DD / HH:MM, semana que empieza en lunes, nombres en los dos idiomas
+│   ├── compose.ts        # destinos del compositor ("Hoy", "Mañana", "Jue 2", "Sin fecha") y "Añadir a…"
+│   ├── details.ts        # la ficha del compositor: campos, reglas entre ellos, resumen y lo que se añade
+│   ├── emoji.ts          # emoji de una rutina: sanearlo, los del selector y el que le pega a un nombre
 │   ├── order.ts          # scopes, reordenación, pasar a otro día (`rescheduled`) y deshacerlo
+│   ├── period.ts         # plazos: el día en que se ve una tarea, cuándo queda atrasada, cómo se dicen
 │   ├── importance.ts     # escala 1–10: tamaño del título, arrastre del mando
 │   ├── duration.ts       # cuánto dura, cuándo acaba y cuánto se alarga al decir "todavía no"
+│   ├── ruler.ts          # la regla de la duración: tramos que se estiran, paso, minutos en un punto y marcas
+│   ├── routines.ts       # rutinas: qué días tocan, diario de hechos, racha, constancia, puntos
+│   ├── repeat.ts         # "todos los días a las 10", "los lunes y jueves" → rutina
+│   ├── timeline.ts       # horario de un día: lo que tiene hora (también los eventos), tiempo libre y "ahora"
+│   ├── slot.ts           # soltar en el horario: en qué hueco cae, la hora propuesta, el borde que corre y las duraciones
+│   ├── tape.ts           # la cinta de horas de la tarjeta: px por hora, la hora bajo la aguja, lo ocupado, las marcas
+│   ├── shopping.ts       # la cesta: filas, historial y habituales, saneado, el cuerpo del aviso al llegar a la tienda
+│   ├── shoppingParse.ts  # lo escrito en la cesta → filas con cantidad ("pan, leche y 2 kg de arroz"); solo la cesta lo carga
+│   ├── calendar.ts       # calendario del iPhone: validar lo de EventKit, repartirlo por días, ventana, widget
+│   ├── calendarExport.ts # las tareas con hora que van al calendario elegido
+│   ├── update.ts         # aviso de versión nueva: comparar versiones, novedades, si se ofrece
+│   ├── theme.ts          # apariencia: claro, oscuro o del sistema; cambio con un círculo de tinta
+│   ├── mapFrame.ts       # dónde van las chinchetas en el plano dibujado (sin Apple Maps)
 │   ├── reminders.ts      # resolver avisos, agenda futura, atajos, posponer
-│   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5")
+│   ├── parse.ts          # lenguaje natural del compositor ("mañana a las 5"); elige analizador por idioma
+│   ├── parseCore.ts      # el motor que comparten los dos: escáner de tramos y montaje de la tarea
+│   ├── parseEn.ts        # el analizador en inglés (trozo aparte), con su título y sus lugares
 │   ├── when.ts           # piezas de parse.ts: horas, plazos y días
+│   ├── whenEn.ts         # lo mismo en inglés: "5pm", "an hour and a half", meses y días
 │   ├── title.ts          # título limpio: muletillas, "tengo que acudir a una cena" → "Cena"
 │   ├── interpret.ts      # valida en el móvil las tareas que devuelve la IA del Worker
 │   ├── normalize.ts      # minúsculas, sin tildes, números en palabras → dígitos
-│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, badge
-│   ├── places.ts         # lugares: nombres, saneado, distancia y regiones a vigilar
+│   ├── schedule.ts       # agenda de avisos: contenido, resumen diario, aviso de cierre, rutinas, badge
+│   ├── places.ts         # lugares: nombres y otros nombres, coincidencia tolerante, saneado, distancia y regiones
 │   ├── placePhrase.ts    # "al pasar por Mercadona", "cuando salga de casa" (lo usa parse.ts)
 │   ├── nativeSchedule.ts # plan de notificaciones del iPhone: 64 pendientes, 20 regiones, ids
 │   ├── nativeEvents.ts   # valida lo que llega de Siri, accesos rápidos, avisos y el widget
-│   ├── widget.ts         # foto de las tareas para el widget y cambios hechos desde él
+│   ├── widget.ts         # foto de tareas y rutinas para los widgets y cambios hechos desde ellos
 │   ├── inbox.ts          # bandeja de lo hecho fuera de la web (altas, pasar a hoy) y cómo aplicarlo
 │   ├── inboxFile.ts      # el fichero de la bandeja (solo iPhone): validarlo y cuándo vaciarlo
 │   ├── headless.ts       # apuntar o pasar a hoy sin abrir la app: bandeja, avisos, icono y widget
-│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración…
+│   ├── platform/         # adaptadores de Capacitor (solo iPhone): avisos, fichero, vibración, el mapa para elegir (`mapPicker.ts`),
+│   │                     # el calendario (`calendar.ts`; `calendarNative.ts` en el iPhone, `calendarDemo.ts` en local)…
 │   ├── voice/            # WAV, captura de micrófono, Web Speech API
 │   ├── backup.ts         # exportar/importar y saneado (= migración de esquema)
 │   ├── persistence.ts    # IndexedDB + fallback; en iPhone, además un fichero; escrituras en serie
 │   ├── transition.ts     # View Transitions API con degradación
-│   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app
+│   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
+│   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
+│   ├── recap.ts          # la portada personal: el saludo según la hora y el cuaderno (lo hecho, la racha, los lugares)
+│   ├── stats/            # estadísticas anónimas: bus (JS principal), recolector (trozo), lote, ping, toques, tramos
+│   ├── feedback.ts       # sugerencias: el trazo, la zona rodeada, qué se cuenta de ella y el envío al buzón
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
-├── state/                # reducer, acciones, selectores, provider
-└── components/           # por dominio: shell, views, task, importance, section, compose, push, places, settings, ui, dnd
-ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, Info.plist…
+├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
+└── components/           # por dominio:
+    ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
+    ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, SlotCard y HourTape, AllDayEvents, useDayBoard), InboxView (+ DayDock)
+    ├── shopping/         # BasketPopover: la cesta (lista de la compra) desplegada desde su icono
+    ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`);
+    │                     # CalendarExportSync: las tareas con hora al calendario elegido
+    ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
+    ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
+    ├── welcome/          # Welcome (portada con índice y cuaderno, `CoverLedger`, y láminas) y sus escenas: escribir, detalles, dictar,
+    │                     # gestos, horario, mes, rutinas, cesta, lugares, sugerencias, calendario y «Tú decides» (`StatsScene`)
+    ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
+    ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
+    ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases,
+    │                     # HereLocator (fija el punto de los avisos "al alejarme")
+    ├── settings/         # SettingsView (la página de filas), SettingsRow, y cada fila con su panel: AppearanceRow,
+    │                     # LanguagePicker, NotificationsRow, CalendarRow (+ CalendarPicker, CalendarExportSheet,
+    │                     # CalendarGuide, Switch), DictationRow, DataRow (copias y datos)
+    ├── stats/            # StatsRunner (enciende o apaga el recolector), StatsPrompt (la ficha que pide el detalle) y choices
+    │                     # (las tres respuestas, también de la lámina «Tú decides»)
+    ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
+    └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
+ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
+                          # CalendarExport.swift, AppStoreVersion.swift, Info.plist…
                           # QuickAdd, HeadlessCore, InboxStore, DictationServer, NotificationPlan: Siri sin abrir la app
-ios/App/TasksWidget/      # extensión del widget; WidgetStore y MoveOverdueWidgetIntent se compilan también en la app
+ios/App/TasksWidget/      # widgets Hoy, Bandeja (InboxWidget), Rutinas y Dictar (DictateWidget, con el control de iOS 18); WidgetStore, WidgetText, CalendarReader y
+                          # MoveOverdueWidgetIntent se compilan también en la app
+ios/App/*/en.lproj/       # inglés de lo que enseña iOS por su cuenta: Siri, Atajos, permisos, accesos rápidos
 docs/app-store.md         # TestFlight, secretos, ficha, privacidad y pasos para publicar
 docs/capturas/            # capturas de la App Store (1320 × 2868), en orden de subida
-public/privacidad.html    # política de privacidad (URL que pide la App Store)
-public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store)
+public/privacidad.html    # política de privacidad (URL que pide la App Store); privacy.html, en inglés
+public/soporte.html       # página de soporte con correo de contacto (URL de soporte de la App Store); support.html
+scripts/perf.mjs          # fluidez con la CPU frenada: tareas largas, respuesta a cada toque y peor fotograma
 scripts/xcodebuild.sh     # xcodebuild con log completo y errores como anotaciones del CI
 scripts/sign-archive.sh   # firma ad hoc del archivo con los entitlements antes de exportar
 scripts/brand.mjs         # la marca (señal a pluma) en SVG: icono, favicon, pantalla de carga y #boot
@@ -230,6 +791,12 @@ scripts/app-store-shots.mjs # capturas de la App Store; plantillas en store-fram
 worker/                   # Cloudflare Worker de avisos (paquete npm independiente)
 ├── src/prompt.ts         # reglas, calendario y ejemplos que recibe la IA del dictado
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
+├── src/inbox.ts          # la página del buzón de sugerencias (/buzon)
+├── src/stats.ts          # estadísticas: el contrato del lote, su validación y las fechas del panel
+├── panel/uso/            # el panel de uso (/uso), estático: HTML, CSS, JS y capturas del mapa de calor (`shots/`)
+├── panel-tests/          # tests del modelo del panel (`model.js`)
+├── scripts/stats-demo.mjs # datos inventados en la D1 local para ver el panel
+├── scripts/feedback.mjs  # baja el buzón a feedback/ (fuera de git), una ficha .md y su captura por sugerencia
 └── eval/                 # banco de frases dictadas con la respuesta esperada (`npm run eval`)
 ```
 
@@ -258,19 +825,264 @@ entre secciones distintas no es comparable. Cada vista ordena lo que muestra.
 
 ### Pantallas
 
-Dos vistas (`ViewId`): `home` y `week`.
+Cuatro pestañas (`TabId`) en la barra inferior, con un filete de oro que se desliza bajo la elegida
+(`TabBar`). Cada una se monta la primera vez que se abre y después se conserva con `<Activity>` de
+React (su estado y su scroll, que `App` guarda al salir). Tocar la pestaña en la que ya estás vuelve
+arriba y, en la Agenda, a hoy. Se abre en la **Agenda**.
 
-**`home`** es la pantalla principal y tiene tres bloques fijos, de arriba abajo:
+- **Bandeja** (`InboxView`): lo que no tiene día. Arriba, **Rutinas** (ver "Rutinas"); debajo,
+  **Tareas** sin fecha, ordenables manteniéndolas pulsadas. Al arrastrar una sube un **muelle** con los
+  próximos siete días (`DayDock`): soltarla en uno la planifica. Lo tachado otros días se pliega en una
+  línea ("12 hechas", `foldDone`) que se abre al tocarla; con más de una hecha, "Borrar las N hechas".
+- **Agenda** (`AgendaView`), como Structured: el mes arriba, el día elegido en grande ("Hoy martes
+  29", "Mañana miércoles 30", "Jueves 1 octubre") y la **tira de la semana** (`WeekStrip`): letra,
+  número y un anillo que se cierra con lo hecho; lo pasado con pendientes, en ladrillo. Se desliza
+  a los lados para cambiar de semana (conserva el día de la semana) y cada día es un sitio donde
+  soltar una tarea arrastrada. **Se despliega en el mes entero** (ver "El mes desplegado"). Debajo, el
+  filete con el avance del día y:
+  1. `Atrasadas` (solo hoy), en rojo, con **Pasar a hoy**. Se puede sacar de aquí pero no soltar
+     dentro: sus tareas conservan la fecha hasta que se mueven.
+  2. `Horario` (`Timeline`, `lib/timeline.ts`): lo que tiene hora (tareas, rutinas y los eventos del
+     calendario del iPhone, ver "Calendario del iPhone") a lo largo de una línea. Cada tarea es una cápsula tan alta como lo que dura, que se rellena al completarla y,
+     si está en curso, se va llenando; entre medias, "1 h 30 libres" (desde ahora, si el hueco ya
+     empezó, y un poco más alto cuanto más dura); hoy, una marca de coñac con la hora actual. Lo que
+     coincide va en paralelo (ver "Lo que coincide"). No se reordena a mano (manda la hora), pero **se
+     puede soltar algo a la altura de una hora** para ponérsela (ver "Soltar en el horario").
+  3. `Sin hora`: lista raíz más las secciones del usuario, con arrastre. Cada sección lleva un **+** en
+     su cabecera: abre la barra con ella como destino ("Añadir a Compra", la píldora en versalitas), en el
+     mismo toque para que salga el teclado (`focusRef`), y la despliega si estaba plegada. Un día pasado con
+     pendientes lleva **Pasar a hoy**. Un día sin tareas ni eventos con hora dice "Día libre." (las rutinas
+     y lo de todo el día no cuentan).
+  El compositor añade al día elegido ("Añadir al jueves 2"); sus destinos llevan a otro sitio.
+- **Lugares** (`PlacesView`, ver "Lugares").
+- **Ajustes** (`SettingsView`): una sola pantalla de filas a lo iOS (`SettingsRow`: sello con su icono,
+  nombre, valor de ahora y › o ↗), en cuatro grupos: **General** (Apariencia, Idioma), **Avisos y
+  calendario** (Avisos: "Resumen a las 8:00", "Bloqueados"…; Calendario: "3 de 5", "Sin conectar"; Dictado:
+  "Con IA"; cada una solo donde existe, y sin ninguna el grupo no sale), **Ayuda** (Sugerir una mejora,
+  Ver la bienvenida, Soporte, Valorar) y **Tus datos** (Copias y datos: "62 tareas"; Privacidad). Una
+  versión nueva va arriba del todo. Lo que antes eran grupos enteros con sus notas vive en el panel de su
+  fila, entero (las tarjetas de Apariencia, el resumen y su hora, conectar el calendario y sus calendarios,
+  el permiso del dictado y qué se envía, las cifras, exportar, importar y borrar): no se pierde nada, solo
+  deja de estar todo a la vez (lo pidió el usuario: "abruma"). Dentro de los paneles, dos tipos de control:
+  interruptor para sí/no, fila con valor › para lo demás.
 
-1. `Atrasadas` — pendientes de días anteriores, en rojo. Se puede sacar de aquí pero no
-   soltar dentro: sus tareas conservan la fecha hasta que se mueven a otro bloque.
-2. `Hoy` — lista raíz más las secciones del usuario.
-3. `Sin fecha` — lo que no tiene día. Es donde caen las tareas nuevas por defecto.
+### Soltar en el horario
 
-`Atrasadas` y `Sin fecha` se pliegan y ese estado se guarda en `AppState.collapsed`. La cabecera
-de `Atrasadas` lleva **Pasar a hoy** (se ve también plegada).
+Para darle hora a una tarea sin abrir su panel: se coge (mantener pulsada) una de *Sin hora*, de
+*Atrasadas* o una que ya tiene hora, y se suelta en el `Horario` **a la altura de la hora que se quiere**,
+de cuarto en cuarto de hora (lo pidió el usuario el 19/10/2026: "dependiendo de la altura… que dé como
+saltos de 15 min", no "justo al acabar lo de antes"). Como en Structured, pero preguntando lo justo al
+soltar. El horario es compacto (una cápsula no mide lo que dura), así que cualquier hora del día queda a
+mano por dos vías (la 51, tras quejarse el usuario de que "se ciñe" a las horas de lo que hay: con cosas
+hasta las 15:00 no llegaba a las 21:00): **el borde corre** mientras se arrastra y **la cinta de horas**
+de la tarjeta.
 
-Arriba a la derecha, **Aa** (modo importancia) y **⋯** (Ajustes).
+- **Mientras se arrastra** (`onDragMove` en `AgendaView`), el horario es una zona (`tl:<día>`, solo si el
+  dedo está encima: `scopedCollision`) que crece sin mover nada (márgenes negativos y relleno en
+  `.timeline-zone.is-dragging`): 44 px por arriba, sobre la cabecera "Horario", y el margen hasta el bloque
+  siguiente por abajo, para elegir antes de lo primero y después de lo último. La hora sale de **la altura
+  del dedo** (`pointerY`: el toque inicial más lo movido) leída entre las filas (`slotPoint` en
+  `lib/slot.ts`): cada fila de arriba del todo dice de qué minuto a qué minuto va (`data-from`/`data-to`,
+  también el tiempo libre y "ahora"; las de dentro de un carril, no) y entre el principio de una y el de la
+  siguiente la hora se reparte a lo alto. Como mucho un cuarto de hora cada `STEP_PX` (8 px): si un trozo
+  vale más horas de las que caben (seis horas libres en una fila), la mitad de arriba cuenta desde la
+  primera y la de abajo hasta la segunda ("justo después", "justo antes"). Sin pasarse de las horas del
+  trozo (tras algo que acaba a las 10:10, la primera es las 10:15) ni del día (hasta las 23:45). La fila de
+  lo que se arrastra no cuenta.
+- **El borde corre** (`Dwell` en `AgendaView`, `EDGE_*` en `lib/slot.ts`): pasada la última fila (o antes
+  de la primera) más de `EDGE_GRACE_PX`, el dedo quieto hace avanzar (o retroceder) la hora un cuarto cada
+  `EDGE_TICK_MS` (150 ms, el primero a los 320), con su vibración, hasta las 23:45 (o las 0:00); la marca se
+  queda en el borde y lo que se lleva dice la hora. Volver sobre las filas lo para. Es el mismo idioma que
+  el auto-scroll al arrastrar, y por eso no depende de la altura: con `STEP_PX` por cuarto no cabría el
+  resto del día en los 56 px de `--zone-bottom` (el margen más la cabecera de "Sin hora", que no es un sitio
+  donde soltar). Mientras corre, el auto-scroll de dnd-kit se apaga (`autoScroll={{ enabled: !dwelling }}`:
+  el dedo pide tiempo, no scroll); fuera del horario (`event.over` ya no es `timeline`) se para y la marca se
+  quita, se mueva el dedo o la lista. Y como dnd-kit desplaza la lista sola cerca del borde de la pantalla,
+  **con el dedo quieto no se relee la hora** (`pointerTrack`: si cambió el scroll y no el dedo, se conserva lo
+  que había).
+- La hora se ve en un **trazo de coñac** a esa altura (`TimelineSlot`, `.tl--slot`, encima de la lista: no
+  aparta nada) que salta de cuarto en cuarto con una vibración suave, y en **lo que se lleva**, que dice
+  su hora nueva en coñac (`.task-overlay.is-timed`): bajo el dedo el trazo no se ve. Un horario vacío
+  enseña "Suelta aquí para ponerle hora" (vale la hora de `suggestedStart`: ahora o las 9). Lo hecho no se
+  suelta ahí.
+- **Al soltar**, aparece la **tarjeta** (`SlotCard`, una fila más del horario, con su hora en la columna)
+  delante de lo primero que empieza después (`rowAfter`; o del tiempo libre en que cae), y ahí se queda
+  aunque la hora cambie: la hora elegida, grande en serif (tocarla abre la rueda nativa, `PickerChip`); la
+  **cinta de horas** (`HourTape`, `lib/tape.ts`): el día entero en una tira que se arrastra bajo una aguja
+  fija, como la cinta de una cámara, a 48 px por hora (12 por cuarto); el dedo mueve la tira sin pasar por
+  React (el `transform` se escribe en cada movimiento, como en `useSwipe`), la hora bajo la aguja es la
+  elegida, vibra solo al cruzar una hora en punto, tocar un punto lleva esa hora a la aguja, y coge el dedo
+  desde que se apoya (`touch-action: none`, como la regla). En ella, lo ocupado ese día sombreado
+  (`busySpans`, sin lo que se coloca), "ahora" en coñac y la duración elegida como banda de tinta desde la
+  aguja. Y la duración en píldoras (`slotOptions`: ninguna, 15, 30, 1 h, 2 h y, si hay algo detrás, "Hasta
+  las 12:00", con `gapAt` leído con la hora de ahora mismo: sigue a la cinta). Nada se guarda hasta
+  **Listo**; la × la deja donde estaba; otro día o otro arrastre la cierran. Si cae encima de otra cosa, al
+  confirmar quedan **en paralelo** (ver "Lo que coincide").
+- **Listo** despacha `task/schedule` (`lib/slot.ts` para la lógica, `reducer.ts` para el cambio): ese día
+  (de *Atrasadas* o de un plazo, con su sección), esa hora, esa duración y, como al escribir "a las 5", el
+  aviso "a la hora" si no tenía ninguno relativo (`reminderId`, para quitarlo al deshacer). El toast
+  ("Comprar pan · 16:45–17:45") deshace con `tasks/place` + `task/setTime` + `task/setDuration` +
+  `reminder/remove`.
+- Los **eventos del calendario** se sueltan igual (la tarjeta solo pregunta la hora: lo que dura ya está
+  decidido). Ver "Calendario del iPhone".
+
+### La cesta
+
+La lista de la compra, aparte de las tareas (lo pidió el usuario el 20/10/2026: "sutil, que no abrume",
+tras mirar cómo lo hacen Bring, AnyList, Listonic y Recordatorios: lo que de verdad usa la gente es
+apuntar rápido, tachar en la tienda, repetir lo de siempre de un toque y que avise al llegar al súper).
+Un **icono de cesta** a la izquierda de la "A" (`.app__basket`, solo en la Bandeja y la Agenda), con la
+cifra de lo que queda por comprar, despliega un **popover** anclado al icono (`BasketPopover`, trozo
+`lazy` precargado con los paneles): deja aire a los lados, se abre desde la esquina del icono (origen del
+`transform`), con un pico y el propio icono repetido encendido dentro de la capa (tocarlo cierra, como el
+velo o Escape); la app de debajo queda `inert` (`acquireModal('popover')`: no pone `has-sheet`, así que el
+toast sigue abajo y no tapa el cierre).
+
+- **Dentro**, de arriba abajo: cabecera (versalitas y cifra en serif cursiva); el campo "Añadir…" (16 px;
+  no se enfoca solo al abrir: lo enfoca el +); las **habituales** (`suggestions`: lo más comprado antes que
+  no está en la lista, por veces y recencia, seis como mucho, píldoras de borde discontinuo con +); lo
+  pendiente, en filas `SwipeRow` (tocar la fila o deslizar a la derecha la compra; a la izquierda la quita,
+  con deshacer); lo comprado plegado en una línea ("En la cesta · 2") con "Vaciar la cesta" dentro; y, solo
+  en el iPhone con lugares ubicados y algo pendiente, el pie **"Avisar al llegar a…"** (píldoras con los
+  lugares y "Sin aviso"). Vacía: "Nada que comprar." Nada de categorías, pasillos ni cantidades aparte.
+- **Escribir** (`lib/shoppingParse.ts`, solo en el trozo de la cesta): "pan, leche y huevos" son tres
+  filas; "2 kg de arroz", "3 manzanas", "media docena de huevos", "2 bottles of water" llevan la cantidad
+  delante (`qty`: "2 kg", "3", "½ docena") y "pan x2", detrás ("×2"). Mayúscula inicial. Lo que ya está
+  pendiente no se duplica (con cantidad, la cambia); lo comprado vuelve a pendiente.
+- **Datos** (`AppState.shopping`, `lib/shopping.ts`, `SCHEMA_VERSION` 17): `items` (200 pendientes como
+  mucho), `history` (nombre → veces y última vez; 60) y `placeId`. Comprar (`shopping/toggle`, con `now`
+  dentro) apunta en el historial; devolver a pendiente no lo borra. Va en la copia y `state/clear` la
+  vacía: es de los datos, no del dispositivo. Borrar el lugar quita `placeId` (y deshacerlo lo devuelve).
+- **Al llegar a la tienda**: `placeAlerts` añade una región `<lugar>:arrive` (la misma clave que si el
+  lugar tuviera tareas: el id no cambia al fundirse) con el cuerpo **fijo** "Lo que queda de la cesta" o,
+  si ese lugar ya avisa al llegar por sus tareas, **va en ese mismo aviso** ("Comprar pilas · y la cesta";
+  `extra.shopping: '1'`, una sola región). El cuerpo no lleva la lista a propósito: cambiaría con cada cosa
+  tachada en la tienda y `PlaceAlerts.sync` (que compara el cuerpo) volvería a registrar la región estando
+  dentro, que puede hacer sonar el aviso otra vez; la lista se ve al tocarlo. Tocarlo abre la cesta
+  (`showBasket` en `App`, pasando a la Agenda si hacía falta) o, con tareas, el panel del lugar con una fila
+  "Cesta · N ›". Cuenta para el tope de 20 regiones; `useNativeSchedule` reprograma al cambiar la cesta
+  (solo cuando pasa de vacía a tener algo, o al revés).
+- Lo comprado **mientras la cesta está abierta** se queda a la vista, tachado, al final de lo pendiente
+  (`openedAt`: se ve el círculo llenarse y un toque de más se arregla con otro); lo de antes se pliega.
+
+### Lo que coincide
+
+Lo que se solapa en el tiempo va **en paralelo**, en carriles uno al lado del otro (lo pidió el usuario
+el 19/10/2026: "hay cosas que se van a solapar… que salgan como paralelos"). `groupParallel`
+(`lib/timeline.ts`) junta lo que coincide, aunque sea en cadena, en un `TimelineCluster`; dos cosas sin
+duración a la misma hora también coinciden (cuentan su minuto), y algo suelto dentro de algo largo
+también. Cada cosa va al primer carril libre a su hora; **dos carriles como mucho** (`MAX_LANES`: en un
+móvil no caben más) y lo que no quepa va debajo en el que antes se libera.
+
+- La fila (`li.tl--cluster`) lleva la hora de lo primero en la columna, un nudo de oro en la línea del día
+  (`.tl__fork`) y los carriles (`ul.tl__lane`, separados por un filete de puntos), cada uno con sus filas de
+  siempre (`SwipeRow`: se tachan, se deslizan, se abren y se cogen igual). Sin columna de la hora: cada una
+  dice la suya en su línea de debajo (`parallel`). A media anchura, el título crece con la importancia
+  hasta `--fs-block`, no hasta el doble.
+- Para el tiempo libre y "ahora", la fila entera cuenta como una cosa: de lo que empieza antes a lo que
+  acaba más tarde.
+- No se avisa de solapes ni se impiden: solo se ven.
+
+`Atrasadas`, `Rutinas` y las secciones se pliegan y ese estado se guarda (`AppState.collapsed`,
+`Section.collapsed`). Si algo añadido cae fuera de lo que se ve (una tarea para mañana escrita en
+hoy), un aviso dice adónde ha ido y ofrece **Ver**.
+
+Arriba a la derecha, en la Bandeja y la Agenda, el modo importancia: una **A con una flecha doble**
+(se desliza para agrandar), que al activarse sube y baja una vez.
+
+### El mes desplegado
+
+Para ir a dentro de dos meses sin pasar semana a semana, la tira se abre en el mes, como el
+calendario que baja en Google Calendar. Tres formas, las tres a la vista: **tirar de la tira hacia
+abajo** (sigue al dedo), el **asa** que tiene debajo y el **mes de la cabecera**, que es un botón con
+una flecha que se da la vuelta. Desplegada, a los lados se pasa **de mes** (conserva el día del mes,
+`addMonths`); **elegir un día la recoge** en su semana; tirar hacia arriba, el asa o el mes también.
+Siempre seis semanas (`monthWeeks`): no cambia de alto al pasar de mes; los días de los meses vecinos
+asoman atenuados. Cada día del mes es también un sitio donde soltar una tarea arrastrada.
+
+- `AgendaView` guarda si está abierta (`monthOpen`, no se persiste) y cuenta lo de todos los días
+  (`loads`) para los anillos.
+- **Sin animar alturas**: al desplegar, el mes ocupa su sitio de golpe y lo que se mueve son un
+  recorte (`clip-path` en `.strip`) y tres `transform` (las semanas, el asa y `.agenda__below`, el
+  bloque con todo lo de debajo), que `WeekStrip` pinta con `paint(p)` sin pasar por React. Al recoger,
+  se anima a 0 y entonces vuelve el `layout` de semana, en el mismo fotograma en que se quitan los
+  estilos. Al tirar con el dedo el mes se pinta antes con `flushSync`.
+- `open` (lo pedido) y `layout` (lo pintado) van separados: el segundo se queda atrás mientras dura
+  la animación de recoger. Un tirón (0,35 px/ms) o un tercio del recorrido cambian de estado.
+- El bloque entero (`.cal`) lleva `touch-action: none`: en vertical es del gesto, así que desde la
+  tira no se hace scroll de la página.
+
+### Bienvenida
+
+La primera vez (no hay nada guardado: `useFirstRun`, que sale de `loadState().fresh`) se abre
+`Welcome` en lugar de tareas de ejemplo: la app empieza vacía. También desde Ajustes → *Ver la
+bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual (y no se da por vista).
+
+- **Tras actualizar** también sale (`lib/welcome.ts`): cada lámina lleva la versión de la bienvenida en
+  que entró (`PLATE_SINCE`) y el dispositivo guarda la última que cerró (`Settings.welcome`, 0 =
+  ninguna; los estados de antes de la 1.3 no la traen, así que con la 1.3 la ve entera todo el mundo).
+  Al abrir, `welcomeOnLaunch`: entera si es la primera vez; si hay láminas posteriores a lo visto, solo
+  esas, numeradas desde la I y con la **portada de novedades** ("Hay cosas nuevas", **Ver lo nuevo** /
+  **Saltar**, y **Listo** al final); si no, nada. Acabarla o saltarla la da por vista
+  (`settings/welcome`, que nunca baja). Es del dispositivo, como la apariencia: importar una copia o
+  borrarlo todo no la cambia.
+- **Lámina nueva, o una que cambie para enseñar algo nuevo**: en `PLATE_SINCE` con la versión siguiente
+  a la mayor que haya (`WELCOME_VERSION` sale sola). Sin eso, quien actualiza no la ve.
+- El estado de ejemplo de las capturas (`scripts/sample-state.mjs`) la da por vista (`welcome: 999`)
+  para que no tape las capturas.
+
+- **Portada**: la señal en el centro exacto y a 92 px, donde la deja `#boot` (`MARK_PATH` en
+  `lib/boot.ts` lee su trazo antes de que se retire), así que el relevo no se nota; después sube y
+  entran el nombre, la frase y **Empezar**. Con bienvenida, `finishBoot` lo llama ella al pintarse
+  (`onReady`): no llega a verse la app vacía.
+- **Portada con índice** (la 1.8): bajo la frase, las láminas que vienen con su número en romanos
+  (`welcome__index`), y en la de novedades *Edición 1.8* (`__APP_VERSION__`). En pantallas bajas (< 660 px)
+  el índice no sale.
+- **Portada personal** (la 1.8, `personal.css`): la de novedades saluda según la hora (`greeting` en
+  `lib/recap.ts`) y, a quien ya tiene algo hecho (3 tareas tachadas o una racha de 2 días), cualquier portada le
+  enseña **su cuaderno** (`CoverLedger`, `recapOf`): tres cifras en serif entre filetes de oro (hechas, días
+  seguidos con el emoji de la rutina, lugares o rutinas o días) y desde cuándo. Con él la señal sube más
+  (`has-ledger`) y, por debajo de 800 px de alto, el índice no sale.
+- **«Tú decides»** (la 1.8, `StatsScene`): la última lámina, si hay servidor y nadie ha elegido estadísticas
+  (`askStats`, fijado al abrir). No está en `PLATE_SINCE`: no es una novedad y nunca abre la bienvenida por sí sola.
+  Una lista de mentira (Carlota, Ibán, Victor) que, al tocarla, tacha sus títulos en barras grises («Lo que
+  llega») y deja un punto de calor por toque («3 toques · ni una palabra»); hasta el primer toque, un dedo de
+  muestra toca en tres sitios. En lugar de «Listo», las tres respuestas de la ficha (`stats/choices.ts`), con el
+  mismo peso, y sin «Saltar» arriba («No, gracias» ya lo dice); **Escape en esta lámina es «No»**, como cerrar la
+  ficha. Quien salta antes de llegar sigue sin elegir y le pregunta la ficha otro día.
+- **Once láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
+  sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
+  Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
+  `lib/details.ts`; al plegarla queda el resumen), *Dictar* (versión 7, la 1.8, solo iPhone: la pantalla de
+  bloqueo con el widget del micrófono; tocarlo escucha, la frase sale palabra a palabra y el analizador la
+  entiende: «Café con David mañana a las 10», «Llamar a Miguel al moverme»), *Gestos* (versión 5: dos `SwipeRow` reales, tachar y
+  borrar, y una tercera fila que se hunde sola, "Mantén pulsada para moverla"), *Horario* (versión 7, la 1.8:
+  tres cosas con hora (Jorge, Adriana, Xoxi) y «Llamar a Ibán» sin ella; se coge y se sube por el horario con
+  el trazo de coñac de cuarto en cuarto, y al soltar sale la tarjeta real con la cinta de horas y la duración;
+  «Listo» la deja en su sitio), *Agenda* (el
+  `WeekStrip` real: tirar y desplegar el mes), *Rutinas* (tacharlas; en el
+  iPhone, con el widget de la pantalla de bloqueo, que se tacha a la vez), *La cesta* (versión 7, la 1.8: el
+  icono con la cifra y el popover; el campo escribe «pan, leche y 2 kg de arroz» y bajan tres filas que se
+  compran de un toque, con las habituales y, en el iPhone, «Avisar al llegar a Mercadona»), *Lugares* (versión
+  7, la 1.8, solo donde hay lugares: un plano con tu punto («Aquí · 100 m», que suena una vez al salir: «Te has
+  alejado 100 m · Llamar a Miguel»), tu casa y el Mercadona, cada uno con su círculo; se arrastra con el dedo y
+  al cruzar el de casa hacia fuera baja «Al salir de Casa · Llamar a Carlota», al entrar en el del Mercadona,
+  «Comprar pan», y cada tarea dice «Sonó»; hasta el primer toque un punto fantasma hace el camino), *Sugerencias* (versión 3,
+  la 1.4: rodear una fila de una lista de mentira, con la cena con Carlota arriba, y "enviar") y
+  *Calendario* (versión 4, la 1.6, solo donde hay calendario: un día con tareas en el que entran los
+  eventos con su color, y **Conectar mi calendario**). En la PWA no existe: `welcomeOnLaunch` recibe las
+  láminas de la plataforma (`availablePlates`) y lo que no hay ahí no cuenta como nuevo. Hasta que se tocan, las
+  escenas se mueven un poco para decir por dónde se cogen. Las escenas usan las clases de la app
+  (`composer__foot`, `composer__more`…): si cambia la barra de escribir, mirarlas.
+- Nada obliga: **Continuar**, atrás, **Saltar** y Escape; el último botón es **Listo**. Con
+  `prefers-reduced-motion`, la primera lámina enseña el resultado sin teclear y la portada aparece
+  entera. Desde Ajustes la portada entra sin esperar (`quick`); si el trozo tarda más de 8 s, la app
+  arranca sin ella. Mientras está abierta, la app de debajo va con `inert` y los avisos tocados esperan.
+- Es la única pantalla con texto explicativo: un titular y una frase por lámina.
+- Los ejemplos nombran a **Carlota** ("Cena con Carlota…", "Cine con Carlota…", la cena que se rodea en
+  *Sugerencias*), la novia del usuario, y desde la 1.8 a su gente (Sarita, Adriana, Ibán, David, Jorge,
+  Victor, Xoxi, Miguel, Aitana): lo pidió él. No cambiarlo. También salen en las capturas de la
+  App Store (la frase de la primera, el widget de Siri) y en los datos de ejemplo (`sample-state.mjs`).
 
 ### Arranque
 
@@ -291,8 +1103,297 @@ Los primeros segundos no deben saltar: cada relevo es invisible y la entrada, su
    (`.is-entering` en `shell.css`: cabecera, bloques y barra suben unos píxeles). Se puede tocar
    desde el primer momento.
 
-En un iPhone normal la señal da paso a la app en unos 200 ms y el esqueleto no llega a verse. La
-vista semana, si se abre antes de cargarse su trozo, enseña su propio esqueleto (`Skeleton`).
+En un iPhone normal la señal da paso a la app en unos 200 ms y el esqueleto no llega a verse. Una
+pestaña que se abre antes de cargarse su trozo enseña su propio esqueleto (`Skeleton`).
+
+**Con el modo oscuro**: la apariencia se copia en `localStorage` (`tasks:theme`) y un script en
+`<head>` pone `data-theme` antes de pintar, así que `#boot` (con variables `--boot-*`) ya sale en su
+tema. La pantalla de carga nativa usa el color `LaunchBackground` y la señal `LaunchMark` con
+variante oscura (Assets.xcassets), y `SceneDelegate` fija la apariencia guardada
+(`TasksNative.setAppearance`, en `UserDefaults`) antes de crear la vista: con "Oscuro" o "Claro"
+distinto del iPhone, la pantalla del sistema sale un instante en el tema del iPhone.
+
+### Idioma
+
+Español e inglés, en Ajustes → **Idioma**: **Automático** (el del sistema: el primero de sus idiomas que
+la app habla; si no habla ninguno, inglés), **Español** o **English** (`Settings.language`). Es del
+dispositivo, como la apariencia: importar una copia o borrarlo todo no lo cambia. Una instalación nueva
+empieza en automático; lo guardado antes del inglés (sin el campo) sigue en español (`normalizeSettings`).
+
+- **El idioma vigente vive en `lib/i18n.ts`** y no se pasa de función en función: la lógica pura lo lee
+  al componer un texto (`pick({ es, en })`). La web lo fija al pintar (`LanguageProvider`, que además
+  pone `<html lang>`); `headless.js`, al empezar cada petición de Siri (`speakAs`, con
+  `Locale.preferredLanguages` que manda Swift para el automático).
+- **Cada módulo guarda sus textos en los dos idiomas, junto al código** que los usa: en la lógica,
+  tablas `TEXT`/`WORDS` con `pick`; en los componentes, `const COPY = { es: {…}, en: {…} } as const` y
+  `const copy = useCopy(COPY)`. `useCopy` lee el contexto del idioma: así las filas memorizadas se
+  repintan al cambiarlo. En una función que se llama después (un toast), `pick` en el momento.
+- **Texto nuevo = en los dos idiomas.** Inglés de Estados Unidos: horas de 12 h ("5:30 PM", el tramo
+  "5:30–6:30 PM"), fechas "Thu, Sep 18", fechas numéricas mes/día. Apóstrofo curvo (’) en los textos.
+- **Analizador en inglés** (`parseEn.ts` + `whenEn.ts`) sobre el mismo motor que el español
+  (`parseCore.ts`: escáner de tramos y montaje de la tarea; las reglas, iguales: una hora sin día que
+  ya pasó es de mañana, con hora y sin avisos se avisa a la hora, "at 5" es por la tarde…). `parseTask`
+  y `parseSpoken` eligen por idioma. Va en su **propio trozo**: lo pide `LanguageProvider` al estar en
+  inglés (y el selector antes de cambiar); hasta que llega, lo escrito se queda literal. `headless.js`
+  lo lleva dentro (`provideEnglish`). Las rutinas en inglés están en `repeat.ts` ("every day",
+  "weekdays", "on mondays", "every mon, wed and fri"); los emojis sugeridos, en `emoji.ts`.
+- **Dictado en inglés**: la app manda `lang: 'en'` y no manda el contexto (`api.ts`), así que el Worker
+  transcribe con Whisper en inglés y **no pasa por la IA**, cuyo prompt solo entiende español: el
+  texto lo entiende el analizador del móvil. Siri en inglés tampoco va a la IA (`sharesDictation`). Sin
+  `lang` (versiones anteriores), español como siempre.
+- **Avisos**: el texto sale ya en su idioma; los botones del iPhone se registran de nuevo al cambiarlo
+  (`registerTaskActions`) y los del push web van en el idioma del aviso (`lang` en el contenido cifrado,
+  `sw.ts`).
+- **Widgets**: siguen el idioma de la app, no el del iPhone: la foto lleva `language` y Swift elige los
+  textos con `WidgetText` (`WidgetText.swift`, también para los fallos de Siri). Lo que enseña iOS por su
+  cuenta (las frases de Siri, los títulos de Atajos, los permisos, los accesos rápidos del icono) sigue
+  el idioma del iPhone: `ios/App/App/en.lproj` (`Localizable.strings`, `AppShortcuts.strings`,
+  `InfoPlist.strings`) y `ios/App/TasksWidget/en.lproj`. Las claves son los textos en español del Swift:
+  si cambia uno, cambiar su clave. `CFBundleLocalizations` lleva `es` y `en`.
+- **Tests**: los de siempre van en español (el idioma por defecto); los de inglés fijan
+  `setLanguage('en')` y lo devuelven al acabar (`parseEn.test.ts`, `i18n.test.ts`).
+
+### Rendimiento
+
+Tiene que ir fluida en un iPhone de hace unos años. Se mide con `scripts/perf.mjs` (versión de
+producción, CPU 6× más lenta, 230 tareas, mediana de varias pasadas); comparar antes y después de un
+cambio que toque listas, la Agenda o las pestañas. Reglas que salieron de medir:
+
+- **Nada se anima en reposo si obliga a repintar**: el punto de "ahora" latía animando una sombra y la
+  pantalla se repintaba en cada fotograma, también sin tocar nada. Lo que se mueve solo, con
+  `transform` u `opacity` (lo hace la GPU).
+- **Nada de `localeCompare`** para ordenar fechas, horas o ids: en JavaScriptCore cada llamada monta un
+  cotejador. `compareText` (`order.ts`); para nombres escritos, `compareNames` (un `Intl.Collator`).
+- **La barra entiende lo escrito en diferido** (`useDeferredValue` en `Composer`, la 1.8): cada tecla pinta
+  la letra y el analizador corre en un render que no bloquea la siguiente; al teclear a 60 ms por letra
+  con la CPU 6× más lenta, la respuesta pasó de 968 a 264 ms y las tareas largas de 679 a 304. La píldora
+  sale igualmente mientras se escribe (en cuanto el diferido alcanza al dedo). Ojo con `scripts/perf.mjs`:
+  desde entonces "soltar la barra" da una respuesta de ~4,5 s que no es real: Chrome (Event Timing) cuenta
+  los `input` de las teclas como presentados en el siguiente toque discreto; los fotogramas siguen a
+  < 200 ms y lo que hay que mirar ahí son las tareas largas y el peor fotograma.
+- **Lo que tarda en pintarse no bloquea el toque**: la pestaña nueva (`shownTab`) y el día nuevo de la
+  Agenda (`shown`) van con `useDeferredValue`: la barra de pestañas y la tira cambian al momento y lo
+  de debajo llega en cuanto está (si tarda, lo de antes se apaga un poco: `.agenda__below.is-stale`).
+  Mientras se arrastra, el día de debajo queda fijo (`dragDay`): lo que se confirma al soltar es suyo.
+- **Las filas fuera de la pantalla no se diseñan ni se pintan** (`content-visibility: auto` en `.swipe`,
+  iOS 18 en adelante). Ya recortaban su contenido, así que a la vista no cambia nada. Su alto estimado
+  (`contain-intrinsic-size`) es el medido: 49 px una tarea, 65 una del horario, 64 una rutina. Mientras
+  se arrastra (`.view.is-dragging`) se pintan todas, para que el arrastre mida bien.
+- **La tira pinta solo lo que se ve**: los paneles de los lados (la semana o el mes de antes y de
+  después) llegan pasado el despliegue (`SIDES_DELAY_MS`) o al empezar a deslizar.
+- El analizador compila sus expresiones en un rato libre tras el arranque (`warmUpParser`), y no corre
+  con la barra vacía.
+- Volver a una pestaña que estaba arriba no toca `scrollTop` (escribirlo obliga a diseñar de golpe).
+
+### Calendario del iPhone
+
+Lo que hay en la app Calendario del iPhone (iCloud, Google, Outlook… las cuentas de Ajustes → Apps →
+Calendario) sale en la Agenda: Tasks no es un calendario, pero enseña el tuyo. Y, si se elige, las tareas
+con hora van a uno de ellos (ver **Las tareas al calendario**, abajo). Con EventKit, en el propio iPhone:
+los eventos no se guardan en el estado, ni en las copias, ni se suben a ningún servidor. Pensado para que
+no abrume: nada de pestañas ni vistas nuevas.
+
+- **Dónde se ve**: en el `Horario`, entre las tareas, con una cápsula rellena del color de su calendario
+  (`.cal-tone`: el color de iOS a medias con la tinta tenue, para que no chille) y el título un punto por
+  debajo de las tareas; la hora y el sitio debajo; lo que ya acabó, apagado; cuenta para el tiempo libre
+  y se va llenando si está en curso. Lo de todo el día (y lo que cubre el día entero aunque tenga hora,
+  un viaje), como **cintas** encima del día (`AllDayEvents`; con más de tres, dos y "+N"). En la tira y
+  en el mes, un **punto** bajo el número de los días con algo (`eventDays`). Tocar un evento abre la ficha
+  de Calendario de iOS (`EKEventViewController`, se puede editar; al cambiar algo, iOS avisa y se vuelve a
+  leer).
+- **Se tacha** (la 1.8, lo pidió un amigo por el buzón: lleva sus cosas en el calendario): tocar la
+  cápsula o deslizar la fila a la derecha lo marca como hecho, como una tarea (cápsula de coñac con la
+  marca, título tachado); a la izquierda no hace nada. **Solo en Tasks**: nada se escribe en el
+  calendario. Se guarda la clave de esa ocurrencia (`id@inicio`) en `Settings.calendar.done`
+  (`withDoneEvent` en `lib/calendar.ts`, acción `event/set`): 300 como mucho, los que empiezan más tarde
+  (solo por cuántos: algo tachado en junio no se desmarca al tachar otra cosa). Moverlo lleva la marca a
+  la clave nueva (y de vuelta al deshacer); la vieja se queda, porque la fila vieja sigue a la vista
+  hasta que iOS devuelve la lista nueva. El widget de hoy no enseña como "lo siguiente" lo que ya está
+  tachado (la foto lleva `calendar.done` entero: uno que empezó ayer puede seguir hoy). Lo
+  de todo el día no se tacha (cumpleaños, festivos) y lo tachado no cuenta en el anillo del día. Si iOS
+  cambia el id de un evento (pasa al resincronizar una cuenta), la marca se pierde sin avisar.
+- **Se mueve** (la 1.7): mantener pulsado un evento del horario lo coge (`useDraggable`, `event:<key>`)
+  para soltarlo en un día de la tira o del mes (a su misma hora) o en otro hueco del horario (la tarjeta
+  de "Soltar en el horario" con su duración fija). `calendar.move(event, start)` → `TasksNative.moveEvent`
+  (`CalendarBridge.swift`: la ocurrencia por id e inicio, `allowsContentModifications`, `save(span:
+  .thisEvent)`: en una serie solo esa ocurrencia) y la cuenta del calendario (Google, Outlook, iCloud) lo
+  sincroniza como si se hubiera movido en Calendario. Como EventKit no avisa de lo que hace uno mismo, se
+  vuelve a leer al momento (`refresh`) y el widget de hoy recarga. Solo los de un calendario que se
+  puede escribir, con hora y que empiezan ese día (`canMoveEvent`); los suscritos, los cumpleaños y lo
+  que organiza otro (te han invitado: llega con `readonly` de Swift, porque la cuenta desharía el
+  cambio) no se cogen. En una serie solo vale la ocurrencia exacta (id e inicio): por el id a secas
+  EventKit daría la primera. A la misma hora no se escribe nada. Toast con "Deshacer" (lo devuelve a su inicio); si iOS no pudo, "No se ha podido mover el
+  evento". En local, `calendarDemo.ts` guarda los movimientos en memoria (`applyMoves`), y
+  `localStorage.setItem('tasks:demo-calendar', 'granted')` lo da por conectado al arrancar (guiones).
+- **Estado** (`Settings.calendar`: `enabled`, `hidden`, los ids de los calendarios ocultos, `export` y
+  `done`, lo tachado): es del dispositivo, como la apariencia (importar una copia no lo cambia; *Borrar
+  todo* solo vacía `done`). Se enciende al conceder el permiso.
+- **`CalendarProvider`** (`components/calendar/`): pregunta el permiso al arrancar, lee los calendarios y
+  los eventos de la ventana del día que se mira (`eventWindow`: su mes, una semana antes y dos después;
+  `useDayEvents` la mueve al cambiar de mes) y vuelve a leer cuando iOS avisa de un cambio
+  (`calendarChanged`), al volver a la app y al ocultar calendarios. Si al volver hay calendarios nuevos (se
+  acaba de añadir Google en Ajustes), un aviso lo dice.
+- **Ajustes → Calendario** (`CalendarBlock`): sin permiso, **Ver mi calendario en la Agenda** (pide el
+  acceso completo de iOS: el de "solo añadir" no deja leer); negado, abre los Ajustes del iPhone; con él,
+  un interruptor **En la Agenda**, **Calendarios** ("Todos" / "3 de 5", `CalendarPicker`, por cuentas) y,
+  siempre, **Añadir Google u Outlook** → `CalendarGuide`: pestañas Google / Outlook / Otro, la ruta de
+  Ajustes como botones (Apps › Calendario › Cuentas de calendario › Añadir cuenta), la lista de cuentas
+  de iOS con lo que hay que tocar marcado, *Calendarios* activado y *Guardar*, y una nota para iOS 17 o
+  para buscar «Cuentas». **Abrir Ajustes** abre la página de Tasks (es lo único que deja Apple; las rutas
+  `App-prefs:` son privadas y arriesgan el rechazo): desde ahí, atrás hasta Apps.
+- **Nativo**: `CalendarBridge.swift` (solo la app: permiso con `requestFullAccessToEvents`, calendarios,
+  eventos fuera del hilo principal, la ficha) y `CalendarReader.swift` (app y widget: leer, colores en
+  `#rrggbb`, `WidgetEvent`). La ocurrencia de un evento que se repite se distingue por su inicio (`key` =
+  id@inicio). `Info.plist` lleva `NSCalendarsFullAccessUsageDescription` (y la antigua), también el del
+  widget.
+- **Widget Hoy**: lee él mismo EventKit (si hay permiso y la foto dice que está encendido, con sus
+  ocultos: `WidgetSnapshot.calendar`); si no pudiera, usa la copia de la semana que lleva la foto
+  (`events`, que solo escribe la app; la foto de `headless.js` lleva `calendar` sin `events`). Mediano: el
+  siguiente evento de hoy encima de las tareas; grande: dos; bloqueo rectangular: si sobra una línea.
+  Entradas al empezar y acabar cada evento de hoy y mañana y, con calendario, se vuelve a leer cada media
+  hora (`.after`): lo que se crea en otro dispositivo no avisa al widget.
+- **Las tareas al calendario** (`lib/calendarExport.ts`, `CalendarExport.swift`, `CalendarExportSync`):
+  `Settings.calendar.export` es el calendario elegido en Ajustes → Calendario → *Añadir mis tareas*
+  (`CalendarExportSheet`): **No añadirlas**, **Calendario «Tasks»** (lo crea la app la primera vez, en
+  iCloud si lo hay: `createTasksCalendar`; recomendado) o uno tuyo que se pueda escribir (el del trabajo,
+  para que lo vea quien lo comparte). Van las pendientes con día y hora (una con plazo, en el día en que
+  se ve; sin duración, media hora; lo atrasado, hasta 60 días). Tras cada cambio, la web manda la lista
+  entera (`exportItems`, 800 ms después del último) y Swift crea, cambia o borra lo justo: guarda en
+  `UserDefaults` qué evento es de cada tarea y cómo era al escribirlo, así que lo que se toque a mano en
+  Calendario se respeta mientras la tarea no cambie (y uno borrado allí vuelve si la tarea sigue
+  pendiente). Tachar, borrar o quitar la hora borra el evento; cambiar de calendario los mueve; quitar el
+  ajuste los borra todos (por eso `CalendarExportSync` está siempre montado). Solo en un sentido: lo que se
+  cambia en Calendario no vuelve a Tasks. Cada evento lleva la URL de su tarea (`<esquema>://task/<id>`):
+  la Agenda y el widget no lo enseñan (ya se ve como tarea; `CalendarReader.events` lo quita) y desde
+  Calendario se abre la tarea. El «Tasks» no sale entre tus calendarios (`own`) ni avisa de "calendario
+  nuevo". Lo que se sincroniza en local se ve en `demoSynced` (`calendarDemo.ts`).
+- **En local** (`npm run dev`) y en las capturas, `calendarDemo.ts`: tres calendarios (Google, iCloud,
+  suscritos) y eventos que se repiten, para verlo sin iPhone; en las capturas, unos fijos junto a las
+  tareas de muestra (la reunión, en curso a las 11:20). En la PWA publicada no hay calendario.
+
+### Aviso de versión nueva
+
+Para que quien usa la app (los amigos del usuario) se entere de que hay una versión nueva sin tener que
+decírselo. Solo en el iPhone: la PWA se actualiza sola.
+
+- `AppStoreVersion.swift` (`TasksNative.storeVersion`) pide la búsqueda pública de la App Store
+  (`itunes.apple.com/lookup?id=6812776586`, con la tienda del país y las novedades en el idioma de la app;
+  desde Swift porque la web no puede por CORS) y devuelve la versión publicada, sus novedades y la
+  instalada. `lib/update.ts` compara (`compareVersions`: 1.10 > 1.9) y decide (`offeredUpdate`).
+- `UpdatePrompt` (trozo aparte) mira 3 s después de abrir y al volver a la app, como mucho cada seis
+  horas. Si la publicada es más nueva, sube una ficha: el número en un sello, "Tasks 1.7 ya está aquí", las
+  novedades tal como se escribieron en App Store Connect (*Novedades de esta versión*: una por línea) y
+  **Actualizar**, que abre la página de la app en la App Store (iOS no deja actualizar desde dentro).
+  **Ahora no** (o bajar la ficha) la aparta para esa versión (`localStorage`); en Ajustes → Tasks queda
+  la fila **Actualizar a la 1.7** hasta que se actualiza. Espera si está la bienvenida o el modo
+  sugerencia. Desde TestFlight (versión más alta que la publicada) no sale.
+- Apple tarda unas horas en reflejar una versión recién publicada en la búsqueda.
+- En local: `localStorage.setItem('tasks:demo-update', '1.7')` y recargar.
+
+### Sugerencias
+
+Para que quien usa la app (los amigos del usuario) diga qué cambiaría señalando el sitio exacto. Ajustes
+→ **Sugerir una mejora** (solo si hay servidor: `VITE_PUSH_API`) pone la app en **modo sugerencia**
+(`components/feedback/`, en su propio trozo):
+
+1. **Ir a donde sea**: la app sigue usándose (pestañas, paneles) con una **tarjeta abajo**, sobre las
+   pestañas y al alcance del pulgar (`FeedbackDock`, z 70): *Ve a lo que quieras comentar* y un solo botón
+   grande, **Señalar**, con un halo que late un par de veces; la × sale del modo. La barra de escribir se
+   aparta mientras (`data-suggesting` en `<html>`). Antes era una píldora arriba que ya decía *Rodea…*:
+   en el iPhone el usuario intentaba rodear sin tocarla primero.
+2. **Señalar** quita la tarjeta un fotograma y hace la **foto** (`captureScreen` →
+   `TasksNative.screenshot`, `WKWebView.takeSnapshot`): destello y la pantalla congelada con un marco de
+   coñac (`FeedbackDraw`, z 90). En la PWA no hay foto (una página no puede fotografiarse): se rodea
+   sobre la app en vivo. Hasta el primer toque, una **mano de muestra** dibuja una vuelta en el centro
+   (`fb-demo`: el trazo se dibuja y un dedo lo recorre con `offset-path`). **Se rodea con el dedo** (el
+   trazo se pinta sin pasar por React); un toque rodea un círculo; *Sin rodear* es la pantalla entera;
+   Cancelar o Escape vuelve a la tarjeta. La pantalla (`Mark.viewport`) se guarda al rodear.
+3. **Al soltar**, `describe.ts` mira qué hay debajo (`elementsFromPoint` en una rejilla de la zona, del
+   centro hacia fuera): el texto de cada cosa y sus clases ("Cena — tl-row › row__title"), y el panel
+   abierto. `composeShot` pinta el trazo sobre la foto, estirada a la pantalla como en la capa (JPEG a
+   2× como mucho, ~500 KB tope; si no sale, se envía sin foto).
+4. **El panel** (`FeedbackSheet`, z 95) enseña la miniatura, la pantalla y lo rodeado, *Rodear otra
+   vez*, y el mensaje. **Sin foto no van los textos** de lo rodeado ni el título del panel (son las
+   tareas de quien escribe), solo las clases: al quitar la miniatura (×), si no se pudo hacer y siempre en
+   la PWA. Cerrar el panel vuelve a la píldora sin perder lo escrito. **Enviar** (espera a que la foto
+   esté lista) → `POST /v1/feedback` (`postFeedback`, `lib/feedback.ts`, 20 s como mucho) → toast y fuera
+   del modo; si falla, el porqué sale en el panel (un toast quedaría debajo).
+
+- **Lo que viaja** (`FeedbackReport`): mensaje (2000 como mucho), foto opcional y contexto: pestaña (en
+  español, para quien lo lee), panel, zona rodeada y tamaño de pantalla, lo rodeado, versión,
+  plataforma, idioma, tema y "iPhone · iOS 18.5" (`deviceLabel`). Nada que identifique a nadie.
+- **Worker**: `POST /v1/feedback` sin cuenta, 10 por hora y IP, 200 guardadas como mucho (comparten la
+  D1 con los avisos), lo de más de un año lo borra el cron; valida y sanea el contexto
+  (`parseFeedback`) y guarda en D1 (`feedback`). El **buzón** es `GET /buzon` (`inbox.ts`): una página sin datos que los pide con la
+  clave (`FEEDBACK_KEY`, secret de Cloudflare; copia en `worker/.feedback-key`, fuera de git) a
+  `GET /v1/feedback`, `GET /v1/feedback/<id>/shot` y `DELETE /v1/feedback/<id>` (archivar = borrar).
+  Todo lo del usuario se pinta con `textContent`; CSP con nonce; las capturas se piden al acercarse
+  (todas de golpe toparían con el límite de 60 por minuto y IP). *Copiar* deja la sugerencia en texto
+  para pegársela a Claude; `npm run feedback` (en `worker/`) las baja a `feedback/` con su captura.
+- **Privacidad**: es lo único que el servidor guarda con contenido; va en la política (`#sugerencias`),
+  en `PrivacyInfo.xcprivacy` (atención al cliente) y en App Store Connect (`docs/app-store.md` §4).
+
+### Estadísticas
+
+Para saber cuánta gente usa la app, cómo y con qué regularidad, y dónde se toca (mapa de calor), sin ver a
+nadie en particular (lo pidió el usuario el 05/11/2026, «todo dentro de lo legal»). Nada de herramientas de
+terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los títulos de las tareas.
+
+- **Tres niveles, y nada sin elegirlo** (`Settings.stats.level`, del dispositivo como el dictado: importar o
+  borrarlo todo no lo cambia; `lib/stats/settings.ts`): **Solo visitas** (`basic`: medir audiencia), **Con
+  detalle** (`full`: además, funciones y toques) y **Ninguna** (`off`: no se manda nada y se borra lo pendiente),
+  que es lo que hay mientras no se elige (`level: null`, `effectiveLevel`). Apple pide permiso incluso para datos
+  de uso anónimos (norma 5.1.1(ii)): la AEPD admite medir la audiencia sin consentimiento, pero eso no vale para
+  la revisión (la TestFlight 54 contaba así las visitas; se cambió el 08/11/2026). Se pregunta en la última
+  lámina de la bienvenida («Tú decides», ver "Bienvenida") y, a quien la saltó antes, en la ficha `StatsPrompt`, a
+  partir del segundo día con la app y sin nada delante. Las dos, con las mismas tres respuestas y el mismo peso
+  (decir que no cuesta lo que decir que sí), sin contar la respuesta; cerrar o saltar la pregunta es "Ninguna".
+  Sin elegir no hay cohorte. Ajustes → Tus datos → **Estadísticas** (`StatsRow`).
+- **Sin identificadores**, como el *usage ping* de Brave o DuckDuckGo: el móvil manda contadores y banderas
+  (`lib/stats/pending.ts`, `ledger.ts`). Un **ping al día** (`u:day`) con `weekly`/`monthly`/`first` (primero de
+  la semana, del mes, de siempre), la **cohorte** (el lunes del primer envío, guardado en `Settings.stats.cohort`
+  porque el fichero de estado aguanta más que localStorage), los días con la app de las últimas 4 semanas,
+  idioma, tema y tamaño de pantalla. Quien comparte el detalle cuenta aparte una vez al día (`full`). De cada
+  evento, cuántas veces y si es la primera vez hoy en ese dispositivo (`reach`): así el panel dice "en qué parte
+  de los días de uso pasa X" sin saber quién.
+- **Qué cuenta**: el tipo de cada acción del reducer y la forma de lo que crea (`task/add+time`, `+place`…;
+  `lib/stats/events.ts`), nunca su contenido (la cola del JS principal guarda solo los nombres); pestañas
+  (`view/…`) y paneles (`sheet/…`, la prop `screen` de `Sheet`); `track(...)` en la barra (escrita, ficha,
+  píldora aceptada o deshecha, Detalles), el dictado, la bienvenida, las sugerencias, la bandeja de Siri y el
+  widget; visitas (cuántas, cuánto, a qué hora), arranque en frío, errores (`lib/stats/errors.ts`: solo tipo y
+  fichero:línea, nunca el mensaje) y la latencia de cada toque.
+- **Mapa de calor** (`collector.ts`, `taps.ts`): un clic en captura sobre `window` (solo de verdad: no
+  programáticos, ni de teclado, ni tras deslizar o mantener). La pantalla es el `data-screen` más cercano (la raíz
+  de la app por pestaña o `composer`, cada `Sheet`, `basket`, `welcome:<lámina>`); la celda, una rejilla de 16 × 32
+  sobre la ventana; el objetivo, la primera clase CSS de bloque (nunca texto, `aria-label` ni ids). **Rabia**:
+  tres toques en 0,8 s a menos de 24 px. **Sin efecto**: nada cambia en el DOM (estados y estructura) ni hay
+  scroll en 0,5 s (un solo `MutationObserver`, solo mientras hay toques abiertos; un campo nunca cuenta como sin
+  efecto). En modo sugerencia no se cuenta nada.
+- **Envío** (`collector.ts`): lo contado se guarda en `localStorage` (`tasks:stats`) y se manda al pasar a
+  segundo plano (`fetch` con `keepalive`) si hay días cerrados o pasaron 15 min. El lote se da por enviado
+  **antes** de mandarlo: si iOS suspende la app a mitad, se pierde ese lote pero nunca se cuenta dos veces a
+  nadie. Un 4xx (salvo 429) lo descarta. Cabe siempre en lo que admite el servidor (`MAX_BATCH_ROWS`: los días y
+  los toques más repetidos). Lo de antes de actualizar va con su versión (`leftover`).
+- **Worker** (`worker/src/stats.ts`, `store.ts`): `POST /v1/stats` sin cuenta, valida (familias de eventos
+  cerradas: tipos de acción, `view/`, `sheet/`, `ui/`, `add/`, `inbox/`, `widget/`) y **suma al llegar** en tres
+  tablas de contadores (`stats_counts` por día, plataforma, versión y nombre; `stats_cells` y `stats_targets` por
+  semana, versión y pantalla), con un upsert por tabla vía `json_each`. Ni el lote ni la IP se guardan; lo que
+  describe al dispositivo (idioma, tema, cohorte, nuevos…) va sin plataforma ni versión, para no cruzar
+  dimensiones. **Presupuesto**: 30.000 filas al día para estadísticas (el resto del plan gratuito, para los
+  avisos) y 4.000 por IP (su huella, que se borra al día siguiente: `stats_ip`), más `STATS_LIMITER` (6 por
+  minuto). Lo que pasa de 400 días se borra (cron, una vez al día).
+- **Panel** (`/uso`, estático en `worker/panel/uso`, servido por el Worker con su CSP; la misma clave que el
+  buzón), con las cifras de quien acepta las estadísticas: cuánta gente (mes, semana, hoy, nuevos, días de uso), vuelven (cohortes), con qué frecuencia, qué se
+  usa, **dónde se toca** (el mapa sobre una captura de referencia de cada pantalla, `scripts/heat-shots.mjs`, con
+  rabia y sin efecto, y la lista de lo más tocado), pantallas, rendimiento y errores, y con qué (plataforma,
+  versión, idioma, tema, pantalla). Filtros de periodo y versión arriba. **Con menos de 3 dispositivos (`K`) no
+  se desglosa nada**: el umbral es del panel; las tablas guardan contadores exactos. Paleta validada con el
+  script de la skill de gráficos (contraste y daltonismo, claro y oscuro).
+- **Si cambia una pantalla**, rehacer sus capturas (`node scripts/heat-shots.mjs`). **Si se añade un evento**,
+  que su familia ya exista en `EVENT` del Worker (si no, se descarta) y ponerle nombre en `panel/uso/labels.js`.
+- En local: `.env.local` con `VITE_PUSH_API`, `npm run dev` en el Worker (o `panel-test` de `.claude/launch.json`,
+  con la clave de los tests) y `npm run stats:demo` para tener datos. La ficha sale a partir del segundo día:
+  para verla ya, sin haber elegido, `localStorage.setItem('tasks:stats-ask', '2026-01-01')` y recargar.
 
 ### Pasar a hoy
 
@@ -304,8 +1405,8 @@ estar en rojo. Conserva la hora; lo hecho no se mueve (es historia).
 - `tasks/reschedule { ids, date }` (`rescheduled` en `order.ts`) ignora lo hecho y lo que ya es de
   ese día, así que repetirlo no cambia nada. "Deshacer" (toast) es `tasks/place` con los sitios de
   antes (`placementsOf`): cada tarea vuelve a su día, su sección y su puesto.
-- Dónde está: la cabecera de `Atrasadas`; cada día pasado con pendientes en `Semana` (solo los de
-  ese día); los avisos (el resumen diario con algo atrasado trae *Pasar atrasadas a hoy*, y el aviso
+- Dónde está: la cabecera de `Atrasadas`; la de `Sin hora` de un día pasado con pendientes en la
+  Agenda (solo los de ese día); los avisos (el resumen diario con algo atrasado trae *Pasar atrasadas a hoy*, y el aviso
   de una tarea cuyo día ya pasó, *Pasar a hoy* entre *Hecha* y *+10 min*: `ScheduleEntry.overdue`,
   categorías `task-overdue` y `digest-overdue`); Siri y Atajos (*«Pasa lo atrasado a hoy en
   Tasks»*, `MoveOverdueIntent`, sin abrir la app; sirve para una automatización cada mañana,
@@ -320,6 +1421,51 @@ estar en rojo. Conserva la hora; lo hecho no se mueve (es historia).
   `ToggleTaskIntent`: apuntarlo en `widget-changes.json` y que la web lo aplique al volver (los
   avisos de esas tareas se programarían al abrir la app).
 
+### Plazos
+
+Lo que hay que hacer "esta semana" o "de tal día a tal día" no es de un día ni se repite: tiene un
+**plazo** (`Task.until`, `lib/period.ts`). Vale cualquier día entre `date` y `until` (los dos
+incluidos) y, **mientras siga pendiente, va con hoy**: pasa sola de un día al siguiente, arriba de su
+bloque como lo que se pasa a hoy, sin quedar atrasada ni tener que traerla cada mañana. Pasado el
+último día sí está atrasada (en rojo, en `Atrasadas`, desde su último día). Se hace una vez: no es una
+rutina.
+
+- **Nada se reescribe al cambiar de día**: el día en que se ve sale de la fecha de hoy (`shownDay`:
+  hoy dentro del plazo; antes de empezar, su primer día; hecha, el día en que se hizo) y lo atrasado,
+  del último día (`lastDay`, que usa `isOverdue`). Así el widget, el resumen diario y los avisos
+  programados para los días siguientes aciertan aunque no se abra la app.
+- **Dónde se ve**: la fila dice hasta cuándo ("Hasta el jueves", "Hasta el 15 oct"; el último día,
+  "Último día" en coñac: `periodTag`), también en el horario. En el panel de la tarea y en la ficha del
+  compositor, bajo **Cuándo**, la píldora **Hasta…** abre el selector de fecha (desde el día siguiente)
+  y, elegida, dice "Hasta el viernes" con su × (`WhenField`, `task/until`). Nada más: ni opciones
+  aparte ni otra lista.
+- **Escribiendo o dictando**: "esta semana", "durante la semana", "la semana que viene" (sin un día
+  detrás: "la semana que viene, el martes" es ese día), "este fin de semana", "este mes", "hasta el
+  viernes", "hasta el 15 de octubre", "hasta mañana", "del lunes al viernes", "entre el lunes y el
+  jueves", "del 5 al 9", "del 28 de septiembre al 3 de octubre". **"De lunes a viernes" (sin
+  artículos) sigue siendo una rutina**: el lenguaje ya distingue los días concretos de los de cada
+  semana. En inglés: "this week", "next week", "this weekend", "this month", "until/by friday", "until
+  Oct 15", "between monday and thursday". Se leen antes que los días sueltos (`readPeriodEs`,
+  `readPeriodEn`). La píldora, la ficha y el aviso de "adónde ha ido" dicen el plazo entero
+  (`periodLabel`: "Esta semana", "La semana que viene", "Del 6 al 10 oct").
+- **Tres clases de plazo** (`DayRange.kind`): `until` ("hasta el viernes"), `range` ("del lunes al
+  viernes", como mucho 62 días: más sería leer mal el mes) y `loose` ("esta semana", "este mes"). Con
+  un día dicho, uno `loose` solo dice cuál: "el viernes de esta semana" es el viernes, sin plazo. Con
+  hora, uno `until` es una hora límite: "hasta el viernes a las 5" es el viernes a las 17:00, sin plazo
+  (`assemble` en `parseCore.ts`).
+- **La IA del dictado no sabe de plazos** (su prompt no se ha tocado): si devuelve una sola tarea y lo
+  dicho trae un plazo, el día y el final los pone el analizador del móvil sobre el texto
+  (`draftsFromInterpreted(…, text)`); con varias tareas, manda la IA.
+- **Mover**: llevarla a un día dentro del plazo lo conserva; más allá (o sin fecha), pasa a ser solo de
+  ese día (`cleanUntil` en `moveTask`). "Pasar a hoy" lo atrasado de un plazo acabado lo deja solo para
+  hoy, y deshacer le devuelve el plazo (`Placement.until`). Soltarla al reordenar el día que se ve la
+  deja en ese día con el mismo final (`board/commit`).
+- **Con hora**: es la de cada día del plazo. El horario la pone a esa hora en hoy y los avisos "antes"
+  suenan **cada día que quede** hasta hacerla (7 como mucho, ids `<aviso>-AAAAMMDD`); el aviso de cierre,
+  el del día en que está. Un aviso sin hora dice "Hasta el domingo" o "Último día".
+- **Widget**: la foto lleva `until` en lo pendiente con plazo (`WidgetTask.until`, opcional en Swift) y
+  el widget la enseña cada día de él (`shows(on:)`) y solo después en rojo (`lastDay`).
+
 ### Importancia
 
 `Task.importance`, del 1 (normal) al 10, se ve como **tamaño del título**: sin etiquetas, colores
@@ -328,15 +1474,76 @@ ni "urgente". Más importante = más grande, con más peso y más apretado, hast
 igual. No reordena nada.
 
 - **Modo "Aa"** (arriba): cada fila cambia el asa de mover por su mando, un número del 1 al 10.
-  Arrastrarlo hacia arriba o a la derecha agranda y hacia abajo o a la izquierda encoge (18 px por
-  punto, vibra en cada uno, el título cambia en vivo); tocarlo sube uno y pasado el 10 vuelve al 1.
-  En el modo no se reordena (no hay asa). El estado del modo no se guarda.
-- **Panel de la tarea**: la escala del 1 al 10 bajo el título, cada número del tamaño que dará.
+  Coge el dedo desde que se apoya (`touch-action: none`): arrastrarlo hacia arriba o a la derecha agranda
+  y hacia abajo o a la izquierda encoge (18 px por punto, vibra en cada uno, el título cambia en vivo);
+  tocarlo sube uno y pasado el 10 vuelve al 1. La primera vez que se activa, un toast dice que el número
+  se arrastra (la auditoría lo dejó solo de lado y el usuario lo echó en falta: la 47 lo devolvió). En el modo no se
+  reordena. El estado del modo no se guarda.
+- **Panel de la tarea**: la escala del 1 al 10, plegada en una fila "Importancia · Normal ›"; se toca o
+  se arrastra (coge el dedo desde que se apoya, como la regla), y en lo hecho va atenuada.
 - Lo **hecho** vuelve al tamaño normal (se conserva el valor por si se desmarca) y no lleva mando.
 - Donde no hay sitio para tamaños, la importancia elige: el widget de la pantalla de bloqueo enseña
   las dos pendientes más importantes y el resumen diario adelanta las más importantes en su vista
   previa. En el resto del widget los títulos crecen poco (las filas son de alto fijo).
 - Lo que llega sin importancia (copias antiguas, Siri, la bandeja) es normal (`normalizeImportance`).
+
+### Rutinas
+
+Lo que se repite ("tomar creatina", cada día a las 10:00) no es una tarea: es una `Routine`
+(`AppState.routines`, `lib/routines.ts`) con los días de la semana en que toca (1 = lunes … 7 =
+domingo), una hora opcional, un **emoji** opcional y un **diario** de días hechos (`done`, los 400
+más recientes). No hay nada que reiniciar a medianoche: "hecha hoy" es que el diario tenga hoy, así
+que cada día amanece pendiente él solo (en la app, en los avisos y en el widget).
+
+- **Emoji** (`Routine.emoji`, `lib/emoji.ts`): su seña. Sale delante del nombre en la fila, dentro de
+  la cápsula del horario y en los widgets en lugar de las iniciales. Se elige en el panel, tocando el
+  **sello** que hay junto al nombre: una lámina de 28 (`ROUTINE_EMOJIS`), "sin emoji" y un hueco para
+  teclear **otro** con el teclado de emojis (se guarda uno solo: `cleanEmoji`). Al crear una rutina
+  (escribiendo, dictando, desde una tarea o en el panel) se propone el que le pega al nombre
+  ("creatina" → 💊, `suggestEmoji`); en el panel, hasta que se elige uno a mano. **Entonados**: la
+  clase `.emoji` les pone `--emoji-tone` (medio color y un velo sepia, distinto en cada tema) para que
+  no desentonen con el papel; en el widget de inicio, `RoutineEmoji` (`.saturation(0.55)`), y en la
+  pantalla de bloqueo iOS ya los pinta en un tono.
+- **Dónde**: bloque `Rutinas` de la Bandeja (las que tocan hoy arriba, lo hecho después y las que hoy
+  no tocan, atenuadas), con "2/3" de hoy y **+**. Al pie, una nota: *Se renuevan a las 00:00*.
+- **Cuándo empieza el día** (`Settings.dayStart`, `00:00` por defecto): se cambia tocando la hora de esa
+  nota (`PickerChip`, la rueda de iOS), sin opción en Ajustes: casi nadie lo toca. Con "04:00", lo que se
+  tacha a la 1 de la madrugada cuenta para la víspera y la racha no se rompe; una hora de la tarde
+  ("22:00") adelanta el día a la víspera por la noche. `routineDay` (`lib/routines.ts`) da el día de las
+  rutinas: lo usan la Bandeja y el panel (`useRoutineDay` en `App`), los avisos (`routineEntries`, con
+  `occurrenceDate`: el aviso de la 1:00 de un día que empieza a las 4:00 suena la madrugada siguiente)
+  y el widget (la foto lleva `dayShift`; `WidgetDay.routineDay` y una entrada en cada cambio de día). El
+  horario de la Agenda sigue el calendario. Cambiarla de madrugada puede hacer que lo tachado hace un
+  rato pase a contar para la víspera y hoy amanezca sin tachar: es el día el que cambia, no el diario
+  (se decidió no complicarlo). Es de los datos: va en la copia y se borra con *Borrar todo*. Las que tienen hora salen también en el horario
+  de la Agenda de cada día que tocan (cápsula de trazo discontinuo con su emoji o el icono de repetir).
+- **Fila** (`RoutineRow`): el círculo o deslizar a la derecha la tacha hoy; a la izquierda, borra (con
+  deshacer). A la derecha, **los últimos siete días**: punto lleno, hecha; hueco, no; raya, no tocaba
+  (antes de crearla tampoco). Debajo del título, la hora, los días y "racha de N" (desde 2).
+- **Panel** (`RoutineSheet`): emoji y nombre, días (L M X J V S D y atajos: cada día, entre semana,
+  fines de semana y una vez por semana, "Los martes": `weeklyPreset`, el día que ya tiene si es uno
+  solo, si no el de hoy; en la ficha, el de la tarea), aviso a una hora, y **Constancia** (`RoutineLog`): racha, mejor racha, % de los
+  últimos 30 días y cinco semanas día a día con su número, como un cuaderno de asistencia. **Se puede
+  corregir**: tocar un día pasado lo marca o desmarca (`routine/set`) y pasar el dedo de lado marca (o
+  desmarca) varios seguidos; las flechas van de cinco en cinco semanas hacia atrás, hasta lo que guarda
+  el diario. Sirve para rehacer una rutina borrada sin querer (marcar días de antes de crearla los
+  cuenta para la racha) o los días que se olvidó tachar. En vertical, el dedo es del scroll del panel
+  (`touch-action: pan-y`). Una nueva se crea al cerrar si tiene nombre ("Añadir rutina").
+- **Escribiendo**: `parseRoutine` (`lib/repeat.ts`) reconoce "todos los días", "cada día", "a
+  diario", "entre semana", "de lunes a viernes", "los fines de semana", "los lunes y jueves", "cada
+  martes", "todas las mañanas" (09:00)… La hora sale del analizador de siempre ("a las 7" es 19:00,
+  como en las tareas). La píldora dice "Cada día · 10:00" con el icono de repetir; tocarla la deja
+  como tarea. También al dictar (antes de la IA). "El lunes" es un día; "los lunes", todos.
+- **Desde una tarea**: panel → **Convertir en rutina** (cada día, con su hora; deshacer).
+- **Avisos**: `routineEntries` (`schedule.ts`) programa uno a su hora cada día que toca en los
+  próximos 7, mientras no esté hecha (id `routine-<id>-AAAAMMDD`). No cuentan para el número del
+  icono. En el iPhone, si no cabe todo en los 64 avisos, las rutinas se llevan como mucho un tercio
+  del hueco (`fitSchedule`, `ROUTINE_SHARE`): lo que falte se programa al volver a abrir la app. En el iPhone llevan **Hecha** (categoría `routine`), que la tacha **sin abrir la app**:
+  `NotificationResponder` lo apunta en el App Group como el widget y la web lo aplica al volver
+  (o al momento si está delante: acción `widget`). Tocar el aviso sin botón abre la Bandeja y pregunta
+  "¿Hecha?". En la PWA no llevan botones.
+- **Widget Rutinas** (pantalla de bloqueo redonda y rectangular, y pequeño de inicio): ver "App de
+  iPhone".
 
 ### Duración y aviso de cierre
 
@@ -354,17 +1561,25 @@ notificación, sin entrar.
 - **«Todavía no» alarga la tarea** (`task/extend`, `extendedDuration`): el final pasa a 15 min
   desde *ahora*, no desde el final previsto, así que responder tarde no deja la siguiente pregunta
   en el pasado. Como efecto, el tramo guardado acaba reflejando lo que de verdad duró.
-- **Tocar el aviso sin botón** abre la app y repite la pregunta en un toast con **Sí**: en iOS los
-  botones de una notificación piden mantener pulsado, y así la salida sigue siendo un toque. La
-  marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
+- **Tocar el aviso sin botón** abre la tarea, cuya barra de arriba pregunta **¿Has acabado?** con
+  **Sí, hecha** y **Todavía no** (`SnoozeBar`, cuando la tarea tenía duración y ya acabó), y repite la
+  pregunta en un toast con **Sí**: en iOS los botones de una notificación piden mantener pulsado, y así
+  la salida sigue siendo un toque. La marca viaja en `extra.ask` (nativo) y en `?ask=1` (web).
 - Se escribe hablando o tecleando: "durante una hora", "que dura media hora", "una reunión de dos
   horas", "de 17:30 a 18:30", "de las 5 a las 7", "hasta las 19:00". Un tramo fija hora y duración
   a la vez, y la franja del final vale para el inicio si el tramo sigue hacia delante ("de 9 a 11
   de la noche" es 21:00–23:00; "de 10 a 2 de la tarde", 10:00–14:00). Lo que no se dice no dura:
   nunca se supone.
-- En el panel, **Duración** va debajo de Hora: atajos (15 min, 30 min, 1 h, 2 h), `Hasta…` para la
-  hora exacta de acabar, y una línea que dice a qué hora será la pregunta. La fila enseña el tramo
-  (`17:30–18:30`) en lugar de la hora suelta.
+- En el panel (y en la ficha del compositor), **Duración** va debajo de Hora y es una **regla**
+  (`DurationPicker`, `lib/ruler.ts`): una regla de papelería con las horas en oro, la tinta marina de
+  la hora de empezar a la de acabar y un sello en la punta. Se arrastra o se toca (5 en 5 min en la de
+  dos horas); **mantener el dedo al final** (480 ms) llena de oro un halo alrededor del sello y la regla
+  se estira (2 h → 4 h → 8 h → medio día, con vibración; las marcas se aprietan desde donde estaban) y
+  marca todo lo que abarca ahora; seguir manteniendo la vuelve a estirar. Al soltar, la regla vuelve al
+  tramo que le queda holgado (`spanFor`), así que lo corto se ajusta con precisión. A la izquierda del
+  todo o con la ×, sin duración; arriba, la duración en serif y "17:00 → 18:30", donde la hora de
+  acabar abre la rueda para ponerla exacta. Debajo, la línea que dice a qué hora será la pregunta. La
+  fila enseña el tramo (`17:30–18:30`) en lugar de la hora suelta.
 - Categoría de botones `task-ask` en el iPhone; en la PWA, acciones `done` y `again` del push.
 - **En el iPhone los botones no abren la app** ni piden desbloquear (sin `foreground`): iOS la arranca
   en segundo plano, sin WebView, y `NotificationResponder.swift` (delegado de notificaciones, puesto
@@ -378,40 +1593,113 @@ notificación, sin entrar.
 
 ### Drag & drop
 
-- **El arrastre solo se activa desde el asa** (`task__grip`, `section__grip`), con
-  `touch-action: none` y un umbral de 4 px. El resto de la fila queda libre para el scroll
-  vertical y el deslizamiento horizontal, así que los tres gestos no compiten.
-- **`home`**: `useHomeBoard` mantiene una copia (`preview`) del tablero durante el gesto y
-  confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
-  ref: al soltar hay que leer el estado real del gesto, no el del último render.
-  Cada columna del commit lleva su propio destino: `root` y las secciones van a hoy,
-  `backlog` va a `null`, y `overdue` se excluye del commit.
-- **`week`**: cada día es un `useDroppable`; soltar cambia la fecha y conserva la sección.
-  No se reordena dentro del día (el orden es por sección y quedaría ambiguo).
-- Ids con prefijo para no colisionar: `col:<clave>` (columna), `sec:<id>` (sección),
-  el id pelado de la tarea para las tareas. Ver `src/components/dnd/ids.ts`.
+- **Se coge manteniendo pulsado** (300 ms, tolerancia 8 px; `useDragSensors`): la tarea o la cabecera de
+  una sección. Antes era un asa en el borde derecho, donde el pulgar de un diestro hace scroll, y un amigo
+  reordenaba sin querer (buzón, 05/10/2026). Moverse antes de tiempo es scroll o deslizar. Mientras se
+  mantiene, la fila se hunde (`pressCue`); al soltar sin moverse no se abre. Con teclado, el botón "Mover"
+  oculto de cada fila.
+- **Agenda** (`useDayBoard`): mantiene una copia (`preview`) del tablero del día elegido durante el
+  gesto y confirma todo con una sola acción `board/commit` al soltar. La copia vive además en un
+  ref: al soltar hay que leer el estado real del gesto, no el del último render. Cada columna del
+  commit lleva su propio destino: `root` y las secciones van al día elegido, y `overdue` (solo hoy)
+  se excluye del commit. Solo entra lo que no tiene hora: lo que la tiene va al horario y no se
+  arrastra. Los días de la tira son `useDroppable` (`type: 'day'`): soltar ahí lleva la tarea a ese
+  día con su sección y su hora, con deshacer.
+- **Bandeja**: una sola lista (`scope/reorder` en `backlog`); los días del muelle (`DayDock`) son
+  droppables como los de la tira. Como el muelle sube al empezar el arrastre, su `DndContext` mide
+  los droppables siempre (`MeasuringStrategy.Always`).
+- `scopedCollision` (`dnd.ts`): un día solo cuenta si el dedo está encima (`pointerWithin`); si no,
+  `closestCorners` entre lo demás. Así reordenar cerca de la tira no se lleva la tarea a otro día.
+- Ids con prefijo para no colisionar: `col:<clave>` (columna), `sec:<id>` (sección), `day:<fecha>`
+  (día), el id pelado de la tarea para las tareas. Ver `src/components/dnd/ids.ts`.
 
-### Gestos de fila (`useSwipe`)
+### Gestos de fila (`SwipeRow` + `useSwipe`)
 
-Deslizar a la derecha completa, a la izquierda borra (con deshacer en un toast). El gesto
-se bloquea en un eje según el primer movimiento. El desplazamiento se guarda en un ref
-además de en el estado: al soltar hay que leer el valor real, no el del render anterior.
-El asa detiene la propagación del `pointerdown` para no disparar también el deslizamiento.
+Deslizar a la derecha completa, a la izquierda borra (con deshacer en un toast), como en Mail. El
+gesto se bloquea en un eje según el primer movimiento. **No pasa por React**: cada `pointermove`
+escribe el `transform` de la superficie en el siguiente fotograma y `--swipe` (0 a 1) en la fila, que
+hace crecer el icono de detrás; antes era un render por evento y en móviles modestos iba a saltos.
+Al pasar el umbral (84 px) el icono se rellena, da un saltito y vibra; al soltar cuenta también la
+velocidad (un golpe rápido de 36 px basta). Hacia un lado sin acción solo ofrece resistencia. El
+`click` que llega tras deslizar se descarta. El asa detiene la propagación del `pointerdown` para no
+disparar también el deslizamiento.
+
+Las filas están **memorizadas** (`TaskShell`, `SortableTask`, las del horario y las rutinas): las
+acciones llegan por contexto (`RowActionsContext`) y no cambian entre renders (`useTaskActions` lee
+el estado de un ref), así que tachar una tarea solo repinta esa fila.
+
+Los paneles (`Sheet`) se arrastran por el asa igual: el panel sigue al dedo sin renders, el fondo se
+aclara a la vez, un tirón corto (por velocidad) lo cierra y sigue bajando desde donde se soltó; hacia
+arriba solo cede con resistencia. El deslizador (`Slider`) se coge desde cualquier punto de la pista,
+enseña el valor encima del dedo y vibra en cada paso.
 
 ### Alta de tareas
 
-El compositor crea **sin fecha** por defecto (Enter o el `+`). `parseTask` reconoce día,
+La **barra de escribir** (`Composer`) es, en reposo, una píldora que flota sobre el final de la lista
+(`.app__dock`, como el reproductor de Spotify sobre sus pestañas: lo que pasa por debajo se desvanece
+en el papel). **Al tocarla** (con el foco, sin esperar a que el teclado termine de subir) la app pasa
+a `is-composing`: las pestañas se quitan, la lista queda tras un velo de papel (`.app__veil`; tocarlo
+suelta el teclado) y la barra crece en una tarjeta con los **destinos** en el sitio de las pestañas,
+como los filtros de una búsqueda: "Hoy", "Mañana", "Sin fecha" y, si se mira otro día, ese
+(`composeTargets`). El primero es donde se está mirando y va elegido; tocar otro manda ahí lo que se
+añada mientras la barra siga abierta. Se envía con Intro o con el botón redondo de la derecha, y la
+barra **sigue abierta** para la siguiente; se suelta tocando el velo, con Escape o con Intro sin nada
+escrito. Vacía, el micrófono dicta.
+
+**Abierta y vacía, el texto de muestra es una frase de ejemplo** (`composeExamples` en `lib/compose.ts`):
+"Llamar a Carlota mañana a las 6", "Sacar la basura al salir de casa" (solo donde hay lugares), "Gimnasio
+de 7 a 8 de la tarde", "Leer todas las noches", "Renovar el DNI esta semana" (y sus versiones en inglés).
+Cambia cada vez que se abre la barra y tras cada alta, no con un temporizador. Es para que se sepa que
+**escribir entiende lo mismo que dictar** (un amigo creía que solo hablando: buzón, 17/10/2026). En reposo,
+con una sección de destino o un día pasado, sigue diciendo adónde va ("Añadir a hoy"); el `aria-label`
+siempre es ese. `composeExamples.test.ts` comprueba que el analizador de verdad entiende cada frase.
+
+Crea donde se está mirando: **sin fecha** en la Bandeja y **en el día elegido** en la Agenda. Si dice
+que se repite, es una rutina (ver "Rutinas"). `parseTask` reconoce día,
 hora, plazos y duración en español ("mañana a las 5", "el lunes", "15/10", "en 30 min",
-"durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora; tocarla
-deja el texto literal. Con hora → aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
+"durante una hora", "de las 5 a las 7"): si detecta algo lo aplica y enseña una píldora en lugar de
+los destinos (lo entendido manda); tocarla deja el texto literal y vuelven los destinos. Con hora →
+aviso a la hora; con "en X min/horas" → aviso absoluto. Un número
 suelto nunca es una hora ("comprar 5 manzanas") ni una duración ("comprar de 5 a 7 manzanas": un
-tramo necesita "las" o minutos). Sin nada detectado aparece el atajo de un toque a hoy —o al día
-seleccionado en la vista semana—.
+tramo necesita "las" o minutos).
 
 También entiende avisos dentro de la frase ("y recuérdamelo 10 minutos antes", "avísame a
 las 9", "el día antes") y números en palabras: `normalize.ts` los pasa a dígitos guardando de
 qué parte del original viene cada carácter, para recortar bien el título. Si la frase pide
 avisos concretos, no se añade el de "a la hora".
+
+### Ficha del compositor
+
+Para decidirlo todo antes de añadir, sin tener que añadir la tarea y abrirla después. La referencia es
+Spotify: la barra es su mini reproductor y la ficha, el reproductor que se abre al tocarlo.
+
+- **Cómo se abre**: **Detalles** (a la derecha de los destinos, quieto mientras las píldoras se deslizan)
+  o el **asa** de arriba de la tarjeta: tirar hacia arriba (sigue al dedo con resistencia, `usePullUp`)
+  o tocarla. La ficha (`ComposeSheet`, en su propio trozo, pedido en cuanto se toca la barra) es un
+  `Sheet` con pie fijo (`footer`): arriba, como "Reproduciendo" en Spotify, la flecha para plegar y qué
+  se crea y adónde va ("Nueva tarea · Mañana"); el título en grande; **Cuándo**, **Hora**,
+  **Duración**, **Recordatorios**, **Repetir**, **Sección** e **Importancia** (los mismos campos que el
+  panel de la tarea: `task/fields.tsx`, `DurationPicker`, `ReminderPicker`, `ImportanceScale`); y abajo,
+  siempre a mano, **Añadir a mañana** / **Añadir a la bandeja** / **Crear rutina** (`addLabel`). La
+  barra sube y se desvanece mientras la ficha ocupa su sitio (`.composer.is-expanded`).
+- **Lo que ya decía la frase pasa a los campos** al desplegarla (`detailsFrom`) y del texto queda solo
+  el título: lo que se ve es lo que se va a crear. Desde ese momento la frase ya no se interpreta (la
+  ficha manda) hasta que se añade o se quita con la ×.
+- **Plegarla** (la flecha, el asa, tocar fuera) no pierde nada: la barra enseña lo decidido en píldoras
+  (`detailsSummary`: "Mañana · 17:00–18:00", "A la hora", la sección, la importancia; o "Cada día ·
+  10:00"), que vuelven a abrir la ficha, una **×** que lo quita (vuelven los destinos y, si el título
+  no se tocó, la frase entera tal como se escribió) y Detalles solo con su icono. Se añade igual con
+  Intro o el botón redondo. Borrar todo el texto de la barra quita también la ficha (es empezar otra).
+  En una rutina el último día no se puede quitar (como en su panel); una rutina que no cabe (50) deja
+  la ficha como estaba.
+- **Reglas** (`lib/details.ts`, puras y con tests): sin fecha no hay hora, duración, sección ni avisos
+  "antes"; poner hora trae el aviso "a la hora" (como al escribirla) salvo que ya haya uno relativo;
+  quitar la hora quita la duración. **Repetir** (cada día, entre semana, fines de semana o días
+  sueltos) la convierte en rutina: la ficha se queda con los días y el **Aviso** (su hora, sin día), y
+  al añadir se crea con `onRoutine` y su emoji. La importancia y la sección viajan en el `TaskDraft`
+  hasta `task/add` (también por la bandeja: `InboxTask.importance` y `sectionId`, opcionales).
+- Intro en el título suelta el teclado (deja ver los campos); añadir es el botón de abajo. Tras añadir,
+  la ficha baja y la barra queda vacía.
 
 ### Elegir fecha u hora a mano (`PickerChip`)
 
@@ -488,6 +1776,7 @@ toast enseña lo entendido con "Deshacer".
 - `place`: al llegar a un lugar guardado o al salir (solo en la app de iPhone). No tiene
   instante: suena cada vez que se cruza el radio mientras la tarea siga pendiente y su día haya
   llegado (una tarea para mañana no avisa hoy).
+- `here`: al alejarse de donde se estaba al ponerlo (solo iPhone). Ver "Al alejarme de aquí".
 
 Posponer (`task/snooze`) descarta los `at` que ya sonaron y añade uno nuevo. Máximo 20 por
 tarea. Aparte de estos, una tarea con duración tiene su aviso al acabar, que no se guarda:
@@ -496,19 +1785,119 @@ ver "Duración y aviso de cierre".
 ### Lugares
 
 `AppState.places`: globales como las secciones, con nombre único (sin tildes ni artículo:
-`placeKey`), ubicación (`null` hasta elegirla) y radio (100–1000 m). Borrar un lugar quita sus
-avisos de las tareas.
+`placeKey`), **otros nombres** (`aliases`, hasta 8), ubicación (`null` hasta elegirla) y radio
+(20–1000 m: por debajo de unos 100 m iOS avisa con menos precisión). Borrar un lugar quita sus avisos
+de las tareas.
 
-- **Alta**: Ajustes → Lugares, o al escribir o dictar un sitio nuevo ("al pasar por Mercadona"):
-  `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor buscando ese
-  nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
-- **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / al salir
-  de". Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
+- **Otros nombres** ("el piso", "casa de mis padres" para Casa): al escribir o dictar valen como el
+  nombre (`findPlace`, `placeKeys`, las expresiones de `placePhrase.ts` y `parseEn.ts`). Ninguno
+  repite el nombre ni otro nombre de otro lugar (`nameTaken`, `cleanAliases`; el reducer y
+  `normalizeState` descartan los que chocan). Se ponen en el panel del lugar (`PlaceAliases`: píldoras
+  con ×, "+ Otro nombre").
+- **Lo dictado con otra grafía** (`matchPlace`): si no hay uno que se llame así, el que se le parece
+  mucho (una letra cambiada, de más o de menos; dos desde 9 letras; nada por debajo de 5, que "casa" y
+  "caja" no son lo mismo). Si dos se parecen igual, ninguno. Lo usan la IA (`interpret.ts`), un nombre
+  sin guardar al escribir (`readPlacePhrase`) y la bandeja de Siri. Para comprobar que un nombre está
+  libre, `findPlace` (exacto).
+- **Elegir en el mapa** (`MapPicker.swift`, `TasksNative.pickLocation`, `pickOnMap`): Apple Maps a
+  pantalla completa con una chincheta fija en el centro (sube al arrastrar y cae con un saltito), el
+  círculo del radio a escala, los demás lugares con el suyo, "Mi ubicación" y abajo la dirección y
+  **Usar este punto**. Tocar un punto lleva la chincheta allí; tocar un comercio del mapa
+  (`selectableMapFeatures`) además da su nombre, que pasa al lugar si aún no tiene. Los textos llegan
+  de la web, en el idioma de la app. En la web no hay mapa: `pickOnMap` devuelve `null`.
+
+- **Pestaña Lugares** (`PlacesView`), al estilo de Google Maps: arriba un **mapa** de Apple Maps con
+  tus sitios (`MapSnapshot`: `TasksNative.mapSnapshot` hace una foto con `MKMapSnapshotter`, estilo
+  apagado y sin comercios, en el tema de la app, y devuelve dónde cae cada punto); encima, en HTML,
+  una chincheta por lugar con el número de tareas pendientes allí, que lo abre. Mientras llega la
+  foto, o si falla, un plano dibujado con los puntos en su sitio relativo (`lib/mapFrame.ts`). El
+  buscador ("Buscar o añadir un lugar") va encima del mapa, entero (montado en su borde parecía un
+  fallo: buzón, 11/10/2026), y debajo del mapa una tarjeta por lugar: nombre, dirección, **distancia**
+  (solo si ya hay permiso de ubicación: abrir la pestaña no lo pide), radio y sus tareas pendientes.
+  **Tocar el mapa** (con la esquina de las dos flechas como pista) lo abre entero para **explorar**
+  (`browseMap`, `MapPicker.swift` con `browse`): tus lugares con sus radios, sin chincheta; tocar uno
+  lo marca y el botón de abajo pasa a **Abrir el lugar** (abre su panel); **Añadir un lugar** deja caer
+  la chincheta en el centro (o tocar un comercio del mapa la deja allí, con su nombre) y entonces es el
+  mapa de elegir de siempre, con **Añadir aquí** y una flecha que vuelve a explorar. Lo elegido abre el
+  panel de un lugar nuevo con la ubicación puesta (`PlaceRequest.location`). Sin lugares y con permiso de
+  ubicación, la foto es del barrio donde estás, no el dibujo. En la PWA la pestaña dice que es cosa
+  del iPhone y lleva a la App Store (en `npm run dev` enseña la de verdad, con el plano dibujado, para
+  poder probarla).
+- **Panel del lugar** (`PlaceSheet`). Uno **nuevo** empieza por dónde está (el buscador de Apple Maps con
+  el teclado, "Buscando…" y "Nada con ese nombre", **Elegir en el mapa** o la ubicación actual) y, con
+  eso, el nombre, el mapa y el radio; se crea con **Añadir lugar** en el pie y cerrarlo lo descarta (con
+  "Volver"). Un nombre que ya existe no pisa al otro ("Ya tienes un lugar llamado «Casa» · Ver"); se
+  funde solo con uno sin ubicar (el dictado). Uno **existente**: nombre (vacío, conserva el que tenía),
+  mapa centrado con el radio a escala (se toca para abrir el de verdad y atinar), dirección, **Cambiar
+  ubicación ›** plegado, **Radio del aviso** (deslizador de 20 m a 1 km por pasos, `RADIUS_STOPS`: de 10 en
+  10 hasta 100 y más gruesos después; el círculo lo sigue en vivo), **Avisos aquí** (filas que abren la tarea), **Otros nombres ›** plegado y **Borrar lugar**: el
+  segundo toque dice cuántos avisos se lleva y el toast tiene "Deshacer" (`place/restore`). Sin
+  ubicación al cerrar, "X sin ubicación: el aviso no sonará · Ubicar".
+- **Alta**: el buscador de la pestaña, o al escribir o dictar un sitio nuevo ("al pasar por
+  Mercadona"): `parseTask` devuelve `newPlace`, `useAddTasks` crea el lugar y abre su editor
+  buscando ese nombre en Apple Maps (ordenado por cercanía) o con la ubicación actual.
+- **Frases**: `placePhrase.ts` reconoce "al llegar a / al pasar por / cuando esté en / cuando vuelva a" y
+  "al salir de / cuando me vaya de / al irme de / al marcharme de" (llegar va con "a", "por" o "en"; salir,
+  con "de": "cuando me vaya a Mercadona" no es salir). Un nombre sin guardar se queda con la primera palabra y las siguientes en mayúscula ("El
   Corte Inglés"). `parseTask(texto, ahora, null)` desactiva los lugares: así funciona la PWA, que
   no puede avisar por lugar y deja esas frases literales.
+- **Al salir, a la vista** (la 1.7: existía desde el principio y nadie lo encontraba): icono propio
+  (`IconLeave`, una flecha que sale del círculo; `IconPlace` elige entre él y la chincheta con
+  `placeTriggerOf`) en las filas, el horario, la píldora de la barra, la ficha y las tarjetas de la pestaña;
+  en los avisos de una tarea, "+ Añadir" enseña *Por lugar* con un interruptor de dos, **Al llegar / Al
+  salir** (`place-trigger`), y debajo los lugares; el panel del lugar agrupa *Avisos aquí* en *Al llegar* y
+  *Al salir*, con su cifra.
 - **Regiones**: `placeAlerts` hace un aviso por lugar y sentido con todas sus tareas en el
-  cuerpo; iOS vigila como mucho 20, con prioridad para lo de hoy o atrasado. Un aviso con varias
+  cuerpo; iOS vigila como mucho 20, por este orden: lo de "al alejarme" (es ahora; cinco como mucho), lo de
+  hoy o atrasado y la cesta, y los demás lugares (los de más tareas primero). Un aviso con varias
   tareas abre `PlaceTasksSheet`.
+
+### Al alejarme de aquí
+
+"Al moverme recuérdame que llame a Raúl" (lo pidió el usuario el 20/10/2026, con "un radio de 10 m por
+ejemplo"): un aviso que suena al **alejarse de donde se está** al ponerlo, sin lugar guardado.
+
+- **Modelo**: `ReminderDraft` de `kind: 'here'` con `radius` (metros), `from` (el punto, con `accuracy` del
+  GPS si se sabe; `null` mientras no se sabe) y `since` (cuándo se pidió). Uno por tarea (`sameReminder`).
+  `HERE_RADII` = 25, 50, 100, 200, 500, **100 por defecto**: iOS vigila las regiones con posicionamiento
+  de baja potencia y por debajo de unos 100 m avisa tarde o no avisa, así que no se ofrecen 10 m (una opción
+  que no suena es peor que no tenerla); 25 es el suelo y **la región que se registra crece con el error del
+  GPS** (`max(radio, accuracy)`: si no, iOS podría dar el punto por fuera del círculo desde el principio).
+  La píldora sigue diciendo el radio elegido ("Al alejarme 100 m" · "Once I’m 100 m away").
+- **Cómo nace**: escribiendo o dictando ("al moverme", "cuando me mueva", "en cuanto me mueva de aquí", "al
+  alejarme", "cuando me aleje", "cuando me vaya / al salir / al irme de aquí (o de donde estoy)", con un radio
+  opcional: "más de 30 metros"; en inglés "when I move", "once I move away", "when I leave here", "when I head
+  out", "more than 50 meters"), que se lee **antes** que los lugares (`herePhraseRegexEs`, `RE_HERE`): "cuando
+  me vaya de casa" y "cuando me aleje de casa" siguen siendo el lugar Casa (moverse o alejarse "de" algo
+  que no sea aquí no cuenta; `alejarme` está también en `LEAVE`), "move away from the office" o "move house"
+  tampoco (las colas van en el lookahead de `HERE_EN`), y "aquí"/"here" están en `STOP` para no ser nunca un
+  lugar nuevo. El tramo se lleva el conector que siga ("al salir de aquí **que** llame a Raúl" → "Llamar a
+  Raúl"). La IA del dictado no lo sabe: `draftsFromInterpreted` lo añade si el analizador local lo encuentra
+  en lo dicho (y usa el título del móvil solo si el de la IA aún lleva la frase: `hasHerePhrase`; "Mover el
+  coche" se respeta); con varias tareas, un "lugar" llamado aquí al salir es este aviso. En el panel de la tarea y en la ficha: con el interruptor
+  en *Al salir*, la primera píldora de la fila de lugares es **Aquí** (`IconHere`); añadido, su píldora tiene
+  cuerpo tocable (`chip__body`, un botón junto a la ×, no dentro) que abre la fila de radios
+  (`reminder/here` cambia el radio en el sitio: nunca el id ni el punto). En la PWA no existe
+  (`places === null`: la frase se queda literal y la barra lleva a Lugares). Ejemplo en la barra vacía:
+  "Llamar a Raúl al moverme".
+- **El punto** lo fija `HereLocatorProvider` (en `App`, solo iPhone) con `TasksNative.currentPosition` (pide
+  el permiso "mientras se usa" si no lo hay): solo si se pidió hace menos de `HERE_PIN_WINDOW_MS` (15 min);
+  mientras, la píldora dice "· ubicando…" sin atenuarse (en la ficha del compositor, donde la tarea aún no
+  existe, "· al añadir"). Fijar el punto **reinicia `since`** (`reminder/here` lleva `now`): el día de vida
+  cuenta desde que se sabe dónde se está, no desde que se dictó. Lo que viene de Siri con la app cerrada
+  (nace sin punto; Siri dice "Abre Tasks para fijar dónde estás") y se abre pasado un rato **no se fija en
+  silencio**: un toast pregunta ("¿avisarte al alejarte de aquí?" · Sí), porque "aquí" ya puede ser otro
+  sitio; se pregunta una vez por aviso y dispositivo (`tasks:here-offered`) y de uno en uno (dos toasts se
+  pisan). Si no hay posición: toast con "Reintentar" (o "Abrir Ajustes" con el permiso negado) y en el panel
+  "Fijar dónde estoy" (`sheet__hint`). Sin punto, `reminderIssue` es `no-place` ("sin ubicar"); caducado,
+  `past`; fuera del iPhone, `phone-only`.
+- **La región** (`hereAlerts` en `places.ts`): `key`/`placeId` `here:<aviso>`, `on: 'leave'`, una por aviso
+  ubicado y vivo, con su tarea (categoría `task`: "Hecha" funciona sin abrir la app, como cualquier aviso de
+  lugar), cuerpo "Te has alejado 100 m". Da igual para qué día sea la tarea (alejarse es ahora). **Caduca
+  al día** (`HERE_TTL_MS`: pasado, deja de vigilarse) y **tocar el aviso lo consume** (`useNotificationActions`
+  quita el aviso de la tarea): las regiones de iOS se repiten, y sin esto sonaría cada vez que se saliera de
+  casa mientras la tarea siguiera pendiente. En las filas cuenta como salir (`placeTriggerOf` → `leave`).
+  Nada sale del iPhone: el punto va al fichero de estado y a la copia, no al Worker.
 
 ### App de iPhone
 
@@ -529,8 +1918,10 @@ la misma.
   No re-añade los que no han cambiado: hacerlo estando dentro podría repetir el aviso. Se crean
   con id numérico y `userInfo.cap_extra` para que el plugin de notificaciones entregue el toque
   a la web como cualquier otro aviso.
-- **Botones** "Hecha" y "+10 min" con `foreground: true`: el estado vive en la web y con la app
-  en segundo plano iOS no garantiza que el WebView ejecute nada.
+- **Botones**: "+10 min" y "Pasar a hoy" con `foreground: true` (el estado vive en la web y con la app
+  en segundo plano iOS no garantiza que el WebView ejecute nada). "Hecha" no abre la app: como "Sí,
+  hecha" en el aviso de cierre, `NotificationResponder` lo resuelve con `QuickAdd.answer` (la bandeja) y
+  la web lo aplica al volver.
 - **Almacenamiento**: fichero `tasks-state.json` en Library (entra en las copias de iCloud del
   dispositivo y iOS no lo borra al liberar espacio) más IndexedDB de respaldo. No comparte datos
   con la PWA: se pasa con Exportar/Importar.
@@ -546,14 +1937,20 @@ la misma.
   *Dictar tarea* ("Dictar texto" + "Añadir tarea"). Para escribir, `ComposeTaskIntent` ("Nueva
   tarea", sin frase de Siri para no chocar con la de añadir), que abre la app con el teclado: envía
   `compose`, igual que el acceso rápido del icono.
-- **Vibración** (`haptic`) al completar, borrar y elegir sitio. Barra de estado en tinta
-  (`Style.Light`, `UIStatusBarStyleDarkContent`) y apariencia clara forzada (`UIUserInterfaceStyle`
-  `Light`): la app no tiene modo oscuro. La pantalla de carga, en "Arranque".
-- **Widget** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
+- **Vibración** (`haptic`) al completar, borrar, elegir sitio, pasar el umbral al deslizar, cambiar
+  de semana y en cada paso de los deslizadores.
+- **Apariencia**: `lib/theme.ts` llama a `TasksNative.setAppearance` (fija
+  `overrideUserInterfaceStyle` de las ventanas, así la rueda de la hora, el teclado y los menús van
+  en el mismo tema; `auto` lo deja al sistema, y se guarda en `UserDefaults` para el próximo
+  arranque) y pone la barra de estado con la tinta que toca (`Style.Light` de día, `Style.Dark` de
+  noche). `Info.plist` ya no fuerza el modo claro y su `UIStatusBarStyle` es el del sistema. La
+  pantalla de carga, en "Arranque".
+- **Widget Hoy** (`ios/App/TasksWidget`, pequeño, mediano, grande y dos de pantalla de bloqueo): el
   bloque Hoy con lo atrasado en rojo y el número del icono. Con algo atrasado, **A hoy** (ver "Pasar
   a hoy"). Los títulos crecen con la importancia (`RowStyle.titleFont`). Mismos colores que
-  `tokens.css` (`Palette`) y la cifra en New York; a diferencia de la app, en modo oscuro del
-  iPhone pasa a azul noche. Datos por el App Group, con un fichero para cada lado:
+  `tokens.css` (`Palette`) y la cifra en New York; en la pantalla de inicio sigue el modo del iPhone
+  (azul noche en oscuro); en la de bloqueo va siempre con la paleta de noche, porque iOS pinta por
+  luminosidad y la tinta marino desaparecería. Datos por el App Group, con un fichero para cada lado:
   - La app escribe `widget-snapshot.json` con `widgetSnapshot` (`NativeWidget`, debounce 400 ms y
     al instante al pasar a segundo plano) y pide recargar. La foto trae lo atrasado y 7 días por
     delante: el widget tiene una entrada por medianoche y cambia de día sin abrir la app.
@@ -562,19 +1959,60 @@ la misma.
     web no corre ahí, así que al volver a primer plano `widgetChanges()` devuelve lo apuntado (y lo
     vacía), la web lo aplica con `task/toggle` y, si el widget quitó avisos, lanza
     `RESCHEDULE_EVENT` para reprogramar aunque la huella del plan no haya cambiado.
-  - Enlaces `io.github.diegomolinacatala.tasks://today|compose|task/<id>` (`WidgetLink`,
-    `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose` y `open`.
+  - Enlaces `io.github.diegomolinacatala.tasks://today|compose|routines|task/<id>` (`WidgetLink`,
+    `CFBundleURLTypes`) llegan a la web como acciones `today`, `compose`, `routines` y `open`.
   - Sin App Group (compilación sin firmar) el widget dice "Abre Tasks" y la web ignora el error.
+- **Widget Bandeja** (`InboxWidget.swift`, pequeño, mediano, grande y rectangular de bloqueo): lo que
+  no tiene fecha, en el orden de la app y lo pendiente primero, con la cifra de pendientes. El círculo
+  lo tacha sin abrir la app (`ToggleTaskIntent`, el mismo de Hoy: `WidgetStore.toggle` busca también en
+  la Bandeja), tocar una tarea la abre, el + abre la barra de escribir en la Bandeja (`://compose/inbox`
+  → acción `compose` con `inbox`) y el resto, la Bandeja (`://backlog` → acción `backlog`). La foto lleva
+  `inbox` (40 como mucho, `WIDGET_MAX_INBOX`); una foto anterior no la trae y el widget pide abrir la
+  app. Una sola entrada (`policy: .never`): sin fecha no hay medianoche que cruzar, y la app recarga
+  todos los widgets al escribir la foto.
+- **Widget Rutinas** (`RoutinesWidget` en `TasksWidget.swift`, vistas en `TasksWidgetViews.swift`):
+  pantalla de bloqueo redonda (anillo con lo hecho hoy y el **emoji** de la rutina; sus iniciales si
+  no tiene, o la marca si ya está hecha) y rectangular (el emoji en el sitio del círculo, la rutina,
+  su hora y "1 de 3 hoy"), y pequeño de inicio (las de hoy con su círculo y su emoji).
+  **Un toque la tacha** sin abrir la app, también bloqueado (`ToggleRoutineIntent`, en
+  `ToggleTaskIntent.swift`, `authenticationPolicy = .alwaysAllowed`). Se configura
+  (`AppIntentConfiguration` + `RoutineWidgetIntent`, `RoutineEntity`/`RoutineQuery` leen la foto): una
+  rutina concreta o "la siguiente que queda por hacer". Una entrada por medianoche: cada día amanece
+  sin tachar sin abrir la app.
+  - La foto (`widgetSnapshot`) lleva `routines` (emoji, días que tocan y diario de la última semana).
+    `WidgetRoutine.emoji` es opcional en Swift: una foto de antes del emoji se lee igual, y sin él
+    salen las iniciales (`badge`).
+    Tacharla apunta `routines[id][día]` en `widget-changes.json` (`WidgetStore.setRoutine`), quita su
+    aviso de hoy (pendiente y ya entregado) y, si se destacha, pide reprogramar. La web lo recoge con
+    `widgetChanges()` (en la misma lista que las tareas: `{ routineId, date, done }`,
+    `parseRoutineChanges`) y aplica `routine/set`. `headless.js` también lo cuenta (`projected`).
+  - `WidgetChanges` se lee con `decodeIfPresent`: un fichero de una versión anterior no trae
+    `routines` y no debe perder lo marcado.
+- **Widget y control Dictar** (`DictateWidget.swift`, la 1.7): un micrófono que abre la app ya escuchando.
+  Widget pequeño de inicio (el micrófono en un sello de coñac, "Toca y habla") y de bloqueo (redondo,
+  rectangular y en línea), todos con `widgetURL` `<esquema>://dictate`; y, con iOS 18, un **control**
+  (`DictateControl`, `ControlWidgetButton` con `DictateIntent` → `OpenURLIntent`; el intent va en
+  `DictateIntent.swift`, compilado en la app y en el widget como `WidgetMoveOverdueIntent`) para el
+  centro de control, los dos botones de abajo de la pantalla de bloqueo y el botón de acción
+  (`if #available(iOS 18.0, *)` en el `WidgetBundle`). iOS no deja grabar desde un widget ni desde segundo plano: la app se abre (Face ID
+  si está bloqueado) y `SceneDelegate` → `NativeActions` → acción `dictate` → `App` va a la Agenda de hoy y
+  pide a la barra que escuche (`dictateRequest` → `voice.start()`; la primera vez sale la ficha del permiso
+  del dictado, que pide su toque). En un arranque en frío la barra espera a saber si el dictado está listo
+  (`push.restoring`): si no, diría que no hay avisos; con la bienvenida delante, a que se cierre. Si
+  iOS dejara el audio en suspenso por no haber gesto, `startCapture` lo suelta a los 2,5 s y pide
+  tocar el micrófono. Lo mismo desde el acceso rápido del icono ("Dictar
+  tarea") y desde Atajos o Siri ("Dicta en Tasks", `DictateTaskIntent`).
 - **Permisos**: el de notificaciones se pide solo la primera vez que hay algún recordatorio
   (`tasks:notifications-asked` en localStorage); después manda Ajustes de iOS. El de ubicación, al
-  buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). Ajustes → Lugares avisa
+  buscar un sitio o usar la ubicación actual (`LocationRequester.swift`). La pestaña Lugares avisa
   si está bloqueado.
 - **Plugins**: app, filesystem, haptics, local-notifications, share, splash-screen y status-bar.
   **No** usar `@capacitor/geolocation`: la ubicación va por el plugin propio y su presencia
   provocó ITMS-90683. `Info.plist` lleva igualmente `NSLocationAlwaysAndWhenInUseUsageDescription`
   (Apple la exige si cualquier librería menciona esa API), aunque nunca se pide "siempre".
-- **Privacidad**: `PrivacyInfo.xcprivacy` declara solo el identificador de dispositivo del
-  dictado (sin vínculo ni rastreo). Tiene que coincidir con las respuestas de App Store Connect.
+- **Privacidad**: `PrivacyInfo.xcprivacy` declara el identificador de dispositivo del dictado y, desde
+  la 1.4, la atención al cliente (las sugerencias), los dos sin vínculo ni rastreo. Tiene que coincidir
+  con las respuestas de App Store Connect (`docs/app-store.md` §4).
 - **Sin Mac**: se compila en GitHub Actions (`macos-26`, gratis en repo público). No hay
   simulador ni Safari Web Inspector: lo nativo se prueba en el iPhone vía TestFlight. Los errores
   de compilación salen como anotaciones del workflow.
@@ -618,7 +2056,7 @@ que las altas.
 - `headless.js` se construye aparte (`vite.headless.config.ts`, IIFE `TasksHeadless`) y
   `scripts/check-headless.mjs` lo ejecuta sin navegador: en lo que importe `src/lib/headless.ts` no
   puede haber `window`, `fetch`, `console` ni `setTimeout`. El contrato lleva `version` en los dos
-  lados (4 desde que existe `answer`).
+  lados (5 desde el idioma: las entradas llevan `languages` y `consent` los recibe aparte).
 - Swift se da de alta solo para el dictado (token en el llavero, distinto del de la web) y la URL
   del servidor la lleva `headless.js` (`VITE_PUSH_API` al compilar).
 - Un lugar nuevo dicho a Siri nace sin ubicación; el mensaje pide abrir Tasks para ubicarlo.
@@ -670,19 +2108,33 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
 
 ## Estilo visual
 
-"Old money": papelería de casa antigua. Siempre claro. Papel marfil (`--bg`), tinta azul marino
+"Old money": papelería de casa antigua. Papel marfil (`--bg`), tinta azul marino
 (`--text`), coñac (`--accent`) para lo interactivo y lo completado, azul marino macizo
 (`--primary`) para lo elegido y la acción principal, y oro viejo (`--gold`) solo para filetes.
 
-- Letra: fechas, bloques (Atrasadas, Hoy, Sin fecha), títulos de panel y vacíos en **New York**
+**Modo oscuro** ("noche de biblioteca"), en Ajustes → Apariencia: **Claro**, **Oscuro** o
+**Automático** (sigue al iPhone; es lo que trae una instalación nueva o una copia antigua). Azul
+medianoche en vez de papel (`#121828`), tinta marfil (14:1), y los mismos acentos en pastel: camel
+(9:1), rosa terracota para lo atrasado, oro pálido; lo elegido pasa a marfil macizo con tinta de
+noche. Son los mismos tokens redefinidos en `:root[data-theme='dark']` (`tokens.css`): ningún
+componente sabe en qué tema está (salvo las miniaturas de Ajustes, que enseñan cada uno a propósito).
+Cambiar de tema extiende el nuevo en un círculo desde el dedo (View Transitions, `switchTheme`). La
+apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
+
+- Letra: fechas, bloques (Atrasadas, Horario, Sin hora, Rutinas), títulos de panel, nombres de lugar
+  y vacíos en **New York**
   (`--font-serif`: `ui-serif`, la serif del sistema, sin descargar nada); el resto, San Francisco.
-  Secciones y etiquetas en versalitas espaciadas.
+  Secciones y etiquetas en versalitas espaciadas. Las secciones del usuario, en tinta, con la cifra en
+  serif cursiva y un filete de oro del nombre a sus botones (`section.css`): no se distinguen de las
+  tareas por tamaño (una importante llega al doble) sino por forma. Sin tamaños ni grosores a elegir.
 - Tokens en `src/styles/tokens.css`. **No hardcodear colores, espaciados ni duraciones.** Contrastes
-  comprobados: tinta 13:1, secundario 6,5:1, coñac 5:1 sobre el papel.
+  comprobados: tinta 13:1, secundario 6,5:1, terciario 4,6:1, coñac 5:1 sobre el papel; de noche,
+  tinta 14:1, secundario 8:1, terciario 5,7:1, camel 9:1. Cualquier color nuevo, en los dos temas.
 - `--danger` (ladrillo) significa una sola cosa: atrasado (o borrar). No se usa de adorno.
 - Movimiento: completar rellena el círculo con rebote (`--ease-pop`), dibuja la marca y tacha a
-  pluma; las filas se deslizan a su sitio (`lib/flip.ts`); los paneles suben con la curva de iOS y
-  bajan más deprisa; los avisos entran y salen.
+  pluma; las filas se deslizan a su sitio (`lib/flip.ts`, solo las que se ven); los paneles suben
+  con la curva de iOS y bajan más deprisa; los avisos entran y salen; el filete de oro de las
+  pestañas se desliza; el día nuevo entra por el lado hacia el que se va; la marca de "ahora" late.
 - La marca (señal a pluma en tinta, doble filete de oro en el icono) sale de `scripts/brand.mjs`:
   cambiarla ahí y `npm run icons`.
 - CSS por componente, junto al componente. Clases en kebab-case estilo BEM ligero.
@@ -697,7 +2149,7 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
 - Nada de `console.log` en el código final.
 - Los tests cubren `src/lib` y `src/state` (umbral 80%). El pegamento de React y de
   navegador (`push/client.ts`, `push/keystore.ts`, `voice/capture.ts`, `voice/speech.ts`,
-  `sw.ts`) se prueba en el dispositivo.
+  `stats/collector.ts`, `sw.ts`) se prueba en el dispositivo.
 - En `worker/` el acceso a datos va detrás de la interfaz `Store`: los tests usan
   `memoryStore()` y un `Sender` falso; `store.ts`, `push.ts` e `index.ts` son adaptadores.
 
@@ -713,22 +2165,44 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
   la web lo aplica al cargar o al volver a primer plano.
 - **El Worker sirve a todas las versiones instaladas.** Se despliega al momento y la gente no
   actualiza a la vez: sus rutas y respuestas cambian solo de forma compatible hacia atrás.
-- **Backend solo para avisos y dictado**, sin acceso a lo guardado: nada de guardar tareas en
-  claro en el servidor. El audio del dictado se transcribe al momento y no se conserva.
+- **Backend solo para avisos, dictado, sugerencias y estadísticas anónimas**, sin acceso a lo guardado: nada de
+  guardar tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
+  sugerencia es lo único que se guarda con contenido, porque quien la manda lo decide y lo ve antes.
+- **Estadísticas: solo contadores**, sin identificadores ni contenido, y nada sin pedir permiso, ni siquiera las
+  visitas (Apple, norma 5.1.1(ii)); nada de grabar sesiones ni de herramientas de terceros. Nadie se ve en
+  particular: el panel no desglosa con menos de 3 dispositivos.
 - **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
   desde Ajustes.
-- **Sin subtareas, notas ni recurrencias** por ahora.
+- **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:
+  no generan copias por día ni se "reinician"; cada día se tachan en su diario.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
 - Al completar una tarea baja al final de su bloque; no se oculta.
 - La importancia es tamaño, no orden ni etiqueta: nada se reordena solo por ser importante.
-- La duración existe para poder preguntar al acabar, no para planificar el día: no hay calendario,
-  ni bloques de tiempo, ni se avisa de solapes. Lo que no se dice no dura.
+- La duración existe para poder preguntar al acabar, no para planificar el día: no hay bloques de
+  tiempo ni se avisa de solapes. Lo que se solapa se ve en paralelo, y nada más. Lo que no se dice no dura.
+- Tasks no es un calendario, pero enseña el tuyo: los eventos del calendario del iPhone se enseñan en la
+  Agenda y no se guardan. Desde la app solo se **mueven** (a otro día o a otra hora, soltándolos; lo
+  escribe EventKit y la cuenta lo sincroniza) y se **tachan** (solo en Tasks: el calendario no se
+  entera); para editarlos, su ficha de Calendario. Aparte, la app
+  escribe tus tareas con hora en un calendario, si lo eliges, y en un solo sentido. Sin cuentas de Google
+  ni Microsoft: lo que no esté en el Calendario del iPhone se añade allí.
 - Pasar a hoy nunca es automático dentro de la app: lo decide el usuario (o su automatización de
-  Atajos).
+  Atajos). Lo único que va solo con hoy es una tarea con plazo, porque el plazo lo puso el usuario.
+- Un plazo no es una rutina ni una tarea recurrente: se hace una vez. "De lunes a viernes" es rutina;
+  "del lunes al viernes", plazo.
 - Una tarea sin fecha no tiene sección: al mandarla a `Sin fecha` se le quita.
 - Lo atrasado y completado no se muestra: es historia, no deuda.
-- Siempre claro, sin modo oscuro en la app (el widget sí se adapta): el papel marfil es la identidad,
-  y así la pantalla de carga nativa siempre coincide con la web.
+- Dos idiomas, español e inglés, y ninguno más por ahora. La IA del dictado solo en español: en inglés
+  entiende el analizador del móvil.
+- Modo oscuro sí, pero con la misma identidad: colores apagados y pastel, nada chillón. El papel
+  marfil sigue siendo la cara de la app (icono, capturas).
+- Cuatro pestañas y ninguna más (Bandeja, Agenda, Lugares, Ajustes). Lo que no es de primer nivel
+  va en paneles.
+- La cesta es la única lista aparte de las tareas: sin fecha, sin secciones, sin categorías ni
+  pasillos, en el dispositivo como todo lo demás. No es un sitio al que vayan las tareas ("comprar pan"
+  escrito en la barra sigue siendo una tarea).
+- "Al alejarme" no es un lugar: es un aviso de la tarea con su propio punto, que caduca al día y se
+  consume al tocarlo. Los radios empiezan en 25 m y la región crece con el error del GPS: iOS no da más.
 
 ## Despliegue
 
@@ -752,11 +2226,15 @@ sw.ts: push → descifra con la clave local → showNotification → tocar abre 
     developer.apple.com con el grupo asignado a los dos identificadores (`docs/app-store.md` §1.7).
   - "Run workflow" solo aparece cuando el workflow está en `main`.
   - Se relanza el día 1 de cada dos meses (solo desde `main`) porque TestFlight caduca a los 90 días.
-  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.1,
+  - Número de compilación = `github.run_number`; versión = `MARKETING_VERSION` del proyecto (1.8,
     cuatro veces en `project.pbxproj`: app y widget, Debug y Release). Tiene que ser mayor que la
     última aprobada, o la subida falla (`ITMS-90186`/`ITMS-90062`): tras cada aprobación se sube.
     Pasos de una actualización en `docs/app-store.md` §9.
   - Tras subir, Apple procesa 5–30 min y avisa por correo de problemas del binario (`ITMS-…`).
+  - Si "Firmar y subir a TestFlight" falla con *exportArchive The request timed out* seguido de *No
+    profiles for … were found*, es Apple que no respondió al pedir los perfiles (pasó con la 30): sin
+    tocar nada, en la ejecución fallida **Re-run jobs → Re-run failed jobs** (lo hace el usuario: sin
+    `gh` no se puede relanzar).
 - **Worker**: `.github/workflows/deploy-worker.yml` al tocar `worker/` (typecheck → tests →
   esquema D1 → `wrangler deploy`). Usa el secret `CLOUDFLARE_API_TOKEN` (plantilla *Edit Cloudflare
   Workers* más *Account → D1 → Edit*) y la variable `CLOUDFLARE_ACCOUNT_ID`; sin el token solo

@@ -76,7 +76,7 @@ describe('draftsFromInterpreted', () => {
   })
 
   test('un lugar guardado se convierte en aviso de lugar', () => {
-    const places = [{ id: 'm', name: 'Mercadona', location: null, radius: 150 }]
+    const places = [{ id: 'm', name: 'Mercadona', aliases: [], location: null, radius: 150 }]
     const raw = [{ title: 'Comprar pan', date: null, time: null, duration: null, reminders: [], place: { name: 'mercadona', on: 'arrive' } }]
     expect(draftsFromInterpreted(raw, NOW, places)).toEqual([
       {

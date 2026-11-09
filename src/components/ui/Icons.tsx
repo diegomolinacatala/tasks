@@ -26,22 +26,16 @@ export const IconCheck = (props: IconProps) => (
   </Icon>
 )
 
+export const IconUndo = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </Icon>
+)
+
 export const IconPlus = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 5v14M5 12h14" />
-  </Icon>
-)
-
-export const IconToday = (props: IconProps) => (
-  <Icon {...props}>
-    <path d="M4 7h16M4 12h10M4 17h6" />
-  </Icon>
-)
-
-export const IconWeek = (props: IconProps) => (
-  <Icon {...props}>
-    <rect x="3.5" y="5" width="17" height="15" rx="3" />
-    <path d="M3.5 10h17M8 3.5v3M16 3.5v3" />
   </Icon>
 )
 
@@ -142,6 +136,44 @@ export const IconPin = (props: IconProps) => (
   </Icon>
 )
 
+/** Entrar en el círculo de un lugar: el aviso al llegar. */
+export const IconArrive = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M10.5 4.6a7.5 7.5 0 1 1 0 14.8" />
+    <path d="M3 12h10.5M10 8.5l3.5 3.5-3.5 3.5" />
+  </Icon>
+)
+
+/** Salir del círculo de un lugar: el aviso al salir. */
+export const IconLeave = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M13.5 4.6a7.5 7.5 0 1 0 0 14.8" />
+    <path d="M10.5 12H21M17.5 8.5 21 12l-3.5 3.5" />
+  </Icon>
+)
+
+/** El icono de un aviso de lugar: la chincheta al llegar, salir del círculo al salir. */
+export const IconPlace = ({ on, ...props }: IconProps & { on: 'arrive' | 'leave' }) =>
+  on === 'leave' ? <IconLeave {...props} /> : <IconPin {...props} />
+
+/** Alejarse de donde se está: un punto (tú), su radio a trazos y la flecha que sale. */
+export const IconHere = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="10" cy="12" r="1.9" fill="currentColor" stroke="none" />
+    <path d="M13.5 4.6a7.5 7.5 0 1 0 0 14.8" strokeDasharray="2.6 2.4" />
+    <path d="M13 12h8M17.5 8.5 21 12l-3.5 3.5" />
+  </Icon>
+)
+
+/** La cesta de la compra. */
+export const IconBasket = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3.5 9.5h17l-1.55 8.9a2 2 0 0 1-1.97 1.6H7.02a2 2 0 0 1-1.97-1.6z" />
+    <path d="m8.3 9.5 3.2-5.5M15.7 9.5l-3.2-5.5" />
+    <path d="M9.2 13.2v3.3M12 13.2v3.3M14.8 13.2v3.3" />
+  </Icon>
+)
+
 export const IconLocate = (props: IconProps) => (
   <Icon {...props}>
     <path d="M20 4 4 11l7 2 2 7 7-16Z" />
@@ -155,10 +187,167 @@ export const IconSearch = (props: IconProps) => (
   </Icon>
 )
 
-/** "aA": el modo de importancia, que agranda los títulos. */
+/**
+ * Una "A" con una flecha doble al lado: el modo de importancia, en el que los títulos se agrandan
+ * deslizando el número de cada fila hacia arriba o hacia abajo.
+ */
 export const IconTextSize = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M2.5 19 6 11l3.5 8M3.7 16.3h4.6" />
-    <path d="M11 19 16.25 5.5 21.5 19M12.9 14.2h6.7" />
+    <path d="M2.75 19.5 8.25 5l5.5 14.5M4.85 14.2h6.8" />
+    <path d="M19 4.5v15M16.4 7.1 19 4.5l2.6 2.6M16.4 16.9 19 19.5l2.6-2.6" />
+  </Icon>
+)
+
+/** Agenda: un horario, puntos sobre una línea como en Structured. */
+export const IconAgenda = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6.5 3.5v17" />
+    <circle cx="6.5" cy="6.5" r="2.1" fill="currentColor" stroke="none" />
+    <circle cx="6.5" cy="12.5" r="2.1" fill="currentColor" stroke="none" />
+    <circle cx="6.5" cy="18.5" r="2.1" fill="currentColor" stroke="none" />
+    <path d="M11 6.5h9M11 12.5h5.5M11 18.5h7.5" />
+  </Icon>
+)
+
+/** Lugares: un plano plegado. */
+export const IconMap = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z" />
+    <path d="M9 4.5v13M15 6.5v13" />
+  </Icon>
+)
+
+/** Ajustes: dos mandos deslizantes. */
+export const IconSliders = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 7.5h8.5M17.5 7.5H20M4 16.5h2.5M11.5 16.5H20" />
+    <circle cx="15" cy="7.5" r="2.5" />
+    <circle cx="9" cy="16.5" r="2.5" />
+  </Icon>
+)
+
+/** Rutina: lo que vuelve cada día. */
+export const IconRepeat = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M16.5 3.5 19.5 6.5l-3 3" />
+    <path d="M19.5 6.5H9A5 5 0 0 0 4 11.5" />
+    <path d="M7.5 20.5l-3-3 3-3" />
+    <path d="M4.5 17.5H15a5 5 0 0 0 5-5" />
+  </Icon>
+)
+
+export const IconSun = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+  </Icon>
+)
+
+export const IconMoon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10Z" />
+  </Icon>
+)
+
+/** Automático: medio día, media noche. */
+export const IconHalf = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none" />
+  </Icon>
+)
+
+/** Enviar lo escrito en el compositor. */
+export const IconArrowUp = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 19.5v-15M5.5 11 12 4.5l6.5 6.5" />
+  </Icon>
+)
+
+/** Hueco del emoji de una rutina que aún no tiene. */
+export const IconSmile = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M8.6 14.2a4.2 4.2 0 0 0 6.8 0" />
+    <circle cx="9.2" cy="10" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14.8" cy="10" r="1" fill="currentColor" stroke="none" />
+  </Icon>
+)
+
+export const IconArrowUpRight = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M7 17 17 7M9 7h8v8" />
+  </Icon>
+)
+
+/** Tarea hecha para la vista de un día sin nada: una pluma. */
+export const IconFeather = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M20 4c-6 0-11 4.5-12.5 11.5L6 20" />
+    <path d="M20 4c0 7-4.5 11.5-11.5 11.5M12.5 12.5 16 9" />
+  </Icon>
+)
+
+/** Abrir el mapa entero: dos flechas hacia las esquinas. */
+export const IconExpand = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+  </Icon>
+)
+
+/** El calendario del iPhone: una hoja con sus dos anillas. */
+export const IconCalendar = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.75" y="5.25" width="16.5" height="15" rx="2.5" />
+    <path d="M8 3v4.5M16 3v4.5M3.75 10h16.5" />
+    <path d="M8 14h2M12 14h2M8 17h2" />
+  </Icon>
+)
+
+/** Ajustes → Idioma. */
+export const IconGlobe = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5Z" />
+  </Icon>
+)
+
+/** Ajustes → Soporte. */
+export const IconHelp = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.6" />
+    <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+  </Icon>
+)
+
+/** Ajustes → Ver la bienvenida. */
+export const IconSparkle = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5Z" />
+    <path d="M18.5 15.5c.3 1.6 1.1 2.4 2.5 2.7-1.4.3-2.2 1.1-2.5 2.7-.3-1.6-1.1-2.4-2.5-2.7 1.4-.3 2.2-1.1 2.5-2.7Z" />
+  </Icon>
+)
+
+/** Ajustes → Valorar en la App Store. */
+export const IconStar = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m12 4 2.4 5 5.4.6-4 3.7 1.1 5.3L12 16l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6Z" />
+  </Icon>
+)
+
+/** Ajustes → Copias y datos. */
+export const IconArchive = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2" />
+    <path d="M5 9v9a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18V9M10 13h4" />
+  </Icon>
+)
+
+/** Ajustes → Privacidad. */
+export const IconLock = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+    <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
   </Icon>
 )
