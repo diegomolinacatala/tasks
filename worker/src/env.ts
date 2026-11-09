@@ -11,6 +11,9 @@ export interface Env {
   IP_LIMITER: RateLimit
   DEVICE_LIMITER: RateLimit
   VOICE_LIMITER: RateLimit
+  STATS_LIMITER: RateLimit
+  /** El panel de uso (`panel/`): página, código y capturas de referencia del mapa de calor. */
+  ASSETS: Fetcher
   AI: Ai
   ALLOWED_ORIGINS: string
   VAPID_PUBLIC_KEY: string
@@ -49,6 +52,7 @@ export function depsFrom(env: Env): Deps {
       ip: limiterOf(env.IP_LIMITER),
       device: limiterOf(env.DEVICE_LIMITER),
       voice: limiterOf(env.VOICE_LIMITER),
+      stats: limiterOf(env.STATS_LIMITER),
     },
     scheduler: { arm: (at) => schedulerStub(env).arm(at) },
     transcriber: workersAiTranscriber(env.AI),

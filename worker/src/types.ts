@@ -55,6 +55,97 @@ export interface FeedbackSummary {
   hasShot: boolean
 }
 
+/**
+ * Un contador del día. `platform` y `version` van vacíos en lo que describe al dispositivo (idioma,
+ * tema, cohorte…), para no cruzar dimensiones. `devices`: cuántos dispositivos lo hicieron ese día.
+ */
+export interface CountRow {
+  day: string
+  platform: string
+  version: string
+  /** `u:` ping de uso, `e:` evento, `d:` distribución (`d:métrica:tramo`), `x:` error, `c:` cohorte. */
+  name: string
+  events: number
+  devices: number
+}
+
+/** Toques de una celda de la rejilla de una pantalla, por semana (el lunes) y versión. */
+export interface CellRow {
+  week: string
+  version: string
+  screen: string
+  cell: number
+  taps: number
+  rage: number
+  dead: number
+}
+
+/** Toques de un elemento (por su clase CSS) de una pantalla, por semana y versión. */
+export interface TargetRow {
+  week: string
+  version: string
+  screen: string
+  target: string
+  taps: number
+  rage: number
+  dead: number
+  slow: number
+}
+
+export interface StatsRows {
+  counts: CountRow[]
+  cells: CellRow[]
+  targets: TargetRow[]
+}
+
+export interface StatsSummaryQuery {
+  from: string
+  to: string
+  previousFrom: string
+  previousTo: string
+  cohortsFrom: string
+  weeksFrom: string
+  weeksTo: string
+  /** Solo esa versión (más lo que no va por versión); `null`, todas. */
+  version: string | null
+}
+
+/** Lo que pinta el panel, ya sumado en D1: el Worker nunca recorre filas sueltas. */
+export interface StatsSummary {
+  /** `[día, plataforma, versión, nombre, eventos, dispositivos]` de los pings (`u:`). */
+  daily: [string, string, string, string, number, number][]
+  /** `[nombre, eventos, dispositivos]` de eventos, distribuciones y errores en el periodo. */
+  names: [string, number, number][]
+  /** Lo mismo del periodo anterior (solo eventos y errores), para comparar. */
+  previous: [string, number, number][]
+  /** `[semana, cohorte, dispositivos]`: quién de cada cohorte vuelve cada semana. */
+  cohorts: [string, string, number][]
+  /** `[versión, pantalla, toques]`: qué mapas de calor hay. */
+  screens: [string, string, number][]
+}
+
+export interface StatsHeatQuery {
+  from: string
+  to: string
+  version: string | null
+  screen: string
+}
+
+export interface StatsHeat {
+  /** `[celda, toques, rabia, muertos]`. */
+  cells: [number, number, number, number][]
+  /** `[objetivo, toques, rabia, muertos, lentos]`, los más tocados primero. */
+  targets: [string, number, number, number, number][]
+}
+
+/** Lo que se puede escribir hoy: en total y desde una misma IP (anonimizada, guardada solo ese día). */
+export interface StatsBudget {
+  day: string
+  max: number
+  ip: string
+  ipMax: number
+}
+
 /** Acceso a datos. La implementación real es D1 (`store.ts`); los tests usan memoria. */
 export interface Store {
   countDevicesSince(ipHash: string, since: number): Promise<number>
@@ -79,6 +170,15 @@ export interface Store {
   feedbackShot(id: string): Promise<string | null>
   deleteFeedback(id: string): Promise<void>
   deleteFeedbackBefore(at: number): Promise<void>
+  /**
+   * Suma los contadores si caben en el presupuesto de escrituras del día; si no, no escribe nada y
+   * devuelve `false`.
+   */
+  addStats(rows: StatsRows, budget: StatsBudget): Promise<boolean>
+  statsSummary(query: StatsSummaryQuery): Promise<StatsSummary>
+  statsHeat(query: StatsHeatQuery): Promise<StatsHeat>
+  /** Borra lo de antes de `day` (y lo de las semanas que empiezan antes), y los topes por IP de antes de `today`. */
+  deleteStatsBefore(day: string, today: string): Promise<void>
 }
 
 /**
@@ -115,6 +215,8 @@ export interface Limits {
   device: Limiter
   /** Dictado: cada petición cuesta cómputo de IA. */
   voice: Limiter
+  /** Lotes de estadísticas, por IP anonimizada: cada uno son escrituras de D1. */
+  stats: Limiter
 }
 
 /** Despierta el envío a una hora concreta. En producción, la alarma de un Durable Object. */
