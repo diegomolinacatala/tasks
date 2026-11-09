@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { plural } from '../../lib/i18n'
 import { acquireModal, releaseModal } from '../../lib/modal'
-import { isNative } from '../../lib/platform'
+import { showsPlaces } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
 import { sortedItems, suggestions } from '../../lib/shopping'
 import { parseShoppingText } from '../../lib/shoppingParse'
@@ -214,7 +214,8 @@ export function BasketPopover({ open, onClose }: BasketPopoverProps) {
     </SwipeRow>
   )
 
-  const showPlace = isNative && located.length > 0 && pending.length > 0
+  // Donde hay lugares (el iPhone; en local y en las capturas, para verlo).
+  const showPlace = showsPlaces && located.length > 0 && pending.length > 0
 
   return createPortal(
     <div className={`basket ${shown ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={copy.title} data-screen="basket">

@@ -1,7 +1,8 @@
-// Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Seis, que
+// Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Siete, que
 // cuentan cómo funciona la app de principio a fin: escribir como se habla, el día en el horario (con
-// soltar a la hora que se quiera), los avisos por lugar, las rutinas, lo que se hace sin abrirla (widgets,
-// el micrófono, Siri y el aviso al acabar) y que todo se queda en el iPhone (en modo oscuro). Cada una es
+// soltar a la hora que se quiera), los avisos por lugar, la cesta (la lista de la compra), las rutinas, lo
+// que se hace sin abrirla (widgets, el micrófono, Siri y el aviso al acabar) y que todo se queda en el
+// iPhone (en modo oscuro). Cada una es
 // la app real (build de producción, datos de ejemplo) dentro de un iPhone, con titular, el número en
 // romanos y un detalle que sale del marco (store-frames.mjs).
 //
@@ -18,7 +19,7 @@ import { build, preview } from 'vite'
 import { decodePng, encodePng, launch, renderHtml, sleep } from './edge.mjs'
 import { sampleState, writeStateExpression } from './sample-state.mjs'
 import { STORE_COPY } from './store-copy.mjs'
-import { FONTS, READY, creed, device, frame, notification, resultCard, slotCard } from './store-frames.mjs'
+import { FONTS, READY, basketCard, creed, device, frame, notification, resultCard, slotCard } from './store-frames.mjs'
 import { WIDGET_LABELS, dictateWidget, lockScreenRoutines, mediumWidget, routinesWidget } from './store-widgets.mjs'
 
 const LANG = process.argv.includes('--en') ? 'en' : 'es'
@@ -145,6 +146,13 @@ try {
   await sleep(900)
   screens.schedule = await capture()
 
+  // La cesta abierta desde su icono: lo pendiente, lo de siempre y el aviso al llegar al súper.
+  await open()
+  await evaluate(`document.querySelector('.app__basket').click()`)
+  await waitFor(`document.querySelector('.basket.is-open .basket__usual')`)
+  await sleep(900)
+  screens.basket = await capture()
+
   await open()
   await click('.tabs__tab', T.tabs.inbox)
   await waitFor(`document.querySelector('.routine')`)
@@ -225,22 +233,31 @@ try {
       }),
     ],
     [
-      '04-rutinas',
+      '04-cesta',
+      frame({
+        theme: 'sand',
+        numeral: 'IV',
+        ...c.basket,
+        content: device(screens.basket, 300, { tilt: 2 }) + basketCard({ ...T.basket, style: 'left:18px;top:762px;width:236px;transform:rotate(-2deg)' }),
+      }),
+    ],
+    [
+      '05-rutinas',
       frame({
         theme: 'night',
-        numeral: 'IV',
+        numeral: 'V',
         ...c.routines,
         content:
           device(screens.routines, 300, { tilt: 2 }) +
           `<div class="float" style="left:34px;top:676px;transform:rotate(-1.5deg)">${lockScreenRoutines({ date: today, title: T.gym, detail: T.gymDetail, emoji: '🏋️', pending: '📖' })}</div>`,
       }),
     ],
-    ['05-sin-abrir', widgetsFrame(c.widgets, labels, icon)],
+    ['06-sin-abrir', widgetsFrame(c.widgets, labels, icon)],
     [
-      '06-tuyas',
+      '07-tuyas',
       frame({
         theme: 'night',
-        numeral: 'VI',
+        numeral: 'VII',
         ...c.private,
         content:
           device(screens.dark, 410, { tilt: -2, dark: true }) +
@@ -274,7 +291,7 @@ function widgetsFrame(copy, labels, icon) {
   const w = T.widgets
   return frame({
     theme: 'sand',
-    numeral: 'V',
+    numeral: 'VI',
     ...copy,
     content: `
       <div class="float" style="left:34px;top:262px">${mediumWidget(w.today, 5, labels)}</div>

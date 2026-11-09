@@ -139,6 +139,28 @@ export function slotCard({ title, time, ok, pills, picked, hours, busy, start, d
   </div>`
 }
 
+/**
+ * Lo que se escribe en la cesta y lo que sale: la frase (con sus comillas), en cursiva, y debajo sus filas,
+ * cada una con su círculo y, si la lleva, su cantidad en una píldora.
+ */
+export function basketCard({ phrase, rows, style }) {
+  const items = rows
+    .map(
+      ([name, qty], i) =>
+        `<div style="display:flex;align-items:center;gap:11px;padding:7px 0;${i ? 'border-top:1px solid rgba(78,58,34,.1)' : ''}">
+      <span style="flex:none;width:19px;height:19px;border-radius:50%;border:1.5px solid rgba(78,58,34,.3)"></span>
+      <span style="flex:1;font:500 15px Inter;color:${INK}">${name}</span>
+      ${qty ? `<span style="padding:3px 9px;border-radius:999px;background:rgba(138,90,44,.12);color:#8a5a2c;font:600 12px Inter">${qty}</span>` : ''}
+    </div>`,
+    )
+    .join('')
+  return `<div class="float card" style="${style};padding:12px 16px 6px">
+    <div style="font:italic 400 16px/1.3 'Source Serif 4',serif;color:#5a544a">${phrase}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:7px 0 1px;color:#b8945e"><i style="flex:1;height:1px;background:currentColor;opacity:.6"></i><span style="font:600 12px Inter">↓</span><i style="flex:1;height:1px;background:currentColor;opacity:.6"></i></div>
+    ${items}
+  </div>`
+}
+
 /** Tres líneas en versalitas con un punto de oro delante: lo que no hay. */
 export function creed(lines, color, style) {
   return `<div class="float" style="${style};display:flex;flex-direction:column;gap:10px">${lines

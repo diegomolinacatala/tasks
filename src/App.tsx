@@ -2,6 +2,7 @@ import { Activity, Suspense, lazy, useCallback, useDeferredValue, useEffect, use
 import type { ComponentType, ReactNode } from 'react'
 import { finishBoot } from './lib/boot'
 import { track, trackBoot } from './lib/stats/bus'
+import { shouldAskStats } from './lib/stats/settings'
 import type { ComposeTarget } from './lib/compose'
 import { composeTargets } from './lib/compose'
 import { relativeLabel, shortTime } from './lib/date'
@@ -92,6 +93,7 @@ const Welcome = lazy<ComponentType<WelcomeHandlers>>(() =>
 interface WelcomeHandlers {
   run: WelcomeRun
   quick?: boolean
+  askStats?: boolean
   onReady?: () => void
   onDone: () => void
   onUnavailable: () => void
@@ -785,7 +787,14 @@ export function App() {
       )}
       {welcome && (
         <Suspense fallback={null}>
-          <Welcome run={welcome} quick={welcomeQuick} onReady={finishBoot} onDone={closeWelcome} onUnavailable={() => setWelcome(null)} />
+          <Welcome
+            run={welcome}
+            quick={welcomeQuick}
+            askStats={Boolean(API_URL) && shouldAskStats(state.settings.stats)}
+            onReady={finishBoot}
+            onDone={closeWelcome}
+            onUnavailable={() => setWelcome(null)}
+          />
         </Suspense>
       )}
     </RowActionsContext.Provider>

@@ -15,6 +15,9 @@ export type PlateId = 'write' | 'details' | 'dictate' | 'swipe' | 'day' | 'month
  * llegar y al salir de un lugar; solo donde hay lugares, el iPhone). 7: la 1.8 (soltar en el horario con la
  * cinta de horas, la cesta, dictar desde la pantalla de bloqueo —solo en el iPhone— y, en Lugares, el aviso
  * al alejarse de donde se está).
+ *
+ * «Tú decides» (las estadísticas) no está aquí: no es una novedad sino una pregunta, y sale al final de
+ * cualquier bienvenida mientras nadie haya elegido (`askStats` en `Welcome`), nunca por sí sola.
  */
 export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   write: 1,

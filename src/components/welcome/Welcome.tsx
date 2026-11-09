@@ -5,23 +5,32 @@ import { MARK_PATH } from '../../lib/boot'
 import { showsCalendar } from '../../lib/platform/calendar'
 import { isNative, showsPlaces } from '../../lib/platform'
 import { haptic } from '../../lib/platform/feedback'
+import { greeting, recapOf } from '../../lib/recap'
+import { routineDay } from '../../lib/routines'
+import { todayIso } from '../../lib/date'
 import type { PlateId, WelcomeRun } from '../../lib/welcome'
 import { platesAfter } from '../../lib/welcome'
+import type { StatsLevel } from '../../types'
 import { useCopy } from '../../state/LanguageProvider'
+import { useAppState, useDispatch } from '../../state/StoreProvider'
+import { STATS_CHOICES, STATS_CHOICE_COPY } from '../stats/choices'
 import { IconChevronLeft } from '../ui/Icons'
 import { BasketScene } from './BasketScene'
 import { CalendarScene } from './CalendarScene'
+import { CoverLedger } from './CoverLedger'
 import { DayScene } from './DayScene'
 import { DetailsScene } from './DetailsScene'
 import { DictateScene } from './DictateScene'
 import { MonthScene } from './MonthScene'
 import { PlacesScene } from './PlacesScene'
 import { RoutineScene } from './RoutineScene'
+import { StatsScene } from './StatsScene'
 import { SuggestScene } from './SuggestScene'
 import { SwipeScene } from './SwipeScene'
 import { WriteScene } from './WriteScene'
 import './welcome.css'
 import './plates.css'
+import './personal.css'
 import { track } from '../../lib/stats/bus'
 
 interface WelcomeProps {
@@ -29,13 +38,23 @@ interface WelcomeProps {
   run: WelcomeRun
   /** Desde Ajustes, no desde el arranque: la portada entra sin esperar (no hay relevo que cuidar). */
   quick?: boolean
+  /**
+   * Hay estadísticas y nadie ha elegido aún: la última lámina lo pregunta («Tú decides»). No cuenta como
+   * novedad (no abre la bienvenida por sí sola: sin ella lo pregunta la ficha, otro día).
+   */
+  askStats?: boolean
   /** Ya está pintada: se puede fundir la pantalla de arranque que tiene encima. */
   onReady?: () => void
   onDone: () => void
 }
 
-interface Plate {
+interface FeaturePlate {
   id: PlateId
+  Scene: ComponentType
+}
+
+interface Plate {
+  id: PlateId | 'stats'
   Scene: ComponentType
 }
 
@@ -43,7 +62,7 @@ interface Plate {
  * Cada lámina es un trozo de la app de verdad, para probarlo con el dedo antes de empezar. Una lámina
  * nueva lleva su versión en `PLATE_SINCE` (`lib/welcome.ts`): así sale también a quien actualiza.
  */
-const PLATES: readonly Plate[] = [
+const PLATES: readonly FeaturePlate[] = [
   { id: 'write', Scene: WriteScene },
   { id: 'details', Scene: DetailsScene },
   // El widget del micrófono solo existe en el iPhone (y en local, para verlo).
@@ -59,6 +78,9 @@ const PLATES: readonly Plate[] = [
   // El calendario solo existe en el iPhone (y en local, con el de muestra).
   ...(showsCalendar ? [{ id: 'calendar' as const, Scene: CalendarScene }] : []),
 ]
+
+/** La última, si toca: las estadísticas, con tres respuestas en lugar de «Listo». */
+const STATS_PLATE: Plate = { id: 'stats', Scene: StatsScene }
 
 const device = isNative ? 'iPhone' : null
 
@@ -110,10 +132,16 @@ const COPY = {
         title: 'Tu calendario, en tu día.',
         text: 'Tus eventos de iCloud, Google u Outlook, en el horario junto a tus tareas. Google u Outlook se añaden en Ajustes → Calendario.',
       },
+      stats: {
+        kicker: 'Tú decides',
+        title: '¿Me ayudas a mejorarla?',
+        text: 'Si quieres, Tasks cuenta de forma anónima cuántas veces la abres y, con detalle, qué usas y dónde tocas: puntos, nunca lo que escribes.',
+      },
     },
+    ...STATS_CHOICE_COPY.es,
     newsLabel: 'Novedades de Tasks',
     welcomeLabel: 'Bienvenida a Tasks',
-    news: ['Hay cosas nuevas.', 'Pruébalas con el dedo antes de seguir.'],
+    newsLine: 'Hay novedades: pruébalas con el dedo.',
     tagline: ['Tareas, rutinas y lugares.', `Todo se queda en tu ${device ?? 'dispositivo'}, sin cuentas.`],
     edition: 'Edición',
     index: 'Lo que vas a probar',
@@ -173,10 +201,16 @@ const COPY = {
         title: 'Your calendar, in your day.',
         text: 'Your iCloud, Google or Outlook events in your schedule, next to your tasks. Add Google or Outlook in Settings → Calendar.',
       },
+      stats: {
+        kicker: 'Your call',
+        title: 'Help me make it better?',
+        text: 'If you like, Tasks anonymously counts how often you open it and, with details, what you use and where you tap: dots, never what you write.',
+      },
     },
+    ...STATS_CHOICE_COPY.en,
     newsLabel: 'What’s new in Tasks',
     welcomeLabel: 'Welcome to Tasks',
-    news: ['There’s something new.', 'Try it with your finger before moving on.'],
+    newsLine: 'Something new to try with your finger.',
     tagline: ['Tasks, routines and places.', `Everything stays on your ${device ?? 'device'}, no accounts.`],
     edition: 'Edition',
     index: 'What you will try',
@@ -207,14 +241,23 @@ const EXIT_MS = 420
  * Tras una actualización sale igual, con la portada de novedades y solo las láminas nuevas.
  * Nada obliga: se avanza con el botón, se vuelve atrás y «Saltar» está siempre a mano.
  */
-export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
+export function Welcome({ run, quick = false, askStats = false, onReady, onDone }: WelcomeProps) {
   const copy = useCopy(COPY)
+  const state = useAppState()
+  const dispatch = useDispatch()
   // Lo que toca se fija al abrir: no cambia mientras se recorre. Tras actualizar, si lo nuevo no es de
   // esta plataforma no hay nada que enseñar (`welcomeOnLaunch` ya no la abre; esto es por si acaso).
-  const [plates] = useState(() => {
+  const [plates] = useState<readonly Plate[]>(() => {
     const due = platesAfter(PLATES, run.after)
-    return due.length || run.news ? due : PLATES
+    const shown: readonly Plate[] = due.length || run.news ? due : PLATES
+    return askStats && shown.length ? [...shown, STATS_PLATE] : shown
   })
+  // Para quien ya la usa, la portada es suya: un saludo según la hora y su cuaderno, de lo guardado aquí.
+  const [personal] = useState(() => ({
+    hour: new Date().getHours(),
+    today: todayIso(),
+    recap: recapOf(state, routineDay(Date.now(), state.settings.dayStart)),
+  }))
   // 0 es la portada; del 1 en adelante, las láminas.
   const [step, setStep] = useState(0)
   const [backwards, setBackwards] = useState(false)
@@ -236,9 +279,14 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
     return () => window.clearTimeout(exit.current)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const finish = () => {
+  /**
+   * Acabarla o saltarla. En «Tú decides», saltar o cerrar sin elegir es «No, gracias», como al cerrar la
+   * ficha que lo pregunta: quien ha visto la pregunta no vuelve a encontrársela.
+   */
+  const finish = (choice?: StatsLevel) => {
     if (leaving) return
-    // Acabarla o saltarla (estadísticas: cuánto se ve de la bienvenida).
+    if (plates[step - 1]?.id === 'stats') dispatch({ type: 'settings/stats', level: choice ?? 'off' })
+    // Estadísticas: cuánto se ve de la bienvenida.
     track(step === plates.length ? 'ui/welcome-done' : 'ui/welcome-skip')
     haptic('success')
     setLeaving(true)
@@ -263,9 +311,11 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
 
   const plate = plates[step - 1]
   const text = plate ? copy.plates[plate.id] : null
+  const choosing = plate?.id === 'stats'
   const last = step === plates.length
   const { news } = run
-  const [first, second] = news ? copy.news : copy.tagline
+  const { recap } = personal
+  const [first, second] = news ? [`${greeting(personal.hour)}.`, copy.newsLine] : copy.tagline
 
   return createPortal(
     <div
@@ -278,7 +328,7 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
       aria-label={news ? copy.newsLabel : copy.welcomeLabel}
     >
       {!plate || !text ? (
-        <section className={`welcome__cover ${backwards ? 'is-back' : ''} ${quick ? 'is-quick' : ''}`}>
+        <section className={`welcome__cover ${backwards ? 'is-back' : ''} ${quick ? 'is-quick' : ''} ${recap ? 'has-ledger' : ''}`}>
           {/* En el centro exacto y del mismo tamaño que la del arranque: al fundirse aquella, queda esta. */}
           <svg className="welcome__mark" viewBox="0 0 100 100" aria-hidden="true">
             <path fill="currentColor" d={MARK_PATH} />
@@ -296,6 +346,7 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
               <br />
               {second}
             </p>
+            {recap && <CoverLedger recap={recap} today={personal.today} />}
             {/* El índice: lo que viene, con su número, como el sumario de un cuaderno */}
             <ol className="welcome__index" aria-label={copy.index}>
               {plates.map((item, index) => (
@@ -310,7 +361,7 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
             <button type="button" className="welcome__next" onClick={() => go(1)}>
               {news ? copy.seeNew : copy.start}
             </button>
-            <button type="button" className="welcome__skip" onClick={finish}>
+            <button type="button" className="welcome__skip" onClick={() => finish()}>
               {news ? copy.skip : copy.known}
             </button>
           </footer>
@@ -333,11 +384,19 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
                 <li key={item.id} className={index < step - 1 ? 'is-done' : index === step - 1 ? 'is-current' : ''} />
               ))}
             </ol>
-            <button type="button" className="welcome__skip" onClick={finish}>
-              {copy.skip}
-            </button>
+            {/* En «Tú decides» no hay «Saltar»: «No, gracias» ya está abajo y dice lo que hace. Ocupa su sitio
+                igual, para que los filetes no cambien de largo. */}
+            {choosing ? (
+              <span className="welcome__skip is-placeholder" aria-hidden="true">
+                {copy.skip}
+              </span>
+            ) : (
+              <button type="button" className="welcome__skip" onClick={() => finish()}>
+                {copy.skip}
+              </button>
+            )}
           </header>
-          <section key={plate.id} className={`welcome__plate ${backwards ? 'is-back' : ''}`}>
+          <section key={plate.id} className={`welcome__plate ${backwards ? 'is-back' : ''} ${choosing ? 'welcome__plate--choice' : ''}`}>
             <div className="welcome__stage">
               <plate.Scene />
             </div>
@@ -351,10 +410,20 @@ export function Welcome({ run, quick = false, onReady, onDone }: WelcomeProps) {
             </div>
           </section>
           <footer className="welcome__foot">
-            {/* Al final, "Listo": "Empezar" ya se dijo en la portada. */}
-            <button type="button" className="welcome__next" onClick={last ? finish : () => go(step + 1)}>
-              {last ? copy.done : copy.next}
-            </button>
+            {choosing ? (
+              <div className="welcome__choices">
+                {STATS_CHOICES.map((level) => (
+                  <button key={level} type="button" className="welcome__choice" onClick={() => finish(level)}>
+                    {copy[level]}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // Al final, "Listo": "Empezar" ya se dijo en la portada.
+              <button type="button" className="welcome__next" onClick={last ? () => finish() : () => go(step + 1)}>
+                {last ? copy.done : copy.next}
+              </button>
+            )}
           </footer>
         </>
       )}

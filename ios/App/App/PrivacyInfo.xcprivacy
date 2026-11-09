@@ -6,7 +6,8 @@
 	     se transcribe al momento sin guardarse. Lo único que conserva el servidor es un identificador
 	     aleatorio del dispositivo para el dictado (límites de uso), sin vínculo con la identidad.
 	     Y las sugerencias que alguien decida enviar desde Ajustes (su mensaje y, si la deja, la captura
-	     de la pantalla): soporte, sin vínculo con la identidad.
+	     de la pantalla): soporte, sin vínculo con la identidad. Y, solo si se aceptan, estadísticas anónimas
+	     (interacción con el producto, rendimiento y diagnóstico): contadores sin identificadores, para analítica.
 	     Capacitor y sus plugins llevan su propio manifiesto. Debe coincidir con docs/app-store.md. -->
 	<key>NSPrivacyTracking</key>
 	<false/>

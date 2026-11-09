@@ -6,6 +6,7 @@ import type { StatsLevel } from '../../types'
 import { useCopy } from '../../state/LanguageProvider'
 import { useAppState, useDispatch } from '../../state/StoreProvider'
 import { Sheet } from '../ui/Sheet'
+import { STATS_CHOICES, STATS_CHOICE_COPY } from './choices'
 import './stats.css'
 
 const COPY = {
@@ -19,9 +20,7 @@ const COPY = {
       'Sin cuentas ni identificadores: solo contadores.',
       'Se cambia cuando quieras, en Ajustes.',
     ],
-    full: 'Sí, con detalle',
-    basic: 'Solo las visitas',
-    none: 'No, gracias',
+    ...STATS_CHOICE_COPY.es,
   },
   en: {
     sheet: 'Statistics',
@@ -33,9 +32,7 @@ const COPY = {
       'No accounts, no identifiers: just counters.',
       'Change it anytime in Settings.',
     ],
-    full: 'Yes, with details',
-    basic: 'Visits only',
-    none: 'No, thanks',
+    ...STATS_CHOICE_COPY.en,
   },
 } as const
 
@@ -109,16 +106,11 @@ export function StatsPrompt({ paused }: StatsPromptProps) {
     setOpen(false)
   }
 
-  const choices: readonly (readonly [StatsLevel, string])[] = [
-    ['full', copy.full],
-    ['basic', copy.basic],
-    ['off', copy.none],
-  ]
   const footer = (
     <div className="stats-prompt__actions">
-      {choices.map(([level, label]) => (
+      {STATS_CHOICES.map((level) => (
         <button key={level} type="button" className="stats-prompt__choice" onClick={() => choose(level)}>
-          {label}
+          {copy[level]}
         </button>
       ))}
     </div>

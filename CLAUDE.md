@@ -420,7 +420,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
   - Probado con el navegador del escritorio (claro y oscuro, 390 × 844): la portada, las cuatro láminas nuevas
     con el dedo (arrastrar, la cinta, Listo, comprar, el aviso de aquí). Ficha de la 1.8: `docs/app-store.md` §9.11.
 - **Estadísticas anónimas y panel de uso** (05/11/2026, commit `e3f59be` en `capacitor`, **TestFlight 54**; el
-  Worker y la política, sin desplegar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
+  Worker, desplegado desde `main` el 09/11/2026; la política, sin publicar). Lo pidió el usuario: «una especie de CRM» para ver cuánta gente usa la app, de qué manera y con
   qué regularidad, y un mapa de calor de los toques, «todo dentro de lo legal» y «sin mirar los datos de nadie en
   particular». Ver "Estadísticas". Probado en local de punta a punta (la app manda al Worker local, el panel lo
   pinta sobre la captura de la pantalla, ningún título viaja); 1.143 tests de la app y 182 del Worker. Revisado por dos
@@ -438,6 +438,28 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     estadísticas: sin elegir, se tira. Revisado por un agente (lo arreglado: eso, y que la ficha saliera de golpe
     al cerrar la barra o un panel: ahora vuelve a esperar sus 6 s). Probado con Edge sin ventana: aceptadas, se
     cuenta desde el arranque; sin elegir y con restos de la 54, no queda nada ni se envía nada.
+- **La 1.8, lista para enviar: entrada personal, «Tú decides» y siete capturas** (09/11/2026, en `capacitor`; sin
+  cambios de Swift; sin probar en el iPhone). El usuario pidió «la mejor actualización posible», con la entrada
+  personalizada y las capturas al día:
+  - **Portada personal** (`lib/recap.ts`, `CoverLedger`): a quien ya usa la app, la de novedades le saluda según la
+    hora («Buenas tardes.», la tarde hasta las 21:00; en inglés el *evening* desde las 18:00) y le enseña **su
+    cuaderno**: lo hecho, su racha viva más larga con el emoji de la rutina, y sus lugares (o sus rutinas, o los
+    días), desde cuándo. Sale de lo guardado en el dispositivo; nada viaja. Una instalación nueva no lo lleva.
+  - **«Tú decides»** (`StatsScene`): la última lámina de cualquier bienvenida mientras no se haya elegido
+    estadísticas (y haya servidor). Ver "Bienvenida". Así quien viene de la 1.7 lo elige al acabar lo nuevo, y la
+    ficha de "Estadísticas" queda para quien saltó antes de llegar.
+  - **Capturas**: siete en lugar de seis, con `04-cesta` («La compra, aparte»: la cesta abierta con «Avisar al
+    llegar a Mercadona» y la frase que se vuelve tres filas). En el resto solo cambia el número.
+  - **Ficha** (`docs/app-store.md` §3, §3.1, §4, §5 y §9.12): descripción con el horario, la cesta y «al moverme»,
+    y «sin rastreo» en lugar de «sin analítica» (ya no era verdad); palabras clave con «compra»/«grocery»; notas
+    para la revisión con las estadísticas con permiso (3895 caracteres); novedades nuevas. Política con «al final
+    de la bienvenida» (09/11/2026).
+  - Probado con Edge sin ventana y dedo simulado contra el servidor de desarrollo (español en claro a 390 × 844,
+    inglés en oscuro a 375 × 667, instalación nueva y quien viene de la 1.7): la portada, el cuaderno, tocar la
+    lista, elegir (se guarda con su cohorte) y Escape en la última lámina (se guarda «No»). 1.156 tests; JS principal
+    164,8 kB gzip. Revisado por un agente (sin fallos; aplicado lo menor: «Tú decides» sin «Saltar», porque saltar ahí
+    era decir que no sin decirlo; una fecha de creación imposible no cuenta para el cuaderno; aire en pantallas muy
+    bajas).
 - **Auditoría de experiencia incorporada** (13/10/2026, en `capacitor`, doce commits de `346c230` a
   `32c29f8` (el último, lo que encontró la revisión de código); el Swift nuevo sin compilar aún en el CI; sin probar en el iPhone ni unida a `main`). Lo
   pidió el usuario: una auditoría a fondo desde el punto de vista de quien usa la app
@@ -477,18 +499,17 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 
 **Pendiente, en este orden**
 
-0. **Estadísticas: desplegar y declarar**, antes de enviar la versión que las lleve: el Worker a `main` (el CI
-   aplica el esquema D1 nuevo y sube el panel, `[assets]`), la política nueva (`public/privacidad.html#estadisticas`,
-   se publica con `main`) y, en App Store Connect, los tipos de datos nuevos (`docs/app-store.md` §4). Después, el
-   panel: https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón (desde el buzón, «Uso»). Sin el
-   Worker nuevo, la app manda, recibe 404 y descarta el lote sin reintentar: no pasa nada. **No enviar a revisión
-   la TestFlight 54**: cuenta las visitas sin preguntar. Para la 1.8 sin estadísticas vale la 52; con ellas, una
-   posterior a la 54 (ya piden permiso), y en las notas para la revisión, que solo se mandan si se aceptan (`docs/app-store.md` §4).
-
-0. **Probar en el iPhone la TestFlight 52 y enviar la 1.8** (`docs/app-store.md` §9.11; al usuario, los pasos
-   en el chat). Al abrir: la portada de novedades con el índice y las cuatro láminas nuevas (tocar el
-   micrófono, subir la tarea por el horario y mover la cinta, la cesta, el punto hasta «Te has alejado 100 m»).
-   Después, lo de la 51 de abajo.
+0. **Enviar la 1.8** con la compilación que sale de la entrega del 09/11/2026 (`docs/app-store.md` §9.12; al
+   usuario, los pasos en el chat). Antes:
+   - **Publicar la política nueva**: unir `capacitor` a `main` (también lleva la web pública a la interfaz nueva).
+     El **Worker ya está desplegado** (09/11/2026: `f5ba630` en `main`, solo la carpeta `worker/` de `capacitor`; el
+     panel funciona en https://tasks-push.diegomolina.workers.dev/uso/ con la clave del buzón). `worker/eval/run.ts`
+     se quedó en `main` como estaba: al unir, quedarse con el de `capacitor`.
+   - En App Store Connect, los tipos de datos de las estadísticas (`docs/app-store.md` §4).
+   - **No enviar a revisión la TestFlight 54**: cuenta las visitas sin preguntar.
+   - En el iPhone: Ajustes → *Ver la bienvenida* (el cuaderno y, si aún no se eligió, *Tú decides*), y lo de la 52:
+     la portada de novedades con el índice y las cuatro láminas nuevas (tocar el micrófono, subir la tarea por el
+     horario y mover la cinta, la cesta, el punto hasta «Te has alejado 100 m»). Después, lo de la 51 de abajo.
 0. **Probar en el iPhone lo de la TestFlight 51** (la 1.8). La cesta:
    el icono con la cifra, abrir, escribir "pan, leche y 2 kg de arroz" (tres filas), una habitual, tocar una
    para comprarla y deslizar otra a la izquierda (el toast con "Deshacer" sale abajo, no sobre el popover),
@@ -724,6 +745,7 @@ src/
 │   ├── transition.ts     # View Transitions API con degradación
 │   ├── boot.ts           # funde el arranque (#boot de index.html) y hace entrar la app; el trazo de la señal
 │   ├── welcome.ts        # qué bienvenida toca al abrir: entera la primera vez, lo nuevo tras actualizar
+│   ├── recap.ts          # la portada personal: el saludo según la hora y el cuaderno (lo hecho, la racha, los lugares)
 │   ├── stats/            # estadísticas anónimas: bus (JS principal), recolector (trozo), lote, ping, toques, tramos
 │   ├── feedback.ts       # sugerencias: el trazo, la zona rodeada, qué se cuenta de ella y el envío al buzón
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
@@ -737,7 +759,8 @@ src/
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
     ├── routines/         # RoutinesBlock, RoutineRow (puntos de la semana), RoutineSheet, RoutineLog (constancia editable), EmojiPicker
-    ├── welcome/          # Welcome (portada con índice y láminas) y sus escenas: escribir, detalles, dictar, gestos, horario, mes, rutinas, cesta, lugares, sugerencias y calendario
+    ├── welcome/          # Welcome (portada con índice y cuaderno, `CoverLedger`, y láminas) y sus escenas: escribir, detalles, dictar,
+    │                     # gestos, horario, mes, rutinas, cesta, lugares, sugerencias, calendario y «Tú decides» (`StatsScene`)
     ├── compose/          # Composer (la barra), ComposeSheet (la ficha), usePullUp (el asa), dictado
     ├── task/             # SwipeRow + useSwipe (gesto), TaskShell, TaskRow, TaskSheet, rowActions, fields (campos compartidos)
     ├── places/           # PlacesView (mapa + tarjetas), MapSnapshot, PlaceSheet (radio con deslizador), PlaceAliases,
@@ -745,7 +768,8 @@ src/
     ├── settings/         # SettingsView (la página de filas), SettingsRow, y cada fila con su panel: AppearanceRow,
     │                     # LanguagePicker, NotificationsRow, CalendarRow (+ CalendarPicker, CalendarExportSheet,
     │                     # CalendarGuide, Switch), DictationRow, DataRow (copias y datos)
-    ├── stats/            # StatsRunner (enciende o apaga el recolector) y StatsPrompt (la ficha que pide el detalle)
+    ├── stats/            # StatsRunner (enciende o apaga el recolector), StatsPrompt (la ficha que pide el detalle) y choices
+    │                     # (las tres respuestas, también de la lámina «Tú decides»)
     ├── feedback/         # FeedbackMode (píldora y fases), FeedbackDraw (rodear), FeedbackSheet, describe, composeShot
     └── ui/ …             # Sheet, Slider, Toast, PickerChip, iconos; importance, section, push, dnd
 ios/App/App/              # proyecto de Xcode: TasksNativePlugin.swift, AppIntents.swift, MapPicker.swift, CalendarBridge.swift,
@@ -1014,6 +1038,18 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
 - **Portada con índice** (la 1.8): bajo la frase, las láminas que vienen con su número en romanos
   (`welcome__index`), y en la de novedades *Edición 1.8* (`__APP_VERSION__`). En pantallas bajas (< 660 px)
   el índice no sale.
+- **Portada personal** (la 1.8, `personal.css`): la de novedades saluda según la hora (`greeting` en
+  `lib/recap.ts`) y, a quien ya tiene algo hecho (3 tareas tachadas o una racha de 2 días), cualquier portada le
+  enseña **su cuaderno** (`CoverLedger`, `recapOf`): tres cifras en serif entre filetes de oro (hechas, días
+  seguidos con el emoji de la rutina, lugares o rutinas o días) y desde cuándo. Con él la señal sube más
+  (`has-ledger`) y, por debajo de 800 px de alto, el índice no sale.
+- **«Tú decides»** (la 1.8, `StatsScene`): la última lámina, si hay servidor y nadie ha elegido estadísticas
+  (`askStats`, fijado al abrir). No está en `PLATE_SINCE`: no es una novedad y nunca abre la bienvenida por sí sola.
+  Una lista de mentira (Carlota, Ibán, Victor) que, al tocarla, tacha sus títulos en barras grises («Lo que
+  llega») y deja un punto de calor por toque («3 toques · ni una palabra»); hasta el primer toque, un dedo de
+  muestra toca en tres sitios. En lugar de «Listo», las tres respuestas de la ficha (`stats/choices.ts`), con el
+  mismo peso, y sin «Saltar» arriba («No, gracias» ya lo dice); **Escape en esta lámina es «No»**, como cerrar la
+  ficha. Quien salta antes de llegar sigue sin elegir y le pregunta la ficha otro día.
 - **Once láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,
@@ -1308,10 +1344,11 @@ terceros ni de grabar sesiones (Clarity, Hotjar…): ven a cada persona y los t�
   detalle** (`full`: además, funciones y toques) y **Ninguna** (`off`: no se manda nada y se borra lo pendiente),
   que es lo que hay mientras no se elige (`level: null`, `effectiveLevel`). Apple pide permiso incluso para datos
   de uso anónimos (norma 5.1.1(ii)): la AEPD admite medir la audiencia sin consentimiento, pero eso no vale para
-  la revisión (la TestFlight 54 contaba así las visitas; se cambió el 08/11/2026). La ficha `StatsPrompt` lo
-  pregunta una vez, a partir del segundo día con la app y sin nada delante, con las tres respuestas del mismo
-  peso (decir que no cuesta lo que decir que sí) y sin contar la respuesta; cerrarla es "Ninguna". Sin elegir
-  no hay cohorte. Ajustes → Tus datos → **Estadísticas** (`StatsRow`).
+  la revisión (la TestFlight 54 contaba así las visitas; se cambió el 08/11/2026). Se pregunta en la última
+  lámina de la bienvenida («Tú decides», ver "Bienvenida") y, a quien la saltó antes, en la ficha `StatsPrompt`, a
+  partir del segundo día con la app y sin nada delante. Las dos, con las mismas tres respuestas y el mismo peso
+  (decir que no cuesta lo que decir que sí), sin contar la respuesta; cerrar o saltar la pregunta es "Ninguna".
+  Sin elegir no hay cohorte. Ajustes → Tus datos → **Estadísticas** (`StatsRow`).
 - **Sin identificadores**, como el *usage ping* de Brave o DuckDuckGo: el móvil manda contadores y banderas
   (`lib/stats/pending.ts`, `ledger.ts`). Un **ping al día** (`u:day`) con `weekly`/`monthly`/`first` (primero de
   la semana, del mes, de siempre), la **cohorte** (el lunes del primer envío, guardado en `Settings.stats.cohort`
