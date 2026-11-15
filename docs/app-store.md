@@ -262,7 +262,7 @@ recordatorios,pendientes,lista,compra,rutinas,hábitos,ubicación,dictado,agenda
 **Descripción** (desde la 1.8; ordenada como las capturas: primero lo que la hace distinta)
 
 ```
-Apunta tus tareas como las dirías y olvídate de configurar nada. Sin cuentas: todo se queda en tu iPhone.
+Apunta tus tareas como las dirías y olvídate de configurar nada. Sin cuentas: todo se queda en tu iPhone, salvo lo que tú decidas compartir, cifrado de punta a punta.
 
 Escribe «cena con Carlota el viernes a las 9» y Tasks pone el día, la hora y el aviso. Escribe «comprar pan al pasar por Mercadona» y te avisa cuando llegas.
 
@@ -299,17 +299,20 @@ Sin etiquetas ni colores: lo importante se ve más grande. Lo que quedó sin hac
 DE DÍA Y DE NOCHE
 Papel marfil de día y azul de medianoche de noche, o que siga a tu iPhone. En español y en inglés.
 
+EN TU ORDENADOR Y CON LOS TUYOS
+Abre Tasks en el ordenador, escanea su código con la cámara del iPhone y verás lo mismo en los dos, al momento. Y comparte una cesta con tu piso o tu familia: lo que alguien añade o tacha os llega a todos. Cifrado de punta a punta: ni nosotros podemos leerlo.
+
 TU OPINIÓN CUENTA
 Desde Ajustes, rodea con el dedo cualquier parte de la app y cuéntanos qué cambiarías.
 
 PRIVADA
-Sin registro, sin publicidad, sin rastreo. Tus tareas, tus lugares y tu ubicación se quedan en tu iPhone. Las estadísticas anónimas, solo si las aceptas, y nunca con lo que escribes.
+Sin registro, sin publicidad, sin rastreo. Tus tareas, tus lugares y tu ubicación se quedan en tu iPhone; si vinculas otro dispositivo o compartes una cesta, viajan cifrados y el servidor no puede leerlos. Las estadísticas anónimas, solo si las aceptas, y nunca con lo que escribes.
 ```
 
 **Texto promocional** (170 caracteres; se cambia sin versión nueva)
 
 ```
-Nuevo: avisos al salir de un sitio, como «llamar a Carlota al salir de casa», y unos Ajustes más sencillos, todo en una pantalla.
+Nuevo: Tasks en tu ordenador, vinculado a tu iPhone con un código, y cestas de la compra compartidas con tu piso o tu familia. Todo cifrado.
 ```
 
 ### 3.1 Ficha en inglés (desde la 1.4)
@@ -342,7 +345,7 @@ reminders,to-do,todo,list,grocery,routines,habits,location,dictation,siri,planne
 **Description**
 
 ```
-Jot down your tasks the way you’d say them, with nothing to set up. No accounts: everything stays on your iPhone.
+Jot down your tasks the way you’d say them, with nothing to set up. No accounts: everything stays on your iPhone, except what you choose to share, end-to-end encrypted.
 
 Type “dinner with Carlota on Friday at 9pm” and Tasks sets the day, the time and the reminder. Type “buy bread when I get to the supermarket” and it reminds you as you arrive.
 
@@ -379,17 +382,20 @@ No labels, no colors: important things just look bigger. Whatever was left undon
 DAY AND NIGHT
 Ivory paper by day and midnight blue by night, or let it follow your iPhone. In English and Spanish.
 
+ON YOUR COMPUTER AND WITH YOUR PEOPLE
+Open Tasks on your computer, scan its code with your iPhone camera and see the same on both, instantly. And share a basket with your flatmates or your family: whatever someone adds or checks off reaches everyone. End-to-end encrypted: not even we can read it.
+
 YOUR SAY
 From Settings, circle any part of the app and tell us what you’d change.
 
 PRIVATE
-No sign-up, no ads, no tracking. Your tasks, places and location stay on your iPhone. Anonymous statistics only if you agree, and never with what you write.
+No sign-up, no ads, no tracking. Your tasks, places and location stay on your iPhone; if you link another device or share a basket, they travel encrypted and the server can’t read them. Anonymous statistics only if you agree, and never with what you write.
 ```
 
 **Promotional Text** (opcional)
 
 ```
-New: reminders when you leave a place, like “call Carlota when I leave home”, and simpler Settings, all on one screen.
+New: Tasks on your computer, linked to your iPhone with a code, and shopping baskets shared with your flatmates or family. All encrypted.
 ```
 
 **Capturas** (desde la 1.8): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos juegos de
@@ -474,7 +480,7 @@ estándar a través de WebCrypto del propio iOS (WebKit), sin algoritmos propios
 ## 5. Notas para la revisión de Apple
 
 En inglés: quien revisa no tiene por qué saber español. Van en **Información para la revisión →
-Notas** (máximo 4000 caracteres; estas son unas 3900 desde la 1.8, que añadió la cesta, "al moverme", el widget
+Notas** (máximo 4000 caracteres; estas son 3977 desde la 1.9, que añadió vincular y las cestas compartidas; desde la 1.8, que añadió la cesta, "al moverme", el widget
 Dictar y las estadísticas con permiso, y quitó detalles que la app ya enseña; van justas: para añadir algo hay que quitar
 otra cosa). Son lo mismo que pidió Apple en el rechazo del
 22/09/2026 (§7), sin el vídeo, con el aviso del dictado como quedó tras el rechazo del 23/09/2026 (§8).
@@ -488,21 +494,21 @@ A daily to-do list with no sign-up: write or say a task as you would say it and 
 HOW TO TEST
 - First launch shows a short welcome ("Empezar", "Continuar", "Saltar" = Skip); its last card asks about anonymous statistics (see below). The app starts empty.
 - Add: tap the bar at the bottom, type "llamar a Ana mañana a las 5" (call Ana tomorrow at 5) and press Return. A chip shows the detected day and time and a reminder is scheduled (notification permission is asked the first time).
-- Swipe a task right to complete it, left to delete it (Undo appears). Touch and hold a task to drag it: to reorder, onto a day of the week strip, or onto the schedule to give it a time. Pull the week strip down for the month.
-- "llamar al banco esta semana" (call the bank this week) shows up every day until done.
-- The "A" button (top right) is importance mode: drag the number to make a title larger.
+- Swipe a task right to complete it, left to delete it (Undo appears). Touch and hold a task to drag it: to reorder, onto a day of the week strip, or onto the schedule to give it a time.
 - Routines: "tomar creatina todos los días a las 10" (take creatine every day at 10) appears in Bandeja → Rutinas; tick it today and it resets tomorrow, also from the Lock Screen widget.
 - "gimnasio hoy a las 18:00 durante una hora" (gym today at 6 pm for one hour): when it ends, a notification asks "¿Has acabado?" (Are you done?) with "Sí, hecha" / "Todavía no".
 - Location: Lugares → search a place (Apple Maps), use the current location ("while using" only) or tap the map. Then a task → Avisos → Añadir → "Al llegar" or "Al salir" (arriving/leaving) → the place, or type "llamar a Ana al salir de casa" or "llamar a Ana al moverme" (100 m from the current spot). iOS delivers it on arrival or departure (UNLocationNotificationTrigger), even with the app closed. The basket icon (top right) is a shopping list that can alert at a place.
-- Dictation: with the bar empty, tap the microphone (or the "Dictar" widget or control, which opens the app listening). The first time, a notice explains that the audio goes to our server and Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission. Example: "cena hoy a las nueve".
+- Dictation: with the bar empty, tap the microphone. The first time, a notice explains that the audio goes to our server and Cloudflare Workers AI; its only button, "Continuar", leads to the iOS microphone permission.
 - Siri (Spanish): "Apunta en Tasks", then the task: added without opening the app. Also in Shortcuts.
-- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" asks for full Calendar access; events then show in the Agenda and the "Hoy" widget. Optional: "Añadir mis tareas" writes timed tasks to a calendar the user picks. All on device.
+- Calendar: Ajustes → Calendario → "Ver mi calendario en la Agenda" (full Calendar access); events show in the Agenda. All on device.
+- Linked devices (optional): open https://diegomolinacatala.github.io/tasks/ on a computer → "Vincular con el iPhone" shows a QR code; scan it with the iPhone Camera → "Abrir en Tasks" → "Vincular"; both show the same digits. Changes sync instantly. Shared baskets: basket icon → "+ Compartida" → name → QR or link to invite.
 
 EXTERNAL SERVICES
-- Our own backend on Cloudflare Workers, for dictation: it receives the audio (from Siri, only the text) and the local date and time; Whisper transcribes it and NVIDIA Nemotron interprets it, both on Cloudflare Workers AI. Nothing is stored, logged or used for training. Sent only after that notice and microphone access (off in Ajustes → Dictado); otherwise Siri input is parsed on the device. The backend keeps only a random device ID and a token hash, for rate limiting.
+- Sync (only if the user links a device or shares a basket): our backend relays end-to-end encrypted records (AES-GCM, key only on the user's devices, passed in the QR code or link); it cannot read them. Deleted after a year unused.
+- Our own backend on Cloudflare Workers, for dictation: it receives the audio (from Siri, only the text) and the local date and time; Whisper transcribes it and NVIDIA Nemotron interprets it, both on Cloudflare Workers AI. Nothing is stored or used for training. Sent only after that notice and microphone access (off in Ajustes → Dictado); otherwise Siri input is parsed on the device. The backend keeps only a random device ID and a token hash, for rate limiting.
 - Suggestions (Ajustes → Sugerir una mejora): sent only when the user taps Send; only the developer reads them.
-- Anonymous statistics, opt-in: nothing is counted or sent until the user chooses at the end of the welcome or in a one-time sheet (three equal options; closing the sheet = No), changeable in Ajustes → Estadísticas. Only counters (screens, features, a coarse tap grid), no identifiers or content; the server keeps totals.
-- Apple Maps (MapKit), EventKit, local notifications and region monitoring. iTunes Search API, to offer updates.
+- Anonymous statistics, opt-in: nothing is counted or sent until the user chooses at the end of the welcome or in a one-time sheet (three equal options), changeable in Ajustes → Estadísticas. Only counters (screens, features, a coarse tap grid), no identifiers or content; the server keeps totals.
+- Apple Maps, EventKit, local notifications, region monitoring; iTunes Search API, to offer updates.
 - No ads, tracking, third-party SDKs, payments or authentication.
 
 REGIONAL DIFFERENCES: none. Spanish and English.
@@ -1299,4 +1305,41 @@ actualización posible, con la entrada personalizada y las capturas al día:
 • Things at the same time show side by side, and your calendar events can be moved and checked off from the Agenda.
 • A new welcome with your notebook: what you’ve done and your streak. After an update, only what’s new, to try with your finger.
 • If you like, help me improve it with anonymous statistics: your choice, never what you write, and you can change it in Settings.
+```
+
+### 9.13 La 1.9: vincular dispositivos y cestas compartidas (15/11/2026)
+
+Tasks en el ordenador vinculado al iPhone, cestas compartidas y la vista de escritorio (`docs/sincronizacion.md`).
+La web y el Worker ya están en producción; la app, en **TestFlight 61** (la 60 es el mismo código, desde
+`capacitor`). Privacidad (§4, *Otro contenido del usuario*) publicada el 15/11/2026. Sin capturas nuevas: valen
+las siete de la 1.8. Cambian la descripción y el texto promocional (§3 y §3.1) y las notas (§5).
+
+**Antes (en el iPhone)**: *TestFlight* → Tasks → **Actualizar** a la **1.9 (61)** y probar vincular con el ordenador
+y una cesta compartida (el QR con la Cámara, *Abrir en Tasks*, las cifras, *Mandar el enlace*).
+
+**En App Store Connect**
+
+1. Columna izquierda, junto a **App para iOS**, el **+** azul → `1.9` → **Crear**.
+2. **Novedades de esta versión** (abajo), **Texto promocional** y **Descripción** (§3). Capturas y palabras clave, sin
+   tocar (las copia de la 1.8).
+3. **Compilación** → **Añadir compilación** → **1.9 (61)**. Cifrado: *Ninguno de los algoritmos mencionados*.
+4. **Información para la revisión** → **Notas**: las de §5, enteras.
+5. **Guardar**. Arriba a la derecha, el idioma → **English (U.S.)**: **What’s New** (abajo), **Promotional Text** y
+   **Description** (§3.1) → **Guardar**.
+6. **Añadir para revisión** → **Enviar a App Review**. Aprobada: subir `MARKETING_VERSION` a 2.0.
+
+**Novedades de esta versión**
+
+```
+• Tasks en tu ordenador: ábrelo en diegomolinacatala.github.io/tasks, escanea el código con la cámara del iPhone y verás lo mismo en los dos, al momento.
+• Cestas compartidas: crea una para tu piso o tu familia e invita con un código o un enlace. Lo que alguien añade o tacha os llega a todos.
+• Todo viaja cifrado de punta a punta: ni nosotros podemos leerlo. Y solo si tú lo vinculas.
+```
+
+**What’s New in This Version**
+
+```
+• Tasks on your computer: open diegomolinacatala.github.io/tasks, scan the code with your iPhone camera and see the same on both, instantly.
+• Shared baskets: create one for your flat or your family and invite with a code or a link. Whatever someone adds or checks off reaches everyone.
+• Everything travels end-to-end encrypted: not even we can read it. And only if you link it.
 ```
