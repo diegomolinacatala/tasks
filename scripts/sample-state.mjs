@@ -41,6 +41,9 @@ const WORDS = {
     hecha: 'Hecha',
     pendiente: 'Pendiente',
     cesta: ['Pan', 'Leche', 'Huevos', 'Arroz', 'Café', 'Aceite', 'Plátanos', 'Yogures'],
+    // Las cestas compartidas: la del piso y la de la familia.
+    piso: ['Piso', 'Papel higiénico', 'Detergente', 'Aceite', 'Bolsas de basura', 'Sal'],
+    familia: ['Familia', 'Fruta', 'Agua'],
   },
   en: {
     trabajo: 'Work',
@@ -79,6 +82,8 @@ const WORDS = {
     hecha: 'Done',
     pendiente: 'Pending',
     cesta: ['Bread', 'Milk', 'Eggs', 'Rice', 'Coffee', 'Olive oil', 'Bananas', 'Yogurt'],
+    piso: ['Flat', 'Toilet paper', 'Detergent', 'Olive oil', 'Trash bags', 'Salt'],
+    familia: ['Family', 'Fruit', 'Water'],
   },
 }
 
@@ -147,6 +152,32 @@ function monthFiller(w) {
 
 const place = (w, id, lat, lng, radius, aliases = []) => ({ id, name: w[id][0], aliases, location: { lat, lng, address: w[id][1] }, radius })
 
+/**
+ * Dos cestas compartidas (el piso y la familia), con credenciales de mentira: sin servidor no se conectan
+ * a nada, pero salen sus pestañas y sus cosas.
+ */
+function sharedBaskets(w) {
+  const now = Date.now()
+  const basket = (id, [name, ...things], order, done) => ({
+    id,
+    name,
+    items: things.map((thing, index) => ({
+      id: `${id}-${index}`,
+      name: thing,
+      qty: null,
+      done: done.includes(index),
+      order: index,
+      createdAt: now - (index + 1) * 3_600_000,
+      doneAt: done.includes(index) ? now - 1_200_000 : null,
+    })),
+    history: [],
+    placeId: null,
+    order,
+    link: { room: id, key: `${id}${id}`.slice(0, 43).padEnd(43, 'k'), member: 'demo-member', token: 'demo-token-for-shots-only', owner: order === 0 },
+  })
+  return [basket('pisoDemoRoomForShots00', w.piso, 0, [4]), basket('familiaDemoRoomShots00', w.familia, 1, [])]
+}
+
 /** La cesta: cuatro cosas pendientes (una con cantidad), una comprada y lo habitual en el historial. */
 function shopping(w) {
   const [pan, leche, huevos, arroz, cafe, aceite, platanos, yogures] = w.cesta
@@ -182,6 +213,7 @@ export function sampleState({ theme = 'light', language = 'es' } = {}) {
       routine('gym', w.gym, '19:00', { emoji: '🏋️', days: [1, 3, 5], done: history(14, [0, 2, 4, 6, 7, 9, 11, 13]), order: 3 }),
     ],
     shopping: shopping(w),
+    baskets: sharedBaskets(w),
     collapsed: { overdue: false, backlog: false, routines: false },
     // La bienvenida, dada por vista (de cualquier versión futura): que no tape las capturas.
     // El calendario conectado: en las capturas sale el de muestra (`calendarDemo.ts`) junto a las tareas.

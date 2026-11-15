@@ -52,6 +52,23 @@ describe('welcomeOnLaunch', () => {
   })
 })
 
+describe('la 1.9: vincular y las cestas compartidas', () => {
+  test('quien vio la 1.8 (la 7) ve solo vincular y las cestas compartidas, en el iPhone y en la web', () => {
+    const order: PlateId[] = ['write', 'details', 'dictate', 'swipe', 'day', 'month', 'routine', 'basket', 'link', 'shared', 'places', 'suggest', 'calendar']
+    const plates = order.map((id) => ({ id }))
+    expect(platesAfter(plates, 7).map((plate) => plate.id)).toEqual(['link', 'shared'])
+    expect(welcomeOnLaunch(false, 7, availablePlates(true, true, true))).toEqual({ after: 7, news: true })
+    expect(welcomeOnLaunch(false, 7, availablePlates(false, false, false))).toEqual({ after: 7, news: true })
+  })
+
+  test('sin servidor no existen, y no cuentan como nuevas', () => {
+    expect(availablePlates(true, true, true, false)).not.toContain('link')
+    expect(availablePlates(true, true, true, false)).not.toContain('shared')
+    expect(availablePlates(true, true, true)).toContain('link')
+    expect(welcomeOnLaunch(false, 7, availablePlates(true, true, true, false))).toBeNull()
+  })
+})
+
 describe('platesAfter', () => {
   const plates: { id: PlateId }[] = [
     { id: 'write' },
@@ -62,6 +79,8 @@ describe('platesAfter', () => {
     { id: 'month' },
     { id: 'routine' },
     { id: 'basket' },
+    { id: 'link' },
+    { id: 'shared' },
     { id: 'places' },
     { id: 'suggest' },
     { id: 'calendar' },
@@ -77,27 +96,29 @@ describe('platesAfter', () => {
       'month',
       'routine',
       'basket',
+      'link',
+      'shared',
       'places',
       'suggest',
       'calendar',
     ])
   })
 
-  test('quien vio la 1.7 (la 6) ve solo lo de la 1.8: dictar, el horario, la cesta y los lugares', () => {
-    expect(platesAfter(plates, 6).map((plate) => plate.id)).toEqual(['dictate', 'day', 'basket', 'places'])
+  test('quien vio la 1.7 (la 6) ve lo de la 1.8 (dictar, el horario, la cesta y los lugares) y lo de la 1.9', () => {
+    expect(platesAfter(plates, 6).map((plate) => plate.id)).toEqual(['dictate', 'day', 'basket', 'link', 'shared', 'places'])
   })
 
   test('quien vio la de la 1.2 ve lo de después: la ficha, los gestos (versión 5), los lugares, las sugerencias, el calendario y lo de la 1.8', () => {
-    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'dictate', 'swipe', 'day', 'basket', 'places', 'suggest', 'calendar'])
+    expect(platesAfter(plates, 1).map((plate) => plate.id)).toEqual(['details', 'dictate', 'swipe', 'day', 'basket', 'link', 'shared', 'places', 'suggest', 'calendar'])
   })
 
   test('quien vio la de la 1.4 ve los gestos, los lugares, el calendario y lo de la 1.8', () => {
-    expect(platesAfter(plates, 3).map((plate) => plate.id)).toEqual(['dictate', 'swipe', 'day', 'basket', 'places', 'calendar'])
+    expect(platesAfter(plates, 3).map((plate) => plate.id)).toEqual(['dictate', 'swipe', 'day', 'basket', 'link', 'shared', 'places', 'calendar'])
   })
 
   test('sin el calendario, los lugares ni dictar (la PWA), quien vio la de la 1.4 tiene los gestos, el horario y la cesta', () => {
     const web = plates.filter((plate) => plate.id !== 'calendar' && plate.id !== 'places' && plate.id !== 'dictate')
-    expect(platesAfter(web, 3).map((plate) => plate.id)).toEqual(['swipe', 'day', 'basket'])
+    expect(platesAfter(web, 3).map((plate) => plate.id)).toEqual(['swipe', 'day', 'basket', 'link', 'shared'])
   })
 
   test('con la versión actual no queda ninguna', () => {

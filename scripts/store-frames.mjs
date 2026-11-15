@@ -4,6 +4,7 @@
 // aviso, la tarjeta del horario, los widgets). Todo en 440 × 956 px CSS, que a 3x son los 1320 × 2868 px
 // del iPhone de 6,9".
 
+import { encode } from 'uqr'
 import { GOLD, INK } from './brand.mjs'
 
 export const FONTS =
@@ -53,14 +54,15 @@ const statusBar = (ink) => `<div class="status" style="color:${ink}"><span>9:41<
 /**
  * El iPhone con una captura de la app dentro. `tilt`: grados de giro (un poco a cada lado, alternando
  * entre capturas). `blurred`: la app difuminada detrás, como cuando se mantiene pulsado un aviso.
- * `dark`: la app en modo oscuro (barra de estado en marfil).
+ * `dark`: la app en modo oscuro (barra de estado en marfil). `scale` y `shift` (px a un lado): más pequeño y
+ * apartado, cuando comparte la captura con el ordenador.
  */
-export function device(screenshot, top, { tilt = 0, blurred = false, dark = false } = {}) {
+export function device(screenshot, top, { tilt = 0, blurred = false, dark = false, scale = 1, shift = 0 } = {}) {
   const img = blurred
     ? `<img src="${screenshot}" alt="" style="filter:blur(7px) saturate(.9) brightness(.92);transform:scale(1.06)">`
     : `<img src="${screenshot}" alt="">`
   const screen = dark ? 'background:#121828' : ''
-  return `<div class="device" style="top:${top}px;transform:rotate(${tilt}deg)"><div class="screen" style="${screen}">${img}${statusBar(dark ? '#ece4d4' : INK)}<div class="island"></div></div></div>`
+  return `<div class="device" style="top:${top}px;transform-origin:50% 0;transform:translateX(${shift}px) rotate(${tilt}deg) scale(${scale})"><div class="screen" style="${screen}">${img}${statusBar(dark ? '#ece4d4' : INK)}<div class="island"></div></div></div>`
 }
 
 /** Aviso de iOS (con los botones si se mantiene pulsado). */
@@ -158,6 +160,62 @@ export function basketCard({ phrase, rows, style }) {
     <div style="font:italic 400 16px/1.3 'Source Serif 4',serif;color:#5a544a">${phrase}</div>
     <div style="display:flex;align-items:center;gap:8px;margin:7px 0 1px;color:#b8945e"><i style="flex:1;height:1px;background:currentColor;opacity:.6"></i><span style="font:600 12px Inter">↓</span><i style="flex:1;height:1px;background:currentColor;opacity:.6"></i></div>
     ${items}
+  </div>`
+}
+
+/**
+ * Un portátil con la app de escritorio: la pantalla (con la barra del navegador y su dirección) y la base.
+ * `width`: el ancho de la pantalla con su marco; puede salirse de la página por un lado.
+ */
+export function laptop(screenshot, { url, top, left, width, tilt = 0 }) {
+  return `<div class="float" style="left:${left}px;top:${top}px;width:${width}px;transform:rotate(${tilt}deg);z-index:2">
+    <div style="padding:9px 9px 11px;border-radius:16px 16px 6px 6px;background:linear-gradient(145deg,#2a2d35,#0d0f14 40%,#23262e);box-shadow:inset 0 0 0 1.5px #474b55,0 40px 80px rgba(20,27,46,.4)">
+      <div style="border-radius:6px;overflow:hidden;background:#f4efe6">
+        <div style="display:flex;align-items:center;gap:5px;height:20px;padding:0 9px;background:#e9e2d4;border-bottom:1px solid rgba(78,58,34,.12)">
+          <i style="width:7px;height:7px;border-radius:50%;background:#d8cfbf"></i><i style="width:7px;height:7px;border-radius:50%;background:#d8cfbf"></i><i style="width:7px;height:7px;border-radius:50%;background:#d8cfbf"></i>
+          <span style="margin-left:14px;padding:2px 12px;border-radius:6px;background:#f8f4ec;font:500 9.5px Inter;color:#5a544a">${url}</span>
+        </div>
+        <img src="${screenshot}" alt="" style="display:block;width:100%">
+      </div>
+    </div>
+    <div style="height:12px;margin:0 -6%;border-radius:0 0 14px 14px;background:linear-gradient(#c9ccd3,#8e929b);box-shadow:0 18px 30px rgba(20,27,46,.3)"></div>
+  </div>`
+}
+
+/** Un QR de verdad en SVG (tinta sobre papel), para las tarjetas de invitar y de vincular. */
+export function qrSvg(value, size) {
+  const qr = encode(value, { ecc: 'M', border: 1 })
+  let d = ''
+  qr.data.forEach((row, y) => row.forEach((dark, x) => (d += dark ? `M${x} ${y}h1v1h-1z` : '')))
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${qr.size} ${qr.size}" shape-rendering="crispEdges"><rect width="${qr.size}" height="${qr.size}" fill="#fbf8f2"/><path d="${d}" fill="${INK}"/></svg>`
+}
+
+/**
+ * Invitar a una cesta compartida: su nombre, quién está (iniciales en serif), el código y el enlace. Lo que
+ * se añade no lleva nombre: los nombres solo salen aquí, en los miembros.
+ */
+export function inviteCard({ title, members, scan, link, style }) {
+  const people = members
+    .map(
+      (name) =>
+        `<span style="display:inline-flex;align-items:center;gap:6px;font:500 13px Inter;color:#5a544a"><i style="display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#ede6d9;box-shadow:inset 0 0 0 1px rgba(184,150,106,.5);font:italic 500 13px 'Source Serif 4',serif;color:${INK}">${name[0]}</i>${name}</span>`,
+    )
+    .join('')
+  return `<div class="float card" style="${style};padding:14px 16px 15px">
+    <div style="font:600 11px Inter;letter-spacing:.16em;text-transform:uppercase;color:#8a5a2c">${title}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px">${people}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(78,58,34,.12)">
+      <div style="flex:none;padding:4px;border-radius:8px;background:#fbf8f2;box-shadow:inset 0 0 0 1px rgba(78,58,34,.14)">${qrSvg('https://diegomolinacatala.github.io/tasks/#join=demo', 64)}</div>
+      <div style="font:400 13px/1.35 Inter;color:#5a544a">${scan}<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 12px;border-radius:999px;background:${INK};color:#f4efe6;font:600 12.5px Inter">${link}</div></div>
+    </div>
+  </div>`
+}
+
+/** Vinculados: la marca de que van a la par, con el candado del cifrado. */
+export function linkedPill({ text, style }) {
+  return `<div class="float" style="${style};display:inline-flex;align-items:center;gap:8px;padding:10px 16px 10px 13px;border-radius:999px;background:#f4efe6;color:#8a5a2c;font:600 14px Inter;box-shadow:0 18px 40px rgba(20,27,46,.3),0 0 0 1px rgba(78,58,34,.12)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${text}
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg>
   </div>`
 }
 

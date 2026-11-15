@@ -215,7 +215,7 @@ export function App() {
   // La bienvenida: entera la primera vez, con lo nuevo tras actualizar, y a petición desde Ajustes.
   const firstRun = useFirstRun()
   const [welcome, setWelcome] = useState<WelcomeRun | null>(() =>
-    welcomeOnLaunch(firstRun, state.settings.welcome, availablePlates(showsCalendar, showsPlaces, isNative || import.meta.env.DEV)),
+    welcomeOnLaunch(firstRun, state.settings.welcome, availablePlates(showsCalendar, showsPlaces, isNative || import.meta.env.DEV, Boolean(import.meta.env.VITE_PUSH_API))),
   )
   // Tras el primer cambio de pestaña, las pestañas entran con su animación (en el arranque, no).
   const [switched, setSwitched] = useState(false)

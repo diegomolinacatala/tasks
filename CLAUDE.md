@@ -518,6 +518,17 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
   171,3 kB gzip (la base de la sincronización tiene que estar desde el arranque; red, cifrado, QR y paneles van
   aparte).
 
+- **La salida de la 1.9, preparada** (15/11/2026, en `capacitor` y `main`): lo pidió el usuario antes de enviarla,
+  «que quede muy claro» lo del ordenador y las cestas compartidas al entrar tras actualizar y en las capturas.
+  - **Bienvenida** (versión 8 de `PLATE_SINCE`): dos láminas nuevas, *En tu ordenador* (`LinkScene`: el portátil
+    con su QR, tocar el iPhone lo escanea, las mismas cifras, «Vincular» y la misma lista en los dos; tachar en uno se
+    ilumina en el otro y el ordenador escribe una tarea que llega sola) y *Cestas compartidas* (`SharedScene`: dos
+    móviles con «Piso», tú y el de Ibán; lo tachado y lo añadido viaja; «Invitar» suma a Sarita). Solo con servidor
+    (`availablePlates(…, sync)`). Quien venga de la 1.8 ve *Hay novedades* con las dos.
+  - **Capturas**: ocho (`docs/capturas/` y `en/`), con `02-ordenador` (la app de escritorio en un portátil, con la
+    dirección de la web, y el iPhone delante) y `03-compartidas` (la cesta en la pestaña Piso y la tarjeta de
+    invitar) en lugar de `04-cesta`. El estado de ejemplo lleva dos cestas compartidas con credenciales de mentira.
+
 **Pendiente, en este orden**
 
 0. **Enviar la 1.9 (61)**: el 15/11/2026 quedó creada y rellena en App Store Connect (novedades, texto promocional,
@@ -1136,6 +1147,9 @@ bienvenida*. Va en su propio trozo (`lazy`); si no cargara, la app se abre igual
   muestra toca en tres sitios. En lugar de «Listo», las tres respuestas de la ficha (`stats/choices.ts`), con el
   mismo peso, y sin «Saltar» arriba («No, gracias» ya lo dice); **Escape en esta lámina es «No»**, como cerrar la
   ficha. Quien salta antes de llegar sigue sin elegir y le pregunta la ficha otro día.
+- **Las láminas de la 1.9** (versión 8, solo con servidor): *En tu ordenador* (`LinkScene`) y *Cestas compartidas*
+  (`SharedScene`), con una lista de juguete (`MiniList`, `useFlash`: lo que llega del otro dispositivo se ilumina) y
+  sus estilos en `sync-plates.css`. Van tras *La cesta*.
 - **Once láminas** que no explican: dejan hacerlo. *Escribir* (la barra se teclea sola y la píldora
   sale cuando el analizador de verdad entiende la frase), *Detalles* (versión 2, la 1.3: tocar
   Detalles o tirar del asa sube una ficha pequeña con los campos y la lógica de verdad,

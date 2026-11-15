@@ -1,8 +1,8 @@
-// Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Siete, que
-// cuentan cómo funciona la app de principio a fin: escribir como se habla, el día en el horario (con
-// soltar a la hora que se quiera), los avisos por lugar, la cesta (la lista de la compra), las rutinas, lo
-// que se hace sin abrirla (widgets, el micrófono, Siri y el aviso al acabar) y que todo se queda en el
-// iPhone (en modo oscuro). Cada una es
+// Capturas de la App Store (1320 × 2868 px, iPhone de 6,9"), en el orden en que se suben. Ocho, que
+// cuentan cómo funciona la app de principio a fin: escribir como se habla, el ordenador vinculado (la app de
+// escritorio en un portátil, con el iPhone delante), las cestas compartidas, el día en el horario (con
+// soltar a la hora que se quiera), los avisos por lugar, las rutinas, lo que se hace sin abrirla (widgets,
+// el micrófono, Siri y el aviso al acabar) y que todo es tuyo (en modo oscuro). Cada una es
 // la app real (build de producción, datos de ejemplo) dentro de un iPhone, con titular, el número en
 // romanos y un detalle que sale del marco (store-frames.mjs).
 //
@@ -19,7 +19,7 @@ import { build, preview } from 'vite'
 import { decodePng, encodePng, launch, renderHtml, sleep } from './edge.mjs'
 import { sampleState, writeStateExpression } from './sample-state.mjs'
 import { STORE_COPY } from './store-copy.mjs'
-import { FONTS, READY, basketCard, creed, device, frame, notification, resultCard, slotCard } from './store-frames.mjs'
+import { FONTS, READY, creed, device, frame, inviteCard, laptop, linkedPill, notification, resultCard, slotCard } from './store-frames.mjs'
 import { WIDGET_LABELS, dictateWidget, lockScreenRoutines, mediumWidget, routinesWidget } from './store-widgets.mjs'
 
 const LANG = process.argv.includes('--en') ? 'en' : 'es'
@@ -35,6 +35,9 @@ const BASE = `http://localhost:${PORT}/tasks/`
 const OUT = process.argv.slice(2).find((arg) => !arg.startsWith('--')) ?? (LANG === 'en' ? 'docs/capturas/en' : 'docs/capturas')
 const DIST = 'dist-shots'
 
+// Un servidor que no responde: así sale lo que solo existe con él (vincular, «+ Compartida») sin que las
+// cestas de muestra, con credenciales de mentira, se conecten a nada (uno de verdad las daría por borradas).
+process.env.VITE_PUSH_API = 'http://127.0.0.1:9'
 await build({ mode: 'shots', logLevel: 'warn', build: { outDir: DIST, emptyOutDir: true, sourcemap: false } })
 mkdirSync(OUT, { recursive: true })
 
@@ -66,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
   link.href = '${FONTS}'
   document.head.appendChild(link)
   const style = document.createElement('style')
-  style.textContent = ':root{--safe-t:62px!important;--safe-b:34px!important;--font:Inter,sans-serif!important;--font-serif:"Source Serif 4",serif!important}'
+  // Sin servidor en las capturas, las cestas compartidas dirían «Sin conexión»: con él, no se ve nada.
+  style.textContent = ':root{--safe-t:62px!important;--safe-b:34px!important;--font:Inter,sans-serif!important;--font-serif:"Source Serif 4",serif!important}.basket__offline{display:none!important}'
   document.head.appendChild(style)
   const webOnly = /avisos|pantalla de inicio|reminders|home screen/i
   const hide = () => document.querySelectorAll('.sheet__hint, .sheet__note, .group__note').forEach((el) => {
@@ -146,12 +150,14 @@ try {
   await sleep(900)
   screens.schedule = await capture()
 
-  // La cesta abierta desde su icono: lo pendiente, lo de siempre y el aviso al llegar al súper.
+  // La cesta abierta desde su icono, en la pestaña de la del piso (compartida): Mía, Piso y Familia arriba.
   await open()
   await evaluate(`document.querySelector('.app__basket').click()`)
-  await waitFor(`document.querySelector('.basket.is-open .basket__usual')`)
+  await waitFor(`document.querySelector('.basket.is-open .basket-tab')`)
+  await click('.basket-tab', T.sharedTab)
+  await waitFor(`document.querySelector('.basket-tab.is-active')?.textContent.includes(${JSON.stringify(T.sharedTab)})`)
   await sleep(900)
-  screens.basket = await capture()
+  screens.shared = await capture()
 
   await open()
   await click('.tabs__tab', T.tabs.inbox)
@@ -174,6 +180,25 @@ try {
   await evaluate(`(() => { const input = document.querySelector('.composer__input'); input.setSelectionRange(0, 0); input.scrollLeft = 0; return true })()`)
   await sleep(400)
   screens.write = await capture()
+
+  // El ordenador: la misma app en una ventana ancha con ratón (tres columnas). Sin servidor en las capturas,
+  // el vínculo se pinta como cuando lo hay: «Vinculado con tu iPhone».
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false })
+  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 2, mobile: false })
+  await open()
+  await waitFor(`document.querySelector('.desk-nav')`)
+  await evaluate(`(() => {
+    const style = document.createElement('style')
+    style.textContent = ':root{--safe-t:0px!important;--safe-b:0px!important}'
+    document.head.appendChild(style)
+    const link = document.querySelector('.desk-nav__link')
+    if (link) { link.textContent = ${JSON.stringify(T.linked)}; link.classList.add('is-online') }
+    return true
+  })()`)
+  await sleep(900)
+  screens.computer = await capture()
+  await send('Emulation.setDeviceMetricsOverride', { width: 440, height: 956, deviceScaleFactor: 3, mobile: true })
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
 
   await seed(sampleState({ theme: 'dark', language: LANG }))
   await open()
@@ -198,10 +223,30 @@ try {
       }),
     ],
     [
-      '02-horario',
+      '02-ordenador',
+      frame({
+        theme: 'night',
+        numeral: 'II',
+        ...c.computer,
+        content:
+          laptop(screens.computer, { url: T.url, top: 300, left: 8, width: 432, tilt: -1.5 }) +
+          `<div style="position:absolute;inset:0;z-index:3">${device(screens.agenda, 560, { tilt: -3, scale: 0.62, shift: -112 })}</div>` +
+          linkedPill({ text: T.linked, style: 'right:26px;top:808px;z-index:4' }),
+      }),
+    ],
+    [
+      '03-compartidas',
       frame({
         theme: 'sand',
-        numeral: 'II',
+        numeral: 'III',
+        ...c.shared,
+        content: device(screens.shared, 300, { tilt: 2 }) + inviteCard({ ...T.invite, style: 'left:16px;top:672px;width:282px;transform:rotate(-2deg)' }),
+      }),
+    ],
+    [
+      '04-horario',
+      frame({
+        numeral: 'IV',
         ...c.day,
         content:
           device(screens.schedule, 300, { tilt: 2 }) +
@@ -220,9 +265,10 @@ try {
       }),
     ],
     [
-      '03-lugares',
+      '05-lugares',
       frame({
-        numeral: 'III',
+        theme: 'sand',
+        numeral: 'V',
         ...c.places,
         content:
           device(screens.places, 300, { tilt: -2 }) +
@@ -233,36 +279,27 @@ try {
       }),
     ],
     [
-      '04-cesta',
-      frame({
-        theme: 'sand',
-        numeral: 'IV',
-        ...c.basket,
-        content: device(screens.basket, 300, { tilt: 2 }) + basketCard({ ...T.basket, style: 'left:18px;top:762px;width:236px;transform:rotate(-2deg)' }),
-      }),
-    ],
-    [
-      '05-rutinas',
+      '06-rutinas',
       frame({
         theme: 'night',
-        numeral: 'V',
+        numeral: 'VI',
         ...c.routines,
         content:
           device(screens.routines, 300, { tilt: 2 }) +
           `<div class="float" style="left:34px;top:676px;transform:rotate(-1.5deg)">${lockScreenRoutines({ date: today, title: T.gym, detail: T.gymDetail, emoji: '🏋️', pending: '📖' })}</div>`,
       }),
     ],
-    ['06-sin-abrir', widgetsFrame(c.widgets, labels, icon)],
+    ['07-sin-abrir', widgetsFrame(c.widgets, labels, icon)],
     [
-      '07-tuyas',
+      '08-tuyas',
       frame({
         theme: 'night',
-        numeral: 'VII',
+        numeral: 'VIII',
         ...c.private,
         content:
           device(screens.dark, 410, { tilt: -2, dark: true }) +
-          `<div class="float" style="left:50%;top:222px;margin-left:-26px">${LOCK}</div>` +
-          creed(T.privateLines, '#d6b07f', 'left:0;right:0;top:292px;align-items:center'),
+          `<div class="float" style="left:50%;top:250px;margin-left:-26px">${LOCK}</div>` +
+          creed(T.privateLines, '#d6b07f', 'left:0;right:0;top:318px;align-items:center'),
       }),
     ],
   ]
@@ -291,7 +328,7 @@ function widgetsFrame(copy, labels, icon) {
   const w = T.widgets
   return frame({
     theme: 'sand',
-    numeral: 'VI',
+    numeral: 'VII',
     ...copy,
     content: `
       <div class="float" style="left:34px;top:262px">${mediumWidget(w.today, 5, labels)}</div>

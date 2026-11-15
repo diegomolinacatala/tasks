@@ -4,7 +4,20 @@
  * versión de la bienvenida que cerró (`Settings.welcome`; 0 = ninguna, también las copias de antes).
  */
 
-export type PlateId = 'write' | 'details' | 'dictate' | 'swipe' | 'day' | 'month' | 'routine' | 'basket' | 'places' | 'suggest' | 'calendar'
+export type PlateId =
+  | 'write'
+  | 'details'
+  | 'dictate'
+  | 'swipe'
+  | 'day'
+  | 'month'
+  | 'routine'
+  | 'basket'
+  | 'link'
+  | 'shared'
+  | 'places'
+  | 'suggest'
+  | 'calendar'
 
 /**
  * Versión de la bienvenida en que entró cada lámina. Una lámina nueva, o una que cambie para enseñar
@@ -14,7 +27,8 @@ export type PlateId = 'write' | 'details' | 'dictate' | 'swipe' | 'day' | 'month
  * enseña también mantener pulsado para mover, que llegó en la 1.5 sin lámina). 6: la 1.7 (los avisos al
  * llegar y al salir de un lugar; solo donde hay lugares, el iPhone). 7: la 1.8 (soltar en el horario con la
  * cinta de horas, la cesta, dictar desde la pantalla de bloqueo —solo en el iPhone— y, en Lugares, el aviso
- * al alejarse de donde se está).
+ * al alejarse de donde se está). 8: la 1.9 (Tasks en el ordenador, vinculado con un código, y las cestas
+ * compartidas; solo donde hay servidor, ver `availablePlates`).
  *
  * «Tú decides» (las estadísticas) no está aquí: no es una novedad sino una pregunta, y sale al final de
  * cualquier bienvenida mientras nadie haya elegido (`askStats` en `Welcome`), nunca por sí sola.
@@ -28,6 +42,8 @@ export const PLATE_SINCE: Readonly<Record<PlateId, number>> = {
   month: 1,
   routine: 1,
   basket: 7,
+  link: 8,
+  shared: 8,
   places: 7,
   suggest: 3,
   calendar: 4,
@@ -37,11 +53,15 @@ export const WELCOME_VERSION = Math.max(...Object.values(PLATE_SINCE))
 
 /**
  * Las láminas que existen en esta plataforma: el calendario, los lugares y el widget de dictar solo donde
- * los hay (el iPhone).
+ * los hay (el iPhone); vincular y las cestas compartidas, solo con servidor (`sync`).
  */
-export function availablePlates(calendar: boolean, places: boolean = calendar, dictate: boolean = places): PlateId[] {
+export function availablePlates(calendar: boolean, places: boolean = calendar, dictate: boolean = places, sync = true): PlateId[] {
   return (Object.keys(PLATE_SINCE) as PlateId[]).filter(
-    (id) => (calendar || id !== 'calendar') && (places || id !== 'places') && (dictate || id !== 'dictate'),
+    (id) =>
+      (calendar || id !== 'calendar') &&
+      (places || id !== 'places') &&
+      (dictate || id !== 'dictate') &&
+      (sync || (id !== 'link' && id !== 'shared')),
   )
 }
 

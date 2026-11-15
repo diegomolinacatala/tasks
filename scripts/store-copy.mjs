@@ -1,6 +1,7 @@
-// Los textos de las capturas de la App Store, en español y en inglés (app-store-shots.mjs). Siete
-// capturas que cuentan cómo funciona la app, en orden: escribir como se habla, el día en el horario,
-// los avisos por lugar, la cesta, las rutinas, lo que se hace sin abrirla y que todo se queda en el iPhone.
+// Los textos de las capturas de la App Store, en español y en inglés (app-store-shots.mjs). Ocho
+// capturas que cuentan cómo funciona la app, en orden: escribir como se habla, el ordenador vinculado, las
+// cestas compartidas, el día en el horario, los avisos por lugar, las rutinas, lo que se hace sin abrirla y
+// que todo es tuyo.
 // Titulares cortos, que se lean en la miniatura de la búsqueda; entre asteriscos, lo que va en cursiva
 // y color. Los nombres son los de la gente del autor (la cena es con Carlota, su novia): no cambiarlos.
 
@@ -27,12 +28,17 @@ export const STORE_COPY = {
     slot: { title: 'Llamar a Ibán', time: '16:45', ok: 'Listo', pills: ['Sin duración', '15 min', '30 min', '1 h'], picked: 2 },
     // Lo que se escribe en la cesta y las filas que salen.
     basket: { phrase: '«pan, leche y 2 kg de arroz»', rows: [['Pan'], ['Leche'], ['Arroz', '2 kg']] },
+    // El ordenador vinculado y la cesta del piso.
+    url: 'diegomolinacatala.github.io/tasks',
+    linked: 'Vinculado con tu iPhone',
+    sharedTab: 'Piso',
+    invite: { title: 'Piso · 3 miembros', members: ['Tú', 'Ibán', 'Sarita'], scan: 'Que lo escaneen con la Cámara, o:', link: 'Mandar el enlace' },
     gym: 'Gimnasio',
     gymDetail: '19:00 · 1 de 4 hoy',
     lunch: 'Comida con Adriana',
     askBody: '¿Has acabado? · 14:00–15:30',
     askActions: ['Sí, hecha', 'Todavía no'],
-    privateLines: ['Sin cuentas', 'Sin anuncios', 'Sin servidores con tus tareas'],
+    privateLines: ['Sin cuentas', 'Sin anuncios', 'Lo que compartes, cifrado'],
     widgets: {
       today: [
         { title: 'Reunión con Jorge', event: '#1a73e8', detail: '11:00' },
@@ -57,6 +63,16 @@ export const STORE_COPY = {
         title: 'Escríbelo *como lo dices*.',
         sub: '«Cena con Carlota el viernes a las 9»: el día, la hora y el aviso salen solos. O díctalo.',
       },
+      computer: {
+        kicker: 'En tu ordenador',
+        title: 'También en *tu ordenador*.',
+        sub: 'Escanea un código con la cámara del iPhone y verás lo mismo en los dos, al momento. Cifrado de punta a punta.',
+      },
+      shared: {
+        kicker: 'Cestas compartidas',
+        title: 'La compra, *a medias*.',
+        sub: 'Una cesta para el piso y otra para la familia. Lo que alguien añade o tacha os llega a todos.',
+      },
       day: {
         kicker: 'Tu día',
         title: 'Cada cosa *a su hora*.',
@@ -66,7 +82,7 @@ export const STORE_COPY = {
       basket: { kicker: 'La cesta', title: 'La compra, *aparte*.', sub: '«Pan, leche y 2 kg de arroz» son tres filas. Lo de siempre, de un toque, y te avisa al llegar al súper.' },
       routines: { kicker: 'Rutinas', title: 'Hábitos *de un toque*.', sub: 'Cada día amanecen sin tachar. Táchalos desde la pantalla de bloqueo y mira crecer la racha.' },
       widgets: { kicker: 'Sin abrir la app', title: 'A mano, *siempre*.', sub: 'Widgets de hoy, de rutinas y un micrófono que escucha. Siri apunta y, al acabar, un aviso pregunta.' },
-      private: { kicker: 'Privada', title: 'Tuyas. *Solo tuyas*.', sub: 'Tus tareas no salen de tu iPhone. De día en papel marfil; de noche, azul medianoche.' },
+      private: { kicker: 'Privada', title: 'Tuyas. *Solo tuyas*.', sub: 'Se quedan en tu iPhone; lo que vinculas o compartes viaja cifrado. De día, papel marfil; de noche, azul medianoche.' },
     },
   },
   en: {
@@ -88,12 +104,16 @@ export const STORE_COPY = {
     awayBody: 'Call Miguel',
     slot: { title: 'Call Ibán', time: '4:45 PM', ok: 'Done', pills: ['No duration', '15 min', '30 min', '1 h'], picked: 2 },
     basket: { phrase: '“bread, milk and 2 kg of rice”', rows: [['Bread'], ['Milk'], ['Rice', '2 kg']] },
+    url: 'diegomolinacatala.github.io/tasks',
+    linked: 'Linked with your iPhone',
+    sharedTab: 'Flat',
+    invite: { title: 'Flat · 3 members', members: ['You', 'Ibán', 'Sarita'], scan: 'Let them scan it with the Camera, or:', link: 'Send the link' },
     gym: 'Gym',
     gymDetail: '7:00 PM · 1 of 4 today',
     lunch: 'Lunch with Adriana',
     askBody: 'Finished? · 2:00–3:30 PM',
     askActions: ['Yes, done', 'Not yet'],
-    privateLines: ['No accounts', 'No ads', 'No servers holding your tasks'],
+    privateLines: ['No accounts', 'No ads', 'What you share, encrypted'],
     widgets: {
       today: [
         { title: 'Meeting with Jorge', event: '#1a73e8', detail: '11:00 AM' },
@@ -118,6 +138,16 @@ export const STORE_COPY = {
         title: 'Type it *like you talk*.',
         sub: '“Dinner with Carlota on Friday at 9pm”: day, time and reminder fill themselves in. Or just say it.',
       },
+      computer: {
+        kicker: 'On your computer',
+        title: 'On *your computer*, too.',
+        sub: 'Scan a code with your iPhone camera and see the same on both, instantly. End-to-end encrypted.',
+      },
+      shared: {
+        kicker: 'Shared baskets',
+        title: 'Groceries, *together*.',
+        sub: 'One basket for the flat, another for the family. Whatever someone adds or ticks off reaches everyone.',
+      },
       day: {
         kicker: 'Your day',
         title: 'Everything *at its time*.',
@@ -127,7 +157,7 @@ export const STORE_COPY = {
       basket: { kicker: 'Basket', title: 'Groceries, *on the side*.', sub: '“Bread, milk and 2 kg of rice” becomes three rows. The usual in one tap, and a reminder at the store.' },
       routines: { kicker: 'Routines', title: 'Habits, *one tap away*.', sub: 'They start unchecked every morning. Check them off from the Lock Screen and watch your streak grow.' },
       widgets: { kicker: 'Without opening the app', title: 'Always *at hand*.', sub: 'Widgets for today, routines and a mic that listens. Siri adds tasks and, when one ends, an alert asks.' },
-      private: { kicker: 'Private', title: 'Yours. *Only yours*.', sub: 'Your tasks never leave your iPhone. Ivory paper by day, midnight blue by night.' },
+      private: { kicker: 'Private', title: 'Yours. *Only yours*.', sub: 'They stay on your iPhone; what you link or share travels encrypted. Ivory paper by day, midnight blue by night.' },
     },
   },
 }

@@ -21,9 +21,11 @@ import { CoverLedger } from './CoverLedger'
 import { DayScene } from './DayScene'
 import { DetailsScene } from './DetailsScene'
 import { DictateScene } from './DictateScene'
+import { LinkScene } from './LinkScene'
 import { MonthScene } from './MonthScene'
 import { PlacesScene } from './PlacesScene'
 import { RoutineScene } from './RoutineScene'
+import { SharedScene } from './SharedScene'
 import { StatsScene } from './StatsScene'
 import { SuggestScene } from './SuggestScene'
 import { SwipeScene } from './SwipeScene'
@@ -62,6 +64,8 @@ interface Plate {
  * Cada lámina es un trozo de la app de verdad, para probarlo con el dedo antes de empezar. Una lámina
  * nueva lleva su versión en `PLATE_SINCE` (`lib/welcome.ts`): así sale también a quien actualiza.
  */
+const SYNC = Boolean(import.meta.env.VITE_PUSH_API)
+
 const PLATES: readonly FeaturePlate[] = [
   { id: 'write', Scene: WriteScene },
   { id: 'details', Scene: DetailsScene },
@@ -72,6 +76,8 @@ const PLATES: readonly FeaturePlate[] = [
   { id: 'month', Scene: MonthScene },
   { id: 'routine', Scene: RoutineScene },
   { id: 'basket', Scene: BasketScene },
+  // Vincular y las cestas compartidas van por el servidor: sin él, no existen.
+  ...(SYNC ? [{ id: 'link' as const, Scene: LinkScene }, { id: 'shared' as const, Scene: SharedScene }] : []),
   // Los avisos por lugar solo existen en el iPhone (y en local).
   ...(showsPlaces ? [{ id: 'places' as const, Scene: PlacesScene }] : []),
   { id: 'suggest', Scene: SuggestScene },
@@ -109,6 +115,18 @@ const COPY = {
         kicker: 'La cesta',
         title: 'La compra, aparte.',
         text: '«Pan, leche y 2 kg de arroz» son tres filas. Tócalas en la tienda y repite lo de siempre de un toque.',
+      },
+      link: {
+        kicker: 'En tu ordenador',
+        title: 'También en tu ordenador.',
+        text: isNative
+          ? 'Abre diegomolinacatala.github.io/tasks y escanea su código con la cámara. Lo que toques en uno cambia en el otro, cifrado.'
+          : 'En Ajustes → Dispositivos, escanea el código con la cámara del iPhone. Lo que toques en uno cambia en el otro, cifrado.',
+      },
+      shared: {
+        kicker: 'Cestas compartidas',
+        title: 'La compra, a medias.',
+        text: 'Una cesta para el piso o la familia: invita con un código o un enlace. Lo que alguien añade o tacha os llega a todos.',
       },
       routine: {
         kicker: 'Rutinas',
@@ -178,6 +196,18 @@ const COPY = {
         kicker: 'Basket',
         title: 'Groceries, on the side.',
         text: '“Bread, milk and 2 kg of rice” becomes three rows. Tap them at the store and add the usual with one tap.',
+      },
+      link: {
+        kicker: 'On your computer',
+        title: 'On your computer, too.',
+        text: isNative
+          ? 'Open diegomolinacatala.github.io/tasks and scan its code with the Camera. Tap something on one and it changes on the other, encrypted.'
+          : 'In Settings → Devices, scan the code with your iPhone Camera. Tap something on one and it changes on the other, encrypted.',
+      },
+      shared: {
+        kicker: 'Shared baskets',
+        title: 'Groceries, together.',
+        text: 'A basket for your flat or your family: invite with a code or a link. Whatever someone adds or ticks off reaches everyone.',
       },
       routine: {
         kicker: 'Routines',

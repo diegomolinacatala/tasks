@@ -398,25 +398,28 @@ No sign-up, no ads, no tracking. Your tasks, places and location stay on your iP
 New: Tasks on your computer, linked to your iPhone with a code, and shopping baskets shared with your flatmates or family. All encrypted.
 ```
 
-**Capturas** (desde la 1.8): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos juegos de
-siete, a ese tamaño exacto y numerados en el orden en que se suben: en español en
+**Capturas** (desde la 1.9): Apple exige al menos las de iPhone de 6,9" (1320 × 2868 px). Hay dos juegos de
+ocho, a ese tamaño exacto y numerados en el orden en que se suben: en español en
 [`docs/capturas/`](capturas/) y en inglés en [`docs/capturas/en/`](capturas/en/). Plantilla editorial: doble
 filete de oro, el número en romanos como marca de agua, titular a la izquierda y el iPhone girado, asomando por
-abajo, con un detalle que sale del marco. Las tres primeras son las que salen en la búsqueda, así que dicen lo que
-hace la app distinta, no la lista de funciones:
+abajo, con un detalle que sale del marco. Las tres primeras son las que salen en la búsqueda: lo que hace la app
+distinta y, desde la 1.9, lo nuevo (el ordenador y las cestas compartidas).
 
 1. `01-escribir`: «Escríbelo como lo dices.» La frase con Carlota en la barra y la tarea que sale de
    ella, flotando, con su día y su aviso; y «o díctalo».
-2. `02-horario`: «Cada cosa a su hora.» El horario con tareas, rutinas y eventos (el café con Aitana en
+2. `02-ordenador`: «También en tu ordenador.» (desde la 1.9) La app de escritorio en un portátil, con la
+   dirección de la web, sus tres columnas (Bandeja, Agenda y la cesta del piso), el iPhone delante con el mismo
+   día y «Vinculado con tu iPhone».
+3. `03-compartidas`: «La compra, a medias.» (desde la 1.9, en lugar de `04-cesta`) La cesta abierta en la
+   pestaña Piso (Mía, Piso, Familia, + Compartida) y, flotando, la tarjeta de invitar: Tú, Ibán y Sarita, el QR y
+   «Mandar el enlace».
+4. `04-horario`: «Cada cosa a su hora.» El horario con tareas, rutinas y eventos (el café con Aitana en
    paralelo con la comida) y la tarjeta de soltar «Llamar a Ibán» con la cinta de horas.
-3. `03-lugares`: «Te avisa donde toca.» El mapa de Lugares y tres avisos apilados: al salir de casa, al llegar
+5. `05-lugares`: «Te avisa donde toca.» El mapa de Lugares y tres avisos apilados: al salir de casa, al llegar
    al súper (con la cesta) y al alejarse.
-4. `04-cesta`: «La compra, aparte.» (desde la 1.8) La cesta abierta con lo de siempre y «Avisar al llegar a
-   Mercadona», y la frase «pan, leche y 2 kg de arroz» convertida en tres filas, flotando.
-5. `05-rutinas`: «Hábitos de un toque.» Las rutinas con su racha y la pantalla de bloqueo.
-6. `06-sin-abrir`: «A mano, siempre.» Widgets de Hoy, Dictar y Rutinas, Siri y el «¿Has acabado?».
-7. `07-tuyas`: «Tuyas. Solo tuyas.» La app en modo oscuro y lo que no hace: cuentas, anuncios, servidores
-   con tus tareas.
+6. `06-rutinas`: «Hábitos de un toque.» Las rutinas con su racha y la pantalla de bloqueo.
+7. `07-sin-abrir`: «A mano, siempre.» Widgets de Hoy, Dictar y Rutinas, Siri y el «¿Has acabado?».
+8. `08-tuyas`: «Tuyas. Solo tuyas.» La app en modo oscuro: sin cuentas, sin anuncios y lo que compartes, cifrado.
 
 (Hasta la 1.7 eran diez: los plazos, la ficha del compositor y la importancia siguen en la descripción.)
 
@@ -1311,8 +1314,10 @@ actualización posible, con la entrada personalizada y las capturas al día:
 
 Tasks en el ordenador vinculado al iPhone, cestas compartidas y la vista de escritorio (`docs/sincronizacion.md`).
 La web y el Worker ya están en producción; la app, en **TestFlight 61** (la 60 es el mismo código, desde
-`capacitor`). Privacidad (§4, *Otro contenido del usuario*) publicada el 15/11/2026. Sin capturas nuevas: valen
-las siete de la 1.8. Cambian la descripción y el texto promocional (§3 y §3.1) y las notas (§5).
+`capacitor`). Privacidad (§4, *Otro contenido del usuario*) publicada el 15/11/2026. Cambian la descripción y el
+texto promocional (§3 y §3.1), las notas (§5) y **las capturas**: ocho (§3), con el ordenador y las cestas compartidas
+en la segunda y la tercera. Y la bienvenida: quien actualiza ve *Hay novedades* con dos láminas, *En tu ordenador* y
+*Cestas compartidas* (versión 8 de `PLATE_SINCE`), que se prueban con el dedo.
 
 **Antes (en el iPhone)**: *TestFlight* → Tasks → **Actualizar** a la **1.9 (61)** y probar vincular con el ordenador
 y una cesta compartida (el QR con la Cámara, *Abrir en Tasks*, las cifras, *Mandar el enlace*).
