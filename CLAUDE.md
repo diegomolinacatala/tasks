@@ -500,8 +500,11 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
     tests. Lo pendiente del informe: 125 (reordenar rutinas, aplazado), la parte del 47 que borra la
     sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
-- **Vincular dispositivos, cestas compartidas y escritorio** (14/11/2026, en `capacitor`; ni desplegado el Worker
-  ni probado en el iPhone). Lo pidió el usuario («Tasks en mi ordenador, vinculado al del teléfono» y «cestas
+- **La 1.8 está aprobada** (15/11/2026: la subida de lo de abajo respondió *train version '1.8' is closed*).
+  `MARKETING_VERSION` subido a **1.9**.
+- **Vincular dispositivos, cestas compartidas y escritorio** (14/11/2026, commit `c6fa11f`; **en producción** el
+  15/11/2026: `capacitor` y `main` en el mismo commit, la web publicada y el Worker desplegado con la migración `v2`;
+  la 1.9 sube a TestFlight; sin probar en el iPhone). Lo pidió el usuario («Tasks en mi ordenador, vinculado al del teléfono» y «cestas
   compartidas: la del piso con mis amigos, otra con mi familia») y decidió cada detalle en una ronda de preguntas:
   ver "Vincular dispositivos y cestas compartidas" y "Escritorio", y el contrato en `docs/sincronizacion.md`.
   `SCHEMA_VERSION` 19. Worker: salas (`Room`) y emparejamiento (`Pairing`), dos Durable Objects con la migración
@@ -515,14 +518,13 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
 
 **Pendiente, en este orden**
 
-0. **Vincular y cestas compartidas**: desplegar el Worker (push a `main` que toque `worker/`, aplica la migración
-   `v2`), probar en el iPhone (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
+0. **Vincular y cestas compartidas** (ya en la web y en el Worker): probar en el iPhone con la TestFlight de la 1.9 (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
    la Cámara; crear una cesta, mandar el enlace por WhatsApp, que un amigo con la app se una) y, antes de enviar
    esa versión, la privacidad de App Store Connect (`docs/app-store.md` §4, *Otro contenido del usuario*) y la
    política publicada (`public/privacidad.html#vincular`). Ojo: una tarea con aviso añadida desde el ordenador
    no suena en el iPhone hasta que se abre la app (ver "Vincular dispositivos y cestas compartidas").
 
-0. **Enviar la 1.8 con la compilación 57** (`docs/app-store.md` §9.12; al usuario, los pasos en el chat). La
+0. (Hecho: la 1.8 está aprobada.) **Enviar la 1.8 con la compilación 57** (`docs/app-store.md` §9.12; al usuario, los pasos en el chat). La
    política ya está publicada y el Worker desplegado (el panel, en https://tasks-push.diegomolina.workers.dev/uso/
    con la clave del buzón). Antes:
    - En App Store Connect, los tipos de datos de las estadísticas (`docs/app-store.md` §4).
