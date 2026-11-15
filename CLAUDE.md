@@ -3,7 +3,8 @@
 To-do diaria para móvil y sin cuentas: las tareas viven en el propio dispositivo. Un mismo
 código se publica de dos formas: PWA en GitHub Pages desde este repo público y app de iPhone
 con Capacitor (TestFlight / App Store). Un Worker mínimo de Cloudflare envía los avisos push de
-la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
+la PWA (solo ve horas y contenido cifrado), transcribe el dictado y, si se vincula, reparte cifrado de
+extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compartidas.
 
 - Producción web: https://diegomolinacatala.github.io/tasks/
 - App de iPhone: `io.github.diegomolinacatala.tasks`, en la App Store desde el 27/09/2026:
@@ -12,7 +13,7 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
 - Idioma de la interfaz: **español**. Sin textos explicativos ni microcopy de relleno.
 - Formato objetivo: **móvil en vertical**. El escritorio no es un caso a optimizar.
 
-## Estado actual (27/10/2026)
+## Estado actual (14/11/2026)
 
 **Hecho**
 
@@ -499,7 +500,27 @@ la PWA (solo ve horas y contenido cifrado) y transcribe el dictado.
     tests. Lo pendiente del informe: 125 (reordenar rutinas, aplazado), la parte del 47 que borra la
     sección vacía creada en una ficha descartada, y el rebote del muelle la primera vez (30).
 
+- **Vincular dispositivos, cestas compartidas y escritorio** (14/11/2026, en `capacitor`; ni desplegado el Worker
+  ni probado en el iPhone). Lo pidió el usuario («Tasks en mi ordenador, vinculado al del teléfono» y «cestas
+  compartidas: la del piso con mis amigos, otra con mi familia») y decidió cada detalle en una ronda de preguntas:
+  ver "Vincular dispositivos y cestas compartidas" y "Escritorio", y el contrato en `docs/sincronizacion.md`.
+  `SCHEMA_VERSION` 19. Worker: salas (`Room`) y emparejamiento (`Pairing`), dos Durable Objects con la migración
+  `v2` (235 tests). App: 1.203 tests. Revisado por un segundo agente (arreglado lo que encontró: horas imposibles que paraban el reloj, invitaciones que se agotaban, cifras de emparejar de las dos claves y confirmadas en el ordenador, el reset del cursor, guardar tras salir de una sala, sockets muertos al volver, el traspaso de dueño, topes de lo recibido, el aviso de Borrar todo vinculado, empates de lápidas, cestas al vincular y deshacer un lugar). Probado con tres "dispositivos" en el navegador (localhost:5173, 5174 y
+  5175 contra `wrangler dev`): emparejar con el QR y las cifras, tachar en uno y verlo en otro al momento, crear
+  «Familia», unirse con el enlace, añadir desde el móvil del amigo y verlo en los dos ordenadores del dueño,
+  echarle y que le desaparezca, y «Ábrelo en la app» en una web sin vincular. Lo nativo (abrir el QR con la
+  Cámara del iPhone → `appUrlOpen`, compartir con la hoja de iOS) solo se prueba en el iPhone. JS principal
+  171,3 kB gzip (la base de la sincronización tiene que estar desde el arranque; red, cifrado, QR y paneles van
+  aparte).
+
 **Pendiente, en este orden**
+
+0. **Vincular y cestas compartidas**: desplegar el Worker (push a `main` que toque `worker/`, aplica la migración
+   `v2`), probar en el iPhone (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
+   la Cámara; crear una cesta, mandar el enlace por WhatsApp, que un amigo con la app se una) y, antes de enviar
+   esa versión, la privacidad de App Store Connect (`docs/app-store.md` §4, *Otro contenido del usuario*) y la
+   política publicada (`public/privacidad.html#vincular`). Ojo: una tarea con aviso añadida desde el ordenador
+   no suena en el iPhone hasta que se abre la app (ver "Vincular dispositivos y cestas compartidas").
 
 0. **Enviar la 1.8 con la compilación 57** (`docs/app-store.md` §9.12; al usuario, los pasos en el chat). La
    política ya está publicada y el Worker desplegado (el panel, en https://tasks-push.diegomolina.workers.dev/uso/
@@ -658,6 +679,8 @@ npm run stats:demo              # datos inventados SOLO en la D1 local; después
 npm run eval -- --all           # todos: ~10.500 neuronas, más que la cuota gratuita de un día: mejor en dos mitades, una tras las 00:00 UTC (ver Dictado)
 ```
 
+Para probar la sincronización en local, ver "Vincular dispositivos y cestas compartidas".
+
 Para probar avisos en local: `worker/.dev.vars` con la salida de `vapid-keys.mjs` más
 `VAPID_SUBJECT` (ignorado por git), `.env.local` con `VITE_PUSH_API=http://localhost:8787`, y `npm run build && npm run preview`
 (el service worker solo existe en el build).
@@ -747,13 +770,20 @@ src/
 │   ├── recap.ts          # la portada personal: el saludo según la hora y el cuaderno (lo hecho, la racha, los lugares)
 │   ├── stats/            # estadísticas anónimas: bus (JS principal), recolector (trozo), lote, ping, toques, tramos
 │   ├── feedback.ts       # sugerencias: el trazo, la zona rodeada, qué se cuenta de ella y el envío al buzón
+│   ├── sync/             # vincular y cestas compartidas (docs/sincronizacion.md): registros, sellos, réplica,
+│   │                     # cifrado, enlaces, motor por WebSocket (`engine.ts`) y pasos (`flows.ts`, en `runtime.ts`)
+│   ├── baskets.ts        # cestas compartidas: credenciales de su sala, saneado, orden
+│   ├── basketTab.ts      # qué cesta se ve (la propia o una compartida) y abrirla desde fuera
+│   ├── desktop.ts        # `useDesktop`: ventana ancha con ratón → tres columnas
 │   ├── flip.ts           # filas que se deslizan a su sitio al completar, añadir, borrar o pasar a hoy
 │   └── push/             # cifrado, cliente HTTP, suscripción, claves, sincronización
 ├── state/                # reducer, acciones, selectores, provider; LanguageProvider (idioma y `useCopy`)
 └── components/           # por dominio:
     ├── shell/            # TabBar (pestañas), teclado, acciones nativas, bandeja de Siri
     ├── views/            # AgendaView (+ WeekStrip y StripDay, Timeline, SlotCard y HourTape, AllDayEvents, useDayBoard), InboxView (+ DayDock)
-    ├── shopping/         # BasketPopover: la cesta (lista de la compra) desplegada desde su icono
+    ├── shopping/         # BasketPopover (el popover del móvil) y BasketPanel (su contenido, también la columna del
+    │                     # escritorio), BasketTabs (pestañas y cesta nueva), BasketShareSheet (miembros e invitar)
+    ├── sync/             # SyncProvider (salas, enlaces abiertos), LinkPrompt, DevicesRow/DevicesSheet, QrCode
     ├── calendar/         # CalendarProvider: permiso, calendarios y eventos del mes que se mira (`useCalendar`, `useDayEvents`);
     │                     # CalendarExportSync: las tareas con hora al calendario elegido
     ├── update/           # UpdatePrompt: el aviso de versión nueva (y su estado, que lee Ajustes)
@@ -792,6 +822,9 @@ worker/                   # Cloudflare Worker de avisos (paquete npm independien
 ├── src/interpret.ts      # esquema JSON, llamada al modelo y validación de su salida
 ├── src/inbox.ts          # la página del buzón de sugerencias (/buzon)
 ├── src/stats.ts          # estadísticas: el contrato del lote, su validación y las fechas del panel
+├── src/room*.ts          # salas de sincronización: `RoomCore` (lógica pura), el DO `Room`, su HTTP y su socket
+├── src/pair*.ts          # emparejar un dispositivo nuevo: el DO `Pairing` (10 minutos)
+├── src/syncRoutes.ts     # las rutas del Worker hacia los dos DO
 ├── panel/uso/            # el panel de uso (/uso), estático: HTML, CSS, JS y capturas del mapa de calor (`shots/`)
 ├── panel-tests/          # tests del modelo del panel (`model.js`)
 ├── scripts/stats-demo.mjs # datos inventados en la D1 local para ver el panel
@@ -963,6 +996,53 @@ toast sigue abajo y no tapa el cierre).
   (solo cuando pasa de vacía a tener algo, o al revés).
 - Lo comprado **mientras la cesta está abierta** se queda a la vista, tachado, al final de lo pendiente
   (`openedAt`: se ve el círculo llenarse y un toque de más se arregla con otro); lo de antes se pliega.
+
+### Vincular dispositivos y cestas compartidas
+
+El contrato entero (cifrado, registros, rutas, socket) está en `docs/sincronizacion.md`; aquí, lo que importa al
+tocar código.
+
+- **Salas**: tu grupo de dispositivos (sala personal; todos son dueños: cualquiera vincula o quita) y cada cesta
+  compartida (sala de cesta; quien la crea es dueño: invita, ve los miembros y echa; echar anula las
+  invitaciones). Una clave de 32 bytes por sala, solo en los dispositivos: el servidor guarda registros cifrados
+  bajo un id HMAC que no dice qué son.
+- **El reducer no sabe de red.** `lib/sync/records.ts` reparte el estado en registros (`t:<id>`, `s:`, `p:`, `r:`,
+  `i:`, `h:`, `g:settings`, `g:collapsed`, `g:shop`, `b:<sala>`; en una cesta, `i:`, `h:` y `g:meta`) y aplica lo
+  que llega (`sync/apply`, pura). `replica.ts` compara registros antes y después de cada cambio, sella campo a
+  campo (`stamp.ts`, reloj híbrido) y mezcla: gana el campo más reciente y la edición gana al borrado. Lo
+  aplicado desde fuera no se reenvía (`expected`). **Un campo nuevo en un tipo que se sincroniza viaja solo**
+  (es un campo del registro); si es de este dispositivo, sacarlo de `personalRecords`.
+- **Lo de los vinculados manda**: entrar en un grupo vacía lo de aquí (`sync/adopt`) y sella lo que queda con la
+  hora 1 (`initialT`), la más antigua; quien crea el grupo o la cesta sella con su hora de verdad. Una cesta a la
+  que acabas de entrar se llama «…» (`PLACEHOLDER_NAME`) hasta que llega su nombre, y ese nombre no se sube.
+- **Credenciales**: las de tu grupo, en `idb-keyval` (`tasks:link`, del dispositivo, nunca en el estado); las de
+  cada cesta, en `SharedBasket.link`, que viaja cifrado en tu sala personal (así el ordenador tiene tus cestas).
+  Las copias exportadas no llevan cestas compartidas; importar o *Borrar todo* no las tocan.
+- **Vincular** (Ajustes → Dispositivos): el dispositivo nuevo (el ordenador) enseña un QR
+  `<esquema>://link/<id>#<pub>` (ECDH) y unas cifras; la Cámara del iPhone lo abre en Tasks (`appUrlOpen` de
+  `@capacitor/app`, sin Swift), que pregunta y responde cifrado con la sala. Al revés (un iPhone nuevo con el
+  ordenador ya vinculado): el vinculado enseña una invitación `<esquema>://join/<sala>#<clave>.<invitación>.p` de
+  10 minutos. Las cestas: QR o enlace web `…/tasks/#join=….b` de una semana; en la web solo entra un ordenador
+  ya vinculado (lo pidió el usuario: «solo con la app»); en Safari del iPhone, «Abrir en Tasks». El enlace se
+  borra de la dirección al leerlo, y no se decide nada hasta saber si el dispositivo está vinculado (`ready`).
+- **Conexión**: un `RoomSync` por sala, WebSocket con hibernación mientras la app está delante; se reconecta al
+  volver la red o la app. Cierres 4001/4003/4004: ya no eres miembro o la sala no existe → se olvida (toast).
+- **Avisos**: los del iPhone se programan en el iPhone. Lo que se añade desde el ordenador llega al abrir la app
+  (o con ella abierta, al momento); hasta entonces no suena. En el ordenador, los avisos son el push de la PWA de
+  siempre (Ajustes → Avisos), si se quieren también ahí. Cada cesta avisa en la tienda que elija cada uno.
+- **Probar en local**: `.env.local` con `VITE_PUSH_API=http://localhost:8787`, y en `.claude/launch.json`
+  `sync-worker` (el Worker con los orígenes 5173 a 5175) más `tasks-dev`, `tasks-dev-b` y `tasks-dev-c`: tres
+  orígenes, tres "dispositivos". El QR de emparejar no se puede escanear ahí: se aprueba importando
+  `/tasks/src/lib/sync/flows.ts` en la consola del otro (`approvePairing`).
+
+### Escritorio
+
+En un ordenador (`useDesktop`: 1080 px o más, ratón, nunca en el iPhone) la app se abre en **tres columnas**:
+Bandeja, Agenda (con la barra de escribir debajo) y la cesta siempre abierta (`BasketPanel inline`). Arriba,
+`DesktopNav`: *Tu día*, Lugares y Ajustes (estos dos a todo lo ancho, en una columna de lectura) y cómo va el
+vínculo (lleva a Ajustes → Dispositivos). **N** o **/** escriben una tarea. Los paneles salen centrados, no de
+lado a lado. Es la misma app: ni pantallas ni funciones propias. Arrastrar entre columnas no existe (cada vista
+tiene su `DndContext`). CSS en `components/shell/desktop.css`.
 
 ### Lo que coincide
 
@@ -2164,14 +2244,17 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
   la web lo aplica al cargar o al volver a primer plano.
 - **El Worker sirve a todas las versiones instaladas.** Se despliega al momento y la gente no
   actualiza a la vez: sus rutas y respuestas cambian solo de forma compatible hacia atrás.
-- **Backend solo para avisos, dictado, sugerencias y estadísticas anónimas**, sin acceso a lo guardado: nada de
-  guardar tareas en claro en el servidor. El audio del dictado se transcribe al momento y no se conserva. Una
+- **Backend solo para avisos, dictado, sugerencias, estadísticas anónimas y sincronización cifrada**, sin acceso a lo
+  guardado: nada de guardar tareas en claro en el servidor (lo que se sincroniza va cifrado de extremo a extremo y
+  el servidor no tiene la clave). El audio del dictado se transcribe al momento y no se conserva. Una
   sugerencia es lo único que se guarda con contenido, porque quien la manda lo decide y lo ve antes.
 - **Estadísticas: solo contadores**, sin identificadores ni contenido, y nada sin pedir permiso, ni siquiera las
   visitas (Apple, norma 5.1.1(ii)); nada de grabar sesiones ni de herramientas de terceros. Nadie se ve en
   particular: el panel no desglosa con menos de 3 dispositivos.
-- **Sin sincronización entre dispositivos.** El trasvase es manual: exportar/importar JSON
-  desde Ajustes.
+- **Sincronización solo si se vincula, y sin cuentas**: un QR o un enlace con la clave de la sala; cifrada de
+  extremo a extremo; por campo gana lo último y, entre borrar y editar a la vez, la edición. Lo de cada dispositivo
+  (calendario, dictado, estadísticas, bienvenida) no viaja. Sin vincular, todo sigue en el dispositivo y el
+  trasvase es exportar/importar.
 - **Sin subtareas ni notas** por ahora. Lo que se repite no son tareas recurrentes sino **rutinas**:
   no generan copias por día ni se "reinician"; cada día se tachan en su diario.
 - Las secciones son globales y agrupan dentro del día, no son listas independientes.
@@ -2196,9 +2279,10 @@ apariencia es del dispositivo: importar una copia o borrarlo todo no la cambia.
 - Modo oscuro sí, pero con la misma identidad: colores apagados y pastel, nada chillón. El papel
   marfil sigue siendo la cara de la app (icono, capturas).
 - Cuatro pestañas y ninguna más (Bandeja, Agenda, Lugares, Ajustes). Lo que no es de primer nivel
-  va en paneles.
+  va en paneles. En el escritorio, Bandeja, Agenda y cesta a la vez en tres columnas; nada que no exista en el móvil.
 - La cesta es la única lista aparte de las tareas: sin fecha, sin secciones, sin categorías ni
-  pasillos, en el dispositivo como todo lo demás. No es un sitio al que vayan las tareas ("comprar pan"
+  pasillos. La propia y, si se quiere, cestas compartidas con otras personas (con dueño, sin nombres en lo que se
+  añade, solo con la app); compartir tareas, no. No es un sitio al que vayan las tareas ("comprar pan"
   escrito en la barra sigue siendo una tarea).
 - "Al alejarme" no es un lugar: es un aviso de la tarea con su propio punto, que caduca al día y se
   consume al tocarlo. Los radios empiezan en 25 m y la región crece con el error del GPS: iOS no da más.

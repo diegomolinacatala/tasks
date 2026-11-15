@@ -237,6 +237,35 @@ export interface Settings {
   welcome: number
 }
 
+/**
+ * Credenciales de una sala de sincronización (`docs/sincronizacion.md`): su id, la clave que solo tienen sus
+ * miembros (cifrado de extremo a extremo) y quién eres en ella. Nunca va en una copia exportada.
+ */
+export interface RoomLink {
+  room: string
+  /** 32 bytes en base64url: de ella salen las claves de cifrado. */
+  key: string
+  member: string
+  token: string
+  /** Dueño: invita, ve los miembros y puede echar a alguien. En la sala personal, todos lo son. */
+  owner: boolean
+}
+
+/**
+ * Una cesta compartida (la del piso, la de la familia): como la propia, pero sus cosas se sincronizan con
+ * otras personas. La tienda a la que avisa (`placeId`) es tuya: no se comparte.
+ */
+export interface SharedBasket {
+  /** El id de su sala. */
+  id: string
+  name: string
+  items: ShoppingItem[]
+  history: ShoppingMemory[]
+  placeId: string | null
+  order: number
+  link: RoomLink
+}
+
 export interface AppState {
   schemaVersion: number
   tasks: Task[]
@@ -245,6 +274,8 @@ export interface AppState {
   routines: Routine[]
   /** La cesta: la lista de la compra (`lib/shopping.ts`). */
   shopping: ShoppingState
+  /** Cestas compartidas con otras personas, en el orden de sus pestañas. */
+  baskets: SharedBasket[]
   collapsed: Record<BlockId, boolean>
   settings: Settings
 }

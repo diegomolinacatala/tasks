@@ -1,4 +1,5 @@
 import { bearerToken, randomToken, sha256Hex } from './auth'
+import { HttpError, empty, json, readJson, tooMany, unwrap } from './http'
 import { inboxPage } from './inbox'
 import {
   MAX_STATS_BODY_BYTES,
@@ -13,6 +14,7 @@ import {
   utcDay,
   weekRange,
 } from './stats'
+import { syncRoute } from './syncRoutes'
 import { isQuotaExceeded } from './transcribe'
 import type { Deps, Device, InterpretContext, InterpretedTask } from './types'
 import {
@@ -26,7 +28,6 @@ import {
   parseSubscription,
 } from './validate'
 
-export const MAX_BODY_BYTES = 512_000
 const MAX_AUDIO_BODY_BYTES = MAX_AUDIO_CHARS + 1000
 export const MAX_DEVICES_PER_IP_HOUR = 10
 const HOUR_MS = 60 * 60 * 1000
@@ -44,18 +45,6 @@ export const FEEDBACK_KEEP_MS = 365 * 24 * HOUR_MS
 const FEEDBACK_LIST = 200
 const FEEDBACK_PATH = /^\/v1\/feedback(?:\/([0-9a-f-]{36})(\/shot)?)?$/
 
-class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message)
-  }
-}
-
-const tooLarge = () => new HttpError(413, 'cuerpo demasiado grande')
-const tooMany = () => new HttpError(429, 'demasiadas peticiones, prueba más tarde')
-
 function corsHeaders(request: Request, deps: Deps): Headers {
   const headers = new Headers({ vary: 'Origin' })
   const origin = request.headers.get('origin')
@@ -68,50 +57,6 @@ function corsHeaders(request: Request, deps: Deps): Headers {
   return headers
 }
 
-const json = (status: number, body: unknown, headers: Headers) => {
-  headers.set('content-type', 'application/json')
-  return new Response(JSON.stringify(body), { status, headers })
-}
-
-const empty = (headers: Headers) => new Response(null, { status: 204, headers })
-
-/** Lee el cuerpo cortando en cuanto supera el máximo: `content-length` puede faltar o mentir. */
-async function readBody(request: Request, maxBytes: number): Promise<string> {
-  if (Number(request.headers.get('content-length') ?? '0') > maxBytes) throw tooLarge()
-  if (!request.body) return ''
-  const reader = request.body.getReader()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    size += value.byteLength
-    if (size > maxBytes) {
-      await reader.cancel()
-      throw tooLarge()
-    }
-    chunks.push(value)
-  }
-  const bytes = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return new TextDecoder().decode(bytes)
-}
-
-async function readJson(request: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(await readBody(request, maxBytes))
-  } catch (error) {
-    if (error instanceof HttpError) throw error
-    throw new HttpError(400, 'JSON inválido')
-  }
-  return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
-}
-
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<never>((_, reject) => {
@@ -120,11 +65,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => {
     if (timer !== undefined) clearTimeout(timer)
   })
-}
-
-function unwrap<T>(result: { ok: true; value: T } | { ok: false; error: string }): T {
-  if (!result.ok) throw new HttpError(400, result.error)
-  return result.value
 }
 
 async function authenticate(request: Request, deps: Deps): Promise<Device> {
@@ -324,6 +264,9 @@ async function route(request: Request, deps: Deps, headers: Headers): Promise<Re
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
   const ipHash = await sha256Hex(`${deps.config.ipSalt}:${ip}`)
   if (!(await deps.limits.ip.allow(ipHash))) throw tooMany()
+
+  const synced = await syncRoute(request, deps, ipHash, headers)
+  if (synced) return synced
 
   if (key === 'GET /v1/vapid') return json(200, { data: { publicKey: deps.config.vapidPublicKey } }, headers)
   if (key === 'POST /v1/devices') return json(201, { data: await registerDevice(request, deps, ipHash) }, headers)

@@ -18,3 +18,6 @@ export function bearerToken(request: Request): string | null {
   const match = /^Bearer ([A-Za-z0-9_-]{20,100})$/.exec(header)
   return match?.[1] ?? null
 }
+
+/** Id aleatorio en base64url: 16 bytes dan los 22 caracteres de una sala o un emparejamiento. */
+export const randomId = (bytes = 16): string => toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)))

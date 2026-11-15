@@ -26,6 +26,7 @@ const state: AppState = {
   places: [{ id: 'p1', name: 'Mercadona', aliases: [], location: { lat: 39.47, lng: -0.38, address: 'Calle Colón 1' }, radius: 150 }],
   routines: [{ id: 'r1', title: 'Creatina', emoji: '💊', days: [1, 2, 3, 4, 5, 6, 7], time: '10:00', done: ['2026-09-10'], order: 0, createdAt: 1 }],
   shopping: { items: [{ id: 'c1', name: 'Pan', qty: '×2', done: false, order: 0, createdAt: 1, doneAt: null }], history: [{ name: 'Leche', count: 3, at: 2 }], placeId: 'p1' },
+  baskets: [],
   collapsed: { overdue: false, backlog: true, routines: false },
   settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null, done: [] }, stats: { level: null, cohort: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }

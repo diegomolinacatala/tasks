@@ -5,6 +5,8 @@ import { depsFrom, reason, schedulerStub } from './env'
 import { statsCutoff, utcDay } from './stats'
 
 export { Scheduler } from './scheduler'
+export { Room } from './room'
+export { Pairing } from './pair'
 
 /** El panel de uso: ficheros estáticos de `panel/` (página, código y capturas), sin datos dentro. */
 const PANEL = /^\/uso(?:\/|$)/

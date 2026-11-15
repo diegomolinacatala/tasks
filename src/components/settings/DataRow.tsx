@@ -10,6 +10,7 @@ import { IconArchive, IconDownload, IconTrash, IconUpload } from '../ui/Icons'
 import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
 import { SettingsRow, SettingsSheetTitle } from './SettingsRow'
+import { useSync } from '../sync/SyncProvider'
 
 const CONFIRM_MS = 4000
 /** Leer el fichero y decidir si sustituye lo que hay lleva más que un segundo toque. */
@@ -26,6 +27,7 @@ const COPY = {
     replace: (mine: number, theirs: number) => `Sustituir mis ${mine} tareas por las ${theirs} de la copia`,
     undo: 'Deshacer',
     cleared: 'Todo borrado.',
+    linked: 'Este dispositivo está vinculado: importar o borrar todo cambia también tus otros dispositivos.',
     stats: [
       ['tarea', 'tareas'],
       ['pendiente', 'pendientes'],
@@ -51,6 +53,7 @@ const COPY = {
     replace: (mine: number, theirs: number) => `Replace my ${mine} tasks with the backup’s ${theirs}`,
     undo: 'Undo',
     cleared: 'Everything deleted.',
+    linked: 'This device is linked: importing or deleting everything also changes your other devices.',
     stats: [
       ['task', 'tasks'],
       ['pending', 'pending'],
@@ -79,6 +82,7 @@ export function DataRow() {
   const copy = useCopy(COPY)
   const fileInput = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
+  const linked = useSync().link !== null
   const [confirming, setConfirming] = useState(false)
   // Una copia leída y a la espera de un segundo toque que confirme que sustituye lo que hay.
   const [incoming, setIncoming] = useState<AppState | null>(null)
@@ -202,6 +206,7 @@ export function DataRow() {
             if (file) void importBackup(file)
           }}
         />
+        {linked && <p className="group__note group__note--danger">{copy.linked}</p>}
         <p className="group__note">{copy.dataNote}</p>
       </Sheet>
     </>

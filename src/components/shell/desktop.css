@@ -1,0 +1,200 @@
+/* ── El escritorio: tres columnas en lugar de pestañas (`lib/desktop.ts`) ──────────────────────
+   Bandeja a la izquierda, la Agenda en el centro con la barra de escribir debajo y la cesta a la
+   derecha, siempre abierta. Lugares y Ajustes ocupan el ancho entero, en una columna de lectura. */
+
+.app.is-desktop {
+  --desk-max: 1560px;
+  --desk-gutter: max(28px, calc((100vw - var(--desk-max)) / 2));
+
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.5fr) minmax(290px, 0.95fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 0 var(--desk-gutter);
+}
+
+/* Las vistas comparten las columnas de la app (subgrid): cada pestaña cae en la suya */
+.app.is-desktop .app__views {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.app.is-desktop .app__views::before {
+  display: none;
+}
+
+.app.is-desktop .app__scroll {
+  position: relative;
+  inset: auto;
+  grid-row: 1;
+  min-height: 0;
+  padding-inline: 24px;
+}
+
+.app.is-desktop .app__scroll[data-pane='inbox'] {
+  grid-column: 1;
+}
+
+.app.is-desktop .app__scroll[data-pane='agenda'] {
+  grid-column: 2;
+  border-inline: 1px solid var(--line);
+}
+
+/* Lugares y Ajustes: a todo lo ancho, pero en una columna que se lee bien */
+.app.is-desktop .app__scroll[data-pane='places'],
+.app.is-desktop .app__scroll[data-pane='settings'] {
+  grid-column: 1 / -1;
+  padding-inline: max(24px, calc((100% - 720px) / 2));
+}
+
+.app.is-desktop .app__veil {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+/* La cesta, como una hoja de papel prendida a la derecha */
+.app__side {
+  grid-column: 3;
+  grid-row: 1;
+  min-height: 0;
+  padding: 18px 0 18px 22px;
+}
+
+.basket__panel.is-inline {
+  position: static;
+  height: 100%;
+  max-height: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.basket__panel.is-inline .basket__body {
+  padding-bottom: 18px;
+}
+
+/* La barra de escribir, bajo la Agenda */
+.app.is-desktop .app__bar {
+  grid-column: 2;
+  grid-row: 3;
+  padding-bottom: 14px;
+  background: transparent;
+}
+
+.app.is-desktop .tabs {
+  display: none;
+}
+
+.app.is-desktop:not(.is-board) .app__bar {
+  display: none;
+}
+
+.app.is-desktop .app__sizing {
+  top: 12px;
+  right: var(--desk-gutter);
+}
+
+.app.is-desktop:not(.is-board) .app__sizing {
+  display: none;
+}
+
+/* ── Cabecera ─────────────────────────────────────────────────────────────────────────────── */
+
+.desk-nav {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 64px;
+  padding-right: 64px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--bg), 0 2px 0 color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.desk-nav__brand {
+  font-family: var(--font-serif);
+  font-size: 23px;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.desk-nav__tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: var(--sp-4);
+}
+
+.desk-nav__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.desk-nav__tab:hover {
+  background: var(--bg-press);
+  color: var(--text);
+}
+
+.desk-nav__tab.is-active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.desk-nav__tab:focus-visible,
+.desk-nav__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.desk-nav__keys {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.desk-nav__link {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  transition: border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.desk-nav__link:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Con ratón, las filas responden al pasar por encima */
+@media (hover: hover) {
+  .app.is-desktop .row:hover {
+    background: color-mix(in srgb, var(--bg-press) 55%, transparent);
+  }
+}
+
+/* Los paneles, en un ordenador, no se estiran de lado a lado: una hoja centrada */
+@media (min-width: 1080px) and (hover: hover) and (pointer: fine) {
+  .sheet {
+    align-items: center;
+  }
+
+  .sheet__panel {
+    width: min(620px, 100% - 48px);
+    margin-bottom: 24px;
+    border-radius: var(--r-lg);
+  }
+}

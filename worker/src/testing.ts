@@ -1,3 +1,7 @@
+import { handlePairHttp, memoryPairStore } from './pairCore'
+import { RoomCore } from './roomCore'
+import { handleRoomHttp, type RoomOutcome } from './roomHttp'
+import { memoryRoomStore } from './roomStore'
 import { dayIndex, dayOf, mondayIndex } from './stats'
 import type {
   CellRow,
@@ -289,6 +293,54 @@ export function countingLimiter(max = Number.POSITIVE_INFINITY) {
   return { limiter, counts }
 }
 
+/**
+ * Los Durable Objects de las salas y los emparejamientos, en memoria: misma lógica (`handleRoomHttp`,
+ * `handlePairHttp`) sin Cloudflare. El WebSocket no se simula: la subida devuelve una marca.
+ */
+export function fakeObjects(now: () => number) {
+  const rooms = new Map<string, RoomCore>()
+  const pairs = new Map<string, ReturnType<typeof memoryPairStore>>()
+  const outcomes: RoomOutcome[] = []
+  const forwarded: { id: string; method: string; path: string }[] = []
+  const roomOf = (id: string) => {
+    const existing = rooms.get(id)
+    if (existing) return existing
+    const created = new RoomCore(memoryRoomStore())
+    rooms.set(id, created)
+    return created
+  }
+  const pairOf = (id: string) => {
+    const existing = pairs.get(id)
+    if (existing) return existing
+    const created = memoryPairStore()
+    pairs.set(id, created)
+    return created
+  }
+  const note = (id: string, request: Request) =>
+    forwarded.push({ id, method: request.method, path: new URL(request.url).pathname })
+  return {
+    rooms,
+    pairs,
+    outcomes,
+    forwarded,
+    roomRouter: {
+      async fetch(id: string, request: Request) {
+        note(id, request)
+        if (request.headers.get('upgrade') === 'websocket') return new Response('socket', { headers: { 'x-socket': id } })
+        const outcome = await handleRoomHttp(roomOf(id), request, now())
+        outcomes.push(outcome)
+        return outcome.response
+      },
+    },
+    pairRouter: {
+      async fetch(id: string, request: Request) {
+        note(id, request)
+        return (await handlePairHttp(pairOf(id), request, now())).response
+      },
+    },
+  }
+}
+
 /** Clave del buzón en los tests. */
 export const FEEDBACK_KEY = 'clave-del-buzon-de-pruebas-0123456789'
 
@@ -300,6 +352,7 @@ export function testDeps(overrides: Partial<Deps> = {}) {
   const transcribed: string[] = []
   const languages: string[] = []
   const interpreted: { text: string; context: InterpretContext }[] = []
+  const objects = fakeObjects(() => clock)
   const deps: Deps = {
     store: memory.store,
     sender: push.sender,
@@ -309,6 +362,7 @@ export function testDeps(overrides: Partial<Deps> = {}) {
       device: countingLimiter().limiter,
       voice: countingLimiter().limiter,
       stats: countingLimiter().limiter,
+      room: countingLimiter().limiter,
     },
     interpreter: {
       interpret: async (text, context) => {
@@ -329,8 +383,21 @@ export function testDeps(overrides: Partial<Deps> = {}) {
       ipSalt: 'salt',
       feedbackKey: FEEDBACK_KEY,
     },
+    rooms: objects.roomRouter,
+    pairs: objects.pairRouter,
     now: () => clock,
     ...overrides,
   }
-  return { deps, memory, push, armed, transcribed, languages, interpreted, setNow: (ms: number) => (clock = ms), now: () => clock }
+  return {
+    deps,
+    memory,
+    push,
+    armed,
+    transcribed,
+    languages,
+    interpreted,
+    objects,
+    setNow: (ms: number) => (clock = ms),
+    now: () => clock,
+  }
 }

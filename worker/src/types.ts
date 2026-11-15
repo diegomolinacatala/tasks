@@ -217,6 +217,13 @@ export interface Limits {
   voice: Limiter
   /** Lotes de estadísticas, por IP anonimizada: cada uno son escrituras de D1. */
   stats: Limiter
+  /** Crear salas, unirse a una y crear emparejamientos, por IP anonimizada. */
+  room: Limiter
+}
+
+/** Reenvía una petición al Durable Object de ese id (una sala o un emparejamiento). */
+export interface ObjectRouter {
+  fetch(id: string, request: Request): Promise<Response>
 }
 
 /** Despierta el envío a una hora concreta. En producción, la alarma de un Durable Object. */
@@ -265,5 +272,7 @@ export interface Deps {
   scheduler: Scheduler
   transcriber: Transcriber
   interpreter: Interpreter
+  rooms: ObjectRouter
+  pairs: ObjectRouter
   now: () => number
 }

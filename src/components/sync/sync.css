@@ -1,0 +1,218 @@
+/* Vincular dispositivos y compartir cestas: el QR, su código y las listas de miembros */
+
+.qr {
+  display: block;
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 28px -18px rgb(0 0 0 / 0.45);
+}
+
+/* El QR va siempre en tinta sobre papel claro: de noche, una cámara lee mal uno invertido */
+.qr__paper {
+  fill: #fbf8f1;
+}
+
+.qr__ink {
+  fill: #1c2541;
+}
+
+.link-qr {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0 var(--sp-2);
+}
+
+.link-qr__frame {
+  position: relative;
+  padding: 10px;
+  border-radius: calc(var(--r-md) + 10px);
+  border: 1px solid var(--gold);
+  box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 4px var(--gold);
+}
+
+.link-qr__wait {
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 220px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.link-qr__wait--small {
+  width: 180px;
+  height: 180px;
+}
+
+.link-unlink {
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--sp-5);
+  border-radius: var(--r-md);
+}
+
+.link-open {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+/* Un panel abierto desde la cesta (que ya es una capa) va encima de ella */
+.sheet.sheet--over {
+  z-index: 65;
+}
+
+/* Las cuatro cifras que tienen que coincidir en los dos dispositivos */
+.link-code {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.link-code__digits {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.22em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.link-steps {
+  margin: var(--sp-3) 0 0;
+  padding-left: 1.3em;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.link-steps li + li {
+  margin-top: 4px;
+}
+
+.link-steps b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.link-member {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 52px;
+  padding: 8px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.link-member:last-child {
+  border-bottom: 0;
+}
+
+.link-member__dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-serif);
+  font-size: 15px;
+}
+
+.link-member__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.link-member__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.link-member__meta {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.link-member__remove {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-sm);
+  color: var(--danger);
+}
+
+.link-member__remove:active {
+  background: var(--danger-dim);
+}
+
+.link-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: var(--text-3);
+}
+
+.link-status.is-online::before {
+  background: var(--accent);
+}
+
+.link-field {
+  width: 100%;
+  min-height: 46px;
+  margin-top: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--bg-raised, var(--bg));
+  color: var(--text);
+  font-size: 16px;
+}
+
+.link-field:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.link-label {
+  display: block;
+  margin-top: var(--sp-4);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  justify-content: center;
+}
+
+.link-warning {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--danger-dim);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}

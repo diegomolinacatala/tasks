@@ -33,7 +33,7 @@ export const emptyShopping = (): ShoppingState => ({ items: [], history: [], pla
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
-function normalizeItem(raw: unknown): ShoppingItem | null {
+export function normalizeItem(raw: unknown): ShoppingItem | null {
   if (!isObject(raw) || typeof raw.id !== 'string' || !raw.id || typeof raw.name !== 'string') return null
   const name = cleanShoppingName(raw.name)
   if (!name) return null
@@ -49,7 +49,7 @@ function normalizeItem(raw: unknown): ShoppingItem | null {
   }
 }
 
-function normalizeMemory(raw: unknown): ShoppingMemory | null {
+export function normalizeMemory(raw: unknown): ShoppingMemory | null {
   if (!isObject(raw) || typeof raw.name !== 'string') return null
   const name = cleanShoppingName(raw.name)
   if (!name) return null

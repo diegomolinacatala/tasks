@@ -459,8 +459,17 @@ Nada se manda sin que la persona lo elija: Apple pide permiso incluso para datos
 y sin «Saltar») y, a quien la saltó antes de llegar, en una ficha a partir del segundo día (cerrarla es «No»). Las notas para
 la revisión (§5) lo dicen. No enviar la TestFlight 54: contaba las visitas sin preguntar.
 
+**Vincular dispositivos y cestas compartidas** (desde la versión que lo lleve; tú, una vez, antes de enviarla):
+lo sincronizado pasa por el Worker **cifrado de extremo a extremo** (`docs/sincronizacion.md`): el servidor no
+tiene la clave y no puede leer nada. Por prudencia se declara igualmente: **Privacidad de la app** → **Editar** →
+marca **Otro contenido del usuario** (en *Contenido del usuario*) → **Configurar**: *Funcionalidad de la app* →
+¿vinculado a la identidad? **No** → ¿para rastrear? **No** → **Guardar** → **Publicar**. Y en
+`PrivacyInfo.xcprivacy`, el mismo tipo (`NSPrivacyCollectedDataTypeOtherUserContent`, funcionalidad, sin vínculo
+ni rastreo). La política (`public/privacidad.html#vincular`) tiene que estar publicada en `main` antes.
+
 **Cifrado**: `ITSAppUsesNonExemptEncryption = false` en `Info.plist` (solo HTTPS y cifrado estándar del
-sistema), así que TestFlight no pregunta por la exportación.
+sistema), así que TestFlight no pregunta por la exportación. El cifrado de la sincronización es AES-GCM y ECDH
+estándar a través de WebCrypto del propio iOS (WebKit), sin algoritmos propios: sigue siendo exento.
 
 ## 5. Notas para la revisión de Apple
 

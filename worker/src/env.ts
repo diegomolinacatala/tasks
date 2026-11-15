@@ -8,10 +8,13 @@ import { isValidVapidSubject } from './validate'
 export interface Env {
   DB: D1Database
   SCHEDULER: DurableObjectNamespace<import('./scheduler').Scheduler>
+  ROOMS: DurableObjectNamespace<import('./room').Room>
+  PAIRS: DurableObjectNamespace<import('./pair').Pairing>
   IP_LIMITER: RateLimit
   DEVICE_LIMITER: RateLimit
   VOICE_LIMITER: RateLimit
   STATS_LIMITER: RateLimit
+  ROOM_LIMITER: RateLimit
   /** El panel de uso (`panel/`): página, código y capturas de referencia del mapa de calor. */
   ASSETS: Fetcher
   AI: Ai
@@ -53,10 +56,14 @@ export function depsFrom(env: Env): Deps {
       device: limiterOf(env.DEVICE_LIMITER),
       voice: limiterOf(env.VOICE_LIMITER),
       stats: limiterOf(env.STATS_LIMITER),
+      room: limiterOf(env.ROOM_LIMITER),
     },
     scheduler: { arm: (at) => schedulerStub(env).arm(at) },
     transcriber: workersAiTranscriber(env.AI),
     interpreter: workersAiInterpreter(env.AI),
+    // El id lo valida (o lo elige) el Worker antes de llegar aquí.
+    rooms: { fetch: (id, request) => env.ROOMS.get(env.ROOMS.idFromName(id)).fetch(request) },
+    pairs: { fetch: (id, request) => env.PAIRS.get(env.PAIRS.idFromName(id)).fetch(request) },
     config: {
       allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
       vapidPublicKey: env.VAPID_PUBLIC_KEY,

@@ -270,29 +270,33 @@ function hereAlerts(tasks: readonly Task[], now: number | null): Ranked[] {
  * sus tareas, la cesta va en el mismo aviso (una región, un aviso): se añade al cuerpo y se marca. La
  * clave es la misma con tareas o sin ellas (`<lugar>:arrive`): el id no cambia al fundirse.
  */
-function withShopping(alerts: Ranked[], shopping: ShoppingState | undefined, located: ReadonlyMap<string, Place>): Ranked[] {
-  const place = shopping?.placeId ? located.get(shopping.placeId) : undefined
-  if (!shopping || !place?.location || !sortedItems(shopping.items).pending.length) return alerts
+function withShopping(alerts: Ranked[], baskets: readonly ShoppingState[], located: ReadonlyMap<string, Place>): Ranked[] {
   const text = pick(ALERT_TEXT)
-  const key = `${place.id}:arrive`
-  const existing = alerts.find((alert) => alert.key === key)
-  if (existing) return alerts.map((alert) => (alert === existing ? { ...alert, body: `${alert.body} · ${text.withBasket}`, shopping: true, rank: 1 } : alert))
-  return [
-    ...alerts,
-    {
-      key,
-      placeId: place.id,
-      on: 'arrive',
-      lat: place.location.lat,
-      lng: place.location.lng,
-      radius: place.radius,
-      title: place.name,
-      body: text.basket,
-      taskIds: [],
-      shopping: true,
-      rank: 1,
-    },
-  ]
+  // Varias cestas (la propia y las compartidas) pueden avisar en la misma tienda: un aviso por tienda.
+  const places = [...new Set(baskets.flatMap((basket) => (basket.placeId && sortedItems(basket.items).pending.length ? [basket.placeId] : [])))]
+  return places.reduce<Ranked[]>((acc, placeId) => {
+    const place = located.get(placeId)
+    if (!place?.location) return acc
+    const key = `${place.id}:arrive`
+    const existing = acc.find((alert) => alert.key === key)
+    if (existing) return acc.map((alert) => (alert === existing ? { ...alert, body: `${alert.body} · ${text.withBasket}`, shopping: true, rank: 1 } : alert))
+    return [
+      ...acc,
+      {
+        key,
+        placeId: place.id,
+        on: 'arrive',
+        lat: place.location.lat,
+        lng: place.location.lng,
+        radius: place.radius,
+        title: place.name,
+        body: text.basket,
+        taskIds: [],
+        shopping: true,
+        rank: 1,
+      },
+    ]
+  }, alerts)
 }
 
 /**
@@ -302,7 +306,7 @@ function withShopping(alerts: Ranked[], shopping: ShoppingState | undefined, loc
  * y después los demás lugares, los de más tareas primero. `now` decide qué "al alejarme" sigue vivo;
  * sin él, todos.
  */
-export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'> & Partial<Pick<AppState, 'shopping'>>, today: IsoDate, now: number | null = null): PlaceAlert[] {
+export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'> & Partial<Pick<AppState, 'shopping' | 'baskets'>>, today: IsoDate, now: number | null = null): PlaceAlert[] {
   const located = new Map(state.places.flatMap((place) => (place.location ? [[place.id, place] as const] : [])))
 
   const groups = state.tasks
@@ -336,7 +340,7 @@ export function placeAlerts(state: Pick<AppState, 'tasks' | 'places'> & Partial<
   })
 
   // Lo de "al alejarme" ya viene en su orden (lo más reciente primero): el sort es estable y no lo toca.
-  return [...hereAlerts(state.tasks, now), ...withShopping(alerts, state.shopping, located)]
+  return [...hereAlerts(state.tasks, now), ...withShopping(alerts, [...(state.shopping ? [state.shopping] : []), ...(state.baskets ?? [])], located)]
     .sort((a, b) => a.rank - b.rank || (a.rank === 0 ? 0 : b.taskIds.length - a.taskIds.length || compareNames(a.title, b.title)))
     .slice(0, MAX_PLACE_ALERTS)
     .map(({ rank: _rank, ...alert }) => alert)

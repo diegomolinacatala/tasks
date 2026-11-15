@@ -59,13 +59,15 @@
   <body>
     <main>
       <h1>Privacy</h1>
-      <p class="date">Tasks · updated November 9, 2026 · <a href="privacidad.html" lang="es">en español</a></p>
+      <p class="date">Tasks · updated November 14, 2026 · <a href="privacidad.html" lang="es">en español</a></p>
 
       <p>
         Tasks has no accounts or ads. <strong>We don’t collect personal data</strong> and we don’t sell anything to
         anyone. The only content that leaves your device is what you dictate, and only if you allow microphone
         access after reading where it goes (see <a href="#dictation">Dictation</a>), and the suggestions you choose
-        to send (see <a href="#suggestions">Suggestions</a>). If you accept, the app also counts, anonymously, how much
+        to send (see <a href="#suggestions">Suggestions</a>). If you link your devices or share a basket, what syncs goes
+        through our server <strong>end-to-end encrypted</strong>: we can’t read it (see <a href="#linking">Linked devices
+        and shared baskets</a>). If you accept, the app also counts, anonymously, how much
         it’s used, without knowing by whom (see <a href="#statistics">Statistics</a>).
       </p>
 
@@ -74,6 +76,24 @@
         Tasks, sections, reminders and places are stored only on your device. On iPhone they are part of the
         device’s own backup (iCloud or your computer), which Apple manages, not us. You can export or delete them
         from Settings.
+      </p>
+
+      <h2 id="linking">Linked devices and shared baskets</h2>
+      <p>
+        Only if you choose to: in Settings → Devices you can link another device (for example, Tasks on your
+        computer) by scanning a code, and in the basket you can create a <strong>shared basket</strong> and invite
+        other people. So that changes reach each other, they are stored on our server <strong>encrypted on your
+        device</strong> with a key that only the devices or people you linked or invited have: it travels inside the
+        code or the link, never to the server. The server can’t read your tasks, your places, what’s in a basket or
+        the names of the people who share it; it doesn’t even know what each item is.
+      </p>
+      <p>
+        For each group (your devices or a basket) the server stores: that encrypted data, a random identifier per
+        device or person, the hash of their access key, whether they created it, and when they joined and last
+        connected. Anything nobody opens for a year is deleted automatically, and a basket is deleted entirely when
+        the last person leaves. In a shared basket, whoever created it sees the names each person chose when
+        joining and can remove someone; what gets added carries no name. You can unlink a device or leave a basket
+        whenever you want: it stops syncing and what’s on yours stays.
       </p>
 
       <h2 id="calendar">Calendar</h2>

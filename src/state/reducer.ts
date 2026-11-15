@@ -9,14 +9,16 @@ import { cleanUntil } from '../lib/period'
 import { DEFAULT_RADIUS, MAX_PLACES, clampRadius, cleanAliases, cleanPlaceName, nameTaken } from '../lib/places'
 import { MAX_REMINDERS, clampHereRadius, normalizeHerePoint, snoozed, withReminder } from '../lib/reminders'
 import { DAY_START, MAX_ROUTINES, cleanDays, withDay } from '../lib/routines'
-import { MAX_SHOPPING_ITEMS, cleanQty, cleanShoppingName, emptyShopping, findItem, remember } from '../lib/shopping'
+import { emptyShopping } from '../lib/shopping'
+import { applySync, syncedDefaults } from '../lib/sync/records'
 import { normalizeWelcome } from '../lib/welcome'
 import { defaultStatsSettings, isCounting, isStatsLevel } from '../lib/stats/settings'
 import { isLanguageSetting } from '../lib/i18n'
-import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, ShoppingItem, ShoppingState, Task, Theme } from '../types'
+import type { AppState, IsoDate, Place, Reminder, Routine, Section, Settings, Task, Theme } from '../types'
 import type { Action } from './actions'
+import { basketReducer, shoppingReducer } from './shoppingReducer'
 
-export const SCHEMA_VERSION = 18
+export const SCHEMA_VERSION = 19
 
 export const defaultSettings = (): Settings => ({
   digest: { enabled: false, time: '08:30' },
@@ -38,6 +40,7 @@ export const emptyState = (): AppState => ({
   places: [],
   routines: [],
   shopping: emptyShopping(),
+  baskets: [],
   collapsed: { overdue: false, backlog: false, routines: false },
   settings: defaultSettings(),
 })
@@ -75,13 +78,17 @@ function updateRoutine(state: AppState, id: string, update: (routine: Routine) =
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
-const withShopping = (state: AppState, patch: Partial<ShoppingState>): AppState => ({ ...state, shopping: { ...state.shopping, ...patch } })
-
-const nextShoppingOrder = (items: readonly ShoppingItem[]) => items.reduce((max, item) => Math.max(max, item.order + 1), 0)
+/** Las cestas compartidas sin la tienda que ya no existe (o sin ninguna, con `placeId` nulo). */
+const basketsWithout = (baskets: AppState['baskets'], placeId: string | null) =>
+  baskets.some((basket) => basket.placeId !== null && (placeId === null || basket.placeId === placeId))
+    ? baskets.map((basket) => (basket.placeId !== null && (placeId === null || basket.placeId === placeId) ? { ...basket, placeId: null } : basket))
+    : baskets
 
 const sameDays = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((day, index) => day === b[index])
 
 export function reducer(state: AppState, action: Action): AppState {
+  if (action.type.startsWith('shopping/')) return shoppingReducer(state, action as Extract<Action, { type: `shopping/${string}` }>)
+  if (action.type.startsWith('basket/')) return basketReducer(state, action as Extract<Action, { type: `basket/${string}` }>)
   switch (action.type) {
     case 'task/add': {
       const title = clean(action.title)
@@ -351,7 +358,8 @@ export function reducer(state: AppState, action: Action): AppState {
       })
       // La cesta avisaba al llegar aquí: ya no.
       const shopping = state.shopping.placeId === action.id ? { ...state.shopping, placeId: null } : state.shopping
-      return { ...state, tasks, shopping, places: state.places.filter((place) => place.id !== action.id) }
+      const baskets = basketsWithout(state.baskets, action.id)
+      return { ...state, tasks, shopping, baskets, places: state.places.filter((place) => place.id !== action.id) }
     }
 
     case 'place/restore': {
@@ -364,7 +372,11 @@ export function reducer(state: AppState, action: Action): AppState {
         return back?.length ? { ...task, reminders: [...task.reminders, ...back].slice(0, MAX_REMINDERS) } : task
       })
       const shopping = action.shopping && state.shopping.placeId === null ? { ...state.shopping, placeId: place.id } : state.shopping
-      return { ...state, tasks, shopping, places: [...state.places, place] }
+      const back = new Set(action.baskets ?? [])
+      const baskets = back.size
+        ? state.baskets.map((basket) => (back.has(basket.id) && basket.placeId === null ? { ...basket, placeId: place.id } : basket))
+        : state.baskets
+      return { ...state, tasks, shopping, baskets, places: [...state.places, place] }
     }
 
     case 'routine/add': {
@@ -417,57 +429,6 @@ export function reducer(state: AppState, action: Action): AppState {
       return state.routines.some((routine) => routine.id === action.routine.id)
         ? state
         : { ...state, routines: [...state.routines, action.routine] }
-
-    case 'shopping/add': {
-      const name = cleanShoppingName(action.name)
-      if (!name) return state
-      const { shopping } = state
-      if (action.id !== undefined && shopping.items.some((item) => item.id === action.id)) return state
-      const qty = cleanQty(action.qty)
-      const existing = findItem(shopping.items, name)
-      if (existing) {
-        // Ya pendiente: como mucho cambia la cantidad. Comprada: vuelve a pendiente, al final.
-        const back: ShoppingItem = existing.done
-          ? { ...existing, done: false, doneAt: null, qty: qty ?? existing.qty, order: nextShoppingOrder(shopping.items) }
-          : qty && qty !== existing.qty
-            ? { ...existing, qty }
-            : existing
-        return back === existing ? state : withShopping(state, { items: shopping.items.map((item) => (item === existing ? back : item)) })
-      }
-      if (shopping.items.filter((item) => !item.done).length >= MAX_SHOPPING_ITEMS) return state
-      const item: ShoppingItem = { id: action.id ?? createId(), name, qty, done: false, order: nextShoppingOrder(shopping.items), createdAt: action.now, doneAt: null }
-      return withShopping(state, { items: [...shopping.items, item] })
-    }
-
-    case 'shopping/toggle': {
-      const { shopping } = state
-      const current = shopping.items.find((item) => item.id === action.id)
-      if (!current) return state
-      const toggled: ShoppingItem = current.done ? { ...current, done: false, doneAt: null } : { ...current, done: true, doneAt: action.now }
-      const items = shopping.items.map((item) => (item === current ? toggled : item))
-      // Comprar es lo que se recuerda; devolverla a pendiente no borra nada.
-      return withShopping(state, { items, ...(toggled.done ? { history: remember(shopping.history, current.name, action.now) } : {}) })
-    }
-
-    case 'shopping/remove':
-      return state.shopping.items.some((item) => item.id === action.id)
-        ? withShopping(state, { items: state.shopping.items.filter((item) => item.id !== action.id) })
-        : state
-
-    case 'shopping/restore':
-      return state.shopping.items.some((item) => item.id === action.item.id)
-        ? state
-        : withShopping(state, { items: [...state.shopping.items, action.item] })
-
-    case 'shopping/clearDone':
-      return state.shopping.items.some((item) => item.done)
-        ? withShopping(state, { items: state.shopping.items.filter((item) => !item.done) })
-        : state
-
-    case 'shopping/place': {
-      const placeId = action.placeId !== null && state.places.some((place) => place.id === action.placeId) ? action.placeId : null
-      return placeId === state.shopping.placeId ? state : withShopping(state, { placeId })
-    }
 
     case 'block/toggle':
       return {
@@ -542,11 +503,29 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'state/replace':
       return action.state
 
+    case 'sync/apply':
+      return applySync(state, action.scope, action.changes)
+
+    // Lo de los vinculados manda: se vacía lo que se sincroniza (también los ajustes que viajan, que llegan
+    // enseguida) y se queda lo que es de este dispositivo.
+    case 'sync/adopt':
+      return {
+        ...emptyState(),
+        // Las cestas compartidas en las que ya estabas siguen: suben a tu grupo con lo demás.
+        baskets: state.baskets,
+        settings: {
+          ...state.settings,
+          ...syncedDefaults(),
+        },
+      }
+
     // El permiso del dictado, la apariencia, el idioma, el calendario, la bienvenida vista y las
     // estadísticas son de este dispositivo: una copia de otro no los cambia.
     case 'state/import':
       return {
         ...action.state,
+        // Las cestas compartidas no van en las copias: son de otras personas también.
+        baskets: state.baskets,
         settings: {
           ...action.state.settings,
           dictation: state.settings.dictation,
@@ -564,6 +543,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'state/clear':
       return {
         ...emptyState(),
+        // Las cestas compartidas siguen (son de más gente); solo pierden la tienda, que se ha borrado.
+        baskets: basketsWithout(state.baskets, null),
         settings: {
           ...defaultSettings(),
           theme: state.settings.theme,

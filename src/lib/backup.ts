@@ -9,6 +9,7 @@ import { cleanUntil } from './period'
 import { MAX_PLACES, cleanAliases, normalizePlace, placeKey } from './places'
 import { MAX_REMINDERS, normalizeReminder } from './reminders'
 import { normalizeShopping } from './shopping'
+import { normalizeBaskets } from './baskets'
 import { isLanguageSetting, pick } from './i18n'
 import { normalizeWelcome } from './welcome'
 import { normalizeStatsSettings } from './stats/settings'
@@ -39,7 +40,7 @@ function normalizeReminders(raw: unknown): Reminder[] {
     .slice(0, MAX_REMINDERS)
 }
 
-function normalizeTask(raw: unknown): Task | null {
+export function normalizeTask(raw: unknown): Task | null {
   if (!isObject(raw)) return null
   const id = str(raw.id)
   const title = str(raw.title)
@@ -66,7 +67,7 @@ function normalizeTask(raw: unknown): Task | null {
   }
 }
 
-function normalizeSection(raw: unknown): Section | null {
+export function normalizeSection(raw: unknown): Section | null {
   if (!isObject(raw)) return null
   const id = str(raw.id)
   const name = str(raw.name)
@@ -161,6 +162,8 @@ export function normalizeState(raw: unknown): AppState | null {
     routines: normalizeRoutines(candidate.routines),
     // Las copias anteriores a la cesta no la traen: vacía.
     shopping: normalizeShopping(candidate.shopping, knownPlaces),
+    // Las copias no traen cestas compartidas (`serializeBackup`); el estado guardado, sí.
+    baskets: normalizeBaskets(candidate.baskets, knownPlaces),
     collapsed: { overdue: collapsed.overdue === true, backlog: collapsed.backlog === true, routines: collapsed.routines === true },
     settings: normalizeSettings(candidate.settings),
   }
@@ -171,7 +174,8 @@ export function serializeBackup(state: AppState, now: Date = new Date()): string
     app: 'tasks',
     schemaVersion: SCHEMA_VERSION,
     exportedAt: now.toISOString(),
-    state,
+    // Las cestas compartidas llevan las credenciales de su sala: no salen del dispositivo en una copia.
+    state: { ...state, baskets: [] },
   }
   return JSON.stringify(file, null, 2)
 }

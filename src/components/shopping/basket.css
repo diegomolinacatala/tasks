@@ -323,3 +323,83 @@
 .basket__places {
   padding: 2px 8px 6px;
 }
+
+/* ── Varias cestas: la tuya y las compartidas, en pestañas ────────────────── */
+
+.basket-tabs {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  padding: 6px 18px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.basket-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.basket-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+
+.basket-tab:active {
+  transform: scale(0.96);
+}
+
+.basket-tab.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.basket-tab__label {
+  max-width: 11em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.basket-tab__count {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.basket-tab--new {
+  border-style: dashed;
+  color: var(--accent);
+}
+
+.basket__share {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -10px -10px -10px auto;
+  border-radius: var(--r-full);
+  color: var(--accent);
+}
+
+.basket__share:active {
+  background: var(--bg-press);
+}
+
+.basket__offline {
+  margin: 0;
+  padding: 0 18px 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}

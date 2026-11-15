@@ -6,6 +6,7 @@ import { CalendarProvider } from './components/calendar/CalendarProvider'
 import { PlaceEditorProvider } from './components/places/PlaceEditor'
 import { PushProvider } from './components/push/PushProvider'
 import { ToastProvider } from './components/ui/Toast'
+import { SyncProvider } from './components/sync/SyncProvider'
 import { isNative } from './lib/platform'
 import { LanguageProvider } from './state/LanguageProvider'
 import { StoreProvider } from './state/StoreProvider'
@@ -30,6 +31,7 @@ createRoot(container).render(
     <StoreProvider>
       <LanguageProvider>
         <ToastProvider>
+          <SyncProvider>
           <CalendarProvider>
             <Suspense fallback={null}>
               <Notifications>
@@ -39,6 +41,7 @@ createRoot(container).render(
               </Notifications>
             </Suspense>
           </CalendarProvider>
+          </SyncProvider>
         </ToastProvider>
       </LanguageProvider>
     </StoreProvider>

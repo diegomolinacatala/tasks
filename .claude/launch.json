@@ -4,26 +4,96 @@
     {
       "name": "tasks-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "tasks-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview", "--", "--port", "4173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
       "port": 4173
     },
     {
       "name": "push-worker",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "worker", "run", "dev", "--", "--port", "8787"],
+      "runtimeArgs": [
+        "--prefix",
+        "worker",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "8787"
+      ],
       "port": 8787
     },
     {
       "name": "panel-test",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "worker", "run", "dev", "--", "--port", "8788", "--var", "FEEDBACK_KEY:clave-del-buzon-de-pruebas-0123456789"],
+      "runtimeArgs": [
+        "--prefix",
+        "worker",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "8788",
+        "--var",
+        "FEEDBACK_KEY:clave-del-buzon-de-pruebas-0123456789"
+      ],
       "port": 8788
+    },
+    {
+      "name": "sync-worker",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "worker",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "8787",
+        "--var",
+        "ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175"
+      ],
+      "port": 8787
+    },
+    {
+      "name": "tasks-dev-b",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "tasks-dev-c",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
     }
   ]
 }

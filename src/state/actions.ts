@@ -1,5 +1,6 @@
 import type { Placement } from '../lib/order'
-import type { AppState, BlockId, HerePoint, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, ShoppingItem, StatsLevel, Task, Theme } from '../types'
+import type { SyncChange } from '../lib/sync/records'
+import type { AppState, BlockId, HerePoint, IsoDate, IsoTime, Place, PlaceLocation, LanguageSetting, Reminder, ReminderDraft, Routine, SharedBasket, ShoppingItem, StatsLevel, Task, Theme } from '../types'
 
 /** Una columna del tablero: adónde van las tareas que contiene. */
 export interface Column {
@@ -75,7 +76,14 @@ export type Action =
    * Deshacer un borrado: vuelve el lugar y los avisos que se llevó (los de tareas que sigan existiendo);
    * `shopping`, si la cesta avisaba al llegar a él.
    */
-  | { type: 'place/restore'; place: Place; reminders: readonly { taskId: string; reminder: Reminder }[]; shopping?: true }
+  | {
+      type: 'place/restore'
+      place: Place
+      reminders: readonly { taskId: string; reminder: Reminder }[]
+      shopping?: true
+      /** Las cestas compartidas que avisaban al llegar a él. */
+      baskets?: readonly string[]
+    }
   | { type: 'routine/add'; title: string; days: number[]; time: IsoTime | null; emoji?: string | null; id?: string }
   /** `emoji: null` lo quita; sin el campo, se queda como está. */
   | { type: 'routine/update'; id: string; title?: string; days?: number[]; time?: IsoTime | null; emoji?: string | null }
@@ -87,17 +95,34 @@ export type Action =
   | { type: 'routine/restore'; routine: Routine }
   /**
    * La cesta (`lib/shopping.ts`). Añadir algo que ya está pendiente no duplica (con cantidad, la cambia);
-   * algo ya comprado vuelve a pendiente.
+   * algo ya comprado vuelve a pendiente. `basket`: una cesta compartida (su id); sin él, la propia.
    */
-  | { type: 'shopping/add'; name: string; qty?: string | null; id?: string; now: number }
+  | { type: 'shopping/add'; name: string; qty?: string | null; id?: string; now: number; basket?: string }
   /** Comprar o devolver a pendiente; al comprar se apunta en el historial (las habituales). */
-  | { type: 'shopping/toggle'; id: string; now: number }
-  | { type: 'shopping/remove'; id: string }
-  | { type: 'shopping/restore'; item: ShoppingItem }
+  | { type: 'shopping/toggle'; id: string; now: number; basket?: string }
+  | { type: 'shopping/remove'; id: string; basket?: string }
+  | { type: 'shopping/restore'; item: ShoppingItem; basket?: string }
   /** Vaciar lo comprado. */
-  | { type: 'shopping/clearDone' }
+  | { type: 'shopping/clearDone'; basket?: string }
   /** El lugar guardado al que, al llegar, avisa con lo pendiente; `null` lo quita. */
-  | { type: 'shopping/place'; placeId: string | null }
+  | { type: 'shopping/place'; placeId: string | null; basket?: string }
+  /** Una cesta compartida nueva (creada o a la que te has unido). Si ya estaba, no cambia. */
+  | { type: 'basket/add'; basket: SharedBasket }
+  | { type: 'basket/rename'; id: string; name: string }
+  /** El servidor dice otra cosa de quién manda (el dueño salió y has pasado a serlo). */
+  | { type: 'basket/owner'; id: string; owner: boolean }
+  /** Ya no eres de ella (has salido o te han echado): desaparece de este dispositivo. */
+  | { type: 'basket/remove'; id: string }
+  /**
+   * Lo que llega de otro dispositivo o de otro miembro (`lib/sync/records.ts`): `scope` es `personal` o el
+   * id de una cesta compartida; cada cambio, un registro con su valor o `null` si se ha borrado.
+   */
+  | { type: 'sync/apply'; scope: string; changes: readonly SyncChange[] }
+  /**
+   * Al vincular este dispositivo a un grupo: lo de los vinculados manda. Se vacía lo que se sincroniza y se
+   * quedan los ajustes de este dispositivo; lo del grupo llega después con `sync/apply`.
+   */
+  | { type: 'sync/adopt' }
   | { type: 'block/toggle'; block: BlockId }
   | { type: 'settings/digest'; enabled?: boolean; time?: IsoTime }
   | { type: 'settings/dictation'; allowed: boolean }

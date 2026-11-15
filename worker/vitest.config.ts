@@ -8,7 +8,7 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**'],
       // Adaptadores de Cloudflare: se prueban con `wrangler dev`, no en Node.
-      exclude: ['src/**/*.test.ts', 'src/testing.ts', 'src/index.ts', 'src/env.ts', 'src/scheduler.ts', 'src/store.ts', 'src/push.ts'],
+      exclude: ['src/**/*.test.ts', 'src/testing.ts', 'src/index.ts', 'src/env.ts', 'src/scheduler.ts', 'src/store.ts', 'src/push.ts', 'src/room.ts', 'src/roomSql.ts', 'src/pair.ts'],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
     },
   },

@@ -47,6 +47,7 @@ const state: AppState = {
   places: [],
   routines: [],
   shopping: { items: [], history: [], placeId: null },
+  baskets: [],
   collapsed: { overdue: false, backlog: false, routines: false },
   settings: { digest: { enabled: false, time: '08:30' }, calendar: { enabled: false, hidden: [], export: null, done: [] }, stats: { level: null, cohort: null }, dictation: false, theme: 'auto', language: 'es', welcome: 0, dayStart: '00:00' },
 }

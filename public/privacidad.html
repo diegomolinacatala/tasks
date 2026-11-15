@@ -59,13 +59,15 @@
   <body>
     <main>
       <h1>Privacidad</h1>
-      <p class="date">Tasks · actualizada el 9 de noviembre de 2026 · <a href="privacy.html" lang="en">in English</a></p>
+      <p class="date">Tasks · actualizada el 14 de noviembre de 2026 · <a href="privacy.html" lang="en">in English</a></p>
 
       <p>
         Tasks no tiene cuentas ni publicidad. <strong>No recopilamos datos personales</strong> y no vendemos nada
         a nadie. Lo único que sale de tu dispositivo con tu contenido es lo que dictas, y solo si das acceso al
         micrófono tras leer adónde va (ver <a href="#dictado">Dictado</a>), y las sugerencias que tú decidas enviar
-        (ver <a href="#sugerencias">Sugerencias</a>). Además, si lo aceptas, la app cuenta de forma anónima cuánto se
+        (ver <a href="#sugerencias">Sugerencias</a>). Si vinculas tus dispositivos o compartes una cesta, lo que
+        se sincroniza pasa por nuestro servidor <strong>cifrado de extremo a extremo</strong>: no podemos leerlo (ver
+        <a href="#vincular">Vincular dispositivos y cestas compartidas</a>). Además, si lo aceptas, la app cuenta de forma anónima cuánto se
         usa, sin saber de quién (ver <a href="#estadisticas">Estadísticas</a>).
       </p>
 
@@ -74,6 +76,25 @@
         Las tareas, secciones, recordatorios y lugares se guardan solo en tu dispositivo. En el iPhone forman
         parte de la copia de seguridad del propio dispositivo (iCloud o el ordenador), que gestiona Apple y no
         nosotros. Puedes exportarlas o borrarlas desde Ajustes.
+      </p>
+
+      <h2 id="vincular">Vincular dispositivos y cestas compartidas</h2>
+      <p>
+        Solo si lo eliges: en Ajustes → Dispositivos puedes vincular otro dispositivo (por ejemplo, Tasks en tu
+        ordenador) escaneando un código, y en la cesta puedes crear una <strong>cesta compartida</strong> e invitar a
+        otras personas. Para que los cambios lleguen de uno a otro, se guardan en nuestro servidor
+        <strong>cifrados en tu dispositivo</strong> con una clave que solo tienen los dispositivos o las personas
+        que has vinculado o invitado: viaja dentro del código o del enlace, nunca al servidor. El servidor no puede
+        leer tus tareas, tus lugares, lo que hay en una cesta ni los nombres de quienes la comparten; ni siquiera
+        sabe qué es cada cosa.
+      </p>
+      <p>
+        De cada grupo (tus dispositivos o una cesta), el servidor guarda: esos datos cifrados, un identificador
+        aleatorio por dispositivo o persona, la huella (hash) de su clave de acceso, si es quien la creó, y cuándo
+        entró y cuándo se conectó por última vez. Lo que nadie abre en un año se borra solo, y una cesta se borra
+        entera cuando sale la última persona. En una cesta compartida, quien la creó ve los nombres que cada uno
+        eligió al unirse y puede sacar a alguien; lo que se añade no lleva nombre. Puedes desvincular un dispositivo
+        o salir de una cesta cuando quieras: deja de sincronizarse y lo que hay en el tuyo se queda.
       </p>
 
       <h2 id="calendario">Calendario</h2>

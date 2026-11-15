@@ -7,6 +7,7 @@ import { useAvailableUpdate } from '../update/updateState'
 import { AppearanceRow } from './AppearancePicker'
 import { CalendarRow } from './CalendarBlock'
 import { DataRow } from './DataRow'
+import { DevicesRow } from '../sync/DevicesRow'
 import { DictationRow } from './DictationBlock'
 import { LanguagePicker } from './LanguagePicker'
 import { NotificationsRow } from './NotificationsBlock'
@@ -63,6 +64,8 @@ interface SettingsViewProps {
   onWelcome: () => void
   /** Entrar en el modo sugerencia. Sin servidor (en local) no hay. */
   onSuggest?: () => void
+  /** Cambia para abrir Ajustes → Dispositivos (desde la cabecera del escritorio). */
+  devicesRequest?: number
 }
 
 /**
@@ -70,7 +73,7 @@ interface SettingsViewProps {
  * valor de ahora y su panel. Lo que antes eran grupos enteros con notas (avisos, calendario, dictado,
  * datos) vive ahora en su panel, entero: no se pierde nada, solo deja de estar todo a la vez.
  */
-export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
+export function SettingsView({ onWelcome, onSuggest, devicesRequest = 0 }: SettingsViewProps) {
   const state = useAppState()
   const copy = useCopy(COPY)
   const [version, setVersion] = useState<string | null>(null)
@@ -125,6 +128,7 @@ export function SettingsView({ onWelcome, onSuggest }: SettingsViewProps) {
       <section className="group">
         <h2 className="group__title">{copy.data}</h2>
         <div className="group__card">
+          <DevicesRow openRequest={devicesRequest} />
           <DataRow />
           <StatsRow />
           <SettingsRow icon={<IconLock size={17} />} label={copy.privacy} href={`${SITE}${copy.privacyPage}`} />

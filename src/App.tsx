@@ -44,6 +44,9 @@ import { useTaskActions } from './components/task/useTaskActions'
 import { IconBasket, IconTextSize } from './components/ui/Icons'
 import { HereLocatorProvider } from './components/places/HereLocator'
 import { pendingCount } from './lib/shopping'
+import { OPEN_BASKET_EVENT } from './lib/basketTab'
+import { isTypingTarget, useDesktop } from './lib/desktop'
+import { DesktopNav } from './components/shell/DesktopNav'
 import { Skeleton } from './components/ui/Skeleton'
 import { useToast } from './components/ui/Toast'
 import { AgendaView } from './components/views/AgendaView'
@@ -58,6 +61,7 @@ const loadBasket = () => import('./components/shopping/BasketPopover')
 const loadSheets = () =>
   Promise.all([loadInbox(), import('./components/task/TaskSheet'), import('./components/section/SectionSheet'), loadBasket()])
 const BasketPopover = lazy(() => loadBasket().then((module) => ({ default: module.BasketPopover })))
+const BasketPanel = lazy(() => import('./components/shopping/BasketPanel').then((module) => ({ default: module.BasketPanel })))
 const InboxView = lazy(() => loadInbox().then((module) => ({ default: module.InboxView })))
 const TaskSheet = lazy(() => import('./components/task/TaskSheet').then((module) => ({ default: module.TaskSheet })))
 const SectionSheet = lazy(() => import('./components/section/SectionSheet').then((module) => ({ default: module.SectionSheet })))
@@ -197,6 +201,10 @@ export function App() {
   const focusComposer = useRef<(() => void) | null>(null)
   // Modo "Aa": las filas enseñan su mando de importancia en lugar del asa de mover.
   const [sizing, setSizing] = useState(false)
+  // En un ordenador, Bandeja, Agenda y la cesta a la vez, en columnas (`lib/desktop.ts`).
+  const desktop = useDesktop()
+  const [deskOpenedAt] = useState(() => Date.now())
+  const [devicesRequest, setDevicesRequest] = useState(0)
   // La cesta (la lista de la compra), desplegada desde su icono; se monta la primera vez que se abre.
   const [basketOpen, setBasketOpen] = useState(false)
   const [basketUsed, setBasketUsed] = useState(false)
@@ -355,13 +363,21 @@ export function App() {
     setBasketOpen(true)
   }, [])
   const closeBasket = useCallback(() => setBasketOpen(false), [])
+
   // Desde fuera (un aviso, el panel de un lugar): la cesta se despliega de su icono, que solo está en la
   // Bandeja y la Agenda; desde otra pestaña, a la Agenda.
   const showBasket = useCallback(() => {
     closeSheets()
     if (!WRITING.has(currentTab.current)) go('agenda')
-    openBasket()
-  }, [closeSheets, go, openBasket])
+    // En el escritorio la cesta ya está a la vista, en su columna.
+    if (!desktop) openBasket()
+  }, [closeSheets, go, openBasket, desktop])
+
+  // Una invitación aceptada o una cesta nueva piden enseñar la cesta (`openBasket` de `lib/basketTab`).
+  useEffect(() => {
+    window.addEventListener(OPEN_BASKET_EVENT, showBasket)
+    return () => window.removeEventListener(OPEN_BASKET_EVENT, showBasket)
+  }, [showBasket])
 
   useNotificationActions({
     onOpenTask: (id) => {
@@ -582,10 +598,32 @@ export function App() {
   })
 
   const hasOverdue = useMemo(() => state.tasks.some((task) => isOverdue(task, today)), [state.tasks, today])
-  const basketCount = pendingCount(state.shopping.items)
+  const basketCount = pendingCount(state.shopping.items) + state.baskets.reduce((sum, basket) => sum + pendingCount(basket.items), 0)
   // Lo de la barra de escribir va con la pestaña que se ve, no con la que se acaba de tocar.
   const writing = WRITING.has(shownTab)
   const inAgenda = shownTab === 'agenda'
+  const board = desktop && writing
+
+  // En el escritorio la Bandeja se ve junto a la Agenda desde el principio.
+  useEffect(() => {
+    if (desktop) setVisited((current) => (current.has('inbox') ? current : new Set([...current, 'inbox'])))
+  }, [desktop])
+
+  // Atajos del escritorio: N o / escriben una tarea nueva.
+  useEffect(() => {
+    if (!desktop) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return
+      if (document.querySelector('.sheet.is-open, .basket.is-open')) return
+      if (event.key === 'n' || event.key === 'N' || event.key === '/') {
+        event.preventDefault()
+        if (!WRITING.has(currentTab.current)) go('agenda')
+        setFocusRequest((count) => count + 1)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [desktop, go])
   // Adónde puede ir lo escrito: primero donde se está mirando, después los sitios de siempre.
   const section = inAgenda && composeSection ? state.sections.find((item) => item.id === composeSection) : undefined
   const targets = useMemo(
@@ -631,8 +669,9 @@ export function App() {
 
   const pane = (id: TabId, content: ReactNode) =>
     visited.has(id) && (
-      <Activity mode={shownTab === id ? 'visible' : 'hidden'}>
+      <Activity mode={shownTab === id || (board && WRITING.has(id)) ? 'visible' : 'hidden'}>
         <div
+          data-pane={id}
           className="app__scroll"
           ref={(node) => {
             scrollers.current[id] = node
@@ -653,9 +692,19 @@ export function App() {
         data-screen={writing && composing ? 'composer' : shownTab}
         className={`app ${typing ? 'is-typing' : ''} ${sizing ? 'is-sizing' : ''} ${switched ? 'has-switched' : ''} ${
           writing ? 'has-composer' : ''
-        } ${writing && composing ? 'is-composing' : ''} ${basketOpen ? 'has-basket' : ''}`}
+        } ${writing && composing ? 'is-composing' : ''} ${basketOpen ? 'has-basket' : ''} ${desktop ? 'is-desktop' : ''} ${board ? 'is-board' : ''}`}
       >
-        {writing && (
+        {desktop && (
+          <DesktopNav
+            tab={shownTab}
+            onChange={(next) => (next === currentTab.current ? reselect(next) : go(next))}
+            onLink={() => {
+              go('settings')
+              setDevicesRequest((count) => count + 1)
+            }}
+          />
+        )}
+        {writing && !desktop && (
           <button
             type="button"
             className="app__basket"
@@ -711,9 +760,19 @@ export function App() {
                   setWelcome(FULL_WELCOME)
                 }}
                 onSuggest={API_URL ? () => setSuggesting(true) : undefined}
+                devicesRequest={devicesRequest}
               />,
             )}
           </SizingContext.Provider>
+          {board && (
+            <aside className="app__side" data-screen="basket">
+              <div className="basket__panel is-inline">
+                <Suspense fallback={null}>
+                  <BasketPanel openedAt={deskOpenedAt} inline />
+                </Suspense>
+              </div>
+            </aside>
+          )}
           {/* Mientras se escribe, la lista se aparta tras un velo de papel; tocarlo suelta la barra. */}
           <button type="button" className="app__veil" tabIndex={-1} aria-label={copy.stopWriting} aria-hidden={!composing} onClick={stopComposing} />
         </main>
