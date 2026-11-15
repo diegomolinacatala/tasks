@@ -504,7 +504,9 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
   `MARKETING_VERSION` subido a **1.9**.
 - **Vincular dispositivos, cestas compartidas y escritorio** (14/11/2026, commit `c6fa11f`; **en producción** el
   15/11/2026: `capacitor` y `main` en el mismo commit, la web publicada y el Worker desplegado con la migración `v2`;
-  la 1.9 sube a TestFlight; sin probar en el iPhone). Lo pidió el usuario («Tasks en mi ordenador, vinculado al del teléfono» y «cestas
+  **TestFlight 60** (`capacitor`) y **61** (`main`), el mismo código, la **1.9**; sin probar en el iPhone. Comprobado
+  en producción: la web publicada genera el QR contra el Worker, y una prueba de humo contra el Worker desplegado
+  (sala, invitación, invitación gastada, tiempo real por WebSocket y borrado al salir el último) pasa entera). Lo pidió el usuario («Tasks en mi ordenador, vinculado al del teléfono» y «cestas
   compartidas: la del piso con mis amigos, otra con mi familia») y decidió cada detalle en una ronda de preguntas:
   ver "Vincular dispositivos y cestas compartidas" y "Escritorio", y el contrato en `docs/sincronizacion.md`.
   `SCHEMA_VERSION` 19. Worker: salas (`Room`) y emparejamiento (`Pairing`), dos Durable Objects con la migración
@@ -518,7 +520,7 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
 
 **Pendiente, en este orden**
 
-0. **Vincular y cestas compartidas** (ya en la web y en el Worker): probar en el iPhone con la TestFlight de la 1.9 (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
+0. **Vincular y cestas compartidas** (ya en la web y en el Worker): probar en el iPhone con la TestFlight 61 (la 1.9) (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
    la Cámara; crear una cesta, mandar el enlace por WhatsApp, que un amigo con la app se una) y, antes de enviar
    esa versión, la privacidad de App Store Connect (`docs/app-store.md` §4, *Otro contenido del usuario*) y la
    política publicada (`public/privacidad.html#vincular`). Ojo: una tarea con aviso añadida desde el ordenador
