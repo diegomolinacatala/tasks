@@ -1313,13 +1313,13 @@ actualización posible, con la entrada personalizada y las capturas al día:
 ### 9.13 La 1.9: vincular dispositivos y cestas compartidas (15/11/2026)
 
 Tasks en el ordenador vinculado al iPhone, cestas compartidas y la vista de escritorio (`docs/sincronizacion.md`).
-La web y el Worker ya están en producción; la app, en **TestFlight 61** (la 60 es el mismo código, desde
-`capacitor`). Privacidad (§4, *Otro contenido del usuario*) publicada el 15/11/2026. Cambian la descripción y el
+La web y el Worker ya están en producción; la app, en **TestFlight 63** (la 62 es el mismo código, desde
+`capacitor`; la 61 era la de antes de las láminas y las capturas nuevas). Privacidad (§4, *Otro contenido del usuario*) publicada el 15/11/2026. Cambian la descripción y el
 texto promocional (§3 y §3.1), las notas (§5) y **las capturas**: ocho (§3), con el ordenador y las cestas compartidas
 en la segunda y la tercera. Y la bienvenida: quien actualiza ve *Hay novedades* con dos láminas, *En tu ordenador* y
 *Cestas compartidas* (versión 8 de `PLATE_SINCE`), que se prueban con el dedo.
 
-**Antes (en el iPhone)**: *TestFlight* → Tasks → **Actualizar** a la **1.9 (61)** y probar vincular con el ordenador
+**Antes (en el iPhone)**: *TestFlight* → Tasks → **Actualizar** a la **1.9 (63)** y probar vincular con el ordenador
 y una cesta compartida (el QR con la Cámara, *Abrir en Tasks*, las cifras, *Mandar el enlace*).
 
 **En App Store Connect**
@@ -1327,7 +1327,7 @@ y una cesta compartida (el QR con la Cámara, *Abrir en Tasks*, las cifras, *Man
 1. Columna izquierda, junto a **App para iOS**, el **+** azul → `1.9` → **Crear**.
 2. **Novedades de esta versión** (abajo), **Texto promocional** y **Descripción** (§3). Capturas y palabras clave, sin
    tocar (las copia de la 1.8).
-3. **Compilación** → **Añadir compilación** → **1.9 (61)**. Cifrado: *Ninguno de los algoritmos mencionados*.
+3. **Compilación** → **Añadir compilación** → **1.9 (63)**. Cifrado: *Ninguno de los algoritmos mencionados*.
 4. **Información para la revisión** → **Notas**: las de §5, enteras.
 5. **Guardar**. Arriba a la derecha, el idioma → **English (U.S.)**: **What’s New** (abajo), **Promotional Text** y
    **Description** (§3.1) → **Guardar**.

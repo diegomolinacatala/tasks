@@ -531,10 +531,11 @@ extremo a extremo lo que se sincroniza entre tus dispositivos y las cestas compa
 
 **Pendiente, en este orden**
 
-0. **Enviar la 1.9 (61)**: el 15/11/2026 quedó creada y rellena en App Store Connect (novedades, texto promocional,
-   descripción y notas en los dos idiomas, compilación 61, privacidad con *Otro contenido del usuario* publicada);
+0. **Enviar la 1.9 (63)**: el 15/11/2026 quedó creada y rellena en App Store Connect (novedades, texto promocional,
+   descripción y notas en los dos idiomas, las ocho capturas nuevas en español e inglés, compilación 63, privacidad
+   con *Otro contenido del usuario* publicada);
    falta que el usuario pulse **Añadir a revisión → Enviar a App Review** (`docs/app-store.md` §9.13).
-   **Vincular y cestas compartidas** (ya en la web y en el Worker): probar en el iPhone con la TestFlight 61 (la 1.9) (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
+   **Vincular y cestas compartidas** (ya en la web y en el Worker): probar en el iPhone con la TestFlight 63 (la 1.9; también la bienvenida tras actualizar) (Ajustes → Dispositivos → los pasos para un ordenador; escanear el QR de la web con
    la Cámara; crear una cesta, mandar el enlace por WhatsApp, que un amigo con la app se una) y, antes de enviar
    esa versión, la privacidad de App Store Connect (`docs/app-store.md` §4, *Otro contenido del usuario*) y la
    política publicada (`public/privacidad.html#vincular`). Ojo: una tarea con aviso añadida desde el ordenador
